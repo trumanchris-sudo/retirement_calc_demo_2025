@@ -576,6 +576,44 @@ const StatCard: React.FC<{
   );
 };
 
+const CollapsibleSection: React.FC<{
+  title: string;
+  icon?: React.ComponentType<any>;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}> = ({ title, icon: Icon, defaultOpen = false, children }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border-b border-gray-200 last:border-b-0">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between py-4 px-2 hover:bg-gray-50 transition-colors rounded-md"
+      >
+        <div className="flex items-center gap-3">
+          {Icon && <Icon className="w-5 h-5 text-blue-600" />}
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        </div>
+        <svg
+          className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+            isOpen ? 'rotate-90' : ''
+          }`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className="pb-6 px-2 animate-in slide-in-from-top-2 duration-200">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
+
 /** ===============================
  * Generational Wealth Visual
  * ================================ */
@@ -697,12 +735,12 @@ export default function App() {
   const [cTax1, setCTax1] = useState(12000);
   const [cPre1, setCPre1] = useState(23000);
   const [cPost1, setCPost1] = useState(7000);
-  const [cMatch1, setCMatch1] = useState(11500);
+  const [cMatch1, setCMatch1] = useState(0);
 
   const [cTax2, setCTax2] = useState(8000);
   const [cPre2, setCPre2] = useState(23000);
   const [cPost2, setCPost2] = useState(7000);
-  const [cMatch2, setCMatch2] = useState(11500);
+  const [cMatch2, setCMatch2] = useState(0);
 
   const [retRate, setRetRate] = useState(9.8);
   const [infRate, setInfRate] = useState(2.6);
@@ -720,9 +758,9 @@ export default function App() {
   const [hypDeathAge, setHypDeathAge] = useState(90);
   const [hypBenAgesStr, setHypBenAgesStr] = useState("35, 40");
 
-  const [retMode, setRetMode] = useState<"fixed" | "randomWalk">("fixed");
+  const [retMode, setRetMode] = useState<"fixed" | "randomWalk">("randomWalk");
   const [seed, setSeed] = useState(42);
-  const [walkSeries, setWalkSeries] = useState<"nominal" | "real" | "trulyRandom">("nominal");
+  const [walkSeries, setWalkSeries] = useState<"nominal" | "real" | "trulyRandom">("trulyRandom");
 
   const [res, setRes] = useState<any>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -1133,19 +1171,16 @@ export default function App() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-12 px-4 font-sans">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <Card className="overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-blue-600 to-indigo-700">
-          <CardHeader className="pb-8">
-            <div className="flex items-center gap-4 mb-3">
-              <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl">
-                <TrendingUpIcon className="w-10 h-10 text-white" />
+        <Card className="overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700">
+          <CardHeader className="py-12">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-white/10 backdrop-blur-sm rounded-2xl shadow-lg">
+                <TrendingUpIcon className="w-12 h-12 text-white" />
               </div>
               <div>
-                <CardTitle className="text-4xl font-bold text-white tracking-tight">
+                <CardTitle className="text-5xl font-bold text-white tracking-tight">
                   Tax-Aware Retirement Planner
                 </CardTitle>
-                <CardDescription className="text-blue-100 text-base mt-2">
-                  Project wealth with illustrative 2025 brackets (ordinary, LTCG, NIIT), mid-year contributions, and optional generational views.
-                </CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -1321,17 +1356,19 @@ export default function App() {
                 <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} />
                 <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} />
                 <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} />
-                <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200">
-                  <p className="text-sm text-muted-foreground mb-1">Total Balance</p>
-                  <p className="text-2xl font-bold text-blue-700">{fmt(total)}</p>
+                <div className="p-5 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 rounded-xl border-2 border-blue-300 shadow-md">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSignIcon className="w-5 h-5 text-blue-600" />
+                    <p className="text-sm font-medium text-blue-700">Total Current Balance</p>
+                  </div>
+                  <p className="text-3xl font-bold text-blue-900">{fmt(total)}</p>
                 </div>
               </div>
             </div>
 
             <Separator />
 
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold">Annual Contributions</h3>
+            <CollapsibleSection title="Annual Contributions" icon={DollarSignIcon} defaultOpen={false}>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-4">
                   <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Primary</Badge>
@@ -1350,112 +1387,114 @@ export default function App() {
                   </div>
                 )}
               </div>
-            </div>
+            </CollapsibleSection>
 
             <Separator />
 
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold">Assumptions</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input
-                  label="Return Rate (%)"
-                  value={retRate}
-                  setter={setRetRate}
-                  step={0.1}
-                  isRate
-                  tip={retMode === 'fixed' ? "S&P 500 avg ~9.8%" : "Used for 'Fixed' mode. 'Random Walk' uses S&P data."}
-                  disabled={retMode === 'randomWalk'}
-                />
-                <Input
-                  label="Inflation (%)"
-                  value={infRate}
-                  setter={setInfRate}
-                  step={0.1}
-                  isRate
-                  tip="US avg ~2.6%"
-                />
-                <Input
-                  label="State Tax (%)"
-                  value={stateRate}
-                  setter={setStateRate}
-                  step={0.1}
-                  isRate
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Return Model</Label>
-                  <select
-                    value={retMode}
-                    onChange={(e) => setRetMode(e.target.value as "fixed" | "randomWalk")}
-                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="fixed">Fixed (single rate)</option>
-                    <option value="randomWalk">Random Walk (S&P bootstrap)</option>
-                  </select>
-                </div>
-
-                {retMode === "randomWalk" && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Series Basis</Label>
-                      <select
-                        value={walkSeries}
-                        onChange={(e) => setWalkSeries(e.target.value as "nominal" | "real" | "trulyRandom")}
-                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="nominal">Nominal YoY (Fixed Seed)</option>
-                        <option value="real">Real YoY (Fixed Seed)</option>
-                        <option value="trulyRandom">Truly Random (New Seed)</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Seed</Label>
-                      <UIInput
-                        type="number"
-                        value={seed}
-                        onChange={(e) => setSeed(parseInt(e.target.value || "0", 10))}
-                        disabled={walkSeries === 'trulyRandom'}
-                        className="transition-all"
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Withdrawal Rate (%)"
-                  value={wdRate}
-                  setter={setWdRate}
-                  step={0.1}
-                  isRate
-                />
-                <div className="space-y-4">
+            <CollapsibleSection title="Assumptions" icon={TrendingUpIcon} defaultOpen={false}>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Input
-                    label="Increase Rate (%)"
-                    value={incRate}
-                    setter={setIncRate}
+                    label="Return Rate (%)"
+                    value={retRate}
+                    setter={setRetRate}
                     step={0.1}
                     isRate
-                    disabled={!incContrib}
+                    tip={retMode === 'fixed' ? "S&P 500 avg ~9.8%" : "Used for 'Fixed' mode. 'Random Walk' uses S&P data."}
+                    disabled={retMode === 'randomWalk'}
                   />
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="inc-contrib"
-                      checked={incContrib}
-                      onChange={(e) => setIncContrib(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                  <Input
+                    label="Inflation (%)"
+                    value={infRate}
+                    setter={setInfRate}
+                    step={0.1}
+                    isRate
+                    tip="US avg ~2.6%"
+                  />
+                  <Input
+                    label="State Tax (%)"
+                    value={stateRate}
+                    setter={setStateRate}
+                    step={0.1}
+                    isRate
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Return Model</Label>
+                    <select
+                      value={retMode}
+                      onChange={(e) => setRetMode(e.target.value as "fixed" | "randomWalk")}
+                      className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="fixed">Fixed (single rate)</option>
+                      <option value="randomWalk">Random Walk (S&P bootstrap)</option>
+                    </select>
+                  </div>
+
+                  {retMode === "randomWalk" && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Series Basis</Label>
+                        <select
+                          value={walkSeries}
+                          onChange={(e) => setWalkSeries(e.target.value as "nominal" | "real" | "trulyRandom")}
+                          className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="nominal">Nominal YoY (Fixed Seed)</option>
+                          <option value="real">Real YoY (Fixed Seed)</option>
+                          <option value="trulyRandom">Truly Random (New Seed)</option>
+                        </select>
+                      </div>
+                      {walkSeries !== 'trulyRandom' && (
+                        <div className="space-y-2">
+                          <Label>Seed</Label>
+                          <UIInput
+                            type="number"
+                            value={seed}
+                            onChange={(e) => setSeed(parseInt(e.target.value || "0", 10))}
+                            className="transition-all"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Withdrawal Rate (%)"
+                    value={wdRate}
+                    setter={setWdRate}
+                    step={0.1}
+                    isRate
+                  />
+                  <div className="space-y-4">
+                    <Input
+                      label="Increase Rate (%)"
+                      value={incRate}
+                      setter={setIncRate}
+                      step={0.1}
+                      isRate
+                      disabled={!incContrib}
                     />
-                    <Label htmlFor="inc-contrib" className="cursor-pointer">
-                      Increase contributions annually
-                    </Label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="inc-contrib"
+                        checked={incContrib}
+                        onChange={(e) => setIncContrib(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                      />
+                      <Label htmlFor="inc-contrib" className="cursor-pointer">
+                        Increase contributions annually
+                      </Label>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </CollapsibleSection>
 
             <Separator />
 
@@ -1555,12 +1594,12 @@ export default function App() {
 
             <Separator />
 
-            <div className="flex flex-col items-center pt-2">
+            <div className="flex flex-col items-center pt-6 pb-2">
               <Button
                 onClick={calc}
                 disabled={isLoadingAi}
                 size="lg"
-                className="w-full md:w-auto text-lg px-12 py-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all"
+                className="w-full md:w-auto text-lg px-16 py-7 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
               >
                 {isLoadingAi ? (
                   <span className="flex items-center gap-3">
@@ -1568,15 +1607,20 @@ export default function App() {
                     <span>Calculating...</span>
                   </span>
                 ) : (
-                  <span className="flex items-center gap-2">
-                    <TrendingUpIcon className="w-5 h-5" />
+                  <span className="flex items-center gap-3">
+                    <TrendingUpIcon className="w-6 h-6" />
                     Calculate Retirement Plan
                   </span>
                 )}
               </Button>
               {err && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-600 font-semibold">{err}</p>
+                <div className="mt-6 p-5 bg-red-50 border-2 border-red-300 rounded-xl shadow-md max-w-2xl">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-red-800 font-medium text-base">{err}</p>
+                  </div>
                 </div>
               )}
             </div>
