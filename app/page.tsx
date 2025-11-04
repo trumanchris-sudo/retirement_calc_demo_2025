@@ -77,12 +77,6 @@ const NIIT_THRESHOLD = {
   married: 250000,
 } as const;
 
-/** ===============================
- * API Constants (Placeholder)
- * ================================ */
-const API_URL = "";
-const API_KEY = "";
-
 // Net worth data (Median) from Fed's 2022 Survey of Consumer Finances (released Oct 2023)
 const NET_WORTH_DATA = {
   under35: { median: 39000, label: "Under 35" },
