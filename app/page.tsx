@@ -1,280 +1,1422 @@
 "use client"
 
-import { DollarSign, CreditCard, Send, Plus, ArrowUpRight, Download, Filter, Search } from "lucide-react"
-import { useState } from "react"
+import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RTooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MainNav } from "@/components/main-nav"
-import { Overview } from "@/components/overview"
-import { RecentTransactions } from "@/components/recent-transactions"
-import { UserNav } from "@/components/user-nav"
-import { AddMoneyDialog } from "@/components/add-money-dialog"
-import { NewCardDialog } from "@/components/new-card-dialog"
-import { SendMoneyDialog } from "@/components/send-money-dialog"
-import { useToast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
+/** ===============================
+ * Constants
+ * ================================ */
 
-export default function DashboardPage() {
-  const [addMoneyOpen, setAddMoneyOpen] = useState(false)
-  const [newCardOpen, setNewCardOpen] = useState(false)
-  const [sendMoneyOpen, setSendMoneyOpen] = useState(false)
+const MAX_GENS = 40;
+const YEARS_PER_GEN = 30;
+const LIFE_EXP = 95;
+const CURR_YEAR = new Date().getFullYear();
 
-  // Add state for account balances and card count
-  const [checkingBalance, setCheckingBalance] = useState(24231.89)
-  const [savingsBalance, setSavingsBalance] = useState(85124.42)
-  const [activeCards, setActiveCards] = useState(3)
-  const [pendingCards, setPendingCards] = useState(1)
-  const [transactions, setTransactions] = useState<any[]>([])
+/** Illustrative 2025 ordinary brackets + standard deductions */
+const TAX_BRACKETS = {
+  single: {
+    deduction: 15000,
+    rates: [
+      { limit: 11925, rate: 0.1 },
+      { limit: 48475, rate: 0.12 },
+      { limit: 103350, rate: 0.22 },
+      { limit: 197300, rate: 0.24 },
+      { limit: 250525, rate: 0.32 },
+      { limit: 626350, rate: 0.35 },
+      { limit: Infinity, rate: 0.37 },
+    ],
+  },
+  married: {
+    deduction: 30000,
+    rates: [
+      { limit: 23850, rate: 0.1 },
+      { limit: 96950, rate: 0.12 },
+      { limit: 206700, rate: 0.22 },
+      { limit: 394600, rate: 0.24 },
+      { limit: 501050, rate: 0.32 },
+      { limit: 751600, rate: 0.35 },
+      { limit: Infinity, rate: 0.37 },
+    ],
+  },
+} as const;
 
-  const { toast } = useToast()
+/** Illustrative LTCG brackets */
+const LTCG_BRACKETS = {
+  single: [
+    { limit: 50000, rate: 0.0 },
+    { limit: 492300, rate: 0.15 },
+    { limit: Infinity, rate: 0.20 },
+  ],
+  married: [
+    { limit: 100000, rate: 0.0 },
+    { limit: 553850, rate: 0.15 },
+    { limit: Infinity, rate: 0.20 },
+  ],
+} as const;
 
-  const handleAddMoneySuccess = (amount: string) => {
-    setAddMoneyOpen(false)
-    const amountNum = Number.parseFloat(amount)
+/** NIIT thresholds */
+const NIIT_THRESHOLD = {
+  single: 200000,
+  married: 250000,
+} as const;
 
-    // Update checking balance
-    setCheckingBalance((prev) => {
-      const newBalance = prev + amountNum
-      return Number.parseFloat(newBalance.toFixed(2))
-    })
+/** ===============================
+ * API Constants (Placeholder)
+ * ================================ */
+const API_URL = "";
+const API_KEY = "";
 
-    // Add to transactions
-    const newTransaction = {
-      name: "Deposit",
-      date:
-        new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
-        " at " +
-        new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
-      amount: amountNum,
-      type: "credit",
-    }
+// Net worth data (Median) from Fed's 2022 Survey of Consumer Finances (released Oct 2023)
+const NET_WORTH_DATA = {
+  under35: { median: 39000, label: "Under 35" },
+  "35-44": { median: 135600, label: "35-44" },
+  "45-54": { median: 247200, label: "45-54" },
+  "55-64": { median: 364500, label: "55-64" },
+  "65-74": { median: 409900, label: "65-74" },
+  "75+": { median: 335600, label: "75+" },
+};
 
-    setTransactions((prev) => [newTransaction, ...prev])
+const getNetWorthBracket = (age: number) => {
+  if (age < 35) return NET_WORTH_DATA.under35;
+  if (age <= 44) return NET_WORTH_DATA["35-44"];
+  if (age <= 54) return NET_WORTH_DATA["45-54"];
+  if (age <= 64) return NET_WORTH_DATA["55-64"];
+  if (age <= 74) return NET_WORTH_DATA["65-74"];
+  return NET_WORTH_DATA["75+"];
+};
 
-    toast({
-      variant: "success",
-      title: "Money Added Successfully",
-      description: `$${amount} has been added to your account. The funds are now available in your checking account.`,
-    })
-  }
+/** ===============================
+ * S&P 500 Random Walk Data
+ * ================================ */
 
-  const handleSendMoneySuccess = (amount: string, recipient: string, fromAccount = "checking") => {
-    setSendMoneyOpen(false)
-    const amountNum = Number.parseFloat(amount)
+export type ReturnMode = "fixed" | "randomWalk";
+export type WalkSeries = "nominal" | "real" | "trulyRandom";
 
-    // Update the appropriate account balance
-    if (fromAccount === "checking") {
-      setCheckingBalance((prev) => {
-        const newBalance = prev - amountNum
-        return Number.parseFloat(newBalance.toFixed(2))
-      })
-    } else {
-      setSavingsBalance((prev) => {
-        const newBalance = prev - amountNum
-        return Number.parseFloat(newBalance.toFixed(2))
-      })
-    }
+/**
+ * S&P 500 Total Return (YoY)
+ * 1975-2024 (50 years)
+ */
+export const SP500_YOY_NOMINAL: number[] = [
+  37.2, 23.83, -7.18, 6.56, 18.44, 32.5, -4.92, 21.55, 22.56, 6.27, 31.73,
+  18.67, 5.25, 16.61, 31.49, -3.1, 30.47, 7.62, 10.08, 1.32, 37.58, 22.96,
+  33.36, 28.58, 21.04, -9.1, -11.89, -22.1, 28.69, 4.91, 15.79, 5.49,
+  -37.0, 26.46, 15.06, 2.11, 15.99, 32.39, 13.69, 1.38, 11.96, 21.83,
+  -4.38, 31.43, 18.4, -18.11, 26.29, 26.39
+];
 
-    // Add to transactions
-    const newTransaction = {
-      name: recipient,
-      date:
-        new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
-        " at " +
-        new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
-      amount: amountNum,
-      type: "debit",
-    }
-
-    setTransactions((prev) => [newTransaction, ...prev])
-
-    toast({
-      variant: "success",
-      title: "Money Sent Successfully",
-      description: `$${amount} has been sent to ${recipient}. The transaction has been processed.`,
-    })
-  }
-
-  const handleNewCardSuccess = (cardName: string, cardType: string) => {
-    setNewCardOpen(false)
-
-    // Update card counts
-    if (cardType === "Virtual") {
-      setActiveCards((prev) => prev + 1)
-    } else {
-      // Physical cards start as pending
-      setPendingCards((prev) => prev + 1)
-    }
-
-    toast({
-      variant: "success",
-      title: "Card Created Successfully",
-      description: `Your new ${cardType} card "${cardName}" has been created. You can now use it for transactions.`,
-    })
-  }
-
-  // Format currency values
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-  }
-
-  return (
-    <div className="flex min-h-screen flex-col bg-white">
-      <div className="border-b">
-        <div className="flex h-16 items-center px-4">
-          <MainNav className="mx-6" />
-          <div className="ml-auto flex items-center space-x-4">
-            <UserNav />
-          </div>
-        </div>
-      </div>
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-          <div className="flex items-center space-x-2">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setAddMoneyOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Money
-            </Button>
-          </div>
-        </div>
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="bg-gray-100">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-white">
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-white">
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="data-[state=active]:bg-white">
-              Reports
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="data-[state=active]:bg-white">
-              Notifications
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="border border-gray-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Checking Account</CardTitle>
-                  <DollarSign className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">${formatCurrency(checkingBalance)}</div>
-                  <p className="text-xs text-muted-foreground">Available Balance</p>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                    onClick={() => setSendMoneyOpen(true)}
-                  >
-                    <Send className="mr-2 h-4 w-4" />
-                    Send
-                  </Button>
-                  <Button variant="outline" size="sm" className="border-blue-200 hover:bg-blue-50 hover:text-blue-700">
-                    <Download className="mr-2 h-4 w-4" />
-                    Export
-                  </Button>
-                </CardFooter>
-              </Card>
-              <Card className="border border-gray-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Savings Account</CardTitle>
-                  <DollarSign className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">${formatCurrency(savingsBalance)}</div>
-                  <p className="text-xs text-muted-foreground">Available Balance</p>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                    onClick={() => setSendMoneyOpen(true)}
-                  >
-                    <Send className="mr-2 h-4 w-4" />
-                    Send
-                  </Button>
-                  <Button variant="outline" size="sm" className="border-blue-200 hover:bg-blue-50 hover:text-blue-700">
-                    <Download className="mr-2 h-4 w-4" />
-                    Export
-                  </Button>
-                </CardFooter>
-              </Card>
-              <Card className="border border-gray-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Virtual Cards</CardTitle>
-                  <CreditCard className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{activeCards} Active</div>
-                  <p className="text-xs text-muted-foreground">+{pendingCards} pending approval</p>
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => setNewCardOpen(true)}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create a New Card
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-              <Card className="col-span-4 border border-gray-200">
-                <CardHeader>
-                  <CardTitle>Overview</CardTitle>
-                </CardHeader>
-                <CardContent className="pl-2">
-                  <Overview />
-                </CardContent>
-              </Card>
-              <Card className="col-span-3 border border-gray-200">
-                <CardHeader className="flex flex-row items-center">
-                  <div className="grid gap-2">
-                    <CardTitle>Recent Transactions</CardTitle>
-                    <CardDescription>You made 14 transactions this month.</CardDescription>
-                  </div>
-                  <div className="ml-auto flex items-center gap-2">
-                    <Button variant="outline" size="icon" className="border-blue-200 hover:bg-blue-50">
-                      <Filter className="h-4 w-4" />
-                      <span className="sr-only">Filter</span>
-                    </Button>
-                    <Button variant="outline" size="icon" className="border-blue-200 hover:bg-blue-50">
-                      <Search className="h-4 w-4" />
-                      <span className="sr-only">Search</span>
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <RecentTransactions newTransactions={transactions} />
-                </CardContent>
-                <CardFooter>
-                  <Button className="w-full border-blue-200 hover:bg-blue-50 hover:text-blue-700" variant="outline">
-                    <ArrowUpRight className="mr-2 h-4 w-4" />
-                    View All Transactions
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-      <AddMoneyDialog open={addMoneyOpen} onOpenChange={setAddMoneyOpen} onSuccess={handleAddMoneySuccess} />
-      <NewCardDialog open={newCardOpen} onOpenChange={setNewCardOpen} onSuccess={handleNewCardSuccess} />
-      <SendMoneyDialog open={sendMoneyOpen} onOpenChange={setSendMoneyOpen} onSuccess={handleSendMoneySuccess} />
-      <Toaster />
-    </div>
-  )
+/** Simple seeded PRNG so runs are reproducible. */
+export function mulberry32(seed: number) {
+  let t = seed >>> 0;
+  return function rand() {
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
+/**
+ * Build a generator that yields **annual** gross return factors for N years:
+ * - mode=fixed -> constant nominal return (e.g., 9.8% -> 1.098)
+ * - mode=randomWalk -> bootstrap from YoY array (with replacement)
+ * If series="real", subtract infPct from the sampled nominal before converting.
+ */
+export function buildReturnGenerator(options: {
+  mode: ReturnMode;
+  years: number;
+  nominalPct?: number;
+  infPct?: number;
+  walkSeries?: WalkSeries;
+  walkData?: number[];
+  seed?: number;
+}) {
+  const {
+    mode,
+    years,
+    nominalPct = 9.8,
+    infPct = 2.6,
+    walkSeries = "nominal",
+    walkData = SP500_YOY_NOMINAL,
+    seed = 12345,
+  } = options;
+
+  if (mode === "fixed") {
+    const g = 1 + nominalPct / 100;
+    return function* fixedGen() {
+      for (let i = 0; i < years; i++) yield g;
+    };
+  }
+
+  if (!walkData.length) throw new Error("walkData is empty");
+  const rnd = mulberry32(seed);
+  const inflRate = infPct / 100;
+
+  return function* walkGen() {
+    for (let i = 0; i < years; i++) {
+      const ix = Math.floor(rnd() * walkData.length);
+      let pct = walkData[ix];
+
+      if (walkSeries === "real") {
+        const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
+        yield 1 + realRate;
+      } else {
+        yield 1 + pct / 100;
+      }
+    }
+  };
+}
+
+
+/** ===============================
+ * Helpers
+ * ================================ */
+
+type FilingStatus = "single" | "married";
+
+const clampNum = (v: number, min?: number, max?: number) => {
+  let out = v;
+  if (min !== undefined && out < min) out = min;
+  if (max !== undefined && out > max) out = max;
+  return out;
+};
+
+const toNumber = (s: string, fallback = 0) => {
+  if (s.trim() === "") return fallback;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const fmt = (v: number) => {
+  if (!Number.isFinite(v)) return "$0";
+  const abs = Math.abs(v);
+  if (abs >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
+  if (abs >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  if (abs >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+  }).format(v);
+};
+
+const calcOrdinaryTax = (income: number, status: FilingStatus) => {
+  if (income <= 0) return 0;
+  const { rates, deduction } = TAX_BRACKETS[status];
+  let adj = Math.max(0, income - deduction);
+  let tax = 0;
+  let prev = 0;
+  for (const b of rates) {
+    const amount = Math.min(adj, b.limit - prev);
+    tax += amount * b.rate;
+    adj -= amount;
+    prev = b.limit;
+    if (adj <= 0) break;
+  }
+  return tax;
+};
+
+const calcLTCGTax = (
+  capGain: number,
+  status: FilingStatus,
+  ordinaryIncome: number
+) => {
+  if (capGain <= 0) return 0;
+  const brackets = LTCG_BRACKETS[status];
+  let remainingGain = capGain;
+  let tax = 0;
+  let used = 0;
+
+  for (const b of brackets) {
+    const bracketRoom = Math.max(0, b.limit - used - ordinaryIncome);
+    const taxedHere = Math.min(remainingGain, bracketRoom);
+    if (taxedHere > 0) {
+      tax += taxedHere * b.rate;
+      remainingGain -= taxedHere;
+    }
+    used = b.limit - ordinaryIncome;
+    if (remainingGain <= 0) break;
+  }
+
+  if (remainingGain > 0) {
+    const topRate = brackets[brackets.length - 1].rate;
+    tax += remainingGain * topRate;
+  }
+  return tax;
+};
+
+const calcNIIT = (
+  investmentIncome: number,
+  status: FilingStatus,
+  modifiedAGI: number
+) => {
+  if (investmentIncome <= 0) return 0;
+  const threshold = NIIT_THRESHOLD[status];
+  const excess = Math.max(0, modifiedAGI - threshold);
+  if (excess <= 0) return 0;
+  const base = Math.min(investmentIncome, excess);
+  return base * 0.038;
+};
+
+const realReturn = (nominalPct: number, inflPct: number) =>
+  (1 + nominalPct / 100) / (1 + inflPct / 100) - 1;
+
+/** Tailwind safe color map */
+const COLOR = {
+  blue: {
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    text: "text-blue-900",
+    sub: "text-blue-600",
+    badge: "text-blue-700",
+    icon: "text-blue-500",
+  },
+  indigo: {
+    bg: "bg-indigo-50",
+    border: "border-indigo-200",
+    text: "text-indigo-900",
+    sub: "text-indigo-600",
+    badge: "text-indigo-700",
+    icon: "text-indigo-500",
+  },
+  green: {
+    bg: "bg-green-50",
+    border: "border-green-200",
+    text: "text-green-900",
+    sub: "text-green-600",
+    badge: "text-green-700",
+    icon: "text-green-500",
+  },
+  emerald: {
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    text: "text-emerald-900",
+    sub: "text-emerald-600",
+    badge: "text-emerald-700",
+    icon: "text-emerald-500",
+  },
+} as const;
+
+type ColorKey = keyof typeof COLOR;
+
+/** ===============================
+ * Small UI bits - Custom SVG Icons
+ * ================================ */
+
+const InfoIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="16" x2="12" y2="12" />
+    <line x1="12" y1="8" x2="12.01" y2="8" />
+  </svg>
+);
+
+const TrendingUpIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+    <polyline points="17 6 23 6 23 12" />
+  </svg>
+);
+
+const DollarSignIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <line x1="12" y1="1" x2="12" y2="23" />
+    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+  </svg>
+);
+
+const UsersIcon: React.FC<{ className?: string; size?: number }> = ({ className = "", size }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size || 24} height={size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
+const CalendarIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+
+const HourglassIcon: React.FC<{ size?: number }> = ({ size }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size || 24} height={size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 22h14" />
+    <path d="M5 2h14" />
+    <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" />
+    <path d="M7 22v-4.172a2 2 0 0 1 .586-1.414L12 12 7.586 7.586A2 2 0 0 1 7 6.172V2" />
+  </svg>
+);
+
+const SparkleIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={`w-4 h-4 ${className}`}
+  >
+    <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
+    <path d="M5 2L6 5" />
+    <path d="M19 2L18 5" />
+    <path d="M5 22L6 19" />
+    <path d="M19 22L18 19" />
+  </svg>
+);
+
+const Spinner: React.FC = () => (
+  <svg
+    className="animate-spin h-5 w-5 text-white"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+  >
+    <circle
+      className="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+    ></circle>
+    <path
+      className="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    ></path>
+  </svg>
+);
+
+const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading: boolean }> = ({ insight, error, isLoading }) => {
+  if (isLoading) {
+     return (
+      <div className="mt-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
+        <div className="flex items-center gap-2 mb-2">
+          <Spinner />
+          <h4 className="text-lg font-bold text-blue-900">Analyzing Your Plan...</h4>
+        </div>
+        <p className="text-sm text-blue-800 leading-relaxed">
+          Please wait a moment while we generate your personalized insights.
+        </p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mt-6 p-4 rounded-lg bg-red-50 border border-red-200">
+        <div className="flex items-center gap-2 mb-2">
+          <SparkleIcon className="text-red-600" />
+          <h4 className="text-lg font-bold text-red-900">Analysis Error</h4>
+        </div>
+        <p className="text-sm text-red-800 leading-relaxed">{error}</p>
+      </div>
+    );
+  }
+
+  if (!insight) return null;
+
+  return (
+    <div className="mt-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
+      <div className="flex items-center gap-2 mb-2">
+        <SparkleIcon className="text-blue-600" />
+        <h4 className="text-lg font-bold text-blue-900">AI Analysis</h4>
+      </div>
+      <p className="text-sm text-blue-800 leading-relaxed whitespace-pre-wrap">{insight}</p>
+    </div>
+  );
+};
+
+
+const Tip: React.FC<{ text: string }> = ({ text }) => (
+  <div className="inline-block ml-1 group relative">
+    <InfoIcon className="w-4 h-4 text-blue-500 cursor-help inline" />
+    <div className="invisible group-hover:visible absolute z-10 w-64 p-2 text-xs bg-gray-900 text-white rounded shadow-lg left-1/2 -translate-x-1/2 bottom-full mb-2">
+      {text}
+    </div>
+  </div>
+);
+
+type InputProps = {
+  label: string;
+  value: number;
+  setter: (n: number) => void;
+  step?: number;
+  min?: number;
+  max?: number;
+  tip?: string;
+  isRate?: boolean;
+  disabled?: boolean;
+};
+
+const Input: React.FC<InputProps> = ({
+  label,
+  value,
+  setter,
+  step = 1,
+  min = 0,
+  max,
+  tip,
+  isRate = false,
+  disabled = false,
+}) => {
+  const [local, setLocal] = useState<string>(String(value ?? 0));
+
+  useEffect(() => {
+    setLocal(String(value ?? 0));
+  }, [value]);
+
+  const onBlur = () => {
+    const num = toNumber(local, value ?? 0);
+    let val = isRate ? parseFloat(String(num)) : Math.round(num);
+    val = clampNum(val, min, max);
+    setter(val);
+    setLocal(String(val));
+  };
+  return (
+    <div className="mb-3">
+      <label
+        className={`flex items-end text-sm font-medium mb-1 h-10 ${
+          disabled ? "text-gray-400" : "text-gray-700"
+        }`}
+      >
+        <span>
+          {label}
+          {tip && <Tip text={tip} />}
+        </span>
+      </label>
+      <input
+        type="number"
+        value={local}
+        onChange={(e) => setLocal(e.target.value)}
+        onBlur={onBlur}
+        className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500 ${
+          disabled ? "bg-gray-100" : "bg-white"
+        }`}
+        step={step}
+        min={min}
+        max={max}
+        disabled={disabled}
+        inputMode="decimal"
+      />
+    </div>
+  );
+};
+
+const Card: React.FC<{
+  title: string;
+  value: string;
+  sub?: string;
+  color?: ColorKey;
+  icon?: React.ComponentType<any>;
+}> = ({ title, value, sub, color = "blue", icon: Icon }) => {
+  const c = COLOR[color] ?? COLOR.blue;
+  return (
+    <div className={`${c.bg} p-4 rounded-lg border-2 ${c.border} min-h-[130px]`}>
+      <div className="flex justify-between mb-2">
+        <div className={`text-xs font-semibold ${c.badge} uppercase`}>{title}</div>
+        {Icon && <Icon className={`w-5 h-5 ${c.icon}`} />}
+      </div>
+      <div className={`text-2xl font-bold ${c.text} my-2`}>{value}</div>
+      <div className={`text-xs ${c.sub}`}>{sub}</div>
+    </div>
+  );
+};
+
+/** ===============================
+ * Generational Wealth Visual
+ * ================================ */
+const GenerationalWealthVisual: React.FC<{ genPayout: any }> = ({ genPayout }) => {
+  if (!genPayout) return null;
+
+  const isSurviving = genPayout.fundLeftReal > 0;
+
+  if (isSurviving) {
+    return (
+      <div className="flex-shrink-0 w-24 h-24 flex items-center justify-center" title="Survives indefinitely">
+        <span className="relative flex h-12 w-12 text-purple-600">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-12 w-12 bg-purple-500 p-2">
+            <UsersIcon className="m-auto text-white" size={32} />
+          </span>
+        </span>
+      </div>
+    );
+  } else {
+    return (
+      <div className="flex-shrink-0 w-24 h-24 flex items-center justify-center" title={`Exhausts after ${genPayout.years} years`}>
+        <span className="relative flex h-12 w-12 text-gray-500">
+           <HourglassIcon size={48} />
+        </span>
+      </div>
+    );
+  }
+};
+
+
+/** ===============================
+ * Hypothetical per-beneficiary payout model (real terms)
+ * ================================ */
+
+type Cohort = { size: number; age: number };
+
+/**
+ * Simulate constant real-dollar payout per beneficiary with births/deaths.
+ * - Works in 2025 dollars (real terms).
+ * - fund starts as EOL deflated to 2025 dollars.
+ * - Real growth at r = realReturn(nominal, inflation).
+ * - Each year, pay (perBenReal * living).
+ * - Births every birthInterval years: each living ben creates birthMultiple new age-0 bens.
+ * - Death at deathAge.
+ */
+function simulateRealPerBeneficiaryPayout(
+  eolNominal: number,
+  yearsFrom2025: number,
+  nominalRet: number,
+  inflPct: number,
+  perBenReal: number,
+  startBens: number,
+  birthMultiple: number,
+  birthInterval = 30,
+  deathAge = 90,
+  capYears = 10000
+) {
+  let fundReal = eolNominal / Math.pow(1 + inflPct / 100, yearsFrom2025);
+  const r = realReturn(nominalRet, inflPct);
+
+  let cohorts: Cohort[] = startBens > 0 ? [{ size: startBens, age: 0 }] : [];
+  let years = 0;
+
+  for (let t = 0; t < capYears; t++) {
+    cohorts = cohorts.filter((c) => c.age < deathAge);
+
+    const living = cohorts.reduce((acc, c) => acc + c.size, 0);
+    if (living === 0) {
+      return { years, fundLeftReal: fundReal, lastLivingCount: 0 };
+    }
+
+    fundReal *= 1 + r;
+    const payout = perBenReal * living;
+    fundReal -= payout;
+
+    if (fundReal < 0) {
+      return { years, fundLeftReal: 0, lastLivingCount: living };
+    }
+
+    years += 1;
+
+    cohorts.forEach((c) => (c.age += 1));
+
+    if (years % birthInterval === 0) {
+      const births = living * birthMultiple;
+      if (births > 0) cohorts.push({ size: births, age: 0 });
+    }
+  }
+
+  const lastLiving = cohorts.reduce((acc, c) => acc + c.size, 0);
+  return { years, fundLeftReal: fundReal, lastLivingCount: lastLiving };
+}
+
+/** ===============================
+ * App
+ * ================================ */
+
+export default function App() {
+  const [marital, setMarital] = useState<FilingStatus>("married");
+  const [age1, setAge1] = useState(35);
+  const [age2, setAge2] = useState(33);
+  const [retAge, setRetAge] = useState(65);
+
+  const [sTax, setSTax] = useState(50000);
+  const [sPre, setSPre] = useState(150000);
+  const [sPost, setSPost] = useState(25000);
+
+  const [cTax1, setCTax1] = useState(12000);
+  const [cPre1, setCPre1] = useState(23000);
+  const [cPost1, setCPost1] = useState(7000);
+  const [cMatch1, setCMatch1] = useState(11500);
+
+  const [cTax2, setCTax2] = useState(8000);
+  const [cPre2, setCPre2] = useState(23000);
+  const [cPost2, setCPost2] = useState(7000);
+  const [cMatch2, setCMatch2] = useState(11500);
+
+  const [retRate, setRetRate] = useState(9.8);
+  const [infRate, setInfRate] = useState(2.6);
+  const [stateRate, setStateRate] = useState(0);
+  const [incContrib, setIncContrib] = useState(true);
+  const [incRate, setIncRate] = useState(4.5);
+  const [wdRate, setWdRate] = useState(3.5);
+
+  const [showGen, setShowGen] = useState(false);
+
+  const [hypPerBen, setHypPerBen] = useState(1_000_000);
+  const [hypStartBens, setHypStartBens] = useState(2);
+  const [hypBirthMultiple, setHypBirthMultiple] = useState(1);
+  const [hypBirthInterval, setHypBirthInterval] = useState(30);
+  const [hypDeathAge, setHypDeathAge] = useState(90);
+
+  const [retMode, setRetMode] = useState<"fixed" | "randomWalk">("fixed");
+  const [seed, setSeed] = useState(42);
+  const [walkSeries, setWalkSeries] = useState<"nominal" | "real" | "trulyRandom">("nominal");
+
+  const [res, setRes] = useState<any>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const [aiInsight, setAiInsight] = useState<string>("");
+  const [isLoadingAi, setIsLoadingAi] = useState<boolean>(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const resRef = useRef<HTMLDivElement | null>(null);
+  const genRef = useRef<HTMLDivElement | null>(null);
+
+  const isMar = useMemo(() => marital === "married", [marital]);
+  const total = useMemo(() => sTax + sPre + sPost, [sTax, sPre, sPost]);
+
+  const fetchAiInsight = async (calcResult: any, olderAge: number) => {
+    if (!calcResult) return;
+
+    setIsLoadingAi(true);
+    setAiInsight("");
+    setAiError(null);
+
+    // Placeholder for AI analysis - integrate with your preferred AI API
+    setTimeout(() => {
+      const insight = "Analysis complete! This is a placeholder for AI insights. To enable real AI analysis, integrate with your preferred AI API (Claude, GPT, etc.) using the calculation results.";
+      setAiInsight(insight);
+      setIsLoadingAi(false);
+    }, 2000);
+  };
+
+  const calc = useCallback(() => {
+    setErr(null);
+    setAiInsight("");
+    setAiError(null);
+    setIsLoadingAi(true);
+    let newRes: any = null;
+    let olderAgeForAI: number = 0;
+
+    let currentSeed = seed;
+    if (walkSeries === 'trulyRandom') {
+      currentSeed = Math.floor(Math.random() * 1000000);
+      setSeed(currentSeed);
+    }
+
+    try {
+      if (!age1 || age1 <= 0) throw new Error("Enter valid age");
+      if (isMar && (!age2 || age2 <= 0)) throw new Error("Enter valid spouse age");
+      if (!retAge || retAge <= 0) throw new Error("Enter valid retirement age");
+
+      const younger = Math.min(age1, isMar ? age2 : age1);
+      const older = Math.max(age1, isMar ? age2 : age1);
+      olderAgeForAI = older;
+
+      if (retAge <= younger)
+        throw new Error("Retirement age must be greater than current age");
+
+      const yrsToRet = retAge - younger;
+      const g_fixed = 1 + retRate / 100;
+      const infl = infRate / 100;
+      const infl_factor = 1 + infl;
+
+      const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
+
+      const accGen = buildReturnGenerator({
+        mode: retMode,
+        years: yrsToRet + 1,
+        nominalPct: retRate,
+        infPct: infRate,
+        walkSeries,
+        seed: currentSeed,
+      })();
+
+      const drawGen = buildReturnGenerator({
+        mode: retMode,
+        years: yrsToSim,
+        nominalPct: retRate,
+        infPct: infRate,
+        walkSeries,
+        seed: currentSeed + 1,
+      })();
+
+      let bTax = sTax;
+      let bPre = sPre;
+      let bPost = sPost;
+      let basisTax = sTax;
+
+      const data: { year: number; a1: number; a2: number | null; bal: number; real: number }[] = [];
+      let totC = total;
+
+      let c = {
+        p: { tax: cTax1, pre: cPre1, post: cPost1, match: cMatch1 },
+        s: { tax: cTax2, pre: cPre2, post: cPost2, match: cMatch2 },
+      };
+
+      for (let y = 0; y <= yrsToRet; y++) {
+        const g = retMode === "fixed" ? g_fixed : (accGen.next().value as number);
+
+        const yr = CURR_YEAR + y;
+        const a1 = age1 + y;
+        const a2 = isMar ? age2 + y : null;
+
+        if (y > 0) {
+          bTax *= g;
+          bPre *= g;
+          bPost *= g;
+        }
+
+        if (y > 0 && incContrib) {
+          const f = 1 + incRate / 100;
+          (Object.keys(c.p) as (keyof typeof c.p)[]).forEach((k) => (c.p[k] *= f));
+          if (isMar)
+            (Object.keys(c.s) as (keyof typeof c.s)[]).forEach((k) => (c.s[k] *= f));
+        }
+
+        const addMidYear = (amt: number) => amt * (1 + (g - 1) * 0.5);
+
+        if (a1 < retAge) {
+          bTax += addMidYear(c.p.tax);
+          bPre += addMidYear(c.p.pre + c.p.match);
+          bPost += addMidYear(c.p.post);
+          basisTax += c.p.tax;
+          totC += c.p.tax + c.p.pre + c.p.match + c.p.post;
+        }
+        if (isMar && a2! < retAge) {
+          bTax += addMidYear(c.s.tax);
+          bPre += addMidYear(c.s.pre + c.s.match);
+          bPost += addMidYear(c.s.post);
+          basisTax += c.s.tax;
+          totC += c.s.tax + c.s.pre + c.s.match + c.s.post;
+        }
+
+        const bal = bTax + bPre + bPost;
+        data.push({
+          year: yr,
+          a1,
+          a2,
+          bal,
+          real: bal / Math.pow(1 + infl, y),
+        });
+      }
+
+      const finNom = bTax + bPre + bPost;
+      const infAdj = Math.pow(1 + infl, yrsToRet);
+      const finReal = finNom / infAdj;
+
+      const wdGrossY1 = finNom * (wdRate / 100);
+
+      const computeWithdrawalTaxes = (
+        gross: number,
+        status: FilingStatus,
+        taxableBal: number,
+        pretaxBal: number,
+        rothBal: number,
+        taxableBasis: number,
+        statePct: number
+      ) => {
+        const totalBal = taxableBal + pretaxBal + rothBal;
+        if (totalBal <= 0 || gross <= 0)
+          return { tax: 0, ordinary: 0, capgain: 0, niit: 0, state: 0, draw: { t: 0, p: 0, r: 0 }, newBasis: taxableBasis };
+
+        const shareT = totalBal > 0 ? taxableBal / totalBal : 0;
+        const shareP = totalBal > 0 ? pretaxBal / totalBal : 0;
+        const shareR = totalBal > 0 ? rothBal / totalBal : 0;
+
+        let drawT = gross * shareT;
+        let drawP = gross * shareP;
+        let drawR = gross * shareR;
+
+        const fixShortfall = (want: number, have: number) => Math.min(want, have);
+
+        const usedT = fixShortfall(drawT, taxableBal);
+        let shortT = drawT - usedT;
+
+        const usedP = fixShortfall(drawP + shortT, pretaxBal);
+        let shortP = drawP + shortT - usedP;
+
+        const usedR = fixShortfall(drawR + shortP, rothBal);
+
+        drawT = usedT;
+        drawP = usedP;
+        drawR = usedR;
+
+        const unrealizedGain = Math.max(0, taxableBal - taxableBasis);
+        const gainRatio = taxableBal > 0 ? unrealizedGain / taxableBal : 0;
+        const drawT_Gain = drawT * gainRatio;
+        const drawT_Basis = drawT - drawT_Gain;
+
+        const ordinaryIncome = drawP;
+        const capGains = drawT_Gain;
+
+        const fedOrd = calcOrdinaryTax(ordinaryIncome, status);
+        const fedCap = calcLTCGTax(capGains, status, ordinaryIncome);
+        const magi = ordinaryIncome + capGains;
+        const niit = calcNIIT(capGains, status, magi);
+        const stateTax = (ordinaryIncome + capGains) * (statePct / 100);
+
+        const totalTax = fedOrd + fedCap + niit + stateTax;
+        const newBasis = Math.max(0, taxableBasis - drawT_Basis);
+
+        return {
+          tax: totalTax,
+          ordinary: fedOrd,
+          capgain: fedCap,
+          niit,
+          state: stateTax,
+          draw: { t: drawT, p: drawP, r: drawR },
+          newBasis,
+        };
+      };
+
+      const y1 = computeWithdrawalTaxes(
+        wdGrossY1,
+        marital,
+        bTax,
+        bPre,
+        bPost,
+        basisTax,
+        stateRate
+      );
+
+      const wdAfterY1 = wdGrossY1 - y1.tax;
+      const wdRealY1 = wdAfterY1 / infAdj;
+
+      let retBalTax = bTax;
+      let retBalPre = bPre;
+      let retBalRoth = bPost;
+      let currBasis = basisTax;
+      let currWdGross = wdGrossY1;
+      let survYrs = 0;
+
+      for (let y = 1; y <= yrsToSim; y++) {
+        const g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
+
+        retBalTax *= g_retire;
+        retBalPre *= g_retire;
+        retBalRoth *= g_retire;
+
+        const taxes = computeWithdrawalTaxes(
+          currWdGross,
+          marital,
+          retBalTax,
+          retBalPre,
+          retBalRoth,
+          currBasis,
+          stateRate
+        );
+
+        retBalTax -= taxes.draw.t;
+        retBalPre -= taxes.draw.p;
+        retBalRoth -= taxes.draw.r;
+        currBasis = taxes.newBasis;
+
+        if (retBalTax < 0) retBalTax = 0;
+        if (retBalPre < 0) retBalPre = 0;
+        if (retBalRoth < 0) retBalRoth = 0;
+
+        const totalNow = retBalTax + retBalPre + retBalRoth;
+        if (totalNow <= 0) {
+          survYrs = y - 1;
+          retBalTax = retBalPre = retBalRoth = 0;
+          break;
+        }
+        survYrs = y;
+
+        currWdGross *= infl_factor;
+      }
+
+      const eolWealth = Math.max(0, retBalTax + retBalPre + retBalRoth);
+
+      const yearsFrom2025 = yrsToRet + yrsToSim;
+      let genPayout: null | {
+        perBenReal: number;
+        years: number;
+        fundLeftReal: number;
+        startBeneficiaries: number;
+        lastLivingCount: number;
+        birthMultiple: number;
+        birthInterval: number;
+        deathAge: number;
+      } = null;
+
+      if (showGen && eolWealth > 0) {
+        const sim = simulateRealPerBeneficiaryPayout(
+          eolWealth,
+          yearsFrom2025,
+          retRate,
+          infRate,
+          hypPerBen,
+          Math.max(1, hypStartBens),
+          Math.max(0, hypBirthMultiple),
+          Math.max(1, hypBirthInterval),
+          Math.max(1, hypDeathAge)
+        );
+        genPayout = {
+          perBenReal: hypPerBen,
+          years: sim.years,
+          fundLeftReal: sim.fundLeftReal,
+          startBeneficiaries: Math.max(1, hypStartBens),
+          lastLivingCount: sim.lastLivingCount,
+          birthMultiple: Math.max(0, hypBirthMultiple),
+          birthInterval: Math.max(1, hypBirthInterval),
+          deathAge: Math.max(1, hypDeathAge),
+        };
+      }
+
+      newRes = {
+        finNom,
+        finReal,
+        totC,
+        data,
+        yrsToRet,
+        wd: wdGrossY1,
+        wdAfter: wdAfterY1,
+        wdReal: wdRealY1,
+        survYrs,
+        yrsToSim,
+        eol: eolWealth,
+        genPayout,
+        tax: {
+          fedOrd: calcOrdinaryTax(y1.draw.p, marital),
+          fedCap: calcLTCGTax(
+            y1.draw.t * (Math.max(0, bTax - basisTax) / Math.max(1, bTax)),
+            marital,
+            y1.draw.p
+          ),
+          niit: calcNIIT(
+            y1.draw.t * (Math.max(0, bTax - basisTax) / Math.max(1, bTax)),
+            marital,
+            y1.draw.p +
+              y1.draw.t * (Math.max(0, bTax - basisTax) / Math.max(1, bTax))
+          ),
+          state: (y1.draw.p +
+            y1.draw.t * (Math.max(0, bTax - basisTax) / Math.max(1, bTax))) *
+            (stateRate / 100),
+          tot: y1.tax,
+        },
+      };
+
+      setRes(newRes);
+
+      setTimeout(() => {
+        if (showGen && genPayout) {
+          genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
+          resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        fetchAiInsight(newRes, olderAgeForAI);
+      }, 100);
+
+    } catch (e: any) {
+      setErr(e.message ?? String(e));
+      setRes(null);
+      setIsLoadingAi(false);
+    }
+  }, [
+    age1, age2, retAge, isMar, sTax, sPre, sPost,
+    cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+    retRate, infRate, stateRate, incContrib, incRate, wdRate,
+    showGen, total, marital,
+    hypPerBen, hypStartBens, hypBirthMultiple, hypBirthInterval, hypDeathAge,
+    retMode, seed, walkSeries,
+  ]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-8 px-4 font-sans">
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <TrendingUpIcon className="w-8 h-8 text-blue-600" />
+            <h1 className="text-3xl font-bold text-gray-900">Tax-Aware Retirement Planner</h1>
+          </div>
+          <p className="text-gray-600">
+            Project wealth with illustrative 2025 brackets (ordinary, LTCG, NIIT), mid-year contributions, and optional generational views.
+          </p>
+        </div>
+
+        {res && (
+          <div ref={resRef} className="mb-6 scroll-mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <Card
+                title="Future Balance"
+                value={fmt(res.finNom)}
+                sub={`At age ${retAge} (nominal)`}
+                color="blue"
+                icon={DollarSignIcon}
+              />
+              <Card
+                title="Today's Dollars"
+                value={fmt(res.finReal)}
+                sub={`At age ${retAge} (real)`}
+                color="indigo"
+                icon={TrendingUpIcon}
+              />
+              <Card
+                title="Annual Withdrawal"
+                value={fmt(res.wd)}
+                sub={`Year 1 (${wdRate}% rate)`}
+                color="green"
+                icon={CalendarIcon}
+              />
+              <Card
+                title="After-Tax Income"
+                value={fmt(res.wdReal)}
+                sub="Year 1 real spending"
+                color="emerald"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-white p-4 rounded-lg shadow">
+                <div className="text-sm text-gray-600">Duration</div>
+                <div className="text-xl font-bold">
+                  {res.survYrs === res.yrsToSim
+                    ? `${res.yrsToSim} yrs (to ${LIFE_EXP})`
+                    : `${res.survYrs} yrs`}
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow">
+                <div className="text-sm text-gray-600">End-of-Life Wealth</div>
+                <div className="text-xl font-bold">{fmt(res.eol)}</div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow">
+                <div className="text-sm text-gray-600">Year 1 Tax (all-in)</div>
+                <div className="text-xl font-bold">{fmt(res.tax.tot)}</div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-lg mb-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-800">Plan Analysis</h3>
+              </div>
+              <AiInsightBox
+                insight={aiInsight}
+                error={aiError}
+                isLoading={isLoadingAi}
+              />
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-lg">
+              <h3 className="text-lg font-bold mb-4">Accumulation Projection</h3>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={res.data}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="year" />
+                  <YAxis tickFormatter={(v) => fmt(v as number)} />
+                  <RTooltip
+                    formatter={(v) => fmt(v as number)}
+                    labelFormatter={(l) => String(l)}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="bal"
+                    stroke="#2563eb"
+                    strokeWidth={3}
+                    name="Nominal"
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="real"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    name="Real"
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div>
+              <h3 className="text-lg font-bold mb-4 flex items-center">
+                <UsersIcon className="w-5 h-5 mr-2 text-blue-600" />
+                Personal Info
+              </h3>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Marital Status</label>
+                <select
+                  value={marital}
+                  onChange={(e) => setMarital(e.target.value as FilingStatus)}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  <option value="single">Single</option>
+                  <option value="married">Married</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} />
+                {isMar && (
+                  <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} />
+                )}
+              </div>
+
+              <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold mb-4 flex items-center">
+                <DollarSignIcon className="w-5 h-5 mr-2 text-green-600" />
+                Current Balances
+              </h3>
+              <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} />
+              <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} />
+              <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} />
+              <div className="p-3 bg-blue-50 rounded-lg text-sm font-semibold">Total: {fmt(total)}</div>
+            </div>
+          </div>
+
+          <div className="border-t pt-6 mb-6">
+            <h3 className="text-lg font-bold mb-4">Annual Contributions</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <div className="text-sm font-semibold mb-3">Primary</div>
+                <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} />
+                <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} />
+                <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} />
+                <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} />
+              </div>
+              {isMar && (
+                <div>
+                  <div className="text-sm font-semibold mb-3">Spouse</div>
+                  <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} />
+                  <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} />
+                  <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} />
+                  <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t pt-6 mb-6">
+            <h3 className="text-lg font-bold mb-4">Assumptions</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input
+                label="Return Rate (%)"
+                value={retRate}
+                setter={setRetRate}
+                step={0.1}
+                isRate
+                tip={retMode === 'fixed' ? "S&P 500 avg ~9.8%" : "Used for 'Fixed' mode. 'Random Walk' uses S&P data."}
+                disabled={retMode === 'randomWalk'}
+              />
+              <Input
+                label="Inflation (%)"
+                value={infRate}
+                setter={setInfRate}
+                step={0.1}
+                isRate
+                tip="US avg ~2.6%"
+              />
+              <Input
+                label="State Tax (%)"
+                value={stateRate}
+                setter={setStateRate}
+                step={0.1}
+                isRate
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div>
+                <label className="block text-sm font-medium mb-1 h-10 items-end flex">
+                  <span>Return Model</span>
+                </label>
+                <select
+                  value={retMode}
+                  onChange={(e) => setRetMode(e.target.value as "fixed" | "randomWalk")}
+                  className="w-full px-3 py-2 border rounded-md bg-white text-sm"
+                >
+                  <option value="fixed">Fixed (single rate)</option>
+                  <option value="randomWalk">Random Walk (S&P bootstrap)</option>
+                </select>
+              </div>
+
+              {retMode === "randomWalk" && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 h-10 items-end flex">
+                      <span>Series Basis</span>
+                    </label>
+                    <select
+                      value={walkSeries}
+                      onChange={(e) => setWalkSeries(e.target.value as "nominal" | "real" | "trulyRandom")}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm"
+                    >
+                      <option value="nominal">Nominal YoY (Fixed Seed)</option>
+                      <option value="real">Real YoY (Fixed Seed)</option>
+                      <option value="trulyRandom">Truly Random (New Seed)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={`flex items-end text-sm font-medium mb-1 h-10 ${
+                      walkSeries === 'trulyRandom' ? "text-gray-400" : "text-gray-700"
+                    }`}>
+                      <span>Seed</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={seed}
+                      onChange={(e) => setSeed(parseInt(e.target.value || "0", 10))}
+                      className={`w-full px-3 py-2 border rounded-md text-sm ${
+                        walkSeries === 'trulyRandom' ? "bg-gray-100" : "bg-white"
+                      }`}
+                      disabled={walkSeries === 'trulyRandom'}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <Input
+                label="Withdrawal Rate (%)"
+                value={wdRate}
+                setter={setWdRate}
+                step={0.1}
+                isRate
+              />
+              <div>
+                <Input
+                  label="Increase Rate (%)"
+                  value={incRate}
+                  setter={setIncRate}
+                  step={0.1}
+                  isRate
+                  disabled={!incContrib}
+                />
+                <label className="flex items-center mt-2">
+                  <input
+                    type="checkbox"
+                    checked={incContrib}
+                    onChange={(e) => setIncContrib(e.target.checked)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm font-medium">Increase contributions</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-6">
+            <label className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                checked={showGen}
+                onChange={(e) => setShowGen(e.target.checked)}
+                className="mr-3 h-5 w-5"
+              />
+              <h3 className="text-lg font-bold text-purple-700">Generational Wealth</h3>
+            </label>
+
+            {showGen && (
+              <>
+                <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-lg font-bold text-purple-800">
+                      Hypothetical Per-Beneficiary Payout (Real $)
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <Input
+                      label="Annual Per-Beneficiary ($, 2025)"
+                      value={hypPerBen}
+                      setter={setHypPerBen}
+                      step={50000}
+                    />
+                    <Input
+                      label="Starting Beneficiaries"
+                      value={hypStartBens}
+                      setter={setHypStartBens}
+                      min={1}
+                    />
+                    <Input
+                      label="Births per Beneficiary"
+                      value={hypBirthMultiple}
+                      setter={setHypBirthMultiple}
+                      min={0}
+                      step={1}
+                      tip="Every birth interval years, each living beneficiary spawns this many new beneficiaries."
+                    />
+                    <Input
+                      label="Birth Interval (yrs)"
+                      value={hypBirthInterval}
+                      setter={setHypBirthInterval}
+                      min={1}
+                      step={1}
+                    />
+                    <Input
+                      label="Lifespan (yrs)"
+                      value={hypDeathAge}
+                      setter={setHypDeathAge}
+                      min={1}
+                      step={1}
+                    />
+                  </div>
+
+                  {res?.genPayout && (
+                    <div ref={genRef} className="mt-4 flex flex-col md:flex-row items-center gap-4">
+                      <GenerationalWealthVisual genPayout={res.genPayout} />
+
+                      <div className="text-sm text-purple-900 flex-1 text-center md:text-left">
+                        Could pay <strong>{fmt(res.genPayout.perBenReal)}</strong> per beneficiary
+                        (2025 dollars) for approximately{" "}
+                        <strong>{res.genPayout.years} years</strong>{" "}
+                        {res.genPayout.fundLeftReal > 0
+                          ? "with principal remaining"
+                          : "until exhaustion"}
+                        .
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="mt-6 pt-6 border-t text-center">
+            <button
+              onClick={calc}
+              disabled={isLoadingAi}
+              className="px-8 py-4 bg-blue-600 text-white text-lg font-bold rounded-lg hover:bg-blue-700 transition-colors w-full md:w-auto disabled:bg-gray-400"
+            >
+              {isLoadingAi ? (
+                <span className="flex items-center justify-center">
+                  <Spinner /> <span className="ml-2">Calculating...</span>
+                </span>
+              ) : (
+                "Calculate"
+              )}
+            </button>
+            {err && <p className="text-red-600 font-semibold mt-4">{err}</p>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
