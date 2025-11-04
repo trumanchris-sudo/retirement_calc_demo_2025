@@ -10,7 +10,15 @@ import {
   Tooltip as RTooltip,
   Legend,
   ResponsiveContainer,
+  Area,
+  AreaChart,
 } from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input as UIInput } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 /** ===============================
  * Constants
@@ -408,12 +416,14 @@ const Spinner: React.FC = () => (
 const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading: boolean }> = ({ insight, error, isLoading }) => {
   if (isLoading) {
      return (
-      <div className="mt-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
-        <div className="flex items-center gap-2 mb-2">
-          <Spinner />
-          <h4 className="text-lg font-bold text-blue-900">Analyzing Your Plan...</h4>
+      <div className="p-6 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-sm">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="animate-spin">
+            <SparkleIcon className="text-blue-600" />
+          </div>
+          <h4 className="text-lg font-semibold text-blue-900">Analyzing Your Plan...</h4>
         </div>
-        <p className="text-sm text-blue-800 leading-relaxed">
+        <p className="text-sm text-blue-700 leading-relaxed">
           Please wait a moment while we generate your personalized insights.
         </p>
       </div>
@@ -422,23 +432,33 @@ const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading
 
   if (error) {
     return (
-      <div className="mt-6 p-4 rounded-lg bg-red-50 border border-red-200">
-        <div className="flex items-center gap-2 mb-2">
+      <div className="p-6 rounded-xl bg-red-50 border-2 border-red-200 shadow-sm">
+        <div className="flex items-center gap-3 mb-3">
           <SparkleIcon className="text-red-600" />
-          <h4 className="text-lg font-bold text-red-900">Analysis Error</h4>
+          <h4 className="text-lg font-semibold text-red-900">Analysis Error</h4>
         </div>
-        <p className="text-sm text-red-800 leading-relaxed">{error}</p>
+        <p className="text-sm text-red-700 leading-relaxed">{error}</p>
       </div>
     );
   }
 
-  if (!insight) return null;
+  if (!insight) {
+    return (
+      <div className="p-6 rounded-xl bg-gray-50 border-2 border-gray-200 shadow-sm text-center">
+        <p className="text-sm text-muted-foreground">
+          Click "Calculate Retirement Plan" to see your personalized analysis
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="mt-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
-      <div className="flex items-center gap-2 mb-2">
-        <SparkleIcon className="text-blue-600" />
-        <h4 className="text-lg font-bold text-blue-900">AI Analysis</h4>
+    <div className="p-6 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-sm">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-blue-100 rounded-lg">
+          <SparkleIcon className="text-blue-600" />
+        </div>
+        <h4 className="text-lg font-semibold text-blue-900">Personalized Analysis</h4>
       </div>
       <p className="text-sm text-blue-800 leading-relaxed whitespace-pre-wrap">{insight}</p>
     </div>
@@ -492,36 +512,28 @@ const Input: React.FC<InputProps> = ({
     setLocal(String(val));
   };
   return (
-    <div className="mb-3">
-      <label
-        className={`flex items-end text-sm font-medium mb-1 h-10 ${
-          disabled ? "text-gray-400" : "text-gray-700"
-        }`}
-      >
-        <span>
-          {label}
-          {tip && <Tip text={tip} />}
-        </span>
-      </label>
-      <input
+    <div className="space-y-2">
+      <Label className="flex items-center gap-1.5">
+        {label}
+        {tip && <Tip text={tip} />}
+      </Label>
+      <UIInput
         type="number"
         value={local}
         onChange={(e) => setLocal(e.target.value)}
         onBlur={onBlur}
-        className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500 ${
-          disabled ? "bg-gray-100" : "bg-white"
-        }`}
         step={step}
         min={min}
         max={max}
         disabled={disabled}
         inputMode="decimal"
+        className="transition-all"
       />
     </div>
   );
 };
 
-const Card: React.FC<{
+const StatCard: React.FC<{
   title: string;
   value: string;
   sub?: string;
@@ -530,14 +542,22 @@ const Card: React.FC<{
 }> = ({ title, value, sub, color = "blue", icon: Icon }) => {
   const c = COLOR[color] ?? COLOR.blue;
   return (
-    <div className={`${c.bg} p-4 rounded-lg border-2 ${c.border} min-h-[130px]`}>
-      <div className="flex justify-between mb-2">
-        <div className={`text-xs font-semibold ${c.badge} uppercase`}>{title}</div>
-        {Icon && <Icon className={`w-5 h-5 ${c.icon}`} />}
-      </div>
-      <div className={`text-2xl font-bold ${c.text} my-2`}>{value}</div>
-      <div className={`text-xs ${c.sub}`}>{sub}</div>
-    </div>
+    <Card className="overflow-hidden border-2 transition-all hover:shadow-lg hover:-translate-y-1">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between mb-3">
+          <Badge variant="secondary" className={`${c.bg} ${c.badge} border-0`}>
+            {title}
+          </Badge>
+          {Icon && (
+            <div className={`p-2 rounded-lg ${c.bg}`}>
+              <Icon className={`w-5 h-5 ${c.icon}`} />
+            </div>
+          )}
+        </div>
+        <div className={`text-3xl font-bold ${c.text} mb-1`}>{value}</div>
+        {sub && <p className={`text-sm ${c.sub}`}>{sub}</p>}
+      </CardContent>
+    </Card>
   );
 };
 
@@ -1040,43 +1060,52 @@ export default function App() {
   ]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-8 px-4 font-sans">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <TrendingUpIcon className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Tax-Aware Retirement Planner</h1>
-          </div>
-          <p className="text-gray-600">
-            Project wealth with illustrative 2025 brackets (ordinary, LTCG, NIIT), mid-year contributions, and optional generational views.
-          </p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-12 px-4 font-sans">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <Card className="overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-blue-600 to-indigo-700">
+          <CardHeader className="pb-8">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl">
+                <TrendingUpIcon className="w-10 h-10 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-4xl font-bold text-white tracking-tight">
+                  Tax-Aware Retirement Planner
+                </CardTitle>
+                <CardDescription className="text-blue-100 text-base mt-2">
+                  Project wealth with illustrative 2025 brackets (ordinary, LTCG, NIIT), mid-year contributions, and optional generational views.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
 
         {res && (
-          <div ref={resRef} className="mb-6 scroll-mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <Card
+          <div ref={resRef} className="space-y-6 scroll-mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard
                 title="Future Balance"
                 value={fmt(res.finNom)}
                 sub={`At age ${retAge} (nominal)`}
                 color="blue"
                 icon={DollarSignIcon}
               />
-              <Card
+              <StatCard
                 title="Today's Dollars"
                 value={fmt(res.finReal)}
                 sub={`At age ${retAge} (real)`}
                 color="indigo"
                 icon={TrendingUpIcon}
               />
-              <Card
+              <StatCard
                 title="Annual Withdrawal"
                 value={fmt(res.wd)}
                 sub={`Year 1 (${wdRate}% rate)`}
                 color="green"
                 icon={CalendarIcon}
               />
-              <Card
+              <StatCard
                 title="After-Tax Income"
                 value={fmt(res.wdReal)}
                 sub="Year 1 real spending"
@@ -1084,264 +1113,300 @@ export default function App() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="text-sm text-gray-600">Duration</div>
-                <div className="text-xl font-bold">
-                  {res.survYrs === res.yrsToSim
-                    ? `${res.yrsToSim} yrs (to ${LIFE_EXP})`
-                    : `${res.survYrs} yrs`}
-                </div>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="text-sm text-gray-600">End-of-Life Wealth</div>
-                <div className="text-xl font-bold">{fmt(res.eol)}</div>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="text-sm text-gray-600">Year 1 Tax (all-in)</div>
-                <div className="text-xl font-bold">{fmt(res.tax.tot)}</div>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground mb-2">Duration</p>
+                  <p className="text-2xl font-bold">
+                    {res.survYrs === res.yrsToSim
+                      ? `${res.yrsToSim} yrs (to ${LIFE_EXP})`
+                      : `${res.survYrs} yrs`}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground mb-2">End-of-Life Wealth</p>
+                  <p className="text-2xl font-bold text-green-600">{fmt(res.eol)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground mb-2">Year 1 Tax (all-in)</p>
+                  <p className="text-2xl font-bold text-orange-600">{fmt(res.tax.tot)}</p>
+                </CardContent>
+              </Card>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-lg mb-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-800">Plan Analysis</h3>
-              </div>
-              <AiInsightBox
-                insight={aiInsight}
-                error={aiError}
-                isLoading={isLoadingAi}
-              />
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <SparkleIcon className="text-blue-600" />
+                  Plan Analysis
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AiInsightBox
+                  insight={aiInsight}
+                  error={aiError}
+                  isLoading={isLoadingAi}
+                />
+              </CardContent>
+            </Card>
 
-            <div className="bg-white p-6 rounded-lg shadow-lg">
-              <h3 className="text-lg font-bold mb-4">Accumulation Projection</h3>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={res.data}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="year" />
-                  <YAxis tickFormatter={(v) => fmt(v as number)} />
-                  <RTooltip
-                    formatter={(v) => fmt(v as number)}
-                    labelFormatter={(l) => String(l)}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="bal"
-                    stroke="#2563eb"
-                    strokeWidth={3}
-                    name="Nominal"
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="real"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    name="Real"
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Accumulation Projection</CardTitle>
+                <CardDescription>Your wealth over time in nominal and real dollars</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={400}>
+                  <AreaChart data={res.data}>
+                    <defs>
+                      <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="year" className="text-sm" />
+                    <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
+                    <RTooltip
+                      formatter={(v) => fmt(v as number)}
+                      labelFormatter={(l) => String(l)}
+                      contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                    />
+                    <Legend />
+                    <Area
+                      type="monotone"
+                      dataKey="bal"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorBal)"
+                      name="Nominal"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="real"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      fillOpacity={1}
+                      fill="url(#colorReal)"
+                      name="Real"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div>
-              <h3 className="text-lg font-bold mb-4 flex items-center">
-                <UsersIcon className="w-5 h-5 mr-2 text-blue-600" />
-                Personal Info
-              </h3>
+        {/* Input Form */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Plan Your Retirement</CardTitle>
+            <CardDescription>Enter your information to calculate your retirement projections</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <UsersIcon className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold">Personal Info</h3>
+                </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Marital Status</label>
-                <select
-                  value={marital}
-                  onChange={(e) => setMarital(e.target.value as FilingStatus)}
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value="single">Single</option>
-                  <option value="married">Married</option>
-                </select>
+                <div className="space-y-2">
+                  <Label>Marital Status</Label>
+                  <select
+                    value={marital}
+                    onChange={(e) => setMarital(e.target.value as FilingStatus)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="single">Single</option>
+                    <option value="married">Married</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} />
+                  {isMar && (
+                    <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} />
+                  )}
+                </div>
+
+                <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} />
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <DollarSignIcon className="w-5 h-5 text-green-600" />
+                  <h3 className="text-lg font-semibold">Current Balances</h3>
+                </div>
+                <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} />
+                <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} />
+                <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} />
+                <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200">
+                  <p className="text-sm text-muted-foreground mb-1">Total Balance</p>
+                  <p className="text-2xl font-bold text-blue-700">{fmt(total)}</p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold">Annual Contributions</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Primary</Badge>
+                  <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} />
+                  <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} />
+                  <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} />
+                  <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} />
+                </div>
                 {isMar && (
-                  <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} />
+                  <div className="space-y-4">
+                    <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Spouse</Badge>
+                    <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} />
+                    <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} />
+                    <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} />
+                    <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold">Assumptions</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                  label="Return Rate (%)"
+                  value={retRate}
+                  setter={setRetRate}
+                  step={0.1}
+                  isRate
+                  tip={retMode === 'fixed' ? "S&P 500 avg ~9.8%" : "Used for 'Fixed' mode. 'Random Walk' uses S&P data."}
+                  disabled={retMode === 'randomWalk'}
+                />
+                <Input
+                  label="Inflation (%)"
+                  value={infRate}
+                  setter={setInfRate}
+                  step={0.1}
+                  isRate
+                  tip="US avg ~2.6%"
+                />
+                <Input
+                  label="State Tax (%)"
+                  value={stateRate}
+                  setter={setStateRate}
+                  step={0.1}
+                  isRate
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Return Model</Label>
+                  <select
+                    value={retMode}
+                    onChange={(e) => setRetMode(e.target.value as "fixed" | "randomWalk")}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="fixed">Fixed (single rate)</option>
+                    <option value="randomWalk">Random Walk (S&P bootstrap)</option>
+                  </select>
+                </div>
+
+                {retMode === "randomWalk" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Series Basis</Label>
+                      <select
+                        value={walkSeries}
+                        onChange={(e) => setWalkSeries(e.target.value as "nominal" | "real" | "trulyRandom")}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="nominal">Nominal YoY (Fixed Seed)</option>
+                        <option value="real">Real YoY (Fixed Seed)</option>
+                        <option value="trulyRandom">Truly Random (New Seed)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Seed</Label>
+                      <UIInput
+                        type="number"
+                        value={seed}
+                        onChange={(e) => setSeed(parseInt(e.target.value || "0", 10))}
+                        disabled={walkSeries === 'trulyRandom'}
+                      />
+                    </div>
+                  </>
                 )}
               </div>
 
-              <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
-            </div>
-
-            <div>
-              <h3 className="text-lg font-bold mb-4 flex items-center">
-                <DollarSignIcon className="w-5 h-5 mr-2 text-green-600" />
-                Current Balances
-              </h3>
-              <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} />
-              <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} />
-              <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} />
-              <div className="p-3 bg-blue-50 rounded-lg text-sm font-semibold">Total: {fmt(total)}</div>
-            </div>
-          </div>
-
-          <div className="border-t pt-6 mb-6">
-            <h3 className="text-lg font-bold mb-4">Annual Contributions</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <div className="text-sm font-semibold mb-3">Primary</div>
-                <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} />
-                <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} />
-                <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} />
-                <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} />
-              </div>
-              {isMar && (
-                <div>
-                  <div className="text-sm font-semibold mb-3">Spouse</div>
-                  <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} />
-                  <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} />
-                  <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} />
-                  <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} />
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="border-t pt-6 mb-6">
-            <h3 className="text-lg font-bold mb-4">Assumptions</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                label="Return Rate (%)"
-                value={retRate}
-                setter={setRetRate}
-                step={0.1}
-                isRate
-                tip={retMode === 'fixed' ? "S&P 500 avg ~9.8%" : "Used for 'Fixed' mode. 'Random Walk' uses S&P data."}
-                disabled={retMode === 'randomWalk'}
-              />
-              <Input
-                label="Inflation (%)"
-                value={infRate}
-                setter={setInfRate}
-                step={0.1}
-                isRate
-                tip="US avg ~2.6%"
-              />
-              <Input
-                label="State Tax (%)"
-                value={stateRate}
-                setter={setStateRate}
-                step={0.1}
-                isRate
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              <div>
-                <label className="block text-sm font-medium mb-1 h-10 items-end flex">
-                  <span>Return Model</span>
-                </label>
-                <select
-                  value={retMode}
-                  onChange={(e) => setRetMode(e.target.value as "fixed" | "randomWalk")}
-                  className="w-full px-3 py-2 border rounded-md bg-white text-sm"
-                >
-                  <option value="fixed">Fixed (single rate)</option>
-                  <option value="randomWalk">Random Walk (S&P bootstrap)</option>
-                </select>
-              </div>
-
-              {retMode === "randomWalk" && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 h-10 items-end flex">
-                      <span>Series Basis</span>
-                    </label>
-                    <select
-                      value={walkSeries}
-                      onChange={(e) => setWalkSeries(e.target.value as "nominal" | "real" | "trulyRandom")}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm"
-                    >
-                      <option value="nominal">Nominal YoY (Fixed Seed)</option>
-                      <option value="real">Real YoY (Fixed Seed)</option>
-                      <option value="trulyRandom">Truly Random (New Seed)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={`flex items-end text-sm font-medium mb-1 h-10 ${
-                      walkSeries === 'trulyRandom' ? "text-gray-400" : "text-gray-700"
-                    }`}>
-                      <span>Seed</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={seed}
-                      onChange={(e) => setSeed(parseInt(e.target.value || "0", 10))}
-                      className={`w-full px-3 py-2 border rounded-md text-sm ${
-                        walkSeries === 'trulyRandom' ? "bg-gray-100" : "bg-white"
-                      }`}
-                      disabled={walkSeries === 'trulyRandom'}
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <Input
-                label="Withdrawal Rate (%)"
-                value={wdRate}
-                setter={setWdRate}
-                step={0.1}
-                isRate
-              />
-              <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  label="Increase Rate (%)"
-                  value={incRate}
-                  setter={setIncRate}
+                  label="Withdrawal Rate (%)"
+                  value={wdRate}
+                  setter={setWdRate}
                   step={0.1}
                   isRate
-                  disabled={!incContrib}
                 />
-                <label className="flex items-center mt-2">
-                  <input
-                    type="checkbox"
-                    checked={incContrib}
-                    onChange={(e) => setIncContrib(e.target.checked)}
-                    className="mr-2"
+                <div className="space-y-4">
+                  <Input
+                    label="Increase Rate (%)"
+                    value={incRate}
+                    setter={setIncRate}
+                    step={0.1}
+                    isRate
+                    disabled={!incContrib}
                   />
-                  <span className="text-sm font-medium">Increase contributions</span>
-                </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="inc-contrib"
+                      checked={incContrib}
+                      onChange={(e) => setIncContrib(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                    />
+                    <Label htmlFor="inc-contrib" className="cursor-pointer">
+                      Increase contributions annually
+                    </Label>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="border-t pt-6">
-            <label className="flex items-center mb-4">
-              <input
-                type="checkbox"
-                checked={showGen}
-                onChange={(e) => setShowGen(e.target.checked)}
-                className="mr-3 h-5 w-5"
-              />
-              <h3 className="text-lg font-bold text-purple-700">Generational Wealth</h3>
-            </label>
+            <Separator />
 
-            {showGen && (
-              <>
-                <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-lg font-bold text-purple-800">
-                      Hypothetical Per-Beneficiary Payout (Real $)
-                    </h4>
-                  </div>
+            <div className="space-y-6">
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="show-gen"
+                  checked={showGen}
+                  onChange={(e) => setShowGen(e.target.checked)}
+                  className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                />
+                <Label htmlFor="show-gen" className="text-lg font-semibold text-purple-700 cursor-pointer">
+                  Generational Wealth Modeling
+                </Label>
+              </div>
+
+              {showGen && (
+                <div className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border-2 border-purple-200">
+                  <h4 className="text-lg font-semibold text-purple-900 mb-4">
+                    Hypothetical Per-Beneficiary Payout (Real $)
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <Input
                       label="Annual Per-Beneficiary ($, 2025)"
@@ -1380,13 +1445,13 @@ export default function App() {
                   </div>
 
                   {res?.genPayout && (
-                    <div ref={genRef} className="mt-4 flex flex-col md:flex-row items-center gap-4">
+                    <div ref={genRef} className="mt-6 p-4 bg-white rounded-lg border border-purple-300 flex flex-col md:flex-row items-center gap-4">
                       <GenerationalWealthVisual genPayout={res.genPayout} />
 
                       <div className="text-sm text-purple-900 flex-1 text-center md:text-left">
-                        Could pay <strong>{fmt(res.genPayout.perBenReal)}</strong> per beneficiary
+                        Could pay <strong className="text-purple-700">{fmt(res.genPayout.perBenReal)}</strong> per beneficiary
                         (2025 dollars) for approximately{" "}
-                        <strong>{res.genPayout.years} years</strong>{" "}
+                        <strong className="text-purple-700">{res.genPayout.years} years</strong>{" "}
                         {res.genPayout.fundLeftReal > 0
                           ? "with principal remaining"
                           : "until exhaustion"}
@@ -1395,27 +1460,38 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              </>
-            )}
-          </div>
-
-          <div className="mt-6 pt-6 border-t text-center">
-            <button
-              onClick={calc}
-              disabled={isLoadingAi}
-              className="px-8 py-4 bg-blue-600 text-white text-lg font-bold rounded-lg hover:bg-blue-700 transition-colors w-full md:w-auto disabled:bg-gray-400"
-            >
-              {isLoadingAi ? (
-                <span className="flex items-center justify-center">
-                  <Spinner /> <span className="ml-2">Calculating...</span>
-                </span>
-              ) : (
-                "Calculate"
               )}
-            </button>
-            {err && <p className="text-red-600 font-semibold mt-4">{err}</p>}
-          </div>
-        </div>
+            </div>
+
+            <Separator />
+
+            <div className="flex flex-col items-center pt-2">
+              <Button
+                onClick={calc}
+                disabled={isLoadingAi}
+                size="lg"
+                className="w-full md:w-auto text-lg px-12 py-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all"
+              >
+                {isLoadingAi ? (
+                  <span className="flex items-center gap-3">
+                    <Spinner />
+                    <span>Calculating...</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <TrendingUpIcon className="w-5 h-5" />
+                    Calculate Retirement Plan
+                  </span>
+                )}
+              </Button>
+              {err && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600 font-semibold">{err}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
