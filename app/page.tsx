@@ -554,23 +554,41 @@ const StatCard: React.FC<{
   sub?: string;
   color?: ColorKey;
   icon?: React.ComponentType<any>;
-}> = ({ title, value, sub, color = "blue", icon: Icon }) => {
+  explanation?: string;
+}> = ({ title, value, sub, color = "blue", icon: Icon, explanation }) => {
   const c = COLOR[color] ?? COLOR.blue;
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
-    <Card className="overflow-hidden border-2 transition-all hover:shadow-lg hover:-translate-y-1">
+    <Card
+      className={`overflow-hidden border-2 transition-all hover:shadow-lg hover:-translate-y-1 ${
+        explanation ? 'cursor-pointer' : ''
+      }`}
+      onClick={() => explanation && setIsExpanded(!isExpanded)}
+    >
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-3">
           <Badge variant="secondary" className={`${c.bg} ${c.badge} border-0`}>
             {title}
           </Badge>
-          {Icon && (
-            <div className={`p-2 rounded-lg ${c.bg}`}>
-              <Icon className={`w-5 h-5 ${c.icon}`} />
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {Icon && (
+              <div className={`p-2 rounded-lg ${c.bg}`}>
+                <Icon className={`w-5 h-5 ${c.icon}`} />
+              </div>
+            )}
+            {explanation && (
+              <InfoIcon className={`w-4 h-4 ${c.icon} transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+            )}
+          </div>
         </div>
         <div className={`text-3xl font-bold ${c.text} mb-1`}>{value}</div>
         {sub && <p className={`text-sm ${c.sub}`}>{sub}</p>}
+        {explanation && isExpanded && (
+          <div className={`mt-4 pt-4 border-t ${c.border} animate-in slide-in-from-top-2 duration-200`}>
+            <p className={`text-sm ${c.sub} leading-relaxed`}>{explanation}</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -1053,6 +1071,19 @@ export default function App() {
         if (retBalRoth < 0) retBalRoth = 0;
 
         const totalNow = retBalTax + retBalPre + retBalRoth;
+
+        // Add retirement year data points to chart
+        const yr = CURR_YEAR + yrsToRet + y;
+        const a1 = age1 + yrsToRet + y;
+        const a2 = isMar ? age2 + yrsToRet + y : null;
+        data.push({
+          year: yr,
+          a1,
+          a2,
+          bal: totalNow,
+          real: totalNow / Math.pow(1 + infl, yrsToRet + y),
+        });
+
         if (totalNow <= 0) {
           survYrs = y - 1;
           retBalTax = retBalPre = retBalRoth = 0;
@@ -1195,6 +1226,7 @@ export default function App() {
                 sub={`At age ${retAge} (nominal)`}
                 color="blue"
                 icon={DollarSignIcon}
+                explanation={`This is your projected total retirement balance at age ${retAge} in future dollars (nominal). It includes your current savings plus all contributions and growth from now until retirement, accounting for mid-year contributions and compounding returns.`}
               />
               <StatCard
                 title="Today's Dollars"
@@ -1202,6 +1234,7 @@ export default function App() {
                 sub={`At age ${retAge} (real)`}
                 color="indigo"
                 icon={TrendingUpIcon}
+                explanation={`This is your Future Balance adjusted for inflation to show its equivalent purchasing power in today's dollars (real value). Calculated by dividing the nominal balance by (1 + inflation)^years. This helps you understand what your retirement savings will actually buy.`}
               />
               <StatCard
                 title="Annual Withdrawal"
@@ -1209,12 +1242,14 @@ export default function App() {
                 sub={`Year 1 (${wdRate}% rate)`}
                 color="green"
                 icon={CalendarIcon}
+                explanation={`This is your first-year gross withdrawal amount, calculated as ${wdRate}% of your Future Balance. This is the total amount withdrawn before taxes. In subsequent years, this amount increases with inflation to maintain constant purchasing power.`}
               />
               <StatCard
                 title="After-Tax Income"
                 value={fmt(res.wdReal)}
                 sub="Year 1 real spending"
                 color="emerald"
+                explanation={`This is your spendable income in today's dollars after all taxes (federal ordinary income, LTCG, NIIT, and state taxes) are deducted from your withdrawal. It represents what you'll actually have available to spend, adjusted to today's purchasing power.`}
               />
             </div>
 

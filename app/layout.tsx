@@ -2,12 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.dev',
-  icons: {
-    icon: '/bank.png',
-  },
+  title: 'Tax-Aware Retirement Planner',
+  description: 'Advanced retirement planning tool with tax-aware projections, Monte Carlo simulations, and generational wealth modeling',
 }
 
 export default function RootLayout({
