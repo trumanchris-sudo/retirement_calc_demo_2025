@@ -718,12 +718,48 @@ export default function App() {
     setAiInsight("");
     setAiError(null);
 
-    // Placeholder for AI analysis - integrate with your preferred AI API
-    setTimeout(() => {
-      const insight = "Analysis complete! This is a placeholder for AI insights. To enable real AI analysis, integrate with your preferred AI API (Claude, GPT, etc.) using the calculation results.";
-      setAiInsight(insight);
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          age: olderAge,
+          retirementAge: retAge,
+          currentBalance: total,
+          futureBalance: calcResult.finNom,
+          realBalance: calcResult.finReal,
+          annualWithdrawal: calcResult.wd,
+          afterTaxIncome: calcResult.wdReal,
+          duration: calcResult.survYrs,
+          endOfLifeWealth: calcResult.eol,
+          totalTax: calcResult.tax.tot,
+          maritalStatus: marital,
+          withdrawalRate: wdRate,
+          returnRate: retRate,
+          inflationRate: infRate,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        setAiError(data.error);
+        // Still show the insight message even if there's an error (helpful message)
+        if (data.insight) {
+          setAiInsight(data.insight);
+        }
+      } else {
+        setAiInsight(data.insight);
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch AI insight:', error);
+      setAiError('Network error');
+      setAiInsight('Unable to connect to AI analysis service. Please check your internet connection.');
+    } finally {
       setIsLoadingAi(false);
-    }, 2000);
+    }
   };
 
   const calc = useCallback(() => {
