@@ -493,18 +493,41 @@ const Input: React.FC<InputProps> = ({
   disabled = false,
 }) => {
   const [local, setLocal] = useState<string>(String(value ?? 0));
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
+    if (!isFocused) {
+      // When not focused, show formatted number with commas
+      if (isRate) {
+        setLocal(String(value ?? 0));
+      } else {
+        setLocal((value ?? 0).toLocaleString('en-US'));
+      }
+    }
+  }, [value, isFocused, isRate]);
+
+  const onFocus = () => {
+    setIsFocused(true);
+    // Remove commas for editing
     setLocal(String(value ?? 0));
-  }, [value]);
+  };
 
   const onBlur = () => {
-    const num = toNumber(local, value ?? 0);
+    setIsFocused(false);
+    // Remove commas and parse
+    const cleanValue = local.replace(/,/g, '');
+    const num = toNumber(cleanValue, value ?? 0);
     let val = isRate ? parseFloat(String(num)) : Math.round(num);
     val = clampNum(val, min, max);
     setter(val);
-    setLocal(String(val));
+    // Format with commas for display
+    if (isRate) {
+      setLocal(String(val));
+    } else {
+      setLocal(val.toLocaleString('en-US'));
+    }
   };
+
   return (
     <div className="space-y-2">
       <Label className="flex items-center gap-1.5">
@@ -512,15 +535,13 @@ const Input: React.FC<InputProps> = ({
         {tip && <Tip text={tip} />}
       </Label>
       <UIInput
-        type="number"
+        type="text"
         value={local}
         onChange={(e) => setLocal(e.target.value)}
+        onFocus={onFocus}
         onBlur={onBlur}
-        step={step}
-        min={min}
-        max={max}
         disabled={disabled}
-        inputMode="decimal"
+        inputMode={isRate ? "decimal" : "numeric"}
         className="transition-all"
       />
     </div>
@@ -611,12 +632,19 @@ function simulateRealPerBeneficiaryPayout(
   birthMultiple: number,
   birthInterval = 30,
   deathAge = 90,
-  capYears = 10000
+  capYears = 10000,
+  initialBenAges: number[] = [0]
 ) {
   let fundReal = eolNominal / Math.pow(1 + inflPct / 100, yearsFrom2025);
   const r = realReturn(nominalRet, inflPct);
 
-  let cohorts: Cohort[] = startBens > 0 ? [{ size: startBens, age: 0 }] : [];
+  // Initialize cohorts with specified ages
+  let cohorts: Cohort[] = initialBenAges.length > 0
+    ? initialBenAges.map(age => ({ size: 1, age }))
+    : startBens > 0
+    ? [{ size: startBens, age: 0 }]
+    : [];
+
   let years = 0;
 
   for (let t = 0; t < capYears; t++) {
@@ -640,7 +668,10 @@ function simulateRealPerBeneficiaryPayout(
     cohorts.forEach((c) => (c.age += 1));
 
     if (years % birthInterval === 0) {
-      const births = living * birthMultiple;
+      // Only fertile beneficiaries (ages 20-40) can have children
+      const fertile = cohorts.filter(c => c.age >= 20 && c.age <= 40);
+      const fertileCount = fertile.reduce((acc, c) => acc + c.size, 0);
+      const births = fertileCount * birthMultiple;
       if (births > 0) cohorts.push({ size: births, age: 0 });
     }
   }
@@ -654,7 +685,7 @@ function simulateRealPerBeneficiaryPayout(
  * ================================ */
 
 export default function App() {
-  const [marital, setMarital] = useState<FilingStatus>("married");
+  const [marital, setMarital] = useState<FilingStatus>("single");
   const [age1, setAge1] = useState(35);
   const [age2, setAge2] = useState(33);
   const [retAge, setRetAge] = useState(65);
@@ -687,6 +718,7 @@ export default function App() {
   const [hypBirthMultiple, setHypBirthMultiple] = useState(1);
   const [hypBirthInterval, setHypBirthInterval] = useState(30);
   const [hypDeathAge, setHypDeathAge] = useState(90);
+  const [hypBenAgesStr, setHypBenAgesStr] = useState("35, 40");
 
   const [retMode, setRetMode] = useState<"fixed" | "randomWalk">("fixed");
   const [seed, setSeed] = useState(42);
@@ -1008,6 +1040,12 @@ export default function App() {
       } = null;
 
       if (showGen && eolWealth > 0) {
+        // Parse beneficiary ages from comma-separated string
+        const benAges = hypBenAgesStr
+          .split(',')
+          .map(s => parseInt(s.trim(), 10))
+          .filter(n => !isNaN(n) && n >= 0 && n < 90);
+
         const sim = simulateRealPerBeneficiaryPayout(
           eolWealth,
           yearsFrom2025,
@@ -1017,7 +1055,9 @@ export default function App() {
           Math.max(1, hypStartBens),
           Math.max(0, hypBirthMultiple),
           Math.max(1, hypBirthInterval),
-          Math.max(1, hypDeathAge)
+          Math.max(1, hypDeathAge),
+          10000,
+          benAges.length > 0 ? benAges : [0]
         );
         genPayout = {
           perBenReal: hypPerBen,
@@ -1256,7 +1296,7 @@ export default function App() {
                   <select
                     value={marital}
                     onChange={(e) => setMarital(e.target.value as FilingStatus)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="single">Single</option>
                     <option value="married">Married</option>
@@ -1349,7 +1389,7 @@ export default function App() {
                   <select
                     value={retMode}
                     onChange={(e) => setRetMode(e.target.value as "fixed" | "randomWalk")}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="fixed">Fixed (single rate)</option>
                     <option value="randomWalk">Random Walk (S&P bootstrap)</option>
@@ -1363,7 +1403,7 @@ export default function App() {
                       <select
                         value={walkSeries}
                         onChange={(e) => setWalkSeries(e.target.value as "nominal" | "real" | "trulyRandom")}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <option value="nominal">Nominal YoY (Fixed Seed)</option>
                         <option value="real">Real YoY (Fixed Seed)</option>
@@ -1377,6 +1417,7 @@ export default function App() {
                         value={seed}
                         onChange={(e) => setSeed(parseInt(e.target.value || "0", 10))}
                         disabled={walkSeries === 'trulyRandom'}
+                        className="transition-all"
                       />
                     </div>
                   </>
@@ -1437,7 +1478,7 @@ export default function App() {
                   <h4 className="text-lg font-semibold text-purple-900 mb-4">
                     Hypothetical Per-Beneficiary Payout (Real $)
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <Input
                       label="Annual Per-Beneficiary ($, 2025)"
                       value={hypPerBen}
@@ -1445,18 +1486,13 @@ export default function App() {
                       step={50000}
                     />
                     <Input
-                      label="Starting Beneficiaries"
-                      value={hypStartBens}
-                      setter={setHypStartBens}
-                      min={1}
-                    />
-                    <Input
-                      label="Births per Beneficiary"
+                      label="Births per Fertile Ben. (ages 20-40)"
                       value={hypBirthMultiple}
                       setter={setHypBirthMultiple}
                       min={0}
-                      step={1}
-                      tip="Every birth interval years, each living beneficiary spawns this many new beneficiaries."
+                      step={0.1}
+                      isRate
+                      tip="Every birth interval years, each fertile beneficiary (ages 20-40) spawns this many new beneficiaries."
                     />
                     <Input
                       label="Birth Interval (yrs)"
@@ -1465,12 +1501,36 @@ export default function App() {
                       min={1}
                       step={1}
                     />
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-1.5">
+                        Initial Beneficiary Ages at Death
+                        <Tip text="Enter ages of living beneficiaries at your time of death, separated by commas (e.g., '35, 40, 45'). Only fertile beneficiaries (ages 20-40) will produce children." />
+                      </Label>
+                      <UIInput
+                        type="text"
+                        value={hypBenAgesStr}
+                        onChange={(e) => setHypBenAgesStr(e.target.value)}
+                        placeholder="e.g., 35, 40"
+                        className="transition-all"
+                      />
+                      <p className="text-xs text-purple-700">
+                        {hypBenAgesStr.split(',').filter(s => {
+                          const n = parseInt(s.trim(), 10);
+                          return !isNaN(n) && n >= 0 && n < 90;
+                        }).length} beneficiaries specified
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <Input
-                      label="Lifespan (yrs)"
+                      label="Max Lifespan (yrs)"
                       value={hypDeathAge}
                       setter={setHypDeathAge}
                       min={1}
                       step={1}
+                      tip="Maximum age for all beneficiaries"
                     />
                   </div>
 
