@@ -30,11 +30,14 @@ const LIFE_EXP = 95;
 const CURR_YEAR = new Date().getFullYear();
 const RMD_START_AGE = 73; // 2023 SECURE Act 2.0
 
-/** RMD Divisor Table (IRS Uniform Lifetime Table) - Simplified */
+/** RMD Divisor Table (IRS Uniform Lifetime Table) - Complete */
 const RMD_DIVISORS: Record<number, number> = {
   73: 26.5, 74: 25.5, 75: 24.6, 76: 23.7, 77: 22.9, 78: 22.0, 79: 21.1, 80: 20.2,
   81: 19.4, 82: 18.5, 83: 17.7, 84: 16.8, 85: 16.0, 86: 15.2, 87: 14.4, 88: 13.7,
-  89: 12.9, 90: 12.2, 91: 11.5, 92: 10.8, 93: 10.1, 94: 9.5, 95: 8.9,
+  89: 12.9, 90: 12.2, 91: 11.5, 92: 10.8, 93: 10.1, 94: 9.5, 95: 8.9, 96: 8.4,
+  97: 7.8, 98: 7.3, 99: 6.8, 100: 6.4, 101: 6.0, 102: 5.6, 103: 5.2, 104: 4.9,
+  105: 4.6, 106: 4.3, 107: 4.1, 108: 3.9, 109: 3.7, 110: 3.5, 111: 3.4, 112: 3.3,
+  113: 3.1, 114: 3.0, 115: 2.9, 116: 2.8, 117: 2.7, 118: 2.5, 119: 2.3, 120: 2.0,
 };
 
 /** Social Security Full Retirement Age bend points (2025 estimates) */
@@ -53,6 +56,10 @@ const MILESTONES = [
   { amount: 5_000_000, emoji: '🌟', label: 'Five Million Club!' },
   { amount: 10_000_000, emoji: '🎆', label: 'Eight Figures!' },
 ];
+
+/** Estate Tax (2025) */
+const ESTATE_TAX_EXEMPTION = 13_990_000; // $13.99M for individual
+const ESTATE_TAX_RATE = 0.40; // 40% on amount over exemption
 
 /** Illustrative 2025 ordinary brackets + standard deductions */
 const TAX_BRACKETS = {
@@ -354,8 +361,19 @@ const calcSocialSecurity = (
  */
 const calcRMD = (pretaxBalance: number, age: number): number => {
   if (age < RMD_START_AGE || pretaxBalance <= 0) return 0;
-  const divisor = RMD_DIVISORS[age] || RMD_DIVISORS[95]; // Use 95 for ages beyond table
+  const divisor = RMD_DIVISORS[age] || 2.0; // Use 2.0 for ages beyond 120
   return pretaxBalance / divisor;
+};
+
+/**
+ * Calculate Estate Tax (2025 law)
+ * @param totalEstate - Total estate value (all accounts)
+ * @param exemption - Estate tax exemption (default $13.99M)
+ */
+const calcEstateTax = (totalEstate: number, exemption: number = ESTATE_TAX_EXEMPTION): number => {
+  if (totalEstate <= exemption) return 0;
+  const taxableEstate = totalEstate - exemption;
+  return taxableEstate * ESTATE_TAX_RATE;
 };
 
 /**
@@ -1145,6 +1163,7 @@ export default function App() {
       let currBasis = basisTax;
       let currWdGross = wdGrossY1;
       let survYrs = 0;
+      let totalRMDs = 0; // Track cumulative RMDs
 
       for (let y = 1; y <= yrsToSim; y++) {
         const g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
@@ -1153,8 +1172,27 @@ export default function App() {
         retBalPre *= g_retire;
         retBalRoth *= g_retire;
 
+        // Calculate current age and check for RMD requirement
+        const currentAge = age1 + yrsToRet + y;
+        const requiredRMD = calcRMD(retBalPre, currentAge);
+
+        // Determine actual withdrawal amount
+        let actualWithdrawal = currWdGross;
+        let rmdExcess = 0;
+
+        if (requiredRMD > 0) {
+          // RMD is mandatory - must withdraw at least this much from pre-tax
+          totalRMDs += requiredRMD;
+
+          if (requiredRMD > currWdGross) {
+            // RMD exceeds spending needs
+            actualWithdrawal = requiredRMD;
+            rmdExcess = requiredRMD - currWdGross;
+          }
+        }
+
         const taxes = computeWithdrawalTaxes(
-          currWdGross,
+          actualWithdrawal,
           marital,
           retBalTax,
           retBalPre,
@@ -1167,6 +1205,14 @@ export default function App() {
         retBalPre -= taxes.draw.p;
         retBalRoth -= taxes.draw.r;
         currBasis = taxes.newBasis;
+
+        // Handle excess RMD: deposit back into taxable after taxes
+        if (rmdExcess > 0) {
+          const excessTax = calcOrdinaryTax(rmdExcess, marital);
+          const excessAfterTax = rmdExcess - excessTax;
+          retBalTax += excessAfterTax;
+          currBasis += excessAfterTax; // Excess is now basis in taxable
+        }
 
         if (retBalTax < 0) retBalTax = 0;
         if (retBalPre < 0) retBalPre = 0;
@@ -1198,6 +1244,17 @@ export default function App() {
 
       const eolWealth = Math.max(0, retBalTax + retBalPre + retBalRoth);
 
+      // Calculate estate tax
+      const estateTax = calcEstateTax(eolWealth);
+      const netEstate = eolWealth - estateTax;
+
+      // Track account balances at end of life
+      const eolAccounts = {
+        taxable: retBalTax,
+        pretax: retBalPre,
+        roth: retBalRoth,
+      };
+
       const yearsFrom2025 = yrsToRet + yrsToSim;
       let genPayout: null | {
         perBenReal: number;
@@ -1210,7 +1267,7 @@ export default function App() {
         deathAge: number;
       } = null;
 
-      if (showGen && eolWealth > 0) {
+      if (showGen && netEstate > 0) {
         // Parse beneficiary ages from comma-separated string
         const benAges = hypBenAgesStr
           .split(',')
@@ -1218,7 +1275,7 @@ export default function App() {
           .filter(n => !isNaN(n) && n >= 0 && n < 90);
 
         const sim = simulateRealPerBeneficiaryPayout(
-          eolWealth,
+          netEstate, // Use net estate after estate tax
           yearsFrom2025,
           retRate,
           infRate,
@@ -1254,6 +1311,10 @@ export default function App() {
         survYrs,
         yrsToSim,
         eol: eolWealth,
+        estateTax,
+        netEstate,
+        eolAccounts,
+        totalRMDs,
         genPayout,
         tax: {
           fedOrd: calcOrdinaryTax(y1.draw.p, marital),
@@ -1370,6 +1431,13 @@ export default function App() {
                 <CardContent className="p-6">
                   <p className="text-sm text-muted-foreground mb-2">End-of-Life Wealth</p>
                   <p className="text-2xl font-bold text-green-600">{fmt(res.eol)}</p>
+                  {res.eolAccounts && (
+                    <div className="mt-2 text-xs text-muted-foreground space-y-1">
+                      <div>Taxable: {fmt(res.eolAccounts.taxable)}</div>
+                      <div>Pre-tax: {fmt(res.eolAccounts.pretax)}</div>
+                      <div>Roth: {fmt(res.eolAccounts.roth)}</div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
               <Card>
@@ -1379,6 +1447,44 @@ export default function App() {
                 </CardContent>
               </Card>
             </div>
+
+            {(res.totalRMDs > 0 || res.estateTax > 0) && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {res.totalRMDs > 0 && (
+                  <Card className="border-2 border-purple-200 bg-purple-50">
+                    <CardContent className="p-6">
+                      <p className="text-sm text-muted-foreground mb-2">Total RMDs (Age 73+)</p>
+                      <p className="text-2xl font-bold text-purple-700">{fmt(res.totalRMDs)}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Cumulative Required Minimum Distributions from pre-tax accounts
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+                {res.estateTax > 0 && (
+                  <>
+                    <Card className="border-2 border-red-200 bg-red-50">
+                      <CardContent className="p-6">
+                        <p className="text-sm text-muted-foreground mb-2">Estate Tax</p>
+                        <p className="text-2xl font-bold text-red-700">{fmt(res.estateTax)}</p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          40% on amount over ${(ESTATE_TAX_EXEMPTION / 1_000_000).toFixed(2)}M exemption
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-2 border-emerald-200 bg-emerald-50">
+                      <CardContent className="p-6">
+                        <p className="text-sm text-muted-foreground mb-2">Net Estate to Heirs</p>
+                        <p className="text-2xl font-bold text-emerald-700">{fmt(res.netEstate)}</p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          After {((res.estateTax / res.eol) * 100).toFixed(1)}% estate tax
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+              </div>
+            )}
 
             <Card>
               <CardHeader>
