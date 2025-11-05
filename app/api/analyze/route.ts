@@ -18,12 +18,26 @@ export async function POST(request: NextRequest) {
       annualWithdrawal,
       afterTaxIncome,
       duration,
+      maxDuration,
       endOfLifeWealth,
       totalTax,
       maritalStatus,
       withdrawalRate,
       returnRate,
-      inflationRate
+      inflationRate,
+      stateRate,
+      totalRMDs,
+      estateTax,
+      netEstate,
+      eolAccounts,
+      includeSS,
+      ssIncome,
+      ssClaimAge,
+      startingTaxable,
+      startingPretax,
+      startingRoth,
+      totalContributions,
+      returnModel
     } = body;
 
     // Check if API key is configured
@@ -37,33 +51,106 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create the prompt for Claude
-    const prompt = `You are a professional financial advisor analyzing a retirement plan. Provide concise, actionable insights in 3-4 sentences.
+    // Build account breakdown text
+    let accountBreakdown = '';
+    if (eolAccounts) {
+      accountBreakdown = `
+End-of-Life Account Balances:
+- Taxable Brokerage: $${eolAccounts.taxable.toLocaleString()}
+- Pre-tax (Traditional IRA/401k): $${eolAccounts.pretax.toLocaleString()}
+- Roth IRA: $${eolAccounts.roth.toLocaleString()}`;
+    }
 
-Retirement Plan Summary:
+    // Build RMD analysis
+    const rmdAnalysis = totalRMDs > 0 ? `
+Required Minimum Distributions (Age 73+):
+- Total RMDs Over Retirement: $${totalRMDs.toLocaleString()}
+- These mandatory withdrawals from pre-tax accounts may push you into higher tax brackets` : '';
+
+    // Build estate tax analysis
+    const estateAnalysis = estateTax > 0 ? `
+Estate Tax Impact:
+- Gross Estate: $${endOfLifeWealth.toLocaleString()}
+- Estate Tax (40% over $13.99M): $${estateTax.toLocaleString()}
+- Net Estate to Heirs: $${netEstate.toLocaleString()}
+- Effective Tax Rate on Estate: ${((estateTax / endOfLifeWealth) * 100).toFixed(1)}%` : '';
+
+    // Build Social Security analysis
+    const ssAnalysis = includeSS ? `
+Social Security Benefits:
+- Average Career Earnings: $${ssIncome.toLocaleString()}/year
+- Claiming Age: ${ssClaimAge}
+- Benefits reduce portfolio withdrawal needs starting at age ${ssClaimAge}` : '';
+
+    // Determine longevity risk
+    const longevityRisk = duration < maxDuration ?
+      `⚠️ CRITICAL: Funds exhausted after ${duration} years (age ${retirementAge + duration}), but projected to live to ${retirementAge + maxDuration}` :
+      `✓ Funds last full retirement (${maxDuration} years to age 95)`;
+
+    // Calculate replacement rate
+    const replacementRate = ((afterTaxIncome / (currentBalance * 0.05)) * 100).toFixed(0); // rough estimate
+
+    // Create the comprehensive prompt for Claude
+    const prompt = `You are a Certified Financial Planner (CFP) providing a comprehensive retirement plan analysis. Analyze this plan in depth and provide strategic, actionable insights.
+
+## CLIENT PROFILE
 - Current Age: ${age}
-- Retirement Age: ${retirementAge}
+- Retirement Age: ${retirementAge} (${retirementAge - age} years until retirement)
 - Marital Status: ${maritalStatus}
-- Current Balance: $${currentBalance.toLocaleString()}
-- Projected Balance at Retirement: $${futureBalance.toLocaleString()} (nominal), $${realBalance.toLocaleString()} (today's dollars)
-- Annual Withdrawal (Year 1): $${annualWithdrawal.toLocaleString()} (gross), $${afterTaxIncome.toLocaleString()} (after-tax)
-- Withdrawal Rate: ${withdrawalRate}%
-- Expected Duration: ${duration} years
-- End-of-Life Wealth: $${endOfLifeWealth.toLocaleString()}
-- Year 1 Total Tax: $${totalTax.toLocaleString()}
-- Return Rate Assumption: ${returnRate}%
+
+## CURRENT FINANCIAL POSITION
+- Total Current Balance: $${currentBalance.toLocaleString()}
+  - Taxable: $${startingTaxable.toLocaleString()}
+  - Pre-tax (Traditional): $${startingPretax.toLocaleString()}
+  - Roth: $${startingRoth.toLocaleString()}
+
+## ACCUMULATION PHASE PROJECTION
+- Total Contributions (from now to retirement): $${totalContributions.toLocaleString()}
+- Return Model: ${returnModel === 'randomWalk' ? 'Monte Carlo (S&P 500 bootstrap)' : 'Fixed rate'}
+- Assumed Return: ${returnRate}% ${returnModel === 'randomWalk' ? '(historical average)' : 'annually'}
 - Inflation Assumption: ${inflationRate}%
+- Projected Balance at Age ${retirementAge}: $${futureBalance.toLocaleString()} (nominal), $${realBalance.toLocaleString()} (today's dollars)
 
-Provide:
-1. Overall assessment (Is this plan strong, adequate, or needs improvement?)
-2. Key strength or concern
-3. One specific actionable recommendation
+## RETIREMENT PHASE (AGE ${retirementAge}-95)
+- Withdrawal Strategy: ${withdrawalRate}% rule (inflation-adjusted)
+- Year 1 Gross Withdrawal: $${annualWithdrawal.toLocaleString()}
+- Year 1 After-Tax Income: $${afterTaxIncome.toLocaleString()} (today's dollars)
+- First Year Tax Burden: $${totalTax.toLocaleString()} (${((totalTax / annualWithdrawal) * 100).toFixed(1)}% effective rate)
+${ssAnalysis}
+${rmdAnalysis}
 
-Keep it concise, encouraging, and practical.`;
+## LONGEVITY ANALYSIS
+${longevityRisk}
+- End-of-Life Wealth (Age 95): $${endOfLifeWealth.toLocaleString()}
+${accountBreakdown}
+
+## ESTATE PLANNING
+${estateAnalysis || '- Estate value below $13.99M exemption threshold (no federal estate tax)'}
+
+## TAX EFFICIENCY
+- Federal Income Tax + LTCG + NIIT + State (${stateRate}%)
+- Tax-advantaged account mix influences tax burden in retirement
+- Year 1 effective tax rate: ${((totalTax / annualWithdrawal) * 100).toFixed(1)}%
+
+---
+
+As their CFP, provide a comprehensive analysis covering:
+
+1. **Overall Plan Viability** (2-3 sentences): Assess whether this plan is strong, adequate, or needs significant revision. Consider withdrawal sustainability, longevity risk, and tax efficiency.
+
+2. **Key Strengths** (2-3 points): What is this person doing right? Be specific about their smart decisions.
+
+3. **Critical Risks or Concerns** (2-3 points): What are the biggest threats to this plan's success? Be direct and honest.
+
+4. **Tax Optimization Opportunities** (2-3 specific recommendations): Based on their account allocation and RMD situation, what tax-saving strategies should they consider? (e.g., Roth conversions, tax-bracket management, etc.)
+
+5. **Action Items** (3-5 prioritized recommendations): What should they do immediately, within 1 year, and before retirement? Be tactical and specific.
+
+Write in a professional but encouraging tone. Be direct about risks but solution-oriented. Format with clear headers and bullet points for readability.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 300,
+      max_tokens: 2000,
       temperature: 0.7,
       messages: [
         {
