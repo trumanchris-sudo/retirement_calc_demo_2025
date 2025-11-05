@@ -1176,18 +1176,26 @@ export default function App() {
         const currentAge = age1 + yrsToRet + y;
         const requiredRMD = calcRMD(retBalPre, currentAge);
 
-        // Determine actual withdrawal amount
-        let actualWithdrawal = currWdGross;
+        // Calculate Social Security benefit if applicable
+        let ssAnnualBenefit = 0;
+        if (includeSS && currentAge >= ssClaimAge) {
+          ssAnnualBenefit = calcSocialSecurity(ssIncome, ssClaimAge);
+        }
+
+        // Determine actual withdrawal amount needed from portfolio
+        // SS reduces the amount we need to withdraw (but can't go below RMD)
+        let netSpendingNeed = Math.max(0, currWdGross - ssAnnualBenefit);
+        let actualWithdrawal = netSpendingNeed;
         let rmdExcess = 0;
 
         if (requiredRMD > 0) {
           // RMD is mandatory - must withdraw at least this much from pre-tax
           totalRMDs += requiredRMD;
 
-          if (requiredRMD > currWdGross) {
-            // RMD exceeds spending needs
+          if (requiredRMD > netSpendingNeed) {
+            // RMD exceeds spending needs (after SS)
             actualWithdrawal = requiredRMD;
-            rmdExcess = requiredRMD - currWdGross;
+            rmdExcess = requiredRMD - netSpendingNeed;
           }
         }
 
@@ -1359,6 +1367,7 @@ export default function App() {
     showGen, total, marital,
     hypPerBen, hypStartBens, hypBirthMultiple, hypBirthInterval, hypDeathAge,
     retMode, seed, walkSeries,
+    includeSS, ssIncome, ssClaimAge,
   ]);
 
   return (
@@ -1735,6 +1744,42 @@ export default function App() {
                       </Label>
                     </div>
                   </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="include-ss"
+                      checked={includeSS}
+                      onChange={(e) => setIncludeSS(e.target.checked)}
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                    />
+                    <Label htmlFor="include-ss" className="text-base font-semibold cursor-pointer">
+                      Include Social Security Benefits
+                    </Label>
+                  </div>
+
+                  {includeSS && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-7">
+                      <Input
+                        label="Avg Career Earnings ($/yr)"
+                        value={ssIncome}
+                        setter={setSSIncome}
+                        step={1000}
+                        tip="Your average indexed earnings for SS calculation (AIME)"
+                      />
+                      <Input
+                        label="Claim Age"
+                        value={ssClaimAge}
+                        setter={setSSClaimAge}
+                        step={1}
+                        tip="Age when you start claiming SS (62-70). FRA is typically 67."
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </CollapsibleSection>
