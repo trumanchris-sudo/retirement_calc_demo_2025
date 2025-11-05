@@ -297,6 +297,79 @@ const calcNIIT = (
 const realReturn = (nominalPct: number, inflPct: number) =>
   (1 + nominalPct / 100) / (1 + inflPct / 100) - 1;
 
+/**
+ * Calculate Social Security monthly benefit
+ * Uses simplified 2025 bend point formula
+ * @param avgAnnualIncome - Average indexed monthly earnings (in annual terms)
+ * @param claimAge - Age when claiming benefits (62-70)
+ * @param fullRetirementAge - Full retirement age (typically 67)
+ */
+const calcSocialSecurity = (
+  avgAnnualIncome: number,
+  claimAge: number,
+  fullRetirementAge: number = 67
+): number => {
+  if (avgAnnualIncome <= 0) return 0;
+
+  // Convert annual to monthly
+  const aime = avgAnnualIncome / 12;
+
+  // Apply bend points
+  let pia = 0; // Primary Insurance Amount
+  if (aime <= SS_BEND_POINTS.first) {
+    pia = aime * 0.90;
+  } else if (aime <= SS_BEND_POINTS.second) {
+    pia = SS_BEND_POINTS.first * 0.90 + (aime - SS_BEND_POINTS.first) * 0.32;
+  } else {
+    pia = SS_BEND_POINTS.first * 0.90 +
+          (SS_BEND_POINTS.second - SS_BEND_POINTS.first) * 0.32 +
+          (aime - SS_BEND_POINTS.second) * 0.15;
+  }
+
+  // Adjust for early/delayed claiming
+  const monthsFromFRA = (claimAge - fullRetirementAge) * 12;
+  let adjustmentFactor = 1.0;
+
+  if (monthsFromFRA < 0) {
+    // Early claiming: reduce by 5/9 of 1% for first 36 months, then 5/12 of 1% for each additional month
+    const earlyMonths = Math.abs(monthsFromFRA);
+    if (earlyMonths <= 36) {
+      adjustmentFactor = 1 - (earlyMonths * 5/9 / 100);
+    } else {
+      adjustmentFactor = 1 - (36 * 5/9 / 100) - ((earlyMonths - 36) * 5/12 / 100);
+    }
+  } else if (monthsFromFRA > 0) {
+    // Delayed claiming: increase by 2/3 of 1% per month (8% per year)
+    adjustmentFactor = 1 + (monthsFromFRA * 2/3 / 100);
+  }
+
+  // Return annual benefit
+  return pia * adjustmentFactor * 12;
+};
+
+/**
+ * Calculate Required Minimum Distribution
+ * @param pretaxBalance - Balance in pre-tax accounts (401k, IRA)
+ * @param age - Current age
+ */
+const calcRMD = (pretaxBalance: number, age: number): number => {
+  if (age < RMD_START_AGE || pretaxBalance <= 0) return 0;
+  const divisor = RMD_DIVISORS[age] || RMD_DIVISORS[95]; // Use 95 for ages beyond table
+  return pretaxBalance / divisor;
+};
+
+/**
+ * Detect milestones achieved
+ */
+const detectMilestones = (balance: number): typeof MILESTONES[0] | null => {
+  for (let i = MILESTONES.length - 1; i >= 0; i--) {
+    if (balance >= MILESTONES[i].amount) {
+      return MILESTONES[i];
+    }
+  }
+  return null;
+};
+
 /** Tailwind safe color map */
 const COLOR = {
   blue: {
@@ -791,6 +864,10 @@ export default function App() {
   const [incContrib, setIncContrib] = useState(true);
   const [incRate, setIncRate] = useState(4.5);
   const [wdRate, setWdRate] = useState(3.5);
+
+  const [includeSS, setIncludeSS] = useState(false);
+  const [ssIncome, setSSIncome] = useState(75000); // Avg career earnings for SS calc
+  const [ssClaimAge, setSSClaimAge] = useState(67); // Full retirement age
 
   const [showGen, setShowGen] = useState(false);
 
