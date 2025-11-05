@@ -1022,6 +1022,8 @@ export default function App() {
 
       const data: { year: number; a1: number; a2: number | null; bal: number; real: number }[] = [];
       let totC = total;
+      const milestonesAchieved: (typeof MILESTONES[0])[] = [];
+      let highestMilestone = -1;
 
       let c = {
         p: { tax: cTax1, pre: cPre1, post: cPost1, match: cMatch1 },
@@ -1066,6 +1068,14 @@ export default function App() {
         }
 
         const bal = bTax + bPre + bPost;
+
+        // Check for milestones
+        const milestone = detectMilestones(bal);
+        if (milestone && MILESTONES.indexOf(milestone) > highestMilestone) {
+          highestMilestone = MILESTONES.indexOf(milestone);
+          milestonesAchieved.push(milestone);
+        }
+
         data.push({
           year: yr,
           a1,
@@ -1323,6 +1333,7 @@ export default function App() {
         netEstate,
         eolAccounts,
         totalRMDs,
+        milestonesAchieved,
         genPayout,
         tax: {
           fedOrd: calcOrdinaryTax(y1.draw.p, marital),
@@ -1424,6 +1435,28 @@ export default function App() {
                 explanation={`This is your spendable income in today's dollars after all taxes (federal ordinary income, LTCG, NIIT, and state taxes) are deducted from your withdrawal. It represents what you'll actually have available to spend, adjusted to today's purchasing power.`}
               />
             </div>
+
+            {res.milestonesAchieved && res.milestonesAchieved.length > 0 && (
+              <Card className="border-2 border-yellow-300 bg-gradient-to-r from-yellow-50 to-orange-50">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-2xl">🎉</span>
+                    <p className="text-lg font-bold text-yellow-800">Milestones Achieved!</p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {res.milestonesAchieved.map((milestone, idx) => (
+                      <Badge
+                        key={idx}
+                        className="text-base py-2 px-4 bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-none shadow-md hover:shadow-lg transition-all"
+                      >
+                        <span className="mr-2">{milestone.emoji}</span>
+                        {milestone.label}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card>
