@@ -28,6 +28,31 @@ const MAX_GENS = 40;
 const YEARS_PER_GEN = 30;
 const LIFE_EXP = 95;
 const CURR_YEAR = new Date().getFullYear();
+const RMD_START_AGE = 73; // 2023 SECURE Act 2.0
+
+/** RMD Divisor Table (IRS Uniform Lifetime Table) - Simplified */
+const RMD_DIVISORS: Record<number, number> = {
+  73: 26.5, 74: 25.5, 75: 24.6, 76: 23.7, 77: 22.9, 78: 22.0, 79: 21.1, 80: 20.2,
+  81: 19.4, 82: 18.5, 83: 17.7, 84: 16.8, 85: 16.0, 86: 15.2, 87: 14.4, 88: 13.7,
+  89: 12.9, 90: 12.2, 91: 11.5, 92: 10.8, 93: 10.1, 94: 9.5, 95: 8.9,
+};
+
+/** Social Security Full Retirement Age bend points (2025 estimates) */
+const SS_BEND_POINTS = {
+  first: 1226,  // 90% of AIME up to this
+  second: 7391, // 32% of AIME between first and second, 15% above
+};
+
+/** Milestones for celebrations */
+const MILESTONES = [
+  { amount: 100_000, emoji: '🎯', label: 'First $100K!' },
+  { amount: 250_000, emoji: '🚀', label: 'Quarter Million!' },
+  { amount: 500_000, emoji: '💎', label: 'Half Million!' },
+  { amount: 1_000_000, emoji: '🏆', label: 'Millionaire!' },
+  { amount: 2_000_000, emoji: '👑', label: 'Multi-Millionaire!' },
+  { amount: 5_000_000, emoji: '🌟', label: 'Five Million Club!' },
+  { amount: 10_000_000, emoji: '🎆', label: 'Eight Figures!' },
+];
 
 /** Illustrative 2025 ordinary brackets + standard deductions */
 const TAX_BRACKETS = {
