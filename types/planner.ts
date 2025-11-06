@@ -166,6 +166,11 @@ export type DisplayResult = {
     tot: number;
   };
   probRuin?: number;
+  rmdData?: {
+    age: number;
+    spending: number;
+    rmd: number;
+  }[];
 };
 
 // Withdrawal tax calculation result

@@ -1542,6 +1542,7 @@ export default function App() {
       let currWdGross = wdGrossY1;
       let survYrs = 0;
       let totalRMDs = 0; // Track cumulative RMDs
+      const rmdData: { age: number; spending: number; rmd: number }[] = []; // Track RMD vs spending
 
       for (let y = 1; y <= yrsToSim; y++) {
         const g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
@@ -1583,6 +1584,15 @@ export default function App() {
             actualWithdrawal = requiredRMD;
             rmdExcess = requiredRMD - netSpendingNeed;
           }
+        }
+
+        // Track RMD vs spending for tax bomb visualization
+        if (currentAge >= RMD_START_AGE) {
+          rmdData.push({
+            age: currentAge,
+            spending: netSpendingNeed,
+            rmd: requiredRMD,
+          });
         }
 
         const taxes = computeWithdrawalTaxes(
@@ -1710,6 +1720,7 @@ export default function App() {
         eolAccounts,
         totalRMDs,
         genPayout,
+        rmdData, // Add RMD vs spending data for tax bomb chart
         tax: {
           fedOrd: calcOrdinaryTax(y1.draw.p, marital),
           fedCap: calcLTCGTax(
@@ -2144,6 +2155,56 @@ export default function App() {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
+
+            {/* RMD Tax Bomb Chart */}
+            {res.rmdData && res.rmdData.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>RMD Tax Bomb Analysis</CardTitle>
+                  <CardDescription>
+                    When Required Minimum Distributions exceed your spending needs (age {RMD_START_AGE}+)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <LineChart data={res.rmdData}>
+                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                      <XAxis dataKey="age" label={{ value: "Age", position: "insideBottom", offset: -5 }} />
+                      <YAxis tickFormatter={(v) => fmt(v as number)} label={{ value: "Annual Amount", angle: -90, position: "insideLeft" }} />
+                      <RTooltip
+                        formatter={(v) => fmt(v as number)}
+                        contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="spending"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        dot={false}
+                        name="Spending Need (after SS)"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="rmd"
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        dot={false}
+                        name="Required RMD"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>Tax Planning Tip:</strong> When the red dashed line (RMD) crosses above the green line (Spending),
+                      you&apos;re forced to withdraw more than you need. This excess gets taxed and reinvested in taxable accounts.
+                      Consider Roth conversions before age {RMD_START_AGE} to reduce future RMDs.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
