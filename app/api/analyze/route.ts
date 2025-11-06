@@ -134,19 +134,7 @@ ${estateAnalysis || '- Estate value below $13.99M exemption threshold (no federa
 
 ---
 
-As their CFP, provide a comprehensive analysis covering:
-
-1. **Overall Plan Viability** (2-3 sentences): Assess whether this plan is strong, adequate, or needs significant revision. Consider withdrawal sustainability, longevity risk, and tax efficiency.
-
-2. **Key Strengths** (2-3 points): What is this person doing right? Be specific about their smart decisions.
-
-3. **Critical Risks or Concerns** (2-3 points): What are the biggest threats to this plan's success? Be direct and honest.
-
-4. **Tax Optimization Opportunities** (2-3 specific recommendations): Based on their account allocation and RMD situation, what tax-saving strategies should they consider? (e.g., Roth conversions, tax-bracket management, etc.)
-
-5. **Action Items** (3-5 prioritized recommendations): What should they do immediately, within 1 year, and before retirement? Be tactical and specific.
-
-Write in a professional but encouraging tone. Be direct about risks but solution-oriented. Format with clear headers and bullet points for readability.`;
+Provide a summary analysis covering.  Format with clear headers and bullet points for readability.  Do not include any "##" in your reply.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
