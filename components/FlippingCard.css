@@ -3,7 +3,7 @@
 /* The outer container, which sets the 3D perspective */
 .flip-card-scene {
   width: 100%;
-  min-height: 200px; /* Set a min-height for the front */
+  /* Removed min-height - let the content determine the height */
   perspective: 1000px; /* This creates the 3D effect */
   cursor: pointer;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -13,8 +13,9 @@
 .flip-card {
   position: relative;
   width: 100%;
-  height: 100%;
-  transition: transform 0.8s;
+  /* Height is controlled by inline styles from React */
+  /* Added 'height' to the transition for smooth resizing */
+  transition: transform 0.8s, height 0.4s ease-out;
   transform-style: preserve-3d;
 }
 
@@ -27,8 +28,8 @@
 .flip-card-face {
   position: absolute;
   width: 100%;
-  height: auto; /* Allow the back to be taller if needed */
-  min-height: 200px; /* Match the scene's min-height */
+  height: auto; /* Let the content define the height */
+  /* Removed min-height - content determines size */
   -webkit-backface-visibility: hidden; /* Safari */
   backface-visibility: hidden; /* Hides the back of the card when it's facing away */
 
