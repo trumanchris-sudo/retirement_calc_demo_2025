@@ -1161,14 +1161,14 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
 }
 
 /**
- * Run 10 simulations with different seeds and compute median summaries.
+ * Run 25 simulations with different seeds and compute median summaries.
  * This provides more stable results for truly random mode.
  */
 async function runTenSeedsAndSummarize(params: Inputs, baseSeed: number): Promise<BatchSummary> {
-  const N = 10;
+  const N = 25;
   const results: SimResult[] = [];
 
-  // Generate 10 random seeds from the baseSeed for more varied simulations
+  // Generate 25 random seeds from the baseSeed for more varied simulations
   const rng = mulberry32(baseSeed);
   const seeds: number[] = [];
   for (let i = 0; i < N; i++) {
@@ -2077,7 +2077,7 @@ export default function App() {
                       <p className="text-xs text-muted-foreground mt-2">
                         Based on 25 random simulations. {res.probRuin === 0 ? "All scenarios succeeded!" :
                         res.probRuin === 1 ? "All scenarios failed." :
-                        `${(res.probRuin * 10).toFixed(0)} out of 10 scenarios ran out of money.`}
+                        `${(res.probRuin * 25).toFixed(0)} out of 25 scenarios ran out of money.`}
                       </p>
                     </CardContent>
                   </Card>
