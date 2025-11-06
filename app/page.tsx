@@ -2002,28 +2002,139 @@ export default function App() {
                   </>
                 }
               />
-              <StatCard
+              <FlippingStatCard
                 title="Today's Dollars"
                 value={fmt(res.finReal)}
                 sub={`At age ${retAge} (real)`}
                 color="indigo"
                 icon={TrendingUpIcon}
-                explanation={`This is your Future Balance adjusted for inflation to show its equivalent purchasing power in today's dollars (real value). Calculated by dividing the nominal balance by (1 + inflation)^years. This helps you understand what your retirement savings will actually buy.`}
+                backContent={
+                  <>
+                    <div className="flip-card-header">
+                      <span className="flip-card-title">Today's Dollars - Details</span>
+                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                    </div>
+                    <div className="flip-card-body-details">
+                      <p className="mb-4">
+                        This is the nominal balance adjusted for inflation to show its value in today's purchasing power.
+                      </p>
+                      <ul className="flip-card-list">
+                        <li>
+                          <span className="flip-card-list-label">Future Balance (Nominal)</span>
+                          <span className="flip-card-list-value">{fmt(res.finNom)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">In Today's Dollars (Real)</span>
+                          <span className="flip-card-list-value">{fmt(res.finReal)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Inflation Rate</span>
+                          <span className="flip-card-list-value">{infRate}%</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Years to Retirement</span>
+                          <span className="flip-card-list-value">{res.yrsToRet} years</span>
+                        </li>
+                      </ul>
+                      <p className="flip-card-details-text">
+                        Formula: Real Value = Nominal Value ÷ (1 + {infRate/100})<sup>{res.yrsToRet}</sup>
+                        <br/>
+                        This helps you understand what your retirement savings will actually buy in terms of today's purchasing power.
+                      </p>
+                    </div>
+                  </>
+                }
               />
-              <StatCard
+              <FlippingStatCard
                 title="Annual Withdrawal"
                 value={fmt(res.wd)}
                 sub={`Year 1 (${wdRate}% rate)`}
                 color="green"
                 icon={CalendarIcon}
-                explanation={`This is your first-year gross withdrawal amount, calculated as ${wdRate}% of your Future Balance. This is the total amount withdrawn before taxes. In subsequent years, this amount increases with inflation to maintain constant purchasing power.`}
+                backContent={
+                  <>
+                    <div className="flip-card-header">
+                      <span className="flip-card-title">Withdrawal Strategy - Details</span>
+                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                    </div>
+                    <div className="flip-card-body-details">
+                      <p className="mb-4">
+                        This is your starting withdrawal for the first year of retirement, calculated as {wdRate}% of your total balance.
+                      </p>
+                      <ul className="flip-card-list">
+                        <li>
+                          <span className="flip-card-list-label">Future Balance</span>
+                          <span className="flip-card-list-value">{fmt(res.finNom)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Withdrawal Rate</span>
+                          <span className="flip-card-list-value">{wdRate}%</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Year 1 Withdrawal</span>
+                          <span className="flip-card-list-value">{fmt(res.wd)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">After Taxes</span>
+                          <span className="flip-card-list-value">{fmt(res.wdAfter)}</span>
+                        </li>
+                      </ul>
+                      <p className="flip-card-details-text">
+                        In all future years, this amount will be adjusted upward by the rate of inflation ({infRate}%) to maintain your purchasing power, regardless of market performance.
+                      </p>
+                    </div>
+                  </>
+                }
               />
-              <StatCard
+              <FlippingStatCard
                 title="After-Tax Income"
                 value={fmt(res.wdReal)}
                 sub="Year 1 real spending"
                 color="emerald"
-                explanation={`This is your spendable income in today's dollars after all taxes (federal ordinary income, LTCG, NIIT, and state taxes) are deducted from your withdrawal. It represents what you'll actually have available to spend, adjusted to today's purchasing power.`}
+                backContent={
+                  <>
+                    <div className="flip-card-header">
+                      <span className="flip-card-title">After-Tax Income - Details</span>
+                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                    </div>
+                    <div className="flip-card-body-details">
+                      <p className="mb-4">
+                        This is your actual spendable income in today's dollars after paying {fmt(res.tax.tot)} in taxes on your {fmt(res.wd)} withdrawal.
+                      </p>
+                      <ul className="flip-card-list">
+                        <li>
+                          <span className="flip-card-list-label">Gross Withdrawal</span>
+                          <span className="flip-card-list-value">{fmt(res.wd)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Federal Ordinary Tax</span>
+                          <span className="flip-card-list-value">-{fmt(res.tax.fedOrd)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Federal Capital Gains</span>
+                          <span className="flip-card-list-value">-{fmt(res.tax.fedCap)}</span>
+                        </li>
+                        {res.tax.niit > 0 && (
+                          <li>
+                            <span className="flip-card-list-label">NIIT (3.8%)</span>
+                            <span className="flip-card-list-value">-{fmt(res.tax.niit)}</span>
+                          </li>
+                        )}
+                        <li>
+                          <span className="flip-card-list-label">State Tax</span>
+                          <span className="flip-card-list-value">-{fmt(res.tax.state)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">After-Tax (Nominal)</span>
+                          <span className="flip-card-list-value">{fmt(res.wdAfter)}</span>
+                        </li>
+                      </ul>
+                      <p className="flip-card-details-text">
+                        Taxes vary by account type: Pre-tax 401k/IRA incurs ordinary income tax, Taxable accounts incur capital gains tax, and Roth accounts are tax-free.
+                      </p>
+                    </div>
+                  </>
+                }
               />
             </div>
 
