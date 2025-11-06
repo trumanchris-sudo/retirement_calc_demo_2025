@@ -2075,7 +2075,7 @@ export default function App() {
                       <p className="text-sm text-muted-foreground mb-2">Probability of Running Out</p>
                       <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{(res.probRuin * 100).toFixed(0)}%</p>
                       <p className="text-xs text-muted-foreground mt-2">
-                        Based on 10 random simulations. {res.probRuin === 0 ? "All scenarios succeeded!" :
+                        Based on 25 random simulations. {res.probRuin === 0 ? "All scenarios succeeded!" :
                         res.probRuin === 1 ? "All scenarios failed." :
                         `${(res.probRuin * 10).toFixed(0)} out of 10 scenarios ran out of money.`}
                       </p>
