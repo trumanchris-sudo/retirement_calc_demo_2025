@@ -12,6 +12,9 @@ import {
   ResponsiveContainer,
   Area,
   AreaChart,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1879,11 +1882,56 @@ export default function App() {
                   <p className="text-sm text-muted-foreground mb-2">End-of-Life Wealth</p>
                   <p className="text-2xl font-bold text-green-600">{fmt(res.eol)}</p>
                   {res.eolAccounts && (
-                    <div className="mt-2 text-xs text-muted-foreground space-y-1">
-                      <div>Taxable: {fmt(res.eolAccounts.taxable)}</div>
-                      <div>Pre-tax: {fmt(res.eolAccounts.pretax)}</div>
-                      <div>Roth: {fmt(res.eolAccounts.roth)}</div>
-                    </div>
+                    <>
+                      <div className="mt-4">
+                        <ResponsiveContainer width="100%" height={200}>
+                          <PieChart>
+                            <Pie
+                              data={[
+                                { name: "Taxable", value: res.eolAccounts.taxable, color: "#3b82f6" },
+                                { name: "Pre-tax", value: res.eolAccounts.pretax, color: "#f59e0b" },
+                                { name: "Roth", value: res.eolAccounts.roth, color: "#10b981" },
+                              ]}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={50}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              paddingAngle={2}
+                              dataKey="value"
+                              label={(entry) => `${entry.name}: ${fmt(entry.value)}`}
+                              labelLine={false}
+                            >
+                              {[
+                                { name: "Taxable", value: res.eolAccounts.taxable, color: "#3b82f6" },
+                                { name: "Pre-tax", value: res.eolAccounts.pretax, color: "#f59e0b" },
+                                { name: "Roth", value: res.eolAccounts.roth, color: "#10b981" },
+                              ].map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <RTooltip
+                              formatter={(value: number) => fmt(value)}
+                              contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="mt-2 text-xs text-muted-foreground space-y-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                          <span>Taxable: {fmt(res.eolAccounts.taxable)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                          <span>Pre-tax: {fmt(res.eolAccounts.pretax)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                          <span>Roth: {fmt(res.eolAccounts.roth)}</span>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -2049,6 +2097,27 @@ export default function App() {
                       contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
                     />
                     <Legend />
+                    {/* Draw filled areas first so lines appear on top */}
+                    <Area
+                      type="monotone"
+                      dataKey="bal"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorBal)"
+                      name="Nominal (50th Percentile)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="real"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      fillOpacity={1}
+                      fill="url(#colorReal)"
+                      name="Real (50th Percentile)"
+                    />
+                    {/* Now draw percentile lines on top */}
                     {showP10 && (
                       <Line
                         type="monotone"
@@ -2060,15 +2129,6 @@ export default function App() {
                         name="10th Percentile (Nominal)"
                       />
                     )}
-                    <Area
-                      type="monotone"
-                      dataKey="bal"
-                      stroke="#3b82f6"
-                      strokeWidth={3}
-                      fillOpacity={1}
-                      fill="url(#colorBal)"
-                      name="Nominal (50th Percentile)"
-                    />
                     {showP90 && (
                       <Line
                         type="monotone"
@@ -2080,16 +2140,6 @@ export default function App() {
                         name="90th Percentile (Nominal)"
                       />
                     )}
-                    <Area
-                      type="monotone"
-                      dataKey="real"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      fillOpacity={1}
-                      fill="url(#colorReal)"
-                      name="Real (50th Percentile)"
-                    />
                   </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
