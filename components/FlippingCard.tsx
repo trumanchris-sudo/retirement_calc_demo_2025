@@ -25,34 +25,38 @@ export const FlippingCard: React.FC<FlippingCardProps> = ({
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
-  // --- Additions for dynamic height ---
+  // --- Dynamic height management ---
   const [cardHeight, setCardHeight] = useState<string>('auto');
   const cardRef = useRef<HTMLDivElement>(null); // Ref for the main .flip-card element
   const frontRef = useRef<HTMLDivElement>(null); // Ref for the front face
   const backRef = useRef<HTMLDivElement>(null); // Ref for the back face
 
-  // Set the initial height to the front's height
-  useLayoutEffect(() => {
-    if (frontRef.current) {
-      setCardHeight(`${frontRef.current.offsetHeight}px`);
-    }
-  }, []);
-
-  // Update the height when isFlipped changes
-  useEffect(() => {
+  // Function to set height based on the visible face
+  const updateHeight = () => {
     if (isFlipped) {
-      // Set height to the back's height
       if (backRef.current) {
         setCardHeight(`${backRef.current.offsetHeight}px`);
       }
     } else {
-      // Set height to the front's height
       if (frontRef.current) {
         setCardHeight(`${frontRef.current.offsetHeight}px`);
       }
     }
+  };
+
+  // Set initial height on mount
+  useLayoutEffect(() => {
+    updateHeight();
+    // Re-check height after a short delay to ensure images/fonts have loaded
+    const timer = setTimeout(updateHeight, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Update height when flip state changes
+  useEffect(() => {
+    updateHeight();
   }, [isFlipped]);
-  // --- End of additions ---
+  // --- End of dynamic height management ---
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
