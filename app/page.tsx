@@ -564,12 +564,6 @@ const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading
 
   return (
     <div className="p-6 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-sm">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-blue-100 rounded-lg">
-          <SparkleIcon className="text-blue-600" />
-        </div>
-        <h4 className="text-lg font-semibold text-blue-900">Personalized Analysis</h4>
-      </div>
       <p className="text-sm text-blue-800 leading-relaxed whitespace-pre-wrap">{insight}</p>
     </div>
   );
@@ -1261,7 +1255,7 @@ export default function App() {
   const [isLoadingAi, setIsLoadingAi] = useState<boolean>(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
+  const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
@@ -1899,7 +1893,7 @@ export default function App() {
   ]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 py-12 px-4 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-slate-200 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 py-12 px-4 font-sans">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <Card className="overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 dark:from-blue-800 dark:via-blue-900 dark:to-indigo-900">
@@ -2201,16 +2195,15 @@ export default function App() {
                   <DollarSignIcon className="w-5 h-5 text-green-600" />
                   <h3 className="text-lg font-semibold">Current Balances</h3>
                 </div>
-                <div className="p-5 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 dark:from-blue-900 dark:via-blue-800 dark:to-indigo-900 rounded-xl border-2 border-blue-300 dark:border-blue-700 shadow-md">
-                  <div className="flex items-center gap-2 mb-2">
-                    <DollarSignIcon className="w-5 h-5 text-blue-600 dark:text-blue-300" />
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Current Balance</p>
-                  </div>
-                  <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{fmt(total)}</p>
-                </div>
                 <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} />
                 <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} />
                 <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} />
+                <div className="p-3 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 dark:from-blue-900 dark:via-blue-800 dark:to-indigo-900 rounded-lg border-2 border-blue-300 dark:border-blue-700">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-blue-700 dark:text-blue-300">Total Current Balance</p>
+                    <p className="text-lg font-bold text-blue-900 dark:text-blue-100">{fmt(total)}</p>
+                  </div>
+                </div>
               </div>
             </div>
 
