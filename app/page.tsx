@@ -1383,46 +1383,45 @@ export default function App() {
           </CardHeader>
         </Card>
 
+        {/* Print/Share Buttons */}
+        {res && (
+          <div className="flex justify-center gap-3 no-print">
+            <Button
+              onClick={() => window.print()}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Print Report
+            </Button>
+            <Button
+              onClick={() => {
+                const shareData = {
+                  title: 'Tax-Aware Retirement Plan',
+                  text: `Retirement projection: ${fmt(res.finReal)} by age ${retAge}, ${fmt(res.wdReal)}/yr after-tax income`,
+                  url: window.location.href
+                };
+                if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                  navigator.share(shareData);
+                } else {
+                  navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+                  alert('Plan summary copied to clipboard!');
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              Share Results
+            </Button>
+          </div>
+        )}
+
         {res && (
           <div ref={resRef} className="space-y-6 scroll-mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Print/Share Header */}
-            <div className="flex justify-between items-center no-print">
-              <h2 className="text-2xl font-bold text-gray-900">Your Retirement Plan Analysis</h2>
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => window.print()}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                  </svg>
-                  Print Report
-                </Button>
-                <Button
-                  onClick={() => {
-                    const shareData = {
-                      title: 'Tax-Aware Retirement Plan',
-                      text: `Retirement projection: ${fmt(res.finReal)} by age ${retAge}, ${fmt(res.wdReal)}/yr after-tax income`,
-                      url: window.location.href
-                    };
-                    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-                      navigator.share(shareData);
-                    } else {
-                      navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
-                      alert('Plan summary copied to clipboard!');
-                    }
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                  </svg>
-                  Share Results
-                </Button>
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard
                 title="Future Balance"
