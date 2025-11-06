@@ -19,6 +19,7 @@ import { Input as UIInput } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 /** ===============================
  * Constants
@@ -129,9 +130,15 @@ export type WalkSeries = "nominal" | "real" | "trulyRandom";
 
 /** Summary statistics from running multiple seeds for truly random simulations */
 export type BatchSummary = {
+  p10BalancesReal: number[];      // 10th percentile per year
   p50BalancesReal: number[];      // median per year
+  p90BalancesReal: number[];      // 90th percentile per year
+  eolReal_p10: number;            // 10th percentile end-of-life wealth (real)
   eolReal_p50: number;            // median end-of-life wealth (real)
+  eolReal_p90: number;            // 90th percentile end-of-life wealth (real)
+  y1AfterTaxReal_p10: number;     // 10th percentile year-1 after-tax withdrawal (real)
   y1AfterTaxReal_p50: number;     // median year-1 after-tax withdrawal (real)
+  y1AfterTaxReal_p90: number;     // 90th percentile year-1 after-tax withdrawal (real)
   probRuin: number;               // fraction of runs that ruined
 };
 
@@ -252,6 +259,19 @@ const median = (arr: number[]): number => {
     return (sorted[mid - 1] + sorted[mid]) / 2;
   }
   return sorted[mid];
+};
+
+/** Calculate percentile from an array of numbers */
+const percentile = (arr: number[], p: number): number => {
+  if (arr.length === 0) return 0;
+  if (p < 0 || p > 100) throw new Error('Percentile must be between 0 and 100');
+  const sorted = [...arr].sort((a, b) => a - b);
+  const index = (p / 100) * (sorted.length - 1);
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  const weight = index - lower;
+  if (lower === upper) return sorted[lower];
+  return sorted[lower] * (1 - weight) + sorted[upper] * weight;
 };
 
 const calcOrdinaryTax = (income: number, status: FilingStatus) => {
@@ -1184,18 +1204,41 @@ async function runTenSeedsAndSummarize(params: Inputs, baseSeed: number): Promis
   // Assume all runs produced the same length T
   const T = results[0].balancesReal.length;
 
-  // Median (p50) series by year
+  // Calculate percentiles (p10, p50, p90) series by year
+  const p10BalancesReal: number[] = [];
   const p50BalancesReal: number[] = [];
+  const p90BalancesReal: number[] = [];
   for (let t = 0; t < T; t++) {
     const col = results.map(r => r.balancesReal[t]);
-    p50BalancesReal.push(median(col));
+    p10BalancesReal.push(percentile(col, 10));
+    p50BalancesReal.push(percentile(col, 50));
+    p90BalancesReal.push(percentile(col, 90));
   }
 
-  const eolReal_p50 = median(results.map(r => r.eolReal));
-  const y1AfterTaxReal_p50 = median(results.map(r => r.y1AfterTaxReal));
+  const eolValues = results.map(r => r.eolReal);
+  const eolReal_p10 = percentile(eolValues, 10);
+  const eolReal_p50 = percentile(eolValues, 50);
+  const eolReal_p90 = percentile(eolValues, 90);
+
+  const y1Values = results.map(r => r.y1AfterTaxReal);
+  const y1AfterTaxReal_p10 = percentile(y1Values, 10);
+  const y1AfterTaxReal_p50 = percentile(y1Values, 50);
+  const y1AfterTaxReal_p90 = percentile(y1Values, 90);
+
   const probRuin = results.filter(r => r.ruined).length / N;
 
-  return { p50BalancesReal, eolReal_p50, y1AfterTaxReal_p50, probRuin };
+  return {
+    p10BalancesReal,
+    p50BalancesReal,
+    p90BalancesReal,
+    eolReal_p10,
+    eolReal_p50,
+    eolReal_p90,
+    y1AfterTaxReal_p10,
+    y1AfterTaxReal_p50,
+    y1AfterTaxReal_p90,
+    probRuin
+  };
 }
 
 /** ===============================
@@ -1237,7 +1280,7 @@ export default function App() {
 
   const [showGen, setShowGen] = useState(false);
 
-  const [hypPerBen, setHypPerBen] = useState(1_000_000);
+  const [hypPerBen, setHypPerBen] = useState(100_000);
   const [hypStartBens, setHypStartBens] = useState(2);
   const [hypBirthMultiple, setHypBirthMultiple] = useState(1);
   const [hypBirthInterval, setHypBirthInterval] = useState(30);
@@ -1254,8 +1297,11 @@ export default function App() {
   const [aiInsight, setAiInsight] = useState<string>("");
   const [isLoadingAi, setIsLoadingAi] = useState<boolean>(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [userQuestion, setUserQuestion] = useState<string>("");
 
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
+  const [showP10, setShowP10] = useState(false); // Show 10th percentile line
+  const [showP90, setShowP90] = useState(false); // Show 90th percentile line
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
@@ -1272,7 +1318,7 @@ export default function App() {
   const isMar = useMemo(() => marital === "married", [marital]);
   const total = useMemo(() => sTax + sPre + sPost, [sTax, sPre, sPost]);
 
-  const fetchAiInsight = async (calcResult: any, olderAge: number) => {
+  const fetchAiInsight = async (calcResult: any, olderAge: number, customQuestion?: string) => {
     if (!calcResult) return;
 
     setIsLoadingAi(true);
@@ -1317,6 +1363,8 @@ export default function App() {
           // Contribution details
           totalContributions: calcResult.totC,
           returnModel: retMode,
+          // User question
+          userQuestion: customQuestion,
         }),
       });
 
@@ -1338,6 +1386,15 @@ export default function App() {
     } finally {
       setIsLoadingAi(false);
     }
+  };
+
+  const handleAskQuestion = async () => {
+    if (!userQuestion.trim() || !res) {
+      return;
+    }
+
+    const older = Math.max(age1, isMar ? age2 : age1);
+    await fetchAiInsight(res, older, userQuestion);
   };
 
   const calc = useCallback(async () => {
@@ -1384,14 +1441,16 @@ export default function App() {
 
         const batchSummary = await runTenSeedsAndSummarize(inputs, currentSeed);
 
-        // Reconstruct data array from batch summary median balances
-        const data: { year: number; a1: number; a2: number | null; bal: number; real: number }[] = [];
+        // Reconstruct data array from batch summary percentile balances
+        const data: { year: number; a1: number; a2: number | null; bal: number; real: number; p10: number; p90: number }[] = [];
         for (let i = 0; i < batchSummary.p50BalancesReal.length; i++) {
           const yr = CURR_YEAR + i;
           const a1 = age1 + i;
           const a2 = isMar ? age2 + i : null;
           const realBal = batchSummary.p50BalancesReal[i];
           const nomBal = realBal * Math.pow(1 + infl, i);
+          const p10Nom = batchSummary.p10BalancesReal[i] * Math.pow(1 + infl, i);
+          const p90Nom = batchSummary.p90BalancesReal[i] * Math.pow(1 + infl, i);
 
           data.push({
             year: yr,
@@ -1399,6 +1458,8 @@ export default function App() {
             a2,
             bal: nomBal,
             real: realBal,
+            p10: p10Nom,
+            p90: p90Nom,
           });
         }
 
@@ -2098,6 +2159,36 @@ export default function App() {
                   error={aiError}
                   isLoading={isLoadingAi}
                 />
+                {res && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <Label htmlFor="ai-question" className="text-sm font-medium mb-2 block">
+                      Ask a question about your plan
+                    </Label>
+                    <div className="flex gap-2">
+                      <UIInput
+                        id="ai-question"
+                        type="text"
+                        placeholder="e.g., What if I retire 2 years earlier?"
+                        value={userQuestion}
+                        onChange={(e) => setUserQuestion(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleAskQuestion();
+                          }
+                        }}
+                        className="flex-1"
+                        disabled={isLoadingAi}
+                      />
+                      <Button
+                        onClick={handleAskQuestion}
+                        disabled={isLoadingAi || !userQuestion.trim()}
+                        className="whitespace-nowrap"
+                      >
+                        Ask Claude
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -2107,6 +2198,36 @@ export default function App() {
                 <CardDescription>Your wealth over time in nominal and real dollars</CardDescription>
               </CardHeader>
               <CardContent>
+                {walkSeries === 'trulyRandom' && (
+                  <div className="flex gap-6 mb-4 items-center">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="show-p10"
+                        checked={showP10}
+                        onCheckedChange={(checked) => setShowP10(checked as boolean)}
+                      />
+                      <label
+                        htmlFor="show-p10"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        Show 10th Percentile (Nominal)
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="show-p90"
+                        checked={showP90}
+                        onCheckedChange={(checked) => setShowP90(checked as boolean)}
+                      />
+                      <label
+                        htmlFor="show-p90"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        Show 90th Percentile (Nominal)
+                      </label>
+                    </div>
+                  </div>
+                )}
                 <ResponsiveContainer width="100%" height={400}>
                   <AreaChart data={res.data}>
                     <defs>
@@ -2128,6 +2249,17 @@ export default function App() {
                       contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
                     />
                     <Legend />
+                    {showP10 && (
+                      <Line
+                        type="monotone"
+                        dataKey="p10"
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        strokeDasharray="3 3"
+                        dot={false}
+                        name="10th Percentile (Nominal)"
+                      />
+                    )}
                     <Area
                       type="monotone"
                       dataKey="bal"
@@ -2135,8 +2267,19 @@ export default function App() {
                       strokeWidth={3}
                       fillOpacity={1}
                       fill="url(#colorBal)"
-                      name="Nominal"
+                      name="Nominal (50th Percentile)"
                     />
+                    {showP90 && (
+                      <Line
+                        type="monotone"
+                        dataKey="p90"
+                        stroke="#8b5cf6"
+                        strokeWidth={2}
+                        strokeDasharray="3 3"
+                        dot={false}
+                        name="90th Percentile (Nominal)"
+                      />
+                    )}
                     <Area
                       type="monotone"
                       dataKey="real"
@@ -2145,7 +2288,7 @@ export default function App() {
                       strokeDasharray="5 5"
                       fillOpacity={1}
                       fill="url(#colorReal)"
-                      name="Real"
+                      name="Real (50th Percentile)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
