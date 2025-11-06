@@ -92,3 +92,37 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Print Styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: inline !important;
+  }
+
+  /* Hide interactive elements */
+  input[type="checkbox"],
+  input[type="text"],
+  input[type="number"],
+  select,
+  button {
+    pointer-events: none;
+  }
+
+  /* Show form values clearly */
+  input[type="text"],
+  input[type="number"],
+  select {
+    border: 1px solid #e5e7eb;
+    background: white;
+  }
+}
+
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}

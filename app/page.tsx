@@ -1596,7 +1596,7 @@ export default function App() {
         )}
 
         {/* Input Form */}
-        <Card className="no-print">
+        <Card>
           <CardHeader>
             <CardTitle>Plan Your Retirement</CardTitle>
             <CardDescription>Enter your information to calculate your retirement projections</CardDescription>
@@ -1768,10 +1768,10 @@ export default function App() {
                         id="inc-contrib"
                         checked={incContrib}
                         onChange={(e) => setIncContrib(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
                       />
                       <Label htmlFor="inc-contrib" className="cursor-pointer">
-                        Increase contributions annually
+                        Increase contributions annually {incContrib && <span className="print-only">✓</span>}
                       </Label>
                     </div>
                   </div>
@@ -1786,10 +1786,10 @@ export default function App() {
                       id="include-ss"
                       checked={includeSS}
                       onChange={(e) => setIncludeSS(e.target.checked)}
-                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
                     />
                     <Label htmlFor="include-ss" className="text-base font-semibold cursor-pointer">
-                      Include Social Security Benefits
+                      Include Social Security Benefits {includeSS && <span className="print-only">✓</span>}
                     </Label>
                   </div>
 
@@ -1817,17 +1817,17 @@ export default function App() {
 
             <Separator />
 
-            <div className="space-y-6">
+            <div className={`space-y-6 ${!showGen ? 'no-print' : ''}`}>
               <div className="flex items-center space-x-3">
                 <input
                   type="checkbox"
                   id="show-gen"
                   checked={showGen}
                   onChange={(e) => setShowGen(e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                  className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500 no-print"
                 />
                 <Label htmlFor="show-gen" className="text-lg font-semibold text-purple-700 cursor-pointer">
-                  Generational Wealth Modeling
+                  Generational Wealth Modeling {showGen && <span className="print-only">✓</span>}
                 </Label>
               </div>
 
@@ -1913,7 +1913,7 @@ export default function App() {
 
             <Separator />
 
-            <div className="flex flex-col items-center pt-6 pb-2">
+            <div className="flex flex-col items-center pt-6 pb-2 no-print">
               <Button
                 onClick={calc}
                 disabled={isLoadingAi}
@@ -1942,6 +1942,300 @@ export default function App() {
                   </div>
                 </div>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* The Math Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-3xl">The Math</CardTitle>
+            <CardDescription>Understanding the calculations behind your retirement projections</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6 text-sm leading-relaxed">
+            <section>
+              <h3 className="text-xl font-semibold mb-3 text-blue-900">Overview</h3>
+              <p className="text-gray-700">
+                This calculator uses a comprehensive, tax-aware simulation to project your retirement finances.
+                It models two distinct phases: the <strong>accumulation phase</strong> (from now until retirement)
+                and the <strong>drawdown phase</strong> (from retirement until age {LIFE_EXP}). All calculations
+                account for compound growth, inflation, taxes, and required minimum distributions.
+              </p>
+            </section>
+
+            <Separator />
+
+            <section>
+              <h3 className="text-xl font-semibold mb-3 text-blue-900">Accumulation Phase (Pre-Retirement)</h3>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">Growth Calculation</h4>
+                  <p className="text-gray-700 mb-2">
+                    Each year, your account balances grow according to the selected return model:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                    <li><strong>Fixed Return:</strong> All accounts grow by a constant rate (e.g., 9.8%) each year: Balance<sub>year+1</sub> = Balance<sub>year</sub> × (1 + r)</li>
+                    <li><strong>Random Walk:</strong> Returns are randomly sampled from historical S&amp;P 500 data (1975-2024), using a seeded pseudo-random number generator for reproducibility. Each year gets a different historical return, bootstrapped with replacement.</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">Mid-Year Contributions</h4>
+                  <p className="text-gray-700">
+                    Annual contributions are assumed to occur mid-year on average. To account for partial-year growth,
+                    contributions are multiplied by (1 + (g - 1) × 0.5), where g is the year's growth factor. This
+                    gives contributions roughly half a year of growth, which is more realistic than assuming all
+                    contributions happen at year-end or year-start.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">Contribution Increases</h4>
+                  <p className="text-gray-700">
+                    If enabled, annual contributions increase by the specified percentage each year to model salary
+                    growth and increasing savings capacity: Contribution<sub>year+1</sub> = Contribution<sub>year</sub> × (1 + increase_rate).
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">Account Types</h4>
+                  <p className="text-gray-700 mb-2">The calculator tracks three separate account types:</p>
+                  <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                    <li><strong>Taxable (Brokerage):</strong> Subject to long-term capital gains tax on withdrawals. We track your cost basis (total contributions) and only the gains are taxed.</li>
+                    <li><strong>Pre-Tax (401k/Traditional IRA):</strong> Contributions grow tax-deferred. All withdrawals are taxed as ordinary income. Subject to Required Minimum Distributions (RMDs) starting at age {RMD_START_AGE}.</li>
+                    <li><strong>Post-Tax (Roth):</strong> Contributions grow tax-free. Qualified withdrawals in retirement are completely tax-free (no taxes, no RMDs).</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <Separator />
+
+            <section>
+              <h3 className="text-xl font-semibold mb-3 text-blue-900">Inflation Adjustments</h3>
+              <p className="text-gray-700 mb-2">
+                To show purchasing power, we convert nominal (future) dollars to real (today's) dollars using:
+              </p>
+              <p className="font-mono text-sm bg-gray-100 p-3 rounded mb-2 text-gray-800">
+                Real Value = Nominal Value / (1 + inflation_rate)<sup>years</sup>
+              </p>
+              <p className="text-gray-700">
+                For example, if you have $1,000,000 in 30 years and inflation averages 2.6% annually, the real value
+                is $1,000,000 / (1.026)<sup>30</sup> ≈ $462,000 in today's purchasing power.
+              </p>
+            </section>
+
+            <Separator />
+
+            <section>
+              <h3 className="text-xl font-semibold mb-3 text-blue-900">Drawdown Phase (Post-Retirement)</h3>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">Withdrawal Strategy</h4>
+                  <p className="text-gray-700 mb-2">
+                    The first year's withdrawal is calculated as a percentage of your total retirement balance
+                    (e.g., 3.5% for a conservative approach, 4% for the classic "4% rule"). In subsequent years,
+                    the withdrawal amount increases with inflation to maintain constant purchasing power:
+                  </p>
+                  <p className="font-mono text-sm bg-gray-100 p-3 rounded text-gray-800">
+                    Withdrawal<sub>year+1</sub> = Withdrawal<sub>year</sub> × (1 + inflation_rate)
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">Proportional Withdrawal</h4>
+                  <p className="text-gray-700">
+                    Withdrawals are taken proportionally from all three account types based on their current
+                    balances. If one account runs out, the shortfall is automatically drawn from the remaining
+                    accounts. This creates a natural tax diversification strategy.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">Tax Calculation</h4>
+                  <p className="text-gray-700 mb-2">
+                    Each year's withdrawal is subject to multiple layers of taxation:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                    <li>
+                      <strong>Ordinary Income Tax:</strong> Pre-tax withdrawals are taxed using the federal
+                      progressive tax brackets ({marital === "married" ? "married" : "single"} filing status)
+                      after applying the standard deduction. Brackets range from 10% to 37%.
+                    </li>
+                    <li>
+                      <strong>Long-Term Capital Gains Tax:</strong> Gains from taxable account withdrawals are
+                      taxed at preferential LTCG rates (0%, 15%, or 20%) based on your total income. Only the
+                      gains portion is taxed—your original contributions (basis) come out tax-free.
+                    </li>
+                    <li>
+                      <strong>Net Investment Income Tax (NIIT):</strong> An additional 3.8% tax on investment
+                      income (capital gains) if your modified AGI exceeds ${(NIIT_THRESHOLD[marital] / 1000).toFixed(0)}K.
+                    </li>
+                    <li>
+                      <strong>State Income Tax:</strong> A flat percentage applied to all taxable income if you
+                      specify a state tax rate (varies by state, 0% to ~13%).
+                    </li>
+                    <li>
+                      <strong>Roth Withdrawals:</strong> Completely tax-free! This is the "tax-free income"
+                      advantage of Roth accounts.
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">Required Minimum Distributions (RMDs)</h4>
+                  <p className="text-gray-700 mb-2">
+                    Starting at age {RMD_START_AGE}, the IRS requires you to withdraw a minimum amount from
+                    pre-tax accounts each year. The RMD is calculated as:
+                  </p>
+                  <p className="font-mono text-sm bg-gray-100 p-3 rounded mb-2 text-gray-800">
+                    RMD = Pre-Tax Balance / Divisor
+                  </p>
+                  <p className="text-gray-700 mb-2">
+                    The divisor comes from the IRS Uniform Lifetime Table (e.g., 26.5 at age 73, decreasing each
+                    year). If your RMD exceeds your spending needs, the excess is withdrawn, taxed, and
+                    reinvested in your taxable account (with the after-tax amount becoming new basis).
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">Social Security Benefits</h4>
+                  <p className="text-gray-700 mb-2">
+                    If enabled, Social Security benefits are calculated using the 2025 bend point formula:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                    <li>90% of Average Indexed Monthly Earnings (AIME) up to ${SS_BEND_POINTS.first.toLocaleString()}/month</li>
+                    <li>32% of AIME between ${SS_BEND_POINTS.first.toLocaleString()} and ${SS_BEND_POINTS.second.toLocaleString()}/month</li>
+                    <li>15% of AIME above ${SS_BEND_POINTS.second.toLocaleString()}/month</li>
+                  </ul>
+                  <p className="text-gray-700 mt-2">
+                    This gives your Primary Insurance Amount (PIA). If you claim before Full Retirement Age (FRA),
+                    benefits are reduced by 5/9 of 1% per month for the first 36 months, then 5/12 of 1% for each
+                    additional month. If you delay past FRA, benefits increase by 2/3 of 1% per month (8% per year).
+                    SS benefits reduce the amount you need to withdraw from your portfolio.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">Continuous Growth</h4>
+                  <p className="text-gray-700">
+                    Your remaining account balances continue to grow each year according to the same return model
+                    used in the accumulation phase. Growth is applied <em>before</em> withdrawals each year, so
+                    your money keeps working for you throughout retirement.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <Separator />
+
+            <section>
+              <h3 className="text-xl font-semibold mb-3 text-blue-900">Estate Planning</h3>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">End-of-Life Wealth</h4>
+                  <p className="text-gray-700">
+                    If your accounts last until age {LIFE_EXP}, any remaining balance is your end-of-life (EOL)
+                    wealth, which becomes your estate. This represents money you can pass to heirs or charity.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">Estate Tax</h4>
+                  <p className="text-gray-700">
+                    Under current law (2025), estates exceeding ${(ESTATE_TAX_EXEMPTION / 1_000_000).toFixed(2)}
+                    million are subject to a 40% federal estate tax on the amount above the exemption. Your heirs
+                    receive the net estate after this tax. Note: Estate tax laws may change, and this is a simplified
+                    calculation that doesn't account for spousal transfers, trusts, or state estate taxes.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">Generational Wealth Model</h4>
+                  <p className="text-gray-700 mb-2">
+                    If enabled, the generational model simulates how long your estate could support future
+                    beneficiaries (children, grandchildren, etc.) with annual payouts in today's dollars:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                    <li>The net estate (after estate tax) is deflated to 2025 purchasing power</li>
+                    <li>Each year, the fund grows at a real rate (nominal return minus inflation)</li>
+                    <li>Each living beneficiary receives a fixed annual payout in constant 2025 dollars</li>
+                    <li>Beneficiaries age each year; those reaching max lifespan exit the model</li>
+                    <li>Every N years (birth interval), fertile beneficiaries (ages 20-40) produce offspring</li>
+                    <li>Simulation continues until funds are exhausted or 10,000 years (effectively perpetual)</li>
+                  </ul>
+                  <p className="text-gray-700 mt-2">
+                    This models a "perpetual trust" scenario and helps you understand whether your legacy could
+                    support multiple generations indefinitely or for how many years it would last under various
+                    payout scenarios.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <Separator />
+
+            <section>
+              <h3 className="text-xl font-semibold mb-3 text-blue-900">Limitations &amp; Assumptions</h3>
+
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li>
+                  <strong>Tax Law Stability:</strong> Assumes current (2025) tax brackets, standard deductions,
+                  RMD rules, and estate tax exemptions remain constant. Tax laws frequently change.
+                </li>
+                <li>
+                  <strong>No Sequence Risk Detail:</strong> While random walk mode samples from historical returns,
+                  it doesn't specifically model sequence-of-returns risk (getting bad returns early in retirement).
+                  Multiple simulations with different seeds can help explore this.
+                </li>
+                <li>
+                  <strong>Simplified Withdrawal Strategy:</strong> Uses proportional withdrawals from all accounts.
+                  More sophisticated strategies (like draining taxable first, then pre-tax, then Roth) may be more
+                  tax-efficient but are not modeled here.
+                </li>
+                <li>
+                  <strong>No Healthcare Costs:</strong> Doesn't separately model Medicare, long-term care insurance,
+                  or extraordinary medical expenses. These should be built into your withdrawal rate or annual spending needs.
+                </li>
+                <li>
+                  <strong>Fixed Withdrawal Rate:</strong> Uses inflation-adjusted constant dollar withdrawals.
+                  Real retirees often adjust spending based on portfolio performance.
+                </li>
+                <li>
+                  <strong>Single Life Expectancy:</strong> Projects to age {LIFE_EXP} for the older spouse.
+                  Some households may need to plan for longer lifespans.
+                </li>
+                <li>
+                  <strong>No Pension Income:</strong> Doesn't model traditional pensions, annuities, or rental income.
+                  These could be approximated by adjusting your withdrawal needs downward.
+                </li>
+              </ul>
+            </section>
+
+            <Separator />
+
+            <section>
+              <h3 className="text-xl font-semibold mb-3 text-blue-900">Data Sources</h3>
+              <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                <li><strong>S&amp;P 500 Returns:</strong> Historical total return data (1975-2024) used for random walk simulations</li>
+                <li><strong>Tax Brackets:</strong> 2025 federal ordinary income tax brackets (IRS)</li>
+                <li><strong>LTCG Brackets:</strong> 2025 long-term capital gains tax rates (IRS)</li>
+                <li><strong>RMD Table:</strong> IRS Uniform Lifetime Table (Publication 590-B)</li>
+                <li><strong>Social Security:</strong> 2025 bend points and claiming adjustment factors (SSA)</li>
+                <li><strong>Estate Tax:</strong> 2025 federal exemption and rate (IRS)</li>
+                <li><strong>Net Worth Data:</strong> Federal Reserve 2022 Survey of Consumer Finances (released Oct 2023)</li>
+              </ul>
+            </section>
+
+            <div className="mt-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-900">
+                <strong>Disclaimer:</strong> This calculator is for educational and planning purposes only. It does
+                not constitute financial, tax, or legal advice. Consult with qualified professionals before making
+                significant financial decisions. Past performance (historical returns) does not guarantee future results.
+              </p>
             </div>
           </CardContent>
         </Card>
