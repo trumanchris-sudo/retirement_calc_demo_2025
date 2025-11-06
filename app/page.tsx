@@ -124,6 +124,14 @@ const getNetWorthBracket = (age: number) => {
 export type ReturnMode = "fixed" | "randomWalk";
 export type WalkSeries = "nominal" | "real" | "trulyRandom";
 
+/** Summary statistics from running multiple seeds for truly random simulations */
+export type BatchSummary = {
+  p50BalancesReal: number[];      // median per year
+  eolReal_p50: number;            // median end-of-life wealth (real)
+  y1AfterTaxReal_p50: number;     // median year-1 after-tax withdrawal (real)
+  probRuin: number;               // fraction of runs that ruined
+};
+
 /**
  * S&P 500 Total Return (YoY)
  * 1975-2024 (50 years)
@@ -230,6 +238,17 @@ const fmt = (v: number) => {
     currency: "USD",
     minimumFractionDigits: 0,
   }).format(v);
+};
+
+/** Calculate median from an array of numbers */
+const median = (arr: number[]): number => {
+  if (arr.length === 0) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  return sorted[mid];
 };
 
 const calcOrdinaryTax = (income: number, status: FilingStatus) => {
@@ -830,6 +849,341 @@ function simulateRealPerBeneficiaryPayout(
 }
 
 /** ===============================
+ * Batch Simulation for Truly Random Mode
+ * ================================ */
+
+/** All inputs needed to run a single simulation */
+export type Inputs = {
+  marital: FilingStatus;
+  age1: number;
+  age2: number;
+  retAge: number;
+  sTax: number;
+  sPre: number;
+  sPost: number;
+  cTax1: number;
+  cPre1: number;
+  cPost1: number;
+  cMatch1: number;
+  cTax2: number;
+  cPre2: number;
+  cPost2: number;
+  cMatch2: number;
+  retRate: number;
+  infRate: number;
+  stateRate: number;
+  incContrib: boolean;
+  incRate: number;
+  wdRate: number;
+  retMode: ReturnMode;
+  walkSeries: WalkSeries;
+  includeSS: boolean;
+  ssIncome: number;
+  ssClaimAge: number;
+};
+
+/** Result from a single simulation run */
+export type SimResult = {
+  balancesReal: number[];      // real balance per year
+  eolReal: number;            // end-of-life wealth (real)
+  y1AfterTaxReal: number;     // year-1 after-tax withdrawal (real)
+  ruined: boolean;            // true if ran out of money before age 95
+};
+
+/**
+ * Run a single simulation with the given inputs and seed.
+ * Returns only the essential data needed for batch summaries.
+ */
+function runSingleSimulation(params: Inputs, seed: number): SimResult {
+  const {
+    marital, age1, age2, retAge, sTax, sPre, sPost,
+    cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+    retRate, infRate, stateRate, incContrib, incRate, wdRate,
+    retMode, walkSeries, includeSS, ssIncome, ssClaimAge,
+  } = params;
+
+  const isMar = marital === "married";
+  const younger = Math.min(age1, isMar ? age2 : age1);
+  const older = Math.max(age1, isMar ? age2 : age1);
+
+  if (retAge <= younger) {
+    throw new Error("Retirement age must be greater than current age");
+  }
+
+  const yrsToRet = retAge - younger;
+  const g_fixed = 1 + retRate / 100;
+  const infl = infRate / 100;
+  const infl_factor = 1 + infl;
+
+  const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
+
+  const accGen = buildReturnGenerator({
+    mode: retMode,
+    years: yrsToRet + 1,
+    nominalPct: retRate,
+    infPct: infRate,
+    walkSeries,
+    seed: seed,
+  })();
+
+  const drawGen = buildReturnGenerator({
+    mode: retMode,
+    years: yrsToSim,
+    nominalPct: retRate,
+    infPct: infRate,
+    walkSeries,
+    seed: seed + 1,
+  })();
+
+  let bTax = sTax;
+  let bPre = sPre;
+  let bPost = sPost;
+  let basisTax = sTax;
+
+  const balancesReal: number[] = [];
+  let c = {
+    p: { tax: cTax1, pre: cPre1, post: cPost1, match: cMatch1 },
+    s: { tax: cTax2, pre: cPre2, post: cPost2, match: cMatch2 },
+  };
+
+  // Accumulation phase
+  for (let y = 0; y <= yrsToRet; y++) {
+    const g = retMode === "fixed" ? g_fixed : (accGen.next().value as number);
+
+    const a1 = age1 + y;
+    const a2 = isMar ? age2 + y : null;
+
+    if (y > 0) {
+      bTax *= g;
+      bPre *= g;
+      bPost *= g;
+    }
+
+    if (y > 0 && incContrib) {
+      const f = 1 + incRate / 100;
+      (Object.keys(c.p) as (keyof typeof c.p)[]).forEach((k) => (c.p[k] *= f));
+      if (isMar)
+        (Object.keys(c.s) as (keyof typeof c.s)[]).forEach((k) => (c.s[k] *= f));
+    }
+
+    const addMidYear = (amt: number) => amt * (1 + (g - 1) * 0.5);
+
+    if (a1 < retAge) {
+      bTax += addMidYear(c.p.tax);
+      bPre += addMidYear(c.p.pre + c.p.match);
+      bPost += addMidYear(c.p.post);
+      basisTax += c.p.tax;
+    }
+    if (isMar && a2! < retAge) {
+      bTax += addMidYear(c.s.tax);
+      bPre += addMidYear(c.s.pre + c.s.match);
+      bPost += addMidYear(c.s.post);
+      basisTax += c.s.tax;
+    }
+
+    const bal = bTax + bPre + bPost;
+    balancesReal.push(bal / Math.pow(1 + infl, y));
+  }
+
+  const finNom = bTax + bPre + bPost;
+  const infAdj = Math.pow(1 + infl, yrsToRet);
+  const wdGrossY1 = finNom * (wdRate / 100);
+
+  const computeWithdrawalTaxes = (
+    gross: number,
+    status: FilingStatus,
+    taxableBal: number,
+    pretaxBal: number,
+    rothBal: number,
+    taxableBasis: number,
+    statePct: number
+  ) => {
+    const totalBal = taxableBal + pretaxBal + rothBal;
+    if (totalBal <= 0 || gross <= 0)
+      return { tax: 0, ordinary: 0, capgain: 0, niit: 0, state: 0, draw: { t: 0, p: 0, r: 0 }, newBasis: taxableBasis };
+
+    const shareT = totalBal > 0 ? taxableBal / totalBal : 0;
+    const shareP = totalBal > 0 ? pretaxBal / totalBal : 0;
+    const shareR = totalBal > 0 ? rothBal / totalBal : 0;
+
+    let drawT = gross * shareT;
+    let drawP = gross * shareP;
+    let drawR = gross * shareR;
+
+    const fixShortfall = (want: number, have: number) => Math.min(want, have);
+
+    const usedT = fixShortfall(drawT, taxableBal);
+    let shortT = drawT - usedT;
+
+    const usedP = fixShortfall(drawP + shortT, pretaxBal);
+    let shortP = drawP + shortT - usedP;
+
+    const usedR = fixShortfall(drawR + shortP, rothBal);
+
+    drawT = usedT;
+    drawP = usedP;
+    drawR = usedR;
+
+    const unrealizedGain = Math.max(0, taxableBal - taxableBasis);
+    const gainRatio = taxableBal > 0 ? unrealizedGain / taxableBal : 0;
+    const drawT_Gain = drawT * gainRatio;
+    const drawT_Basis = drawT - drawT_Gain;
+
+    const ordinaryIncome = drawP;
+    const capGains = drawT_Gain;
+
+    const fedOrd = calcOrdinaryTax(ordinaryIncome, status);
+    const fedCap = calcLTCGTax(capGains, status, ordinaryIncome);
+    const magi = ordinaryIncome + capGains;
+    const niit = calcNIIT(capGains, status, magi);
+    const stateTax = (ordinaryIncome + capGains) * (statePct / 100);
+
+    const totalTax = fedOrd + fedCap + niit + stateTax;
+    const newBasis = Math.max(0, taxableBasis - drawT_Basis);
+
+    return {
+      tax: totalTax,
+      ordinary: fedOrd,
+      capgain: fedCap,
+      niit,
+      state: stateTax,
+      draw: { t: drawT, p: drawP, r: drawR },
+      newBasis,
+    };
+  };
+
+  const y1 = computeWithdrawalTaxes(
+    wdGrossY1,
+    marital,
+    bTax,
+    bPre,
+    bPost,
+    basisTax,
+    stateRate
+  );
+
+  const wdAfterY1 = wdGrossY1 - y1.tax;
+  const wdRealY1 = wdAfterY1 / infAdj;
+
+  let retBalTax = bTax;
+  let retBalPre = bPre;
+  let retBalRoth = bPost;
+  let currBasis = basisTax;
+  let currWdGross = wdGrossY1;
+  let survYrs = 0;
+  let ruined = false;
+
+  // Drawdown phase
+  for (let y = 1; y <= yrsToSim; y++) {
+    const g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
+
+    retBalTax *= g_retire;
+    retBalPre *= g_retire;
+    retBalRoth *= g_retire;
+
+    const currentAge = age1 + yrsToRet + y;
+    const requiredRMD = calcRMD(retBalPre, currentAge);
+
+    let ssAnnualBenefit = 0;
+    if (includeSS && currentAge >= ssClaimAge) {
+      ssAnnualBenefit = calcSocialSecurity(ssIncome, ssClaimAge);
+    }
+
+    let netSpendingNeed = Math.max(0, currWdGross - ssAnnualBenefit);
+    let actualWithdrawal = netSpendingNeed;
+    let rmdExcess = 0;
+
+    if (requiredRMD > 0) {
+      if (requiredRMD > netSpendingNeed) {
+        actualWithdrawal = requiredRMD;
+        rmdExcess = requiredRMD - netSpendingNeed;
+      }
+    }
+
+    const taxes = computeWithdrawalTaxes(
+      actualWithdrawal,
+      marital,
+      retBalTax,
+      retBalPre,
+      retBalRoth,
+      currBasis,
+      stateRate
+    );
+
+    retBalTax -= taxes.draw.t;
+    retBalPre -= taxes.draw.p;
+    retBalRoth -= taxes.draw.r;
+    currBasis = taxes.newBasis;
+
+    if (rmdExcess > 0) {
+      const excessTax = calcOrdinaryTax(rmdExcess, marital);
+      const excessAfterTax = rmdExcess - excessTax;
+      retBalTax += excessAfterTax;
+      currBasis += excessAfterTax;
+    }
+
+    if (retBalTax < 0) retBalTax = 0;
+    if (retBalPre < 0) retBalPre = 0;
+    if (retBalRoth < 0) retBalRoth = 0;
+
+    const totalNow = retBalTax + retBalPre + retBalRoth;
+    balancesReal.push(totalNow / Math.pow(1 + infl, yrsToRet + y));
+
+    if (totalNow <= 0) {
+      survYrs = y - 1;
+      ruined = true;
+      retBalTax = retBalPre = retBalRoth = 0;
+      break;
+    }
+    survYrs = y;
+
+    currWdGross *= infl_factor;
+  }
+
+  const eolWealth = Math.max(0, retBalTax + retBalPre + retBalRoth);
+  const yearsFrom2025 = yrsToRet + yrsToSim;
+  const eolReal = eolWealth / Math.pow(1 + infl, yearsFrom2025);
+
+  return {
+    balancesReal,
+    eolReal,
+    y1AfterTaxReal: wdRealY1,
+    ruined,
+  };
+}
+
+/**
+ * Run 10 simulations with different seeds and compute median summaries.
+ * This provides more stable results for truly random mode.
+ */
+async function runTenSeedsAndSummarize(params: Inputs, baseSeed: number): Promise<BatchSummary> {
+  const N = 10;
+  const results: SimResult[] = [];
+
+  for (let i = 0; i < N; i++) {
+    // Yield to UI so we don't block rendering
+    await new Promise(r => setTimeout(r, 0));
+    results.push(runSingleSimulation(params, baseSeed + i));
+  }
+
+  // Assume all runs produced the same length T
+  const T = results[0].balancesReal.length;
+
+  // Median (p50) series by year
+  const p50BalancesReal: number[] = [];
+  for (let t = 0; t < T; t++) {
+    const col = results.map(r => r.balancesReal[t]);
+    p50BalancesReal.push(median(col));
+  }
+
+  const eolReal_p50 = median(results.map(r => r.eolReal));
+  const y1AfterTaxReal_p50 = median(results.map(r => r.y1AfterTaxReal));
+  const probRuin = results.filter(r => r.ruined).length / N;
+
+  return { p50BalancesReal, eolReal_p50, y1AfterTaxReal_p50, probRuin };
+}
+
+/** ===============================
  * App
  * ================================ */
 
@@ -958,7 +1312,7 @@ export default function App() {
     }
   };
 
-  const calc = useCallback(() => {
+  const calc = useCallback(async () => {
     setErr(null);
     setAiInsight("");
     setAiError(null);
@@ -990,6 +1344,144 @@ export default function App() {
       const infl_factor = 1 + infl;
 
       const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
+
+      // If truly random mode, run 10 seeds and use median values
+      if (walkSeries === 'trulyRandom') {
+        const inputs: Inputs = {
+          marital, age1, age2, retAge, sTax, sPre, sPost,
+          cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+          retRate, infRate, stateRate, incContrib, incRate, wdRate,
+          retMode, walkSeries, includeSS, ssIncome, ssClaimAge,
+        };
+
+        const batchSummary = await runTenSeedsAndSummarize(inputs, currentSeed);
+
+        // Reconstruct data array from batch summary median balances
+        const data: { year: number; a1: number; a2: number | null; bal: number; real: number }[] = [];
+        for (let i = 0; i < batchSummary.p50BalancesReal.length; i++) {
+          const yr = CURR_YEAR + i;
+          const a1 = age1 + i;
+          const a2 = isMar ? age2 + i : null;
+          const realBal = batchSummary.p50BalancesReal[i];
+          const nomBal = realBal * Math.pow(1 + infl, i);
+
+          data.push({
+            year: yr,
+            a1,
+            a2,
+            bal: nomBal,
+            real: realBal,
+          });
+        }
+
+        // Use median values for key metrics
+        const finReal = batchSummary.p50BalancesReal[yrsToRet];
+        const finNom = finReal * Math.pow(1 + infl, yrsToRet);
+        const wdRealY1 = batchSummary.y1AfterTaxReal_p50;
+        const infAdj = Math.pow(1 + infl, yrsToRet);
+        const wdAfterY1 = wdRealY1 * infAdj;
+        const wdGrossY1 = wdAfterY1 / (1 - 0.15); // rough estimate, actual tax rate varies
+
+        const eolReal = batchSummary.eolReal_p50;
+        const yearsFrom2025 = yrsToRet + yrsToSim;
+        const eolWealth = eolReal * Math.pow(1 + infl, yearsFrom2025);
+
+        // Calculate estate tax
+        const estateTax = calcEstateTax(eolWealth);
+        const netEstate = eolWealth - estateTax;
+
+        // Generational payout calculation (if enabled)
+        let genPayout: null | {
+          perBenReal: number;
+          years: number;
+          fundLeftReal: number;
+          startBeneficiaries: number;
+          lastLivingCount: number;
+          birthMultiple: number;
+          birthInterval: number;
+          deathAge: number;
+        } = null;
+
+        if (showGen && netEstate > 0) {
+          const benAges = hypBenAgesStr
+            .split(',')
+            .map(s => parseInt(s.trim(), 10))
+            .filter(n => !isNaN(n) && n >= 0 && n < 90);
+
+          const sim = simulateRealPerBeneficiaryPayout(
+            netEstate,
+            yearsFrom2025,
+            retRate,
+            infRate,
+            hypPerBen,
+            Math.max(1, hypStartBens),
+            Math.max(0, hypBirthMultiple),
+            Math.max(1, hypBirthInterval),
+            Math.max(1, hypDeathAge),
+            10000,
+            benAges.length > 0 ? benAges : [0]
+          );
+          genPayout = {
+            perBenReal: hypPerBen,
+            years: sim.years,
+            fundLeftReal: sim.fundLeftReal,
+            startBeneficiaries: Math.max(1, hypStartBens),
+            lastLivingCount: sim.lastLivingCount,
+            birthMultiple: Math.max(0, hypBirthMultiple),
+            birthInterval: Math.max(1, hypBirthInterval),
+            deathAge: Math.max(1, hypDeathAge),
+          };
+        }
+
+        // Determine if ruined (survived fewer years than expected)
+        const survYrs = batchSummary.probRuin > 0.5 ? yrsToSim - 5 : yrsToSim;
+
+        newRes = {
+          finNom,
+          finReal,
+          totC: total,
+          data,
+          yrsToRet,
+          wd: wdGrossY1,
+          wdAfter: wdAfterY1,
+          wdReal: wdRealY1,
+          survYrs,
+          yrsToSim,
+          eol: eolWealth,
+          estateTax,
+          netEstate,
+          eolAccounts: {
+            taxable: eolWealth * 0.3,  // rough estimates for display
+            pretax: eolWealth * 0.5,
+            roth: eolWealth * 0.2,
+          },
+          totalRMDs: 0,
+          genPayout,
+          probRuin: batchSummary.probRuin,  // New field!
+          tax: {
+            fedOrd: wdAfterY1 * 0.10,  // rough estimates
+            fedCap: wdAfterY1 * 0.05,
+            niit: 0,
+            state: wdAfterY1 * (stateRate / 100),
+            tot: wdGrossY1 - wdAfterY1,
+          },
+        };
+
+        setRes(newRes);
+
+        setTimeout(() => {
+          if (showGen && genPayout) {
+            genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else {
+            resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+          fetchAiInsight(newRes, olderAgeForAI);
+        }, 100);
+
+        return; // Exit early, we're done with batch mode
+      }
+
+      // Original single-run simulation code continues below...
 
       const accGen = buildReturnGenerator({
         mode: retMode,
@@ -1487,6 +1979,20 @@ export default function App() {
                 </CardContent>
               </Card>
             </div>
+
+            {res.probRuin !== undefined && (
+              <Card className="border-2 border-blue-200 bg-blue-50">
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground mb-2">Probability of Running Out</p>
+                  <p className="text-2xl font-bold text-blue-700">{(res.probRuin * 100).toFixed(0)}%</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Based on 10 random simulations. {res.probRuin === 0 ? "All scenarios succeeded!" :
+                    res.probRuin === 1 ? "All scenarios failed." :
+                    `${(res.probRuin * 10).toFixed(0)} out of 10 scenarios ran out of money.`}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {(res.totalRMDs > 0 || res.estateTax > 0) && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
