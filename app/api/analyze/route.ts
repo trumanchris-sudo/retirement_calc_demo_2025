@@ -91,7 +91,7 @@ Social Security Benefits:
     const replacementRate = ((afterTaxIncome / (currentBalance * 0.05)) * 100).toFixed(0); // rough estimate
 
     // Create the comprehensive prompt for Claude
-    const prompt = `Analyze this retirement plan and provide insights. Keep your response limited to 5 sentences max.
+    const prompt = `Analyze this retirement plan and provide insights. Keep your response limited to 5 sentences max.  Don't use any "*" or "#" in your responses.  Format your response professionally.
 
 Retirement Profile:
 - Current Age: ${age}
