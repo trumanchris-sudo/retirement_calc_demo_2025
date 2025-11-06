@@ -91,7 +91,31 @@ Social Security Benefits:
     const replacementRate = ((afterTaxIncome / (currentBalance * 0.05)) * 100).toFixed(0); // rough estimate
 
     // Create the comprehensive prompt for Claude
-    const prompt = `Provide an overview of the calculator, the results and whether anything seems improbable in the calculations that were produced.  Keep your response limited to 5 sentences max.  Sound smart, be serious.`;
+    const prompt = `Analyze this retirement plan and provide insights. Keep your response limited to 5 sentences max.
+
+Retirement Profile:
+- Current Age: ${age}
+- Retirement Age: ${retirementAge}
+- Current Balance: $${currentBalance.toLocaleString()}
+- Starting Accounts: Taxable $${startingTaxable.toLocaleString()} | Pre-tax $${startingPretax.toLocaleString()} | Roth $${startingRoth.toLocaleString()}
+- Marital Status: ${maritalStatus}
+
+Withdrawal Strategy:
+- Annual Withdrawal: $${annualWithdrawal.toLocaleString()} (${withdrawalRate}% initial rate)
+- After-Tax Income: $${afterTaxIncome.toLocaleString()}
+- Return Model: ${returnModel}
+- Assumed Return: ${returnRate}%
+- Inflation Rate: ${inflationRate}%
+
+Results:
+${longevityRisk}
+- Future Balance (Nominal): $${futureBalance.toLocaleString()}
+- Real Balance (Today's Dollars): $${realBalance.toLocaleString()}
+- Total Lifetime Tax: $${totalTax.toLocaleString()}
+${accountBreakdown}
+${rmdAnalysis}
+${estateAnalysis}
+${ssAnalysis}`;
 
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
