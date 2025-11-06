@@ -37,7 +37,8 @@ export async function POST(request: NextRequest) {
       startingPretax,
       startingRoth,
       totalContributions,
-      returnModel
+      returnModel,
+      userQuestion
     } = body;
 
     // Check if API key is configured
@@ -90,10 +91,8 @@ Social Security Benefits:
     // Calculate replacement rate
     const replacementRate = ((afterTaxIncome / (currentBalance * 0.05)) * 100).toFixed(0); // rough estimate
 
-    // Create the comprehensive prompt for Claude
-    const prompt = `Analyze this retirement plan and provide insights. Keep your response limited to 5 sentences max.  Don't use any "*" or "#" in your responses.  Format your response professionally.
-
-Retirement Profile:
+    // Build the context about the retirement plan
+    const planContext = `Retirement Profile:
 - Current Age: ${age}
 - Retirement Age: ${retirementAge}
 - Current Balance: $${currentBalance.toLocaleString()}
@@ -116,6 +115,22 @@ ${accountBreakdown}
 ${rmdAnalysis}
 ${estateAnalysis}
 ${ssAnalysis}`;
+
+    // Create the prompt based on whether there's a user question
+    let prompt: string;
+    if (userQuestion && userQuestion.trim().length > 0) {
+      prompt = `You are a financial planning assistant. A user has run a retirement calculation and has the following question about their plan:
+
+Question: ${userQuestion}
+
+${planContext}
+
+Please answer the user's question based on the retirement plan data above. Be helpful, accurate, and provide specific guidance related to their situation. Don't use any "*" or "#" in your responses. Format your response professionally. Keep your response concise but comprehensive.`;
+    } else {
+      prompt = `Analyze this retirement plan and provide insights. Keep your response limited to 5 sentences max. Don't use any "*" or "#" in your responses. Format your response professionally. If truly random is selected (which is the default) don't tell the user they have a fixed 9.8% return rate (that is the default fixed rate only when fixed rate is selected.
+
+${planContext}`;
+    }
 
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
