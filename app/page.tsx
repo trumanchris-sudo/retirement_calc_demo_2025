@@ -1040,7 +1040,8 @@ async function runTenSeedsAndSummarize(params: Inputs, baseSeed: number): Promis
     y1AfterTaxReal_p10,
     y1AfterTaxReal_p50,
     y1AfterTaxReal_p90,
-    probRuin
+    probRuin,
+    allRuns: results,  // Include all simulation runs for spaghetti plot
   };
 }
 
@@ -1245,7 +1246,7 @@ export default function App() {
         const batchSummary = await runTenSeedsAndSummarize(inputs, currentSeed);
 
         // Reconstruct data array from batch summary percentile balances
-        const data: { year: number; a1: number; a2: number | null; bal: number; real: number; p10: number; p90: number }[] = [];
+        const data: any[] = [];
         for (let i = 0; i < batchSummary.p50BalancesReal.length; i++) {
           const yr = CURR_YEAR + i;
           const a1 = age1 + i;
@@ -1255,7 +1256,7 @@ export default function App() {
           const p10Nom = batchSummary.p10BalancesReal[i] * Math.pow(1 + infl, i);
           const p90Nom = batchSummary.p90BalancesReal[i] * Math.pow(1 + infl, i);
 
-          data.push({
+          const dataPoint: any = {
             year: yr,
             a1,
             a2,
@@ -1263,8 +1264,24 @@ export default function App() {
             real: realBal,
             p10: p10Nom,
             p90: p90Nom,
+          };
+
+          // Add each run's balance to the data point for spaghetti plot
+          batchSummary.allRuns.forEach((run, runIdx) => {
+            const runRealBal = run.balancesReal[i];
+            dataPoint[`run${runIdx}`] = runRealBal * Math.pow(1 + infl, i); // Convert to nominal
           });
+
+          data.push(dataPoint);
         }
+
+        // Process all runs for spaghetti plot (for display in chart)
+        const allRuns = batchSummary.allRuns.map((run) =>
+          run.balancesReal.map((realBal, i) => ({
+            year: CURR_YEAR + i,
+            balance: realBal * Math.pow(1 + infl, i), // Convert to nominal
+          }))
+        );
 
         // Use median values for key metrics
         const finReal = batchSummary.p50BalancesReal[yrsToRet];
@@ -1277,6 +1294,48 @@ export default function App() {
         const eolReal = batchSummary.eolReal_p50;
         const yearsFrom2025 = yrsToRet + yrsToSim;
         const eolWealth = eolReal * Math.pow(1 + infl, yearsFrom2025);
+
+        // Calculate RMD data for trulyRandom mode based on median balances
+        // Assume typical allocation: 50% pretax, 30% taxable, 20% roth
+        const rmdData: { age: number; spending: number; rmd: number }[] = [];
+        for (let y = 1; y <= yrsToSim; y++) {
+          const currentAge = age1 + yrsToRet + y;
+          if (currentAge >= RMD_START_AGE) {
+            const yearIndex = yrsToRet + y;
+            if (yearIndex < batchSummary.p50BalancesReal.length) {
+              const totalBalReal = batchSummary.p50BalancesReal[yearIndex];
+              const totalBalNom = totalBalReal * Math.pow(1 + infl, yearIndex);
+              const estimatedPretaxBal = totalBalNom * 0.5; // Assume 50% in pretax
+
+              // Calculate RMD
+              const requiredRMD = calcRMD(estimatedPretaxBal, currentAge);
+
+              // Calculate SS benefit
+              let ssAnnualBenefit = 0;
+              if (includeSS) {
+                if (currentAge >= ssClaimAge) {
+                  ssAnnualBenefit += calcSocialSecurity(ssIncome, ssClaimAge);
+                }
+                if (isMar) {
+                  const currentAge2 = age2 + yrsToRet + y;
+                  if (currentAge2 >= ssClaimAge2) {
+                    ssAnnualBenefit += calcSocialSecurity(ssIncome2, ssClaimAge2);
+                  }
+                }
+              }
+
+              // Calculate spending need (inflated withdrawal rate)
+              const currWdGross = wdGrossY1 * Math.pow(1 + infl, y);
+              const netSpendingNeed = Math.max(0, currWdGross - ssAnnualBenefit);
+
+              rmdData.push({
+                age: currentAge,
+                spending: netSpendingNeed,
+                rmd: requiredRMD,
+              });
+            }
+          }
+        }
 
         // Calculate estate tax
         const estateTax = calcEstateTax(eolWealth, marital);
@@ -1350,6 +1409,8 @@ export default function App() {
           totalRMDs: 0,
           genPayout,
           probRuin: batchSummary.probRuin,  // New field!
+          allRuns,  // Add spaghetti plot data
+          rmdData,  // Add RMD vs spending data for tax bomb chart
           tax: {
             fedOrd: wdAfterY1 * 0.10,  // rough estimates
             fedCap: wdAfterY1 * 0.05,
@@ -2151,6 +2212,20 @@ export default function App() {
                         name="90th Percentile (Nominal)"
                       />
                     )}
+                    {/* Render spaghetti plot - all simulation runs */}
+                    {res.allRuns && res.allRuns.map((_, runIdx) => (
+                      <Line
+                        key={`run-${runIdx}`}
+                        type="monotone"
+                        dataKey={`run${runIdx}`}
+                        stroke="#9ca3af"
+                        strokeWidth={0.8}
+                        strokeOpacity={0.25}
+                        dot={false}
+                        isAnimationActive={false}
+                        legendType="none"
+                      />
+                    ))}
                   </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
