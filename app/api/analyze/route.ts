@@ -91,7 +91,7 @@ Social Security Benefits:
     const replacementRate = ((afterTaxIncome / (currentBalance * 0.05)) * 100).toFixed(0); // rough estimate
 
     // Create the comprehensive prompt for Claude
-    const prompt = `Analyze this retirement plan and provide insights. Keep your response limited to 5 sentences max.  Don't use any "*" or "#" in your responses.  Format your response professionally.
+    const prompt = `Analyze this retirement plan and provide insights. Keep your response limited to 5 sentences max.  Don't use any "*" or "#" in your responses.  Format your response professionally. If truly random is selected (which is the default) don't tell the user they have a fixed 9.8% return rate (that is the default fixed rate only when fixed rate is selected.
 
 Retirement Profile:
 - Current Age: ${age}
