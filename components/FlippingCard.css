@@ -1,0 +1,140 @@
+/* --- 1. The 3D Scene & Animation --- */
+
+/* The outer container, which sets the 3D perspective */
+.flip-card-scene {
+  width: 100%;
+  min-height: 200px; /* Set a min-height for the front */
+  perspective: 1000px; /* This creates the 3D effect */
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* The inner container that holds both faces and does the actual flip */
+.flip-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
+}
+
+/* Add the 'is-flipped' class (via JS) to rotate the card */
+.flip-card.is-flipped {
+  transform: rotateY(180deg);
+}
+
+/* Both front and back faces */
+.flip-card-face {
+  position: absolute;
+  width: 100%;
+  height: auto; /* Allow the back to be taller if needed */
+  min-height: 200px; /* Match the scene's min-height */
+  -webkit-backface-visibility: hidden; /* Safari */
+  backface-visibility: hidden; /* Hides the back of the card when it's facing away */
+
+  /* Card Styling - works with light and dark mode */
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* The front face (initial state) */
+.flip-card-front {
+  /* No transform needed */
+}
+
+/* The back face (hidden by default) */
+.flip-card-back {
+  transform: rotateY(180deg); /* Pre-rotates the back face */
+}
+
+/* --- 2. Content Styling --- */
+
+.flip-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 16px;
+}
+
+.flip-card-title {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.flip-card-icon {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.flip-card-scene:hover .flip-card-icon {
+  opacity: 1;
+}
+
+.flip-card-body-main {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.flip-card-footer {
+  font-size: 0.9rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.flip-card-body-details {
+  font-size: 0.95rem;
+  color: hsl(var(--foreground));
+}
+
+.flip-card-body-details p {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.flip-card-details-text {
+  font-size: 0.85rem;
+  color: hsl(var(--muted-foreground));
+  margin-top: 16px;
+  font-style: italic;
+}
+
+.flip-card-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+}
+
+.flip-card-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid hsl(var(--border));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flip-card-list li:last-child {
+  border-bottom: none;
+}
+
+.flip-card-list-label {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.85rem;
+}
+
+.flip-card-list-value {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+/* Dark mode specific adjustments */
+.dark .flip-card-face {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}

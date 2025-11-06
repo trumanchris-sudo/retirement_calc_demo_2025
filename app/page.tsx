@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FlippingCard } from "@/components/FlippingCard";
 
 // Import from new modules
 import {
@@ -524,6 +525,56 @@ const StatCard: React.FC<{
         )}
       </CardContent>
     </Card>
+  );
+};
+
+const FlippingStatCard: React.FC<{
+  title: string;
+  value: string;
+  sub?: string;
+  color?: ColorKey;
+  icon?: React.ComponentType<any>;
+  backContent?: React.ReactNode;
+}> = ({ title, value, sub, color = "blue", icon: Icon, backContent }) => {
+  const c = COLOR[color] ?? COLOR.blue;
+
+  const frontContent = (
+    <>
+      <div className="flip-card-header">
+        <Badge variant="secondary" className={`${c.bg} ${c.badge} border-0`}>
+          {title}
+        </Badge>
+        <span className="flip-card-icon text-xs opacity-50">Click to flip ↻</span>
+      </div>
+      <div className="flex items-start justify-between mb-3">
+        <div className={`text-3xl font-bold ${c.text} mb-1`}>{value}</div>
+        {Icon && (
+          <div className={`p-2 rounded-lg ${c.bg}`}>
+            <Icon className={`w-5 h-5 ${c.icon}`} />
+          </div>
+        )}
+      </div>
+      {sub && <p className={`text-sm ${c.sub}`}>{sub}</p>}
+    </>
+  );
+
+  const defaultBackContent = (
+    <>
+      <div className="flip-card-header">
+        <span className="flip-card-title">{title} - Details</span>
+        <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+      </div>
+      <div className="flip-card-body-details">
+        <p>No additional details provided.</p>
+      </div>
+    </>
+  );
+
+  return (
+    <FlippingCard
+      frontContent={frontContent}
+      backContent={backContent || defaultBackContent}
+    />
   );
 };
 
@@ -1905,13 +1956,51 @@ export default function App() {
         {res && (
           <div ref={resRef} className="space-y-6 scroll-mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard
+              <FlippingStatCard
                 title="Future Balance"
                 value={fmt(res.finNom)}
                 sub={`At age ${retAge} (nominal)`}
                 color="blue"
                 icon={DollarSignIcon}
-                explanation={`This is your projected total retirement balance at age ${retAge} in future dollars (nominal). It includes your current savings plus all contributions and growth from now until retirement, accounting for mid-year contributions and compounding returns.`}
+                backContent={
+                  <>
+                    <div className="flip-card-header">
+                      <span className="flip-card-title">Future Balance - Details</span>
+                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                    </div>
+                    <div className="flip-card-body-details">
+                      <p className="mb-4">
+                        This is your projected total retirement balance at age {retAge} in future dollars (nominal).
+                      </p>
+                      <ul className="flip-card-list">
+                        <li>
+                          <span className="flip-card-list-label">Current Savings</span>
+                          <span className="flip-card-list-value">{fmt(total)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Future Value</span>
+                          <span className="flip-card-list-value">{fmt(res.finNom)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">In Today's Dollars</span>
+                          <span className="flip-card-list-value">{fmt(res.finReal)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Years to Retirement</span>
+                          <span className="flip-card-list-value">{res.yrsToRet} years</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Total Contributions</span>
+                          <span className="flip-card-list-value">{fmt(res.totC)}</span>
+                        </li>
+                      </ul>
+                      <p className="flip-card-details-text">
+                        Includes current savings plus all contributions and growth from now until retirement,
+                        accounting for mid-year contributions and compounding returns at {retRate}% annual return.
+                      </p>
+                    </div>
+                  </>
+                }
               />
               <StatCard
                 title="Today's Dollars"
