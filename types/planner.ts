@@ -113,6 +113,7 @@ export type BatchSummary = {
   y1AfterTaxReal_p50: number;
   y1AfterTaxReal_p90: number;
   probRuin: number;
+  allRuns: SimResult[];  // Store all simulation runs for spaghetti plot
 };
 
 // Generational payout result
@@ -171,6 +172,10 @@ export type DisplayResult = {
     spending: number;
     rmd: number;
   }[];
+  allRuns?: {
+    year: number;
+    balance: number;
+  }[][];  // Array of runs, each run is an array of year/balance points
 };
 
 // Withdrawal tax calculation result
