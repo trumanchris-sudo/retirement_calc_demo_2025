@@ -91,50 +91,7 @@ Social Security Benefits:
     const replacementRate = ((afterTaxIncome / (currentBalance * 0.05)) * 100).toFixed(0); // rough estimate
 
     // Create the comprehensive prompt for Claude
-    const prompt = `You are a Certified Financial Planner (CFP) providing a comprehensive retirement plan analysis. Analyze this plan in depth and provide strategic, actionable insights.
-
-## CLIENT PROFILE
-- Current Age: ${age}
-- Retirement Age: ${retirementAge} (${retirementAge - age} years until retirement)
-- Marital Status: ${maritalStatus}
-
-## CURRENT FINANCIAL POSITION
-- Total Current Balance: $${currentBalance.toLocaleString()}
-  - Taxable: $${startingTaxable.toLocaleString()}
-  - Pre-tax (Traditional): $${startingPretax.toLocaleString()}
-  - Roth: $${startingRoth.toLocaleString()}
-
-## ACCUMULATION PHASE PROJECTION
-- Total Contributions (from now to retirement): $${totalContributions.toLocaleString()}
-- Return Model: ${returnModel === 'randomWalk' ? 'Monte Carlo (S&P 500 bootstrap)' : 'Fixed rate'}
-- Assumed Return: ${returnRate}% ${returnModel === 'randomWalk' ? '(historical average)' : 'annually'}
-- Inflation Assumption: ${inflationRate}%
-- Projected Balance at Age ${retirementAge}: $${futureBalance.toLocaleString()} (nominal), $${realBalance.toLocaleString()} (today's dollars)
-
-## RETIREMENT PHASE (AGE ${retirementAge}-95)
-- Withdrawal Strategy: ${withdrawalRate}% rule (inflation-adjusted)
-- Year 1 Gross Withdrawal: $${annualWithdrawal.toLocaleString()}
-- Year 1 After-Tax Income: $${afterTaxIncome.toLocaleString()} (today's dollars)
-- First Year Tax Burden: $${totalTax.toLocaleString()} (${((totalTax / annualWithdrawal) * 100).toFixed(1)}% effective rate)
-${ssAnalysis}
-${rmdAnalysis}
-
-## LONGEVITY ANALYSIS
-${longevityRisk}
-- End-of-Life Wealth (Age 95): $${endOfLifeWealth.toLocaleString()}
-${accountBreakdown}
-
-## ESTATE PLANNING
-${estateAnalysis || '- Estate value below $13.99M exemption threshold (no federal estate tax)'}
-
-## TAX EFFICIENCY
-- Federal Income Tax + LTCG + NIIT + State (${stateRate}%)
-- Tax-advantaged account mix influences tax burden in retirement
-- Year 1 effective tax rate: ${((totalTax / annualWithdrawal) * 100).toFixed(1)}%
-
----
-
-Provide a summary analysis covering.  Format with clear headers and bullet points for readability.  Do not include any "##" in your reply.`;
+    const prompt = `Provide an overview of the calculator, the results and whether anything seems improbable in the calculations that were produced.  Keep your response limited to 5 sentences max.  Sound smart, be serious.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
