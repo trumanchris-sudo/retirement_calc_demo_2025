@@ -149,7 +149,7 @@ As their CFP, provide a comprehensive analysis covering:
 Write in a professional but encouraging tone. Be direct about risks but solution-oriented. Format with clear headers and bullet points for readability.`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-5-sonnet-20240620',
       max_tokens: 2000,
       temperature: 0.7,
       messages: [
