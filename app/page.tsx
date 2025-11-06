@@ -23,6 +23,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FlippingCard } from "@/components/FlippingCard";
+import { LegacyResultCard } from "@/components/LegacyResultCard";
 
 // Import from new modules
 import {
@@ -524,6 +526,56 @@ const StatCard: React.FC<{
         )}
       </CardContent>
     </Card>
+  );
+};
+
+const FlippingStatCard: React.FC<{
+  title: string;
+  value: string;
+  sub?: string;
+  color?: ColorKey;
+  icon?: React.ComponentType<any>;
+  backContent?: React.ReactNode;
+}> = ({ title, value, sub, color = "blue", icon: Icon, backContent }) => {
+  const c = COLOR[color] ?? COLOR.blue;
+
+  const frontContent = (
+    <>
+      <div className="flip-card-header">
+        <Badge variant="secondary" className={`${c.bg} ${c.badge} border-0`}>
+          {title}
+        </Badge>
+        <span className="flip-card-icon text-xs opacity-50">Click to flip ↻</span>
+      </div>
+      <div className="flex items-start justify-between mb-3">
+        <div className={`text-3xl font-bold ${c.text} mb-1`}>{value}</div>
+        {Icon && (
+          <div className={`p-2 rounded-lg ${c.bg}`}>
+            <Icon className={`w-5 h-5 ${c.icon}`} />
+          </div>
+        )}
+      </div>
+      {sub && <p className={`text-sm ${c.sub}`}>{sub}</p>}
+    </>
+  );
+
+  const defaultBackContent = (
+    <>
+      <div className="flip-card-header">
+        <span className="flip-card-title">{title} - Details</span>
+        <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+      </div>
+      <div className="flip-card-body-details">
+        <p>No additional details provided.</p>
+      </div>
+    </>
+  );
+
+  return (
+    <FlippingCard
+      frontContent={frontContent}
+      backContent={backContent || defaultBackContent}
+    />
   );
 };
 
@@ -1905,36 +1957,185 @@ export default function App() {
         {res && (
           <div ref={resRef} className="space-y-6 scroll-mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard
+              <FlippingStatCard
                 title="Future Balance"
                 value={fmt(res.finNom)}
                 sub={`At age ${retAge} (nominal)`}
                 color="blue"
                 icon={DollarSignIcon}
-                explanation={`This is your projected total retirement balance at age ${retAge} in future dollars (nominal). It includes your current savings plus all contributions and growth from now until retirement, accounting for mid-year contributions and compounding returns.`}
+                backContent={
+                  <>
+                    <div className="flip-card-header">
+                      <span className="flip-card-title">Future Balance - Details</span>
+                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                    </div>
+                    <div className="flip-card-body-details">
+                      <p className="mb-4">
+                        This is your projected total retirement balance at age {retAge} in future dollars (nominal).
+                      </p>
+                      <ul className="flip-card-list">
+                        <li>
+                          <span className="flip-card-list-label">Current Savings</span>
+                          <span className="flip-card-list-value">{fmt(total)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Future Value</span>
+                          <span className="flip-card-list-value">{fmt(res.finNom)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">In Today's Dollars</span>
+                          <span className="flip-card-list-value">{fmt(res.finReal)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Years to Retirement</span>
+                          <span className="flip-card-list-value">{res.yrsToRet} years</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Total Contributions</span>
+                          <span className="flip-card-list-value">{fmt(res.totC)}</span>
+                        </li>
+                      </ul>
+                      <p className="flip-card-details-text">
+                        Includes current savings plus all contributions and growth from now until retirement,
+                        accounting for mid-year contributions and compounding returns at {retRate}% annual return.
+                      </p>
+                    </div>
+                  </>
+                }
               />
-              <StatCard
+              <FlippingStatCard
                 title="Today's Dollars"
                 value={fmt(res.finReal)}
                 sub={`At age ${retAge} (real)`}
                 color="indigo"
                 icon={TrendingUpIcon}
-                explanation={`This is your Future Balance adjusted for inflation to show its equivalent purchasing power in today's dollars (real value). Calculated by dividing the nominal balance by (1 + inflation)^years. This helps you understand what your retirement savings will actually buy.`}
+                backContent={
+                  <>
+                    <div className="flip-card-header">
+                      <span className="flip-card-title">Today's Dollars - Details</span>
+                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                    </div>
+                    <div className="flip-card-body-details">
+                      <p className="mb-4">
+                        This is the nominal balance adjusted for inflation to show its value in today's purchasing power.
+                      </p>
+                      <ul className="flip-card-list">
+                        <li>
+                          <span className="flip-card-list-label">Future Balance (Nominal)</span>
+                          <span className="flip-card-list-value">{fmt(res.finNom)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">In Today's Dollars (Real)</span>
+                          <span className="flip-card-list-value">{fmt(res.finReal)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Inflation Rate</span>
+                          <span className="flip-card-list-value">{infRate}%</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Years to Retirement</span>
+                          <span className="flip-card-list-value">{res.yrsToRet} years</span>
+                        </li>
+                      </ul>
+                      <p className="flip-card-details-text">
+                        Formula: Real Value = Nominal Value ÷ (1 + {infRate/100})<sup>{res.yrsToRet}</sup>
+                        <br/>
+                        This helps you understand what your retirement savings will actually buy in terms of today's purchasing power.
+                      </p>
+                    </div>
+                  </>
+                }
               />
-              <StatCard
+              <FlippingStatCard
                 title="Annual Withdrawal"
                 value={fmt(res.wd)}
                 sub={`Year 1 (${wdRate}% rate)`}
                 color="green"
                 icon={CalendarIcon}
-                explanation={`This is your first-year gross withdrawal amount, calculated as ${wdRate}% of your Future Balance. This is the total amount withdrawn before taxes. In subsequent years, this amount increases with inflation to maintain constant purchasing power.`}
+                backContent={
+                  <>
+                    <div className="flip-card-header">
+                      <span className="flip-card-title">Withdrawal Strategy - Details</span>
+                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                    </div>
+                    <div className="flip-card-body-details">
+                      <p className="mb-4">
+                        This is your starting withdrawal for the first year of retirement, calculated as {wdRate}% of your total balance.
+                      </p>
+                      <ul className="flip-card-list">
+                        <li>
+                          <span className="flip-card-list-label">Future Balance</span>
+                          <span className="flip-card-list-value">{fmt(res.finNom)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Withdrawal Rate</span>
+                          <span className="flip-card-list-value">{wdRate}%</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Year 1 Withdrawal</span>
+                          <span className="flip-card-list-value">{fmt(res.wd)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">After Taxes</span>
+                          <span className="flip-card-list-value">{fmt(res.wdAfter)}</span>
+                        </li>
+                      </ul>
+                      <p className="flip-card-details-text">
+                        In all future years, this amount will be adjusted upward by the rate of inflation ({infRate}%) to maintain your purchasing power, regardless of market performance.
+                      </p>
+                    </div>
+                  </>
+                }
               />
-              <StatCard
+              <FlippingStatCard
                 title="After-Tax Income"
                 value={fmt(res.wdReal)}
                 sub="Year 1 real spending"
                 color="emerald"
-                explanation={`This is your spendable income in today's dollars after all taxes (federal ordinary income, LTCG, NIIT, and state taxes) are deducted from your withdrawal. It represents what you'll actually have available to spend, adjusted to today's purchasing power.`}
+                backContent={
+                  <>
+                    <div className="flip-card-header">
+                      <span className="flip-card-title">After-Tax Income - Details</span>
+                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                    </div>
+                    <div className="flip-card-body-details">
+                      <p className="mb-4">
+                        This is your actual spendable income in today's dollars after paying {fmt(res.tax.tot)} in taxes on your {fmt(res.wd)} withdrawal.
+                      </p>
+                      <ul className="flip-card-list">
+                        <li>
+                          <span className="flip-card-list-label">Gross Withdrawal</span>
+                          <span className="flip-card-list-value">{fmt(res.wd)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Federal Ordinary Tax</span>
+                          <span className="flip-card-list-value">-{fmt(res.tax.fedOrd)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Federal Capital Gains</span>
+                          <span className="flip-card-list-value">-{fmt(res.tax.fedCap)}</span>
+                        </li>
+                        {res.tax.niit > 0 && (
+                          <li>
+                            <span className="flip-card-list-label">NIIT (3.8%)</span>
+                            <span className="flip-card-list-value">-{fmt(res.tax.niit)}</span>
+                          </li>
+                        )}
+                        <li>
+                          <span className="flip-card-list-label">State Tax</span>
+                          <span className="flip-card-list-value">-{fmt(res.tax.state)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">After-Tax (Nominal)</span>
+                          <span className="flip-card-list-value">{fmt(res.wdAfter)}</span>
+                        </li>
+                      </ul>
+                      <p className="flip-card-details-text">
+                        Taxes vary by account type: Pre-tax 401k/IRA incurs ordinary income tax, Taxable accounts incur capital gains tax, and Roth accounts are tax-free.
+                      </p>
+                    </div>
+                  </>
+                }
               />
             </div>
 
@@ -2610,18 +2811,12 @@ export default function App() {
                   </div>
 
                   {res?.genPayout && (
-                    <div ref={genRef} className="mt-6 p-4 bg-white rounded-lg border border-purple-300 flex flex-col md:flex-row items-center gap-4">
-                      <GenerationalWealthVisual genPayout={res.genPayout} />
-
-                      <div className="text-sm text-purple-900 flex-1 text-center md:text-left">
-                        Could pay <strong className="text-purple-700">{fmt(res.genPayout.perBenReal)}</strong> per beneficiary
-                        (2025 dollars) for approximately{" "}
-                        <strong className="text-purple-700">{res.genPayout.years} years</strong>{" "}
-                        {res.genPayout.fundLeftReal > 0
-                          ? "with principal remaining"
-                          : "until exhaustion"}
-                        .
-                      </div>
+                    <div ref={genRef} className="mt-6">
+                      <LegacyResultCard
+                        payout={res.genPayout.perBenReal}
+                        duration={res.genPayout.years}
+                        isPerpetual={res.genPayout.fundLeftReal > 0}
+                      />
                     </div>
                   )}
                 </div>
