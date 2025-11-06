@@ -1,0 +1,183 @@
+/* =========================
+   Legacy Result Card Styles
+========================= */
+
+.legacy-card {
+  position: relative;
+  border-radius: 24px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border) / 0.5);
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.06);
+  padding: 28px 24px 26px;
+  text-align: center;
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  will-change: transform;
+}
+
+.legacy-card:before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 180deg at 50% 0%,
+    rgba(33, 81, 255, 0.25),
+    rgba(21, 54, 165, 0.25),
+    transparent 65%
+  );
+  filter: blur(18px);
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.legacy-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(16, 24, 40, 0.12);
+}
+
+/* State: Perpetual Legacy */
+.legacy-card.is-perpetual {
+  background: radial-gradient(
+      120% 120% at 50% -10%,
+      rgba(109, 163, 255, 0.30),
+      transparent 50%
+    ),
+    linear-gradient(145deg, #2a4cf7 0%, #122d9f 60%, #0d1f6d 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.legacy-card.is-perpetual .legacy-card__promise strong {
+  color: #fff;
+}
+
+.legacy-card.is-perpetual .legacy-card__chip {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f1f5ff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.legacy-card.is-perpetual .legacy-card__detail,
+.legacy-card.is-perpetual .legacy-card__micro {
+  color: #e5edff;
+  opacity: 0.9;
+}
+
+/* Icon Container */
+.legacy-card__icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 10px;
+  display: grid;
+  place-items: center;
+  color: #2151ff;
+  background: rgba(33, 81, 255, 0.08);
+  border: 1px solid #c7d2fe;
+  border-radius: 14px;
+  backdrop-filter: blur(2px);
+}
+
+.is-perpetual .legacy-card__icon {
+  color: #cfe1ff;
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Large Number */
+.legacy-card__big {
+  font-size: clamp(56px, 9vw, 84px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 0.9;
+  margin-top: 4px;
+  color: hsl(var(--foreground));
+}
+
+.is-perpetual .legacy-card__big {
+  color: #fff;
+}
+
+/* Headline */
+.legacy-card__headline {
+  margin-top: 6px;
+  font-size: clamp(18px, 3.5vw, 22px);
+  font-weight: 600;
+  color: #1536a5;
+}
+
+.is-perpetual .legacy-card__headline {
+  color: #eaf0ff;
+}
+
+/* Chip/Badge */
+.legacy-card__chip {
+  display: inline-block;
+  margin: 10px auto 2px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Promise Statement */
+.legacy-card__promise {
+  margin: 14px 0 6px;
+  font-size: 16px;
+  line-height: 1.45;
+  color: hsl(var(--foreground));
+}
+
+.legacy-card__promise strong {
+  font-weight: 800;
+  color: #1536a5;
+  white-space: nowrap;
+}
+
+.is-perpetual .legacy-card__promise {
+  color: #fff;
+}
+
+/* Detail Text */
+.legacy-card__detail {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Micro Text */
+.legacy-card__micro {
+  margin-top: 14px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  opacity: 0.8;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Dark mode adjustments */
+.dark .legacy-card {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.dark .legacy-card:hover {
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+}
+
+.dark .legacy-card__icon {
+  color: #6da3ff;
+  background: rgba(109, 163, 255, 0.12);
+  border-color: #27419f;
+}
+
+.dark .legacy-card__headline {
+  color: #4b7ffd;
+}
+
+.dark .legacy-card__promise strong {
+  color: #6da3ff;
+}

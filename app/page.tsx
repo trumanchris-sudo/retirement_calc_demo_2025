@@ -24,6 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FlippingCard } from "@/components/FlippingCard";
+import { LegacyResultCard } from "@/components/LegacyResultCard";
 
 // Import from new modules
 import {
@@ -2810,18 +2811,12 @@ export default function App() {
                   </div>
 
                   {res?.genPayout && (
-                    <div ref={genRef} className="mt-6 p-4 bg-white rounded-lg border border-purple-300 flex flex-col md:flex-row items-center gap-4">
-                      <GenerationalWealthVisual genPayout={res.genPayout} />
-
-                      <div className="text-sm text-purple-900 flex-1 text-center md:text-left">
-                        Could pay <strong className="text-purple-700">{fmt(res.genPayout.perBenReal)}</strong> per beneficiary
-                        (2025 dollars) for approximately{" "}
-                        <strong className="text-purple-700">{res.genPayout.years} years</strong>{" "}
-                        {res.genPayout.fundLeftReal > 0
-                          ? "with principal remaining"
-                          : "until exhaustion"}
-                        .
-                      </div>
+                    <div ref={genRef} className="mt-6">
+                      <LegacyResultCard
+                        payout={res.genPayout.perBenReal}
+                        duration={res.genPayout.years}
+                        isPerpetual={res.genPayout.fundLeftReal > 0}
+                      />
                     </div>
                   )}
                 </div>
