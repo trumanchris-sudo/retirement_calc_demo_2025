@@ -1109,8 +1109,6 @@ export default function App() {
 
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [loaderComplete, setLoaderComplete] = useState(false); // Always show loader on mount
-  const [loaderHandoff, setLoaderHandoff] = useState(false); // Track when handoff starts
-  const [cubeAppended, setCubeAppended] = useState(false); // Track when cube animation completes
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
@@ -1843,15 +1841,13 @@ export default function App() {
     <>
       {!loaderComplete && (
         <BrandLoader
-          onHandoffStart={() => setLoaderHandoff(true)}
-          onCubeAppended={() => setCubeAppended(true)}
           onComplete={() => setLoaderComplete(true)}
         />
       )}
       <div
         className="min-h-screen bg-background"
         style={{
-          opacity: loaderComplete || loaderHandoff ? 1 : 0,
+          opacity: loaderComplete ? 1 : 0,
           transition: "opacity .6s ease",
           pointerEvents: loaderComplete ? 'auto' : 'none'
         }}
@@ -1862,7 +1858,6 @@ export default function App() {
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         showActions={!!res}
-        cubeAppended={cubeAppended}
         onPrint={() => window.print()}
         onShare={() => {
           const shareData = {

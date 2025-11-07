@@ -11,7 +11,6 @@ interface PageHeaderProps {
   onToggleDarkMode: () => void;
   onPrint?: () => void;
   onShare?: () => void;
-  cubeAppended?: boolean;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
@@ -20,7 +19,6 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   onToggleDarkMode,
   onPrint,
   onShare,
-  cubeAppended = false
 }) => {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -28,14 +26,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         {/* Logo/Title */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
           <div
-            id="logoSlot"
             className="w-8 h-8 flex-shrink-0 rounded-lg bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center"
-            style={{ overflow: 'visible' }}
           >
-            {/* Logo will be inserted here by BrandLoader, or show fallback */}
-            {!cubeAppended && (
-              <span className="text-white font-bold text-lg">R</span>
-            )}
+            <span className="text-white font-bold text-lg">R</span>
           </div>
           <span className="font-semibold text-slate-900 dark:text-slate-50 hidden sm:inline-block truncate">
             Retirement Calculator

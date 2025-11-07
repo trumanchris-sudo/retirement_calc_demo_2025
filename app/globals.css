@@ -78,6 +78,7 @@ html {
   width: 60px;
   height: 60px;
   perspective: 400px;
+  transform-style: preserve-3d;
 }
 
 .cube {
