@@ -154,52 +154,6 @@ export const BrandLoader: React.FC<{
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .face {
-          position: absolute;
-          inset: 0;
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-          backface-visibility: hidden;
-        }
-        .front {
-          overflow: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .specular {
-          position: absolute;
-          inset: -40% -40% auto auto;
-          width: 120%;
-          height: 120%;
-          background: radial-gradient(
-            100% 60% at 80% 20%,
-            rgba(255, 255, 255, 0.35),
-            rgba(255, 255, 255, 0) 60%
-          );
-          mix-blend-mode: screen;
-          animation: shimmer 2.2s ease-in-out infinite alternate;
-          pointer-events: none;
-        }
-        @keyframes shimmer {
-          from {
-            opacity: 0.45;
-            transform: translate(-10%, -10%) rotate(0deg);
-          }
-          to {
-            opacity: 0.25;
-            transform: translate(10%, 10%) rotate(5deg);
-          }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .specular {
-            animation: none;
-            opacity: 0.2;
-          }
-        }
-      `}</style>
     </div>
   );
 };
