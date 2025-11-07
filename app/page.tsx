@@ -32,6 +32,7 @@ import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { SliderInput } from "@/components/form/SliderInput";
 import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
 import { BrandLoader } from "@/components/BrandLoader";
+import SideDock from "@/components/ui/SideDock";
 
 // Import from new modules
 import {
@@ -1931,6 +1932,15 @@ export default function App() {
     includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2, hypBenAgesStr,
   ]);
 
+  // Define sections for SideDock
+  const sections = [
+    { id: "personal-info", label: "Personal Info", icon: "👤" },
+    { id: "balances", label: "Current Balances", icon: "💰" },
+    { id: "contributions", label: "Annual Contributions", icon: "📈" },
+    { id: "assumptions", label: "Assumptions", icon: "⚙️" },
+    { id: "withdrawal", label: "Withdrawal & SS", icon: "🎯" },
+  ];
+
   return (
     <>
       {!loaderComplete && (
@@ -2502,13 +2512,18 @@ export default function App() {
             <CardTitle>Plan Your Retirement</CardTitle>
             <CardDescription>Enter your information to calculate your retirement projections</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <UsersIcon className="w-5 h-5 text-blue-600" />
-                  <h3 className="text-lg font-semibold">Personal Info</h3>
-                </div>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-[220px,1fr] gap-6">
+              <SideDock sections={sections} />
+
+              <main className="space-y-8">
+                <section id="personal-info" className="scroll-mt-24">
+                  <div className="flex items-center gap-2 mb-4">
+                    <UsersIcon className="w-5 h-5 text-blue-600" />
+                    <h3 className="text-lg font-semibold">Personal Info</h3>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="space-y-6">
 
                 <div className="space-y-2">
                   <Label>Marital Status</Label>
@@ -2529,29 +2544,31 @@ export default function App() {
                   )}
                 </div>
 
-                <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
-              </div>
+                    <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
+                  </div>
 
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <DollarSignIcon className="w-5 h-5 text-green-600" />
-                  <h3 className="text-lg font-semibold">Current Balances</h3>
-                </div>
-                <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} />
-                <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} />
-                <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} />
-                <div className="p-3 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 dark:from-blue-900 dark:via-blue-800 dark:to-indigo-900 rounded-lg border-2 border-blue-300 dark:border-blue-700">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-blue-700 dark:text-blue-300">Total Current Balance</p>
-                    <p className="text-lg font-bold text-blue-900 dark:text-blue-100">{fmt(total)}</p>
+                  <div className="space-y-6" id="balances">
+                    <div className="flex items-center gap-2 mb-4">
+                      <DollarSignIcon className="w-5 h-5 text-green-600" />
+                      <h3 className="text-lg font-semibold">Current Balances</h3>
+                    </div>
+                    <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} />
+                    <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} />
+                    <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} />
+                    <div className="p-3 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 dark:from-blue-900 dark:via-blue-800 dark:to-indigo-900 rounded-lg border-2 border-blue-300 dark:border-blue-700">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-blue-700 dark:text-blue-300">Total Current Balance</p>
+                        <p className="text-lg font-bold text-blue-900 dark:text-blue-100">{fmt(total)}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </section>
 
-            <Separator />
+              <Separator />
 
-            <CollapsibleSection title="Annual Contributions" icon={DollarSignIcon} defaultOpen={false}>
+              <section id="contributions" className="scroll-mt-24">
+                <CollapsibleSection title="Annual Contributions" icon={DollarSignIcon} defaultOpen={false}>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-4">
                   <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Primary</Badge>
@@ -2569,12 +2586,14 @@ export default function App() {
                     <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} />
                   </div>
                 )}
-              </div>
-            </CollapsibleSection>
+                </div>
+              </CollapsibleSection>
+            </section>
 
             <Separator />
 
-            <CollapsibleSection title="Assumptions" icon={TrendingUpIcon} defaultOpen={false}>
+            <section id="assumptions" className="scroll-mt-24">
+              <CollapsibleSection title="Assumptions" icon={TrendingUpIcon} defaultOpen={false}>
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <SliderInput
@@ -2651,10 +2670,22 @@ export default function App() {
                     </>
                   )}
                 </div>
+              </div>
+            </CollapsibleSection>
+          </section>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <SliderInput
-                    label="Withdrawal Rate"
+          <Separator />
+
+          <section id="withdrawal" className="scroll-mt-24">
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-2xl">🎯</span>
+                <h3 className="text-lg font-semibold">Withdrawal & Social Security</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <SliderInput
+                  label="Withdrawal Rate"
                     value={wdRate}
                     onChange={setWdRate}
                     min={1}
@@ -2752,12 +2783,12 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              </div>
-            </CollapsibleSection>
+            </div>
+          </section>
 
-            <Separator />
+          <Separator />
 
-            <div className={`space-y-6 ${!showGen ? 'no-print' : ''}`}>
+          <div className={`space-y-6 ${!showGen ? 'no-print' : ''}`}>
               <div className="flex items-center space-x-3">
                 <input
                   type="checkbox"
@@ -2882,6 +2913,8 @@ export default function App() {
                   )}
                 </div>
               )}
+            </div>
+              </main>
             </div>
 
             <Separator />
