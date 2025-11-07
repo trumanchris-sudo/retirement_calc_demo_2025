@@ -1382,22 +1382,8 @@ export default function App() {
             p90: p90Nom,
           };
 
-          // Add each run's balance to the data point for spaghetti plot
-          batchSummary.allRuns.forEach((run, runIdx) => {
-            const runRealBal = run.balancesReal[i];
-            dataPoint[`run${runIdx}`] = runRealBal * Math.pow(1 + infl, i); // Convert to nominal
-          });
-
           data.push(dataPoint);
         }
-
-        // Process all runs for spaghetti plot (for display in chart)
-        const allRuns = batchSummary.allRuns.map((run) =>
-          run.balancesReal.map((realBal, i) => ({
-            year: CURR_YEAR + i,
-            balance: realBal * Math.pow(1 + infl, i), // Convert to nominal
-          }))
-        );
 
         // Use median values for key metrics
         const finReal = batchSummary.p50BalancesReal[yrsToRet];
@@ -1526,7 +1512,6 @@ export default function App() {
           totalRMDs: 0,
           genPayout,
           probRuin: batchSummary.probRuin,  // New field!
-          allRuns,  // Add spaghetti plot data
           rmdData,  // Add RMD vs spending data for tax bomb chart
           tax: {
             fedOrd: wdAfterY1 * 0.10,  // rough estimates
@@ -2442,27 +2427,13 @@ export default function App() {
                       <Line
                         type="monotone"
                         dataKey="p90"
-                        stroke="#8b5cf6"
+                        stroke="#ef4444"
                         strokeWidth={2}
                         strokeDasharray="3 3"
                         dot={false}
                         name="90th Percentile (Nominal)"
                       />
                     )}
-                    {/* Render spaghetti plot - all simulation runs */}
-                    {res.allRuns && res.allRuns.map((_, runIdx) => (
-                      <Line
-                        key={`run-${runIdx}`}
-                        type="monotone"
-                        dataKey={`run${runIdx}`}
-                        stroke="#9ca3af"
-                        strokeWidth={0.8}
-                        strokeOpacity={0.25}
-                        dot={false}
-                        isAnimationActive={false}
-                        legendType="none"
-                      />
-                    ))}
                   </ComposedChart>
                 </ResponsiveContainer>
               </CardContent>

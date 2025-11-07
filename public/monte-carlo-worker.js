@@ -104,6 +104,18 @@ function percentile(arr, p) {
   return sorted[lower] * (1 - weight) + sorted[upper] * weight;
 }
 
+/**
+ * Trim the top N and bottom N values from an array
+ * Returns a new array with extreme values removed
+ */
+function trimExtremeValues(arr, trimCount) {
+  if (arr.length <= trimCount * 2) {
+    throw new Error(`Cannot trim ${trimCount * 2} values from array of length ${arr.length}`);
+  }
+  const sorted = [...arr].sort((a, b) => a - b);
+  return sorted.slice(trimCount, sorted.length - trimCount);
+}
+
 // ===============================
 // Return Generator (from app/page.tsx)
 // ===============================
@@ -534,7 +546,8 @@ function runMonteCarloSimulation(params, baseSeed, N = 1000) {
     }
   }
 
-  // Calculate percentiles
+  // Calculate percentiles after trimming top 50 and bottom 50 values
+  const TRIM_COUNT = 50; // Remove top 50 and bottom 50 values
   const T = results[0].balancesReal.length;
 
   const p10BalancesReal = [];
@@ -542,20 +555,23 @@ function runMonteCarloSimulation(params, baseSeed, N = 1000) {
   const p90BalancesReal = [];
   for (let t = 0; t < T; t++) {
     const col = results.map(r => r.balancesReal[t]);
-    p10BalancesReal.push(percentile(col, 10));
-    p50BalancesReal.push(percentile(col, 50));
-    p90BalancesReal.push(percentile(col, 90));
+    const trimmed = trimExtremeValues(col, TRIM_COUNT);
+    p10BalancesReal.push(percentile(trimmed, 10));
+    p50BalancesReal.push(percentile(trimmed, 50));
+    p90BalancesReal.push(percentile(trimmed, 90));
   }
 
   const eolValues = results.map(r => r.eolReal);
-  const eolReal_p10 = percentile(eolValues, 10);
-  const eolReal_p50 = percentile(eolValues, 50);
-  const eolReal_p90 = percentile(eolValues, 90);
+  const trimmedEol = trimExtremeValues(eolValues, TRIM_COUNT);
+  const eolReal_p10 = percentile(trimmedEol, 10);
+  const eolReal_p50 = percentile(trimmedEol, 50);
+  const eolReal_p90 = percentile(trimmedEol, 90);
 
   const y1Values = results.map(r => r.y1AfterTaxReal);
-  const y1AfterTaxReal_p10 = percentile(y1Values, 10);
-  const y1AfterTaxReal_p50 = percentile(y1Values, 50);
-  const y1AfterTaxReal_p90 = percentile(y1Values, 90);
+  const trimmedY1 = trimExtremeValues(y1Values, TRIM_COUNT);
+  const y1AfterTaxReal_p10 = percentile(trimmedY1, 10);
+  const y1AfterTaxReal_p50 = percentile(trimmedY1, 50);
+  const y1AfterTaxReal_p90 = percentile(trimmedY1, 90);
 
   const probRuin = results.filter(r => r.ruined).length / N;
 
@@ -570,7 +586,7 @@ function runMonteCarloSimulation(params, baseSeed, N = 1000) {
     y1AfterTaxReal_p50,
     y1AfterTaxReal_p90,
     probRuin,
-    allRuns: results,
+    allRuns: [], // Don't return individual runs to reduce memory usage and focus on percentiles
   };
 }
 
