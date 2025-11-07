@@ -222,11 +222,6 @@ html {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-
-  .specular {
-    animation: none !important;
-    opacity: 0.2;
-  }
 }
 
 @layer base {
