@@ -1164,7 +1164,11 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
   const [showP90, setShowP90] = useState(false); // Show 90th percentile line
-  const [loaderComplete, setLoaderComplete] = useState(false); // Brand loader completion state
+  const [loaderComplete, setLoaderComplete] = useState(
+    typeof window === "undefined"
+      ? false
+      : sessionStorage.getItem("brandLoaderPlayed") === "1"
+  );
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
@@ -1177,6 +1181,16 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  // Safety: skip loader if prefers-reduced-motion is set
+  useEffect(() => {
+    if (loaderComplete) return;
+    if (typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      sessionStorage.setItem("brandLoaderPlayed", "1");
+      setLoaderComplete(true);
+    }
+  }, [loaderComplete]);
 
   const isMar = useMemo(() => marital === "married", [marital]);
   const total = useMemo(() => sTax + sPre + sPost, [sTax, sPre, sPost]);
@@ -1889,11 +1903,21 @@ export default function App() {
 
   return (
     <>
-      <BrandLoader onComplete={() => setLoaderComplete(true)} />
-
+      {!loaderComplete && (
+        <BrandLoader
+          onComplete={() => {
+            sessionStorage.setItem("brandLoaderPlayed", "1");
+            setLoaderComplete(true);
+          }}
+        />
+      )}
       <div
-        className={`min-h-screen bg-background transition-opacity duration-700 ${loaderComplete ? 'opacity-100' : 'opacity-0'}`}
-        style={{ pointerEvents: loaderComplete ? 'auto' : 'none' }}
+        className="min-h-screen bg-background"
+        style={{
+          opacity: loaderComplete ? 1 : 0,
+          transition: "opacity .6s ease",
+          pointerEvents: loaderComplete ? 'auto' : 'none'
+        }}
       >
         <TopBanner />
 

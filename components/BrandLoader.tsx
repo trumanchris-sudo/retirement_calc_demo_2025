@@ -1,200 +1,155 @@
 "use client";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import React, { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
-
-interface BrandLoaderProps {
-  onComplete?: () => void;
-}
-
-export const BrandLoader: React.FC<BrandLoaderProps> = ({ onComplete }) => {
+export const BrandLoader: React.FC<{ onComplete?: () => void }> = ({ onComplete }) => {
   const [phase, setPhase] = useState<"spin" | "settle" | "handoff" | "hidden">("spin");
+  const rFaceRef = useRef<HTMLDivElement>(null);
 
+  // One-shot guard: if already played this session, skip immediately
   useEffect(() => {
-    // Check for reduced motion preference
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (prefersReducedMotion) {
-      // Skip animations for reduced motion
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("brandLoaderPlayed") === "1") {
       setPhase("hidden");
       onComplete?.();
-      return;
     }
+  }, [onComplete]);
 
-    // Spin phase: 2.6s
-    const spinTimer = setTimeout(() => {
-      setPhase("settle");
-    }, 2600);
+  // Orchestrate timing (≈3s total)
+  useEffect(() => {
+    if (phase !== "spin") return;
+    const t1 = setTimeout(() => setPhase("settle"), 2600);
+    const t2 = setTimeout(() => setPhase("handoff"), 2900);
+    const t3 = setTimeout(() => {
+      // Safety hide in case transitionend doesn't fire
+      if (phase !== "hidden") {
+        setPhase("hidden");
+        onComplete?.();
+      }
+    }, 3600);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [phase, onComplete]);
 
-    // Settle phase: +0.3s (2.9s total)
-    const settleTimer = setTimeout(() => {
-      setPhase("handoff");
-    }, 2900);
+  // Handoff: animate front face to #logoSlot, then append it there
+  useLayoutEffect(() => {
+    if (phase !== "handoff") return;
+    const rFace = rFaceRef.current;
+    const slot = document.getElementById("logoSlot");
+    if (!rFace || !slot) return;
 
-    // Handoff phase: +0.3s (3.2s total)
-    const handoffTimer = setTimeout(() => {
+    const from = rFace.getBoundingClientRect();
+    const to = slot.getBoundingClientRect();
+    const dx = to.left - from.left;
+    const dy = to.top - from.top;
+    const sx = to.width / from.width;
+    const sy = to.height / from.height;
+
+    rFace.style.transition = "transform .35s cubic-bezier(.15,.9,.1,1), box-shadow .35s";
+    rFace.style.transformOrigin = "top left";
+    rFace.style.willChange = "transform";
+    rFace.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+    rFace.style.boxShadow = "0 10px 20px rgba(0,0,0,.15)";
+
+    const onEnd = (e: TransitionEvent) => {
+      if (e.propertyName !== "transform") return;
+      rFace.removeEventListener("transitionend", onEnd);
+      slot.appendChild(rFace);
+      Object.assign(rFace.style, {
+        position: "relative",
+        left: "0px",
+        top: "0px",
+        width: "100%",
+        height: "100%",
+        transform: "none",
+        transition: "none",
+        boxShadow: "none"
+      });
+      // Finish
+      sessionStorage.setItem("brandLoaderPlayed", "1");
       setPhase("hidden");
       onComplete?.();
-    }, 3200);
-
-    return () => {
-      clearTimeout(spinTimer);
-      clearTimeout(settleTimer);
-      clearTimeout(handoffTimer);
     };
-  }, [onComplete]);
+    rFace.addEventListener("transitionend", onEnd);
+    return () => rFace.removeEventListener("transitionend", onEnd);
+  }, [phase, onComplete]);
 
   if (phase === "hidden") return null;
 
+  const prefersReduced =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   return (
     <div
-      className={cn(
-        "brand-loader-overlay",
-        "fixed inset-0 z-[9999] flex items-center justify-center",
-        "bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800"
-      )}
-      aria-live="polite"
-      aria-busy={phase !== "hidden"}
+      aria-hidden="true"
+      role="presentation"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "grid",
+        placeItems: "center",
+        background: "#f1f1f3",
+        transition: "opacity .3s ease",
+      }}
     >
-      <div
-        className={cn(
-          "brand-cube-container",
-          "relative",
-          phase === "spin" && "animate-brand-spin",
-          phase === "settle" && "animate-brand-settle",
-          phase === "handoff" && "animate-brand-handoff"
-        )}
-        style={{
-          width: "72px",
-          height: "72px",
-          perspective: "500px",
-          transformStyle: "preserve-3d"
-        }}
-      >
+      <div className="stage" style={{ width: 72, height: 72, perspective: "900px", perspectiveOrigin: "50% 40%" }}>
         <div
-          className="brand-cube"
+          className={`cube ${!prefersReduced && phase === "spin" ? "spin3d" : ""}`}
           style={{
-            width: "72px",
-            height: "72px",
+            width: 72,
+            height: 72,
             position: "relative",
             transformStyle: "preserve-3d",
-            transform: "translateZ(-36px)"
           }}
         >
-          {/* Front face with R */}
+          {/* Front face with R + subtle shine */}
           <div
-            className="cube-face cube-face-front"
-            style={{
-              position: "absolute",
-              width: "72px",
-              height: "72px",
-              background: "linear-gradient(135deg, #6b4cd6 0%, #5a3db8 100%)",
-              transform: "translateZ(36px)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden"
-            }}
+            ref={rFaceRef}
+            className="face front"
+            style={face("#6b4cd6", "translateZ(36px)")}
           >
-            {/* Specular shine */}
-            <div
-              className="animate-shimmer"
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 60%)",
-                pointerEvents: "none"
-              }}
-            />
-
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-              <text
-                x="50%"
-                y="50%"
-                dominantBaseline="central"
-                textAnchor="middle"
-                fill="white"
-                fontSize="36"
-                fontWeight="700"
-                fontFamily="system-ui, -apple-system, sans-serif"
-              >
-                R
-              </text>
+            <svg viewBox="0 0 100 100" style={{ width: "80%", height: "80%" }} aria-hidden="true">
+              <text x="50" y="64" textAnchor="middle" fontWeight="700" fontSize="64" fill="#fff">R</text>
             </svg>
+            <div className="specular" />
           </div>
 
-          {/* Back face */}
-          <div
-            className="cube-face cube-face-back"
-            style={{
-              position: "absolute",
-              width: "72px",
-              height: "72px",
-              background: "#5a3db8",
-              transform: "translateZ(-36px) rotateY(180deg)"
-            }}
-          />
-
-          {/* Left face */}
-          <div
-            className="cube-face cube-face-left"
-            style={{
-              position: "absolute",
-              width: "72px",
-              height: "72px",
-              background: "#4e35a0",
-              transform: "translateX(-36px) rotateY(-90deg)"
-            }}
-          />
-
-          {/* Right face */}
-          <div
-            className="cube-face cube-face-right"
-            style={{
-              position: "absolute",
-              width: "72px",
-              height: "72px",
-              background: "#7d5ee6",
-              transform: "translateX(36px) rotateY(90deg)"
-            }}
-          />
-
-          {/* Top face */}
-          <div
-            className="cube-face cube-face-top"
-            style={{
-              position: "absolute",
-              width: "72px",
-              height: "72px",
-              background: "#8366e8",
-              transform: "translateY(-36px) rotateX(90deg)"
-            }}
-          />
-
-          {/* Bottom face */}
-          <div
-            className="cube-face cube-face-bottom"
-            style={{
-              position: "absolute",
-              width: "72px",
-              height: "72px",
-              background: "#4a329c",
-              transform: "translateY(36px) rotateX(-90deg)"
-            }}
-          />
+          <div className="face back"   style={face("#5a3db8", "rotateY(180deg) translateZ(36px)")} />
+          <div className="face right"  style={face("#7d5ee6", "rotateY(90deg)  translateZ(36px)")} />
+          <div className="face left"   style={face("#4e35a0", "rotateY(-90deg) translateZ(36px)")} />
+          <div className="face top"    style={face("#8366e8", "rotateX(90deg)  translateZ(36px)")} />
+          <div className="face bottom" style={face("#4a329c", "rotateX(-90deg) translateZ(36px)")} />
         </div>
       </div>
 
-      {/* Loading text */}
-      <div
-        className="absolute bottom-1/4 left-1/2 -translate-x-1/2 text-slate-600 dark:text-slate-400 text-sm font-medium"
-        style={{
-          opacity: phase === "handoff" ? 0 : 1,
-          transition: "opacity 0.2s ease-out"
-        }}
-      >
-        Loading...
-      </div>
+      <style jsx>{`
+        .spin3d { animation: spin3d 2.4s linear infinite; }
+        @keyframes spin3d {
+          to { transform: rotateX(360deg) rotateY(360deg); }
+        }
+        .face { position:absolute; inset:0; border:1px solid rgba(0,0,0,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.05); backface-visibility:hidden; }
+        .front { overflow:hidden; }
+        .specular {
+          position:absolute; inset:-40% -40% auto auto; width:120%; height:120%;
+          background: radial-gradient(100% 60% at 80% 20%, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
+          mix-blend-mode: screen;
+          animation: shimmer 2.2s ease-in-out infinite alternate;
+          pointer-events:none;
+        }
+        @keyframes shimmer {
+          from { opacity:.45; transform: translate(-10%, -10%) rotate(0deg); }
+          to   { opacity:.25; transform: translate( 10%,  10%) rotate(5deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .spin3d { animation: none; }
+          .specular { animation: none; opacity:.2; }
+        }
+      `}</style>
     </div>
   );
 };
+
+// tiny helper for face style
+function face(bg: string, transform: string): React.CSSProperties {
+  return { width: 72, height: 72, background: bg, transform };
+}
