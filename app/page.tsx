@@ -30,6 +30,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { SliderInput } from "@/components/form/SliderInput";
 import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
+import { BrandLoader } from "@/components/BrandLoader";
 
 // Import from new modules
 import {
@@ -1163,6 +1164,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
   const [showP90, setShowP90] = useState(false); // Show 90th percentile line
+  const [loaderComplete, setLoaderComplete] = useState(false); // Brand loader completion state
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
@@ -1886,8 +1888,14 @@ export default function App() {
   ]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopBanner />
+    <>
+      <BrandLoader onComplete={() => setLoaderComplete(true)} />
+
+      <div
+        className={`min-h-screen bg-background transition-opacity duration-700 ${loaderComplete ? 'opacity-100' : 'opacity-0'}`}
+        style={{ pointerEvents: loaderComplete ? 'auto' : 'none' }}
+      >
+        <TopBanner />
 
       <PageHeader
         isDarkMode={isDarkMode}
@@ -3128,8 +3136,9 @@ export default function App() {
         </Card>
       </div>
 
-      {/* Scroll Indicator - shows when results are available */}
-      <ScrollIndicator targetId="results" show={!!res} />
-    </div>
+        {/* Scroll Indicator - shows when results are available */}
+        <ScrollIndicator targetId="results" show={!!res} />
+      </div>
+    </>
   );
 }
