@@ -58,6 +58,64 @@ html {
 }
 
 /* Brand loader cube animations */
+
+/* Cube overlay stays above route/page fades */
+.brand-cube-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 9999;
+  pointer-events: none;
+  background: hsl(var(--background));
+}
+
+/* CSS vars set via JS for docking delta */
+.brand-cube {
+  --tx: 0px;
+  --ty: 0px;
+}
+
+/* Docking animation (movement only; spin/settle/handoff are separate) */
+@keyframes brand-dock {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(var(--tx), var(--ty), 0); }
+}
+
+.animate-brand-dock {
+  animation: brand-dock 900ms cubic-bezier(.2,.7,.1,1) forwards;
+}
+
+/* 2D logo square: hidden by default, revealed after docking */
+.logo-square {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #6b7bff, #5a2dff);
+  color: #fff;
+  font-weight: 800;
+  font-size: 18px;
+  opacity: 0;
+  transform: scale(.9);
+  transition: opacity .35s ease, transform .35s ease;
+  z-index: 50;
+}
+
+.logo-square--reveal {
+  opacity: 1;
+  transform: none;
+}
+
+/* Dark mode logo */
+.dark .logo-square {
+  background: linear-gradient(135deg, #8b9bff, #7a4dff);
+}
+
 @keyframes brand-spin {
   0% {
     transform: rotateX(0deg) rotateY(0deg);
@@ -78,11 +136,11 @@ html {
 
 @keyframes brand-handoff {
   0% {
-    transform: rotateX(0deg) rotateY(0deg) scale(1);
+    transform: scale(1);
     opacity: 1;
   }
   100% {
-    transform: rotateX(0deg) rotateY(0deg) scale(0.5);
+    transform: scale(0.5);
     opacity: 0;
   }
 }
