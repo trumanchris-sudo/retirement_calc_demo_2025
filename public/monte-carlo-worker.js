@@ -1,0 +1,598 @@
+/**
+ * Web Worker for Monte Carlo Retirement Simulation
+ * Runs N=1000 simulations off the main thread to prevent UI blocking
+ */
+
+// ===============================
+// Constants (from lib/constants.ts)
+// ===============================
+
+const LIFE_EXP = 95;
+const CURR_YEAR = new Date().getFullYear();
+const RMD_START_AGE = 73;
+
+const RMD_DIVISORS = {
+  73: 26.5, 74: 25.5, 75: 24.6, 76: 23.7, 77: 22.9, 78: 22.0, 79: 21.1, 80: 20.2,
+  81: 19.4, 82: 18.5, 83: 17.7, 84: 16.8, 85: 16.0, 86: 15.2, 87: 14.4, 88: 13.7,
+  89: 12.9, 90: 12.2, 91: 11.5, 92: 10.8, 93: 10.1, 94: 9.5, 95: 8.9, 96: 8.4,
+  97: 7.8, 98: 7.3, 99: 6.8, 100: 6.4, 101: 6.0, 102: 5.6, 103: 5.2, 104: 4.9,
+  105: 4.6, 106: 4.3, 107: 4.1, 108: 3.9, 109: 3.7, 110: 3.5, 111: 3.4, 112: 3.3,
+  113: 3.1, 114: 3.0, 115: 2.9, 116: 2.8, 117: 2.7, 118: 2.5, 119: 2.3, 120: 2.0,
+};
+
+const SS_BEND_POINTS = {
+  first: 1226,
+  second: 7391,
+};
+
+const TAX_BRACKETS = {
+  single: {
+    deduction: 15000,
+    rates: [
+      { limit: 11925, rate: 0.1 },
+      { limit: 48475, rate: 0.12 },
+      { limit: 103350, rate: 0.22 },
+      { limit: 197300, rate: 0.24 },
+      { limit: 250525, rate: 0.32 },
+      { limit: 626350, rate: 0.35 },
+      { limit: Infinity, rate: 0.37 },
+    ],
+  },
+  married: {
+    deduction: 30000,
+    rates: [
+      { limit: 23850, rate: 0.1 },
+      { limit: 96950, rate: 0.12 },
+      { limit: 206700, rate: 0.22 },
+      { limit: 394600, rate: 0.24 },
+      { limit: 501050, rate: 0.32 },
+      { limit: 751600, rate: 0.35 },
+      { limit: Infinity, rate: 0.37 },
+    ],
+  },
+};
+
+const LTCG_BRACKETS = {
+  single: [
+    { limit: 50000, rate: 0.0 },
+    { limit: 492300, rate: 0.15 },
+    { limit: Infinity, rate: 0.20 },
+  ],
+  married: [
+    { limit: 100000, rate: 0.0 },
+    { limit: 553850, rate: 0.15 },
+    { limit: Infinity, rate: 0.20 },
+  ],
+};
+
+const NIIT_THRESHOLD = {
+  single: 200000,
+  married: 250000,
+};
+
+const SP500_YOY_NOMINAL = [
+  37.2, 23.83, -7.18, 6.56, 18.44, 32.5, -4.92, 21.55, 22.56, 6.27, 31.73,
+  18.67, 5.25, 16.61, 31.49, -3.1, 30.47, 7.62, 10.08, 1.32, 37.58, 22.96,
+  33.36, 28.58, 21.04, -9.1, -11.89, -22.1, 28.69, 4.91, 15.79, 5.49,
+  -37.0, 26.46, 15.06, 2.11, 15.99, 32.39, 13.69, 1.38, 11.96, 21.83,
+  -4.38, 31.43, 18.4, -18.11, 26.29, 26.39, -47.00, 3.00, -10.00, 15.00, -5.00
+];
+
+// ===============================
+// Utility Functions (from lib/utils.ts)
+// ===============================
+
+function mulberry32(seed) {
+  let t = seed >>> 0;
+  return function rand() {
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function percentile(arr, p) {
+  if (arr.length === 0) return 0;
+  if (p < 0 || p > 100) throw new Error('Percentile must be between 0 and 100');
+  const sorted = [...arr].sort((a, b) => a - b);
+  const index = (p / 100) * (sorted.length - 1);
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  const weight = index - lower;
+  if (lower === upper) return sorted[lower];
+  return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+}
+
+// ===============================
+// Return Generator (from app/page.tsx)
+// ===============================
+
+function buildReturnGenerator(options) {
+  const {
+    mode,
+    years,
+    nominalPct = 9.8,
+    infPct = 2.6,
+    walkSeries = "nominal",
+    walkData = SP500_YOY_NOMINAL,
+    seed = 12345,
+  } = options;
+
+  if (mode === "fixed") {
+    const g = 1 + nominalPct / 100;
+    return function* fixedGen() {
+      for (let i = 0; i < years; i++) yield g;
+    };
+  }
+
+  if (!walkData.length) throw new Error("walkData is empty");
+  const rnd = mulberry32(seed);
+  const inflRate = infPct / 100;
+
+  return function* walkGen() {
+    for (let i = 0; i < years; i++) {
+      const ix = Math.floor(rnd() * walkData.length);
+      let pct = walkData[ix];
+
+      if (walkSeries === "real") {
+        const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
+        yield 1 + realRate;
+      } else {
+        yield 1 + pct / 100;
+      }
+    }
+  };
+}
+
+// ===============================
+// Tax Calculation Helpers (from app/page.tsx)
+// ===============================
+
+function calcOrdinaryTax(income, status) {
+  if (income <= 0) return 0;
+  const { rates, deduction } = TAX_BRACKETS[status];
+  let adj = Math.max(0, income - deduction);
+  let tax = 0;
+  let prev = 0;
+  for (const b of rates) {
+    const amount = Math.min(adj, b.limit - prev);
+    tax += amount * b.rate;
+    adj -= amount;
+    prev = b.limit;
+    if (adj <= 0) break;
+  }
+  return tax;
+}
+
+function calcLTCGTax(capGain, status, ordinaryIncome) {
+  if (capGain <= 0) return 0;
+  const brackets = LTCG_BRACKETS[status];
+  let remainingGain = capGain;
+  let tax = 0;
+  let used = 0;
+
+  for (const b of brackets) {
+    const bracketRoom = Math.max(0, b.limit - used - ordinaryIncome);
+    const taxedHere = Math.min(remainingGain, bracketRoom);
+    if (taxedHere > 0) {
+      tax += taxedHere * b.rate;
+      remainingGain -= taxedHere;
+    }
+    used = b.limit - ordinaryIncome;
+    if (remainingGain <= 0) break;
+  }
+
+  if (remainingGain > 0) {
+    const topRate = brackets[brackets.length - 1].rate;
+    tax += remainingGain * topRate;
+  }
+  return tax;
+}
+
+function calcNIIT(investmentIncome, status, modifiedAGI) {
+  if (investmentIncome <= 0) return 0;
+  const threshold = NIIT_THRESHOLD[status];
+  const excess = Math.max(0, modifiedAGI - threshold);
+  if (excess <= 0) return 0;
+  const base = Math.min(investmentIncome, excess);
+  return base * 0.038;
+}
+
+function calcSocialSecurity(avgAnnualIncome, claimAge, fullRetirementAge = 67) {
+  if (avgAnnualIncome <= 0) return 0;
+
+  const aime = avgAnnualIncome / 12;
+
+  let pia = 0;
+  if (aime <= SS_BEND_POINTS.first) {
+    pia = aime * 0.90;
+  } else if (aime <= SS_BEND_POINTS.second) {
+    pia = SS_BEND_POINTS.first * 0.90 + (aime - SS_BEND_POINTS.first) * 0.32;
+  } else {
+    pia = SS_BEND_POINTS.first * 0.90 +
+          (SS_BEND_POINTS.second - SS_BEND_POINTS.first) * 0.32 +
+          (aime - SS_BEND_POINTS.second) * 0.15;
+  }
+
+  const monthsFromFRA = (claimAge - fullRetirementAge) * 12;
+  let adjustmentFactor = 1.0;
+
+  if (monthsFromFRA < 0) {
+    const earlyMonths = Math.abs(monthsFromFRA);
+    if (earlyMonths <= 36) {
+      adjustmentFactor = 1 - (earlyMonths * 5/9 / 100);
+    } else {
+      adjustmentFactor = 1 - (36 * 5/9 / 100) - ((earlyMonths - 36) * 5/12 / 100);
+    }
+  } else if (monthsFromFRA > 0) {
+    adjustmentFactor = 1 + (monthsFromFRA * 2/3 / 100);
+  }
+
+  return pia * adjustmentFactor * 12;
+}
+
+function calcRMD(pretaxBalance, age) {
+  if (age < RMD_START_AGE || pretaxBalance <= 0) return 0;
+  const divisor = RMD_DIVISORS[age] || 2.0;
+  return pretaxBalance / divisor;
+}
+
+// ===============================
+// Single Simulation Runner (from app/page.tsx)
+// ===============================
+
+function runSingleSimulation(params, seed) {
+  const {
+    marital, age1, age2, retAge, sTax, sPre, sPost,
+    cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+    retRate, infRate, stateRate, incContrib, incRate, wdRate,
+    retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+  } = params;
+
+  const isMar = marital === "married";
+  const younger = Math.min(age1, isMar ? age2 : age1);
+  const older = Math.max(age1, isMar ? age2 : age1);
+
+  if (retAge <= younger) {
+    throw new Error("Retirement age must be greater than current age");
+  }
+
+  const yrsToRet = retAge - younger;
+  const g_fixed = 1 + retRate / 100;
+  const infl = infRate / 100;
+  const infl_factor = 1 + infl;
+
+  const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
+
+  const accGen = buildReturnGenerator({
+    mode: retMode,
+    years: yrsToRet + 1,
+    nominalPct: retRate,
+    infPct: infRate,
+    walkSeries,
+    seed: seed,
+  })();
+
+  const drawGen = buildReturnGenerator({
+    mode: retMode,
+    years: yrsToSim,
+    nominalPct: retRate,
+    infPct: infRate,
+    walkSeries,
+    seed: seed + 1,
+  })();
+
+  let bTax = sTax;
+  let bPre = sPre;
+  let bPost = sPost;
+  let basisTax = sTax;
+
+  const balancesReal = [];
+  let c = {
+    p: { tax: cTax1, pre: cPre1, post: cPost1, match: cMatch1 },
+    s: { tax: cTax2, pre: cPre2, post: cPost2, match: cMatch2 },
+  };
+
+  // Accumulation phase
+  for (let y = 0; y <= yrsToRet; y++) {
+    const g = retMode === "fixed" ? g_fixed : accGen.next().value;
+
+    const a1 = age1 + y;
+    const a2 = isMar ? age2 + y : null;
+
+    if (y > 0) {
+      bTax *= g;
+      bPre *= g;
+      bPost *= g;
+    }
+
+    if (y > 0 && incContrib) {
+      const f = 1 + incRate / 100;
+      Object.keys(c.p).forEach((k) => (c.p[k] *= f));
+      if (isMar)
+        Object.keys(c.s).forEach((k) => (c.s[k] *= f));
+    }
+
+    const addMidYear = (amt) => amt * (1 + (g - 1) * 0.5);
+
+    if (a1 < retAge) {
+      bTax += addMidYear(c.p.tax);
+      bPre += addMidYear(c.p.pre + c.p.match);
+      bPost += addMidYear(c.p.post);
+      basisTax += c.p.tax;
+    }
+    if (isMar && a2 < retAge) {
+      bTax += addMidYear(c.s.tax);
+      bPre += addMidYear(c.s.pre + c.s.match);
+      bPost += addMidYear(c.s.post);
+      basisTax += c.s.tax;
+    }
+
+    const bal = bTax + bPre + bPost;
+    balancesReal.push(bal / Math.pow(1 + infl, y));
+  }
+
+  const finNom = bTax + bPre + bPost;
+  const infAdj = Math.pow(1 + infl, yrsToRet);
+  const wdGrossY1 = finNom * (wdRate / 100);
+
+  const computeWithdrawalTaxes = (
+    gross,
+    status,
+    taxableBal,
+    pretaxBal,
+    rothBal,
+    taxableBasis,
+    statePct
+  ) => {
+    const totalBal = taxableBal + pretaxBal + rothBal;
+    if (totalBal <= 0 || gross <= 0)
+      return { tax: 0, ordinary: 0, capgain: 0, niit: 0, state: 0, draw: { t: 0, p: 0, r: 0 }, newBasis: taxableBasis };
+
+    const shareT = totalBal > 0 ? taxableBal / totalBal : 0;
+    const shareP = totalBal > 0 ? pretaxBal / totalBal : 0;
+    const shareR = totalBal > 0 ? rothBal / totalBal : 0;
+
+    let drawT = gross * shareT;
+    let drawP = gross * shareP;
+    let drawR = gross * shareR;
+
+    const fixShortfall = (want, have) => Math.min(want, have);
+
+    const usedT = fixShortfall(drawT, taxableBal);
+    let shortT = drawT - usedT;
+
+    const usedP = fixShortfall(drawP + shortT, pretaxBal);
+    let shortP = drawP + shortT - usedP;
+
+    const usedR = fixShortfall(drawR + shortP, rothBal);
+
+    drawT = usedT;
+    drawP = usedP;
+    drawR = usedR;
+
+    const unrealizedGain = Math.max(0, taxableBal - taxableBasis);
+    const gainRatio = taxableBal > 0 ? unrealizedGain / taxableBal : 0;
+    const drawT_Gain = drawT * gainRatio;
+    const drawT_Basis = drawT - drawT_Gain;
+
+    const ordinaryIncome = drawP;
+    const capGains = drawT_Gain;
+
+    const fedOrd = calcOrdinaryTax(ordinaryIncome, status);
+    const fedCap = calcLTCGTax(capGains, status, ordinaryIncome);
+    const magi = ordinaryIncome + capGains;
+    const niit = calcNIIT(capGains, status, magi);
+    const stateTax = (ordinaryIncome + capGains) * (statePct / 100);
+
+    const totalTax = fedOrd + fedCap + niit + stateTax;
+    const newBasis = Math.max(0, taxableBasis - drawT_Basis);
+
+    return {
+      tax: totalTax,
+      ordinary: fedOrd,
+      capgain: fedCap,
+      niit,
+      state: stateTax,
+      draw: { t: drawT, p: drawP, r: drawR },
+      newBasis,
+    };
+  };
+
+  const y1 = computeWithdrawalTaxes(
+    wdGrossY1,
+    marital,
+    bTax,
+    bPre,
+    bPost,
+    basisTax,
+    stateRate
+  );
+
+  const wdAfterY1 = wdGrossY1 - y1.tax;
+  const wdRealY1 = wdAfterY1 / infAdj;
+
+  let retBalTax = bTax;
+  let retBalPre = bPre;
+  let retBalRoth = bPost;
+  let currBasis = basisTax;
+  let currWdGross = wdGrossY1;
+  let survYrs = 0;
+  let ruined = false;
+
+  // Drawdown phase
+  for (let y = 1; y <= yrsToSim; y++) {
+    const g_retire = retMode === "fixed" ? g_fixed : drawGen.next().value;
+
+    retBalTax *= g_retire;
+    retBalPre *= g_retire;
+    retBalRoth *= g_retire;
+
+    const currentAge = age1 + yrsToRet + y;
+    const currentAge2 = isMar ? age2 + yrsToRet + y : 0;
+    const requiredRMD = calcRMD(retBalPre, currentAge);
+
+    let ssAnnualBenefit = 0;
+    if (includeSS) {
+      if (currentAge >= ssClaimAge) {
+        ssAnnualBenefit += calcSocialSecurity(ssIncome, ssClaimAge);
+      }
+      if (isMar && currentAge2 >= ssClaimAge2) {
+        ssAnnualBenefit += calcSocialSecurity(ssIncome2, ssClaimAge2);
+      }
+    }
+
+    let netSpendingNeed = Math.max(0, currWdGross - ssAnnualBenefit);
+    let actualWithdrawal = netSpendingNeed;
+    let rmdExcess = 0;
+
+    if (requiredRMD > 0) {
+      if (requiredRMD > netSpendingNeed) {
+        actualWithdrawal = requiredRMD;
+        rmdExcess = requiredRMD - netSpendingNeed;
+      }
+    }
+
+    const taxes = computeWithdrawalTaxes(
+      actualWithdrawal,
+      marital,
+      retBalTax,
+      retBalPre,
+      retBalRoth,
+      currBasis,
+      stateRate
+    );
+
+    retBalTax -= taxes.draw.t;
+    retBalPre -= taxes.draw.p;
+    retBalRoth -= taxes.draw.r;
+    currBasis = taxes.newBasis;
+
+    if (rmdExcess > 0) {
+      const excessTax = calcOrdinaryTax(rmdExcess, marital);
+      const excessAfterTax = rmdExcess - excessTax;
+      retBalTax += excessAfterTax;
+      currBasis += excessAfterTax;
+    }
+
+    if (retBalTax < 0) retBalTax = 0;
+    if (retBalPre < 0) retBalPre = 0;
+    if (retBalRoth < 0) retBalRoth = 0;
+
+    const totalNow = retBalTax + retBalPre + retBalRoth;
+    balancesReal.push(totalNow / Math.pow(1 + infl, yrsToRet + y));
+
+    if (totalNow <= 0) {
+      survYrs = y - 1;
+      ruined = true;
+      retBalTax = retBalPre = retBalRoth = 0;
+      break;
+    }
+    survYrs = y;
+
+    currWdGross *= infl_factor;
+  }
+
+  const eolWealth = Math.max(0, retBalTax + retBalPre + retBalRoth);
+  const yearsFrom2025 = yrsToRet + yrsToSim;
+  const eolReal = eolWealth / Math.pow(1 + infl, yearsFrom2025);
+
+  return {
+    balancesReal,
+    eolReal,
+    y1AfterTaxReal: wdRealY1,
+    ruined,
+  };
+}
+
+// ===============================
+// Monte Carlo Batch Runner
+// ===============================
+
+function runMonteCarloSimulation(params, baseSeed, N = 1000) {
+  const results = [];
+
+  // Generate N random seeds from the baseSeed
+  const rng = mulberry32(baseSeed);
+  const seeds = [];
+  for (let i = 0; i < N; i++) {
+    seeds.push(Math.floor(rng() * 1000000));
+  }
+
+  // Run all N simulations
+  for (let i = 0; i < N; i++) {
+    results.push(runSingleSimulation(params, seeds[i]));
+
+    // Send progress updates every 50 simulations
+    if ((i + 1) % 50 === 0 || i === N - 1) {
+      self.postMessage({
+        type: 'progress',
+        completed: i + 1,
+        total: N,
+      });
+    }
+  }
+
+  // Calculate percentiles
+  const T = results[0].balancesReal.length;
+
+  const p10BalancesReal = [];
+  const p50BalancesReal = [];
+  const p90BalancesReal = [];
+  for (let t = 0; t < T; t++) {
+    const col = results.map(r => r.balancesReal[t]);
+    p10BalancesReal.push(percentile(col, 10));
+    p50BalancesReal.push(percentile(col, 50));
+    p90BalancesReal.push(percentile(col, 90));
+  }
+
+  const eolValues = results.map(r => r.eolReal);
+  const eolReal_p10 = percentile(eolValues, 10);
+  const eolReal_p50 = percentile(eolValues, 50);
+  const eolReal_p90 = percentile(eolValues, 90);
+
+  const y1Values = results.map(r => r.y1AfterTaxReal);
+  const y1AfterTaxReal_p10 = percentile(y1Values, 10);
+  const y1AfterTaxReal_p50 = percentile(y1Values, 50);
+  const y1AfterTaxReal_p90 = percentile(y1Values, 90);
+
+  const probRuin = results.filter(r => r.ruined).length / N;
+
+  return {
+    p10BalancesReal,
+    p50BalancesReal,
+    p90BalancesReal,
+    eolReal_p10,
+    eolReal_p50,
+    eolReal_p90,
+    y1AfterTaxReal_p10,
+    y1AfterTaxReal_p50,
+    y1AfterTaxReal_p90,
+    probRuin,
+    allRuns: results,
+  };
+}
+
+// ===============================
+// Worker Message Handler
+// ===============================
+
+self.onmessage = function(e) {
+  const { type, params, baseSeed, N } = e.data;
+
+  if (type === 'run') {
+    try {
+      const result = runMonteCarloSimulation(params, baseSeed, N);
+      self.postMessage({
+        type: 'complete',
+        result,
+      });
+    } catch (error) {
+      self.postMessage({
+        type: 'error',
+        error: error.message,
+      });
+    }
+  }
+};

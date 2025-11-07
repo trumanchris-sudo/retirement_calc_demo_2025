@@ -1049,6 +1049,7 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
 }
 
 /**
+ * DEPRECATED: This function is no longer used. Monte Carlo simulations now run via web worker.
  * Run 25 simulations with different seeds and compute median summaries.
  * This provides more stable results for truly random mode.
  */
@@ -1178,6 +1179,21 @@ export default function App() {
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
+  const workerRef = useRef<Worker | null>(null);
+
+  // State for tracking simulation progress
+  const [simProgress, setSimProgress] = useState<{ completed: number; total: number } | null>(null);
+
+  // Initialize web worker
+  useEffect(() => {
+    workerRef.current = new Worker('/monte-carlo-worker.js');
+
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate();
+      }
+    };
+  }, []);
 
   // Apply dark mode class to document
   useEffect(() => {
@@ -1270,6 +1286,37 @@ export default function App() {
     await fetchAiInsight(res, older, userQuestion);
   };
 
+  // Helper function to run Monte Carlo simulation via web worker
+  const runMonteCarloViaWorker = useCallback((inputs: Inputs, baseSeed: number, N: number = 1000): Promise<BatchSummary> => {
+    return new Promise((resolve, reject) => {
+      if (!workerRef.current) {
+        reject(new Error("Worker not initialized"));
+        return;
+      }
+
+      const worker = workerRef.current;
+
+      const handleMessage = (e: MessageEvent) => {
+        const { type, result, completed, total, error } = e.data;
+
+        if (type === 'progress') {
+          setSimProgress({ completed, total });
+        } else if (type === 'complete') {
+          setSimProgress(null);
+          worker.removeEventListener('message', handleMessage);
+          resolve(result);
+        } else if (type === 'error') {
+          setSimProgress(null);
+          worker.removeEventListener('message', handleMessage);
+          reject(new Error(error));
+        }
+      };
+
+      worker.addEventListener('message', handleMessage);
+      worker.postMessage({ type: 'run', params: inputs, baseSeed, N });
+    });
+  }, []);
+
   const calc = useCallback(async () => {
     setErr(null);
     setAiInsight("");
@@ -1303,7 +1350,7 @@ export default function App() {
 
       const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
 
-      // If truly random mode, run 10 seeds and use median values
+      // If truly random mode, run Monte Carlo simulation via web worker (N=1000)
       if (walkSeries === 'trulyRandom') {
         const inputs: Inputs = {
           marital, age1, age2, retAge, sTax, sPre, sPost,
@@ -1312,7 +1359,7 @@ export default function App() {
           retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
         };
 
-        const batchSummary = await runTenSeedsAndSummarize(inputs, currentSeed);
+        const batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, 1000);
 
         // Reconstruct data array from batch summary percentile balances
         const data: any[] = [];
@@ -2245,9 +2292,9 @@ export default function App() {
                       <p className="text-sm text-muted-foreground mb-2">Probability of Running Out</p>
                       <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{(res.probRuin * 100).toFixed(0)}%</p>
                       <p className="text-xs text-muted-foreground mt-2">
-                        Based on 25 random simulations. {res.probRuin === 0 ? "All scenarios succeeded!" :
+                        Based on 1,000 random simulations. {res.probRuin === 0 ? "All scenarios succeeded!" :
                         res.probRuin === 1 ? "All scenarios failed." :
-                        `${(res.probRuin * 25).toFixed(0)} out of 25 scenarios ran out of money.`}
+                        `${(res.probRuin * 1000).toFixed(0)} out of 1,000 scenarios ran out of money.`}
                       </p>
                     </CardContent>
                   </Card>
@@ -2878,7 +2925,11 @@ export default function App() {
                 {isLoadingAi ? (
                   <span className="flex items-center gap-3">
                     <Spinner />
-                    <span>Calculating...</span>
+                    <span>
+                      {simProgress
+                        ? `Simulating... ${simProgress.completed} / ${simProgress.total}`
+                        : 'Calculating...'}
+                    </span>
                   </span>
                 ) : (
                   <span className="flex items-center gap-3">
