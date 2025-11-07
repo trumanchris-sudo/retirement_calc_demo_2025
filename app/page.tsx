@@ -1858,19 +1858,38 @@ export default function App() {
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         showActions={!!res}
-        onPrint={() => window.print()}
+        onPrint={() => typeof window !== 'undefined' && window.print()}
         onShare={() => {
-          if (!res) return;
-          const shareData = {
-            title: 'Tax-Aware Retirement Plan',
-            text: `Retirement projection: ${fmt(res.finReal)} by age ${retAge}, ${fmt(res.wdReal)}/yr after-tax income`,
-            url: window.location.href
-          };
-          if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-            navigator.share(shareData);
-          } else {
-            navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
-            alert('Plan summary copied to clipboard!');
+          if (!res || typeof window === 'undefined' || typeof navigator === 'undefined') return;
+          try {
+            const shareData = {
+              title: 'Tax-Aware Retirement Plan',
+              text: `Retirement projection: ${fmt(res.finReal)} by age ${retAge}, ${fmt(res.wdReal)}/yr after-tax income`,
+              url: window.location.href
+            };
+            if (navigator.share && typeof navigator.canShare === 'function') {
+              try {
+                if (navigator.canShare(shareData)) {
+                  navigator.share(shareData).catch(() => {
+                    // User cancelled or share failed, ignore
+                  });
+                } else {
+                  // Fallback to clipboard
+                  navigator.clipboard?.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`)
+                    .catch(() => alert('Could not copy to clipboard'));
+                }
+              } catch {
+                // canShare threw an error, use clipboard fallback
+                navigator.clipboard?.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`)
+                  .catch(() => alert('Could not copy to clipboard'));
+              }
+            } else {
+              navigator.clipboard?.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`)
+                .then(() => alert('Plan summary copied to clipboard!'))
+                .catch(() => alert('Could not copy to clipboard'));
+            }
+          } catch (error) {
+            console.error('Share error:', error);
           }
         }}
       />

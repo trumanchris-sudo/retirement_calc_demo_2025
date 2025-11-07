@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useLayoutEffect, ReactNode } from 'react';
+import React, { useState, useRef, useEffect, ReactNode } from 'react';
 import './FlippingCard.css';
 
 /**
@@ -33,6 +33,7 @@ export const FlippingCard: React.FC<FlippingCardProps> = ({
 
   // Function to set height based on the visible face
   const updateHeight = () => {
+    if (typeof window === 'undefined') return; // Guard for SSR
     if (isFlipped) {
       if (backRef.current) {
         setCardHeight(`${backRef.current.offsetHeight}px`);
@@ -45,7 +46,8 @@ export const FlippingCard: React.FC<FlippingCardProps> = ({
   };
 
   // Set initial height on mount
-  useLayoutEffect(() => {
+  useEffect(() => {
+    // Use useEffect instead of useLayoutEffect to avoid SSR issues
     updateHeight();
     // Re-check height after a short delay to ensure images/fonts have loaded
     const timer = setTimeout(updateHeight, 100);
