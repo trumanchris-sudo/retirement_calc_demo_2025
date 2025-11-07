@@ -3,8 +3,9 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 export const BrandLoader: React.FC<{
   onHandoffStart?: () => void;
+  onCubeAppended?: () => void;
   onComplete?: () => void;
-}> = ({ onHandoffStart, onComplete }) => {
+}> = ({ onHandoffStart, onCubeAppended, onComplete }) => {
   const [phase, setPhase] = useState<"spin" | "settle" | "handoff" | "hidden">("spin");
   const rFaceRef = useRef<HTMLDivElement>(null);
   const handoffTimerRef = useRef<NodeJS.Timeout>();
@@ -18,15 +19,14 @@ export const BrandLoader: React.FC<{
     }
   }, [onComplete]);
 
-  // Orchestrate timing for spin -> settle -> handoff
+  // Orchestrate timing for spin -> handoff (no settle delay)
   useEffect(() => {
     if (phase !== "spin") return;
-    const t1 = setTimeout(() => setPhase("settle"), 2600);
-    const t2 = setTimeout(() => {
+    const timer = setTimeout(() => {
       setPhase("handoff");
-      onHandoffStart?.(); // Notify parent to start fading in UI
-    }, 2900);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+      onHandoffStart?.(); // Notify parent to start fading in UI immediately
+    }, 2600); // Go straight to handoff after spinning
+    return () => clearTimeout(timer);
   }, [phase, onHandoffStart]);
 
   // Safety timeout for entire sequence
@@ -62,6 +62,11 @@ export const BrandLoader: React.FC<{
         clearTimeout(handoffTimerRef.current);
       }
 
+      // Clear any existing children (like the fallback span) before appending
+      while (slot.firstChild) {
+        slot.removeChild(slot.firstChild);
+      }
+
       // Append face to slot
       slot.appendChild(rFace);
       Object.assign(rFace.style, {
@@ -75,6 +80,9 @@ export const BrandLoader: React.FC<{
         boxShadow: "none",
         borderRadius: "8px"
       });
+
+      // Notify that cube has been appended
+      onCubeAppended?.();
 
       // Mark complete
       sessionStorage.setItem("brandLoaderPlayed", "1");
@@ -181,9 +189,18 @@ export const BrandLoader: React.FC<{
       </div>
 
       <style jsx>{`
-        .spin3d { animation: spin3d 2.4s linear infinite; }
+        .spin3d {
+          animation: spin3d 2.4s linear infinite;
+        }
+        .settle3d {
+          animation: settle3d 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
         @keyframes spin3d {
           to { transform: rotateX(360deg) rotateY(360deg); }
+        }
+        @keyframes settle3d {
+          from { transform: rotateX(360deg) rotateY(360deg); }
+          to { transform: rotateX(0deg) rotateY(0deg); }
         }
         .face { position:absolute; inset:0; border:1px solid rgba(0,0,0,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.05); backface-visibility:hidden; }
         .front { overflow:hidden; display:flex; align-items:center; justify-content:center; }

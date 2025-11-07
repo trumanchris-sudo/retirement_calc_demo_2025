@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
   Area,
   AreaChart,
+  ComposedChart,
   PieChart,
   Pie,
   Cell,
@@ -665,7 +666,7 @@ type Cohort = { size: number; age: number };
  * - Works in 2025 dollars (real terms).
  * - fund starts as EOL deflated to 2025 dollars.
  * - Real growth at r = realReturn(nominal, inflation).
- * - Each year, pay (perBenReal * living).
+ * - Each year, pay (perBenReal * eligible), where eligible = beneficiaries >= minDistAge.
  * - Births every birthInterval years: each living ben creates birthMultiple new age-0 bens.
  * - Death at deathAge.
  */
@@ -679,6 +680,7 @@ function simulateRealPerBeneficiaryPayout(
   birthMultiple: number,
   birthInterval = 30,
   deathAge = 90,
+  minDistAge = 21,
   capYears = 10000,
   initialBenAges: number[] = [0]
 ) {
@@ -703,7 +705,12 @@ function simulateRealPerBeneficiaryPayout(
     }
 
     fundReal *= 1 + r;
-    const payout = perBenReal * living;
+
+    // Only beneficiaries at or above minDistAge receive distributions
+    const eligible = cohorts
+      .filter(c => c.age >= minDistAge)
+      .reduce((acc, c) => acc + c.size, 0);
+    const payout = perBenReal * eligible;
     fundReal -= payout;
 
     if (fundReal < 0) {
@@ -1148,6 +1155,7 @@ export default function App() {
   const [hypBirthInterval, setHypBirthInterval] = useState(30);
   const [hypDeathAge, setHypDeathAge] = useState(90);
   const [hypBenAgesStr, setHypBenAgesStr] = useState("35, 40");
+  const [hypMinDistAge, setHypMinDistAge] = useState(21); // Minimum age to receive distributions
 
   const [retMode, setRetMode] = useState<"fixed" | "randomWalk">("randomWalk");
   const [seed, setSeed] = useState(42);
@@ -1173,6 +1181,11 @@ export default function App() {
     typeof window === "undefined"
       ? false
       : sessionStorage.getItem("brandLoaderPlayed") === "1" // If already played, show UI immediately
+  );
+  const [cubeAppended, setCubeAppended] = useState(
+    typeof window === "undefined"
+      ? false
+      : sessionStorage.getItem("brandLoaderPlayed") === "1" // If already played, cube is already in place
   );
 
   const resRef = useRef<HTMLDivElement | null>(null);
@@ -1447,6 +1460,7 @@ export default function App() {
             Math.max(0, hypBirthMultiple),
             Math.max(1, hypBirthInterval),
             Math.max(1, hypDeathAge),
+            Math.max(0, hypMinDistAge),
             10000,
             benAges.length > 0 ? benAges : [0]
           );
@@ -1827,6 +1841,7 @@ export default function App() {
           Math.max(0, hypBirthMultiple),
           Math.max(1, hypBirthInterval),
           Math.max(1, hypDeathAge),
+          Math.max(0, hypMinDistAge),
           10000,
           benAges.length > 0 ? benAges : [0]
         );
@@ -1901,7 +1916,7 @@ export default function App() {
     cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
     retRate, infRate, stateRate, incContrib, incRate, wdRate,
     showGen, total, marital,
-    hypPerBen, hypStartBens, hypBirthMultiple, hypBirthInterval, hypDeathAge,
+    hypPerBen, hypStartBens, hypBirthMultiple, hypBirthInterval, hypDeathAge, hypMinDistAge,
     retMode, seed, walkSeries,
     includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2, hypBenAgesStr,
   ]);
@@ -1911,6 +1926,7 @@ export default function App() {
       {!loaderComplete && (
         <BrandLoader
           onHandoffStart={() => setLoaderHandoff(true)}
+          onCubeAppended={() => setCubeAppended(true)}
           onComplete={() => {
             sessionStorage.setItem("brandLoaderPlayed", "1");
             setLoaderComplete(true);
@@ -1931,6 +1947,7 @@ export default function App() {
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         showActions={!!res}
+        cubeAppended={cubeAppended}
         onPrint={() => window.print()}
         onShare={() => {
           const shareData = {
@@ -2347,7 +2364,7 @@ export default function App() {
                   </div>
                 )}
                 <ResponsiveContainer width="100%" height={400}>
-                  <AreaChart data={res.data}>
+                  <ComposedChart data={res.data}>
                     <defs>
                       <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -2424,7 +2441,7 @@ export default function App() {
                         legendType="none"
                       />
                     ))}
-                  </AreaChart>
+                  </ComposedChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
@@ -2820,15 +2837,54 @@ export default function App() {
                       step={1}
                       tip="Maximum age for all beneficiaries"
                     />
+                    <Input
+                      label="Min Distribution Age"
+                      value={hypMinDistAge}
+                      setter={setHypMinDistAge}
+                      min={0}
+                      step={1}
+                      tip="Minimum age before beneficiaries can receive distributions (e.g., 21 for legal adulthood, 25 for financial maturity)"
+                    />
                   </div>
 
                   {res?.genPayout && (
-                    <div ref={genRef} className="mt-6">
+                    <div ref={genRef} className="mt-6 space-y-4">
                       <LegacyResultCard
                         payout={res.genPayout.perBenReal}
                         duration={res.genPayout.years}
                         isPerpetual={res.genPayout.fundLeftReal > 0}
                       />
+
+                      {/* Dynasty Trust Impact Commentary */}
+                      {res.genPayout.fundLeftReal > 0 && (
+                        <div className="p-4 sm:p-6 rounded-xl bg-gradient-to-br from-violet-50 via-purple-50 to-blue-50 dark:from-violet-900/20 dark:via-purple-900/20 dark:to-blue-900/20 border-2 border-violet-200 dark:border-violet-800 shadow-sm overflow-hidden">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center text-white font-bold text-base sm:text-lg">
+                              ∞
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-violet-900 dark:text-violet-100 mb-2 text-sm sm:text-base">
+                                What This Means for Your Descendants
+                              </h4>
+                              <p className="text-xs sm:text-sm text-violet-800 dark:text-violet-200 leading-relaxed mb-3 break-words">
+                                A beneficiary born today could receive <strong className="whitespace-nowrap">{fmt(res.genPayout.perBenReal)}</strong> per year
+                                (in 2025 dollars, inflation-adjusted) for their <em>entire life</em>—from age {hypMinDistAge} to {hypDeathAge}.
+                                That's {hypDeathAge - hypMinDistAge} years of guaranteed income.
+                              </p>
+                              <p className="text-xs sm:text-sm text-violet-800 dark:text-violet-200 leading-relaxed mb-3 break-words">
+                                In practical terms, this is equivalent to having a <strong className="whitespace-nowrap">{fmt(res.genPayout.perBenReal * 25)}</strong> trust
+                                fund (using the 4% rule), but paid annually and inflation-protected. They would never worry about retirement
+                                savings, could pursue any career path—teacher, artist, entrepreneur, public servant—and have the security to
+                                take risks and build their own wealth on top of this foundation.
+                              </p>
+                              <p className="text-xs sm:text-sm text-violet-800 dark:text-violet-200 leading-relaxed italic break-words">
+                                This is generational wealth in its truest form: not a one-time windfall, but a perpetual foundation
+                                that empowers every generation to live with purpose, security, and freedom.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -3087,7 +3143,7 @@ export default function App() {
                   <ul className="list-disc pl-6 space-y-1 text-gray-700">
                     <li>The net estate (after estate tax) is deflated to 2025 purchasing power</li>
                     <li>Each year, the fund grows at a real rate (nominal return minus inflation)</li>
-                    <li>Each living beneficiary receives a fixed annual payout in constant 2025 dollars</li>
+                    <li>Only beneficiaries at or above the minimum distribution age receive payouts in constant 2025 dollars</li>
                     <li>Beneficiaries age each year; those reaching max lifespan exit the model</li>
                     <li>Every N years (birth interval), fertile beneficiaries (ages 20-40) produce offspring</li>
                     <li>Simulation continues until funds are exhausted or 10,000 years (effectively perpetual)</li>

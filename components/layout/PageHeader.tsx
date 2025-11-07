@@ -11,6 +11,7 @@ interface PageHeaderProps {
   onToggleDarkMode: () => void;
   onPrint?: () => void;
   onShare?: () => void;
+  cubeAppended?: boolean;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
@@ -18,7 +19,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   isDarkMode = false,
   onToggleDarkMode,
   onPrint,
-  onShare
+  onShare,
+  cubeAppended = false
 }) => {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -31,7 +33,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             style={{ overflow: 'visible' }}
           >
             {/* Logo will be inserted here by BrandLoader, or show fallback */}
-            {typeof window !== 'undefined' && !sessionStorage.getItem('brandLoaderPlayed') ? null : (
+            {!cubeAppended && (
               <span className="text-white font-bold text-lg">R</span>
             )}
           </div>
