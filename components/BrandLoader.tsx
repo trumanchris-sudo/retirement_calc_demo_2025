@@ -4,6 +4,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 export const BrandLoader: React.FC<{ onComplete?: () => void }> = ({ onComplete }) => {
   const [phase, setPhase] = useState<"spin" | "settle" | "handoff" | "hidden">("spin");
   const rFaceRef = useRef<HTMLDivElement>(null);
+  const handoffTimerRef = useRef<NodeJS.Timeout>();
 
   // One-shot guard: if already played this session, skip immediately
   useEffect(() => {
@@ -14,34 +15,77 @@ export const BrandLoader: React.FC<{ onComplete?: () => void }> = ({ onComplete 
     }
   }, [onComplete]);
 
-  // Orchestrate timing (≈3s total)
+  // Orchestrate timing for spin -> settle -> handoff
   useEffect(() => {
     if (phase !== "spin") return;
     const t1 = setTimeout(() => setPhase("settle"), 2600);
     const t2 = setTimeout(() => setPhase("handoff"), 2900);
-    const t3 = setTimeout(() => {
-      // Safety hide in case transitionend doesn't fire
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [phase]);
+
+  // Safety timeout for entire sequence
+  useEffect(() => {
+    const safetyTimer = setTimeout(() => {
       if (phase !== "hidden") {
+        console.log("Brand loader safety timeout triggered, completing...");
+        sessionStorage.setItem("brandLoaderPlayed", "1");
         setPhase("hidden");
         onComplete?.();
       }
-    }, 3600);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    }, 4000); // 4 seconds max
+    return () => clearTimeout(safetyTimer);
   }, [phase, onComplete]);
 
   // Handoff: animate front face to #logoSlot, then append it there
   useLayoutEffect(() => {
     if (phase !== "handoff") return;
+
     const rFace = rFaceRef.current;
     const slot = document.getElementById("logoSlot");
-    if (!rFace || !slot) return;
 
+    if (!rFace || !slot) {
+      console.warn("Brand loader: Missing rFace or logoSlot, completing immediately");
+      sessionStorage.setItem("brandLoaderPlayed", "1");
+      setPhase("hidden");
+      onComplete?.();
+      return;
+    }
+
+    const finishHandoff = () => {
+      if (handoffTimerRef.current) {
+        clearTimeout(handoffTimerRef.current);
+      }
+
+      // Append face to slot
+      slot.appendChild(rFace);
+      Object.assign(rFace.style, {
+        position: "relative",
+        left: "0",
+        top: "0",
+        width: "100%",
+        height: "100%",
+        transform: "none",
+        transition: "none",
+        boxShadow: "none",
+        borderRadius: "8px"
+      });
+
+      // Mark complete
+      sessionStorage.setItem("brandLoaderPlayed", "1");
+      setPhase("hidden");
+      onComplete?.();
+    };
+
+    // Calculate FLIP animation
     const from = rFace.getBoundingClientRect();
     const to = slot.getBoundingClientRect();
     const dx = to.left - from.left;
     const dy = to.top - from.top;
     const sx = to.width / from.width;
     const sy = to.height / from.height;
+
+    // Force reflow before setting transition
+    rFace.getBoundingClientRect();
 
     rFace.style.transition = "transform .35s cubic-bezier(.15,.9,.1,1), box-shadow .35s";
     rFace.style.transformOrigin = "top left";
@@ -52,24 +96,24 @@ export const BrandLoader: React.FC<{ onComplete?: () => void }> = ({ onComplete 
     const onEnd = (e: TransitionEvent) => {
       if (e.propertyName !== "transform") return;
       rFace.removeEventListener("transitionend", onEnd);
-      slot.appendChild(rFace);
-      Object.assign(rFace.style, {
-        position: "relative",
-        left: "0px",
-        top: "0px",
-        width: "100%",
-        height: "100%",
-        transform: "none",
-        transition: "none",
-        boxShadow: "none"
-      });
-      // Finish
-      sessionStorage.setItem("brandLoaderPlayed", "1");
-      setPhase("hidden");
-      onComplete?.();
+      finishHandoff();
     };
+
     rFace.addEventListener("transitionend", onEnd);
-    return () => rFace.removeEventListener("transitionend", onEnd);
+
+    // Safety timeout for handoff animation
+    handoffTimerRef.current = setTimeout(() => {
+      console.log("Handoff timeout triggered, forcing completion");
+      rFace.removeEventListener("transitionend", onEnd);
+      finishHandoff();
+    }, 600); // 600ms safety (longer than 350ms animation)
+
+    return () => {
+      rFace.removeEventListener("transitionend", onEnd);
+      if (handoffTimerRef.current) {
+        clearTimeout(handoffTimerRef.current);
+      }
+    };
   }, [phase, onComplete]);
 
   if (phase === "hidden") return null;
@@ -128,7 +172,7 @@ export const BrandLoader: React.FC<{ onComplete?: () => void }> = ({ onComplete 
           to { transform: rotateX(360deg) rotateY(360deg); }
         }
         .face { position:absolute; inset:0; border:1px solid rgba(0,0,0,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.05); backface-visibility:hidden; }
-        .front { overflow:hidden; }
+        .front { overflow:hidden; display:flex; align-items:center; justify-content:center; }
         .specular {
           position:absolute; inset:-40% -40% auto auto; width:120%; height:120%;
           background: radial-gradient(100% 60% at 80% 20%, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
