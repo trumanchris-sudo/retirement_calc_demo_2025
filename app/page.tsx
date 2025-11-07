@@ -2359,7 +2359,29 @@ export default function App() {
                       contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
                     />
                     <Legend />
-                    {/* Draw filled areas first so lines appear on top */}
+
+                    {/*
+                      FIX 1: Render Spaghetti Plot FIRST (in the background).
+                      This draws the 25 faint runs behind everything else.
+                    */}
+                    {res.allRuns && res.allRuns.map((_, runIdx) => (
+                      <Line
+                        key={`run-${runIdx}`}
+                        type="monotone"
+                        dataKey={`run${runIdx}`}
+                        stroke="#9ca3af"
+                        strokeWidth={0.8}
+                        strokeOpacity={0.25}
+                        dot={false}
+                        isAnimationActive={false}
+                        legendType="none"
+                      />
+                    ))}
+
+                    {/*
+                      FIX 2: Use dynamic labels for the Area charts.
+                      The labels now correctly change based on the sim mode.
+                    */}
                     <Area
                       type="monotone"
                       dataKey="bal"
@@ -2367,7 +2389,7 @@ export default function App() {
                       strokeWidth={3}
                       fillOpacity={1}
                       fill="url(#colorBal)"
-                      name="Nominal (50th Percentile)"
+                      name={walkSeries === 'trulyRandom' ? "Nominal (50th Percentile)" : "Nominal"}
                     />
                     <Area
                       type="monotone"
@@ -2377,9 +2399,14 @@ export default function App() {
                       strokeDasharray="5 5"
                       fillOpacity={1}
                       fill="url(#colorReal)"
-                      name="Real (50th Percentile)"
+                      name={walkSeries === 'trulyRandom' ? "Real (50th Percentile)" : "Real"}
                     />
-                    {/* Now draw percentile lines on top */}
+
+                    {/*
+                      Render P10/P90 lines LAST.
+                      This ensures they are drawn on top of the Area fills
+                      and are no longer hidden by the spaghetti plot.
+                    */}
                     {showP10 && (
                       <Line
                         type="monotone"
@@ -2402,20 +2429,8 @@ export default function App() {
                         name="90th Percentile (Nominal)"
                       />
                     )}
-                    {/* Render spaghetti plot - all simulation runs */}
-                    {res.allRuns && res.allRuns.map((_, runIdx) => (
-                      <Line
-                        key={`run-${runIdx}`}
-                        type="monotone"
-                        dataKey={`run${runIdx}`}
-                        stroke="#9ca3af"
-                        strokeWidth={0.8}
-                        strokeOpacity={0.25}
-                        dot={false}
-                        isAnimationActive={false}
-                        legendType="none"
-                      />
-                    ))}
+
+                    {/* The spaghetti plot block was here, it's now at the top */}
                   </ComposedChart>
                 </ResponsiveContainer>
               </CardContent>
