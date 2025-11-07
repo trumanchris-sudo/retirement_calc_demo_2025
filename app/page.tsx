@@ -1172,21 +1172,9 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
   const [showP90, setShowP90] = useState(false); // Show 90th percentile line
-  const [loaderComplete, setLoaderComplete] = useState(
-    typeof window === "undefined"
-      ? false
-      : sessionStorage.getItem("brandLoaderPlayed") === "1"
-  );
-  const [loaderHandoff, setLoaderHandoff] = useState(
-    typeof window === "undefined"
-      ? false
-      : sessionStorage.getItem("brandLoaderPlayed") === "1" // If already played, show UI immediately
-  );
-  const [cubeAppended, setCubeAppended] = useState(
-    typeof window === "undefined"
-      ? false
-      : sessionStorage.getItem("brandLoaderPlayed") === "1" // If already played, cube is already in place
-  );
+  const [loaderComplete, setLoaderComplete] = useState(false); // Always show loader on mount
+  const [loaderHandoff, setLoaderHandoff] = useState(false); // Track when handoff starts
+  const [cubeAppended, setCubeAppended] = useState(false); // Track when cube animation completes
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
@@ -1199,16 +1187,6 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
-
-  // Safety: skip loader if prefers-reduced-motion is set
-  useEffect(() => {
-    if (loaderComplete) return;
-    if (typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      sessionStorage.setItem("brandLoaderPlayed", "1");
-      setLoaderComplete(true);
-    }
-  }, [loaderComplete]);
 
   const isMar = useMemo(() => marital === "married", [marital]);
   const total = useMemo(() => sTax + sPre + sPost, [sTax, sPre, sPost]);
@@ -1927,10 +1905,7 @@ export default function App() {
         <BrandLoader
           onHandoffStart={() => setLoaderHandoff(true)}
           onCubeAppended={() => setCubeAppended(true)}
-          onComplete={() => {
-            sessionStorage.setItem("brandLoaderPlayed", "1");
-            setLoaderComplete(true);
-          }}
+          onComplete={() => setLoaderComplete(true)}
         />
       )}
       <div
