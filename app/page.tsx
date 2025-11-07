@@ -28,6 +28,8 @@ import { LegacyResultCard } from "@/components/LegacyResultCard";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
+import { SliderInput } from "@/components/form/SliderInput";
+import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
 
 // Import from new modules
 import {
@@ -2269,9 +2271,10 @@ export default function App() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Accumulation Projection</CardTitle>
+            <AnimatedSection animation="slide-up" delay={300}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Accumulation Projection</CardTitle>
                 <CardDescription>Your wealth over time in nominal and real dollars</CardDescription>
               </CardHeader>
               <CardContent>
@@ -2387,10 +2390,12 @@ export default function App() {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
+            </AnimatedSection>
 
             {/* RMD Tax Bomb Chart */}
             {res.rmdData && res.rmdData.length > 0 && (
-              <Card>
+              <AnimatedSection animation="slide-up" delay={400}>
+                <Card>
                 <CardHeader>
                   <CardTitle>RMD Tax Bomb Analysis</CardTitle>
                   <CardDescription>
@@ -2436,13 +2441,15 @@ export default function App() {
                   </div>
                 </CardContent>
               </Card>
+              </AnimatedSection>
             )}
           </div>
           </AnimatedSection>
         )}
 
         {/* Input Form */}
-        <Card>
+        <AnimatedSection animation="fade-in" delay={100}>
+          <Card>
           <CardHeader>
             <CardTitle>Plan Your Retirement</CardTitle>
             <CardDescription>Enter your information to calculate your retirement projections</CardDescription>
@@ -2521,30 +2528,37 @@ export default function App() {
 
             <CollapsibleSection title="Assumptions" icon={TrendingUpIcon} defaultOpen={false}>
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Input
-                    label="Return Rate (%)"
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <SliderInput
+                    label="Return Rate"
                     value={retRate}
-                    setter={setRetRate}
+                    onChange={setRetRate}
+                    min={0}
+                    max={20}
                     step={0.1}
-                    isRate
-                    tip={retMode === 'fixed' ? "S&P 500 avg ~9.8%" : "Used for 'Fixed' mode. 'Random Walk' uses S&P data."}
-                    disabled={retMode === 'randomWalk'}
+                    unit="%"
+                    description={retMode === 'fixed' ? "S&P 500 avg ~9.8%" : "Used for 'Fixed' mode"}
+                    className={retMode === 'randomWalk' ? "opacity-50 pointer-events-none" : ""}
                   />
-                  <Input
-                    label="Inflation (%)"
+                  <SliderInput
+                    label="Inflation"
                     value={infRate}
-                    setter={setInfRate}
+                    onChange={setInfRate}
+                    min={0}
+                    max={10}
                     step={0.1}
-                    isRate
-                    tip="US avg ~2.6%"
+                    unit="%"
+                    description="US avg ~2.6%"
                   />
-                  <Input
-                    label="State Tax (%)"
+                  <SliderInput
+                    label="State Tax"
                     value={stateRate}
-                    setter={setStateRate}
+                    onChange={setStateRate}
+                    min={0}
+                    max={15}
                     step={0.1}
-                    isRate
+                    unit="%"
+                    description="Income tax rate"
                   />
                 </div>
 
@@ -2590,13 +2604,16 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    label="Withdrawal Rate (%)"
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <SliderInput
+                    label="Withdrawal Rate"
                     value={wdRate}
-                    setter={setWdRate}
+                    onChange={setWdRate}
+                    min={1}
+                    max={8}
                     step={0.1}
-                    isRate
+                    unit="%"
+                    description="Annual spending rate"
                   />
                   <div className="space-y-4">
                     <Input
@@ -2814,6 +2831,7 @@ export default function App() {
             </div>
           </CardContent>
         </Card>
+        </AnimatedSection>
 
         {/* The Math Section */}
         <Card>
@@ -3109,6 +3127,9 @@ export default function App() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Scroll Indicator - shows when results are available */}
+      <ScrollIndicator targetId="results" show={!!res} />
     </div>
   );
 }
