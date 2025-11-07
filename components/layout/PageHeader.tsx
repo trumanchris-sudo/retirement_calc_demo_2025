@@ -33,10 +33,27 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           </span>
         </div>
 
-        {/* Actions */}
+        {/* Actions - Always show dark mode toggle prominently */}
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          {/* Dark Mode Toggle - Always First for Accessibility */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleDarkMode}
+            aria-label="Toggle dark mode"
+            className="no-print flex-shrink-0 order-first"
+          >
+            {isDarkMode ? (
+              <Sun className="w-5 h-5" />
+            ) : (
+              <Moon className="w-5 h-5" />
+            )}
+          </Button>
+
           {showActions && (
             <>
+              <div className="w-px h-6 bg-border mx-1" aria-hidden="true" />
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -76,20 +93,6 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               </Button>
             </>
           )}
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggleDarkMode}
-            aria-label="Toggle dark mode"
-            className="no-print flex-shrink-0"
-          >
-            {isDarkMode ? (
-              <Sun className="w-5 h-5" />
-            ) : (
-              <Moon className="w-5 h-5" />
-            )}
-          </Button>
         </div>
       </div>
     </header>

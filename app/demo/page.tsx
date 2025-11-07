@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Hero } from "@/components/layout/Hero";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { TopBanner } from "@/components/layout/TopBanner";
 import { Section } from "@/components/layout/Section";
 import { SliderInput } from "@/components/form/SliderInput";
 import { NumberInput } from "@/components/form/NumberInput";
@@ -10,6 +11,7 @@ import { CollapsibleSection } from "@/components/form/CollapsibleSection";
 import { CalculateButton } from "@/components/form/CalculateButton";
 import { AnimatedStatCard } from "@/components/results/AnimatedStatCard";
 import { ResultsGrid } from "@/components/results/ResultsGrid";
+import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { DollarSign, TrendingUp, PiggyBank, Wallet } from "lucide-react";
 
 export default function DemoPage() {
@@ -43,6 +45,8 @@ export default function DemoPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <TopBanner />
+
       <PageHeader
         isDarkMode={isDarkMode}
         onToggleDarkMode={toggleDarkMode}
@@ -125,93 +129,132 @@ export default function DemoPage() {
 
       {/* Results Section */}
       {showResults && (
-        <Section
-          id="results"
-          title="Your Retirement Projection"
-          subtitle="Based on your inputs, here's what your future looks like"
-          className="animate-in fade-in slide-in-from-bottom-4 duration-700"
-        >
-          <ResultsGrid columns={4}>
-            <AnimatedStatCard
-              label="Future Balance"
-              value={futureValue}
-              format="currency"
-              sublabel={`At age 65 (${years} years)`}
-              icon={DollarSign}
-              delay={0}
-            />
+        <AnimatedSection animation="slide-up" duration={700}>
+          <Section
+            id="results"
+            title="Your Retirement Projection"
+            subtitle="Based on your inputs, here's what your future looks like"
+          >
+            <AnimatedSection animation="fade-in" delay={200}>
+              <ResultsGrid columns={4}>
+                <AnimatedStatCard
+                  label="Future Balance"
+                  value={futureValue}
+                  format="currency"
+                  sublabel={`At age 65 (${years} years)`}
+                  icon={DollarSign}
+                  delay={0}
+                />
 
-            <AnimatedStatCard
-              label="In Today's Dollars"
-              value={realValue}
-              format="currency"
-              sublabel="Inflation-adjusted value"
-              icon={PiggyBank}
-              delay={100}
-            />
+                <AnimatedStatCard
+                  label="In Today's Dollars"
+                  value={realValue}
+                  format="currency"
+                  sublabel="Inflation-adjusted value"
+                  icon={PiggyBank}
+                  delay={100}
+                />
 
-            <AnimatedStatCard
-              label="Annual Withdrawal"
-              value={annualWithdrawal}
-              format="currency"
-              sublabel="4% withdrawal rate"
-              icon={Wallet}
-              delay={200}
-            />
+                <AnimatedStatCard
+                  label="Annual Withdrawal"
+                  value={annualWithdrawal}
+                  format="currency"
+                  sublabel="4% withdrawal rate"
+                  icon={Wallet}
+                  delay={200}
+                />
 
-            <AnimatedStatCard
-              label="Return Rate"
-              value={returnRate}
-              format="percentage"
-              sublabel="Average annual return"
-              icon={TrendingUp}
-              delay={300}
-              change={returnRate - 7}
-            />
-          </ResultsGrid>
+                <AnimatedStatCard
+                  label="Return Rate"
+                  value={returnRate}
+                  format="percentage"
+                  sublabel="Average annual return"
+                  icon={TrendingUp}
+                  delay={300}
+                  change={returnRate - 7}
+                />
+              </ResultsGrid>
+            </AnimatedSection>
 
-          <div className="mt-12 p-8 rounded-xl bg-gradient-to-br from-blue-50 via-violet-50/30 to-background dark:from-blue-950/20 dark:via-violet-950/10 dark:to-background border">
-            <h3 className="text-2xl font-bold mb-3">🎉 Looking Great!</h3>
-            <p className="text-lg text-slate-600 dark:text-slate-300">
-              Based on your current savings of <strong className="text-blue-600 dark:text-blue-400">${balance.toLocaleString()}</strong> and
-              an expected return of <strong className="text-blue-600 dark:text-blue-400">{returnRate}%</strong>, you're projected to have{" "}
-              <strong className="text-blue-600 dark:text-blue-400">${futureValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong>{" "}
-              by age 65. That's <strong className="text-emerald-600 dark:text-emerald-400">${realValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong> in
-              today's purchasing power!
-            </p>
-          </div>
-        </Section>
+            <AnimatedSection animation="scale-in" delay={600}>
+              <div className="mt-12 p-8 rounded-xl bg-gradient-to-br from-blue-50 via-violet-50/30 to-background dark:from-blue-950/20 dark:via-violet-950/10 dark:to-background border">
+                <h3 className="text-2xl font-bold mb-3">🎉 Looking Great!</h3>
+                <p className="text-lg text-slate-600 dark:text-slate-300">
+                  Based on your current savings of <strong className="text-blue-600 dark:text-blue-400">${balance.toLocaleString()}</strong> and
+                  an expected return of <strong className="text-blue-600 dark:text-blue-400">{returnRate}%</strong>, you're projected to have{" "}
+                  <strong className="text-blue-600 dark:text-blue-400">${futureValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong>{" "}
+                  by age 65. That's <strong className="text-emerald-600 dark:text-emerald-400">${realValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong> in
+                  today's purchasing power!
+                </p>
+              </div>
+            </AnimatedSection>
+          </Section>
+        </AnimatedSection>
       )}
 
       {/* Component Showcase */}
-      <Section
-        title="Design System Elements"
-        subtitle="All the building blocks for the modern UI"
-        background="muted"
-      >
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div className="p-6 rounded-xl bg-gradient-to-r from-blue-600 via-violet-600 to-blue-600 bg-[length:200%_auto] animate-gradient text-white">
-            <h4 className="text-xl font-bold mb-2">Animated Gradient</h4>
-            <p>Smooth, eye-catching background animation</p>
-          </div>
+      <AnimatedSection animation="fade-in">
+        <Section
+          title="Design System Elements"
+          subtitle="All the building blocks for the modern UI"
+          background="muted"
+        >
+          <div className="max-w-4xl mx-auto space-y-8">
+            <AnimatedSection animation="slide-up" delay={200}>
+              <div className="p-6 rounded-xl bg-gradient-to-r from-blue-600 via-violet-600 to-blue-600 bg-[length:200%_auto] animate-gradient text-white">
+                <h4 className="text-xl font-bold mb-2">✨ Animated Gradient Banner</h4>
+                <p>Smooth, eye-catching background animation with pattern overlay</p>
+              </div>
+            </AnimatedSection>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-xl border bg-card hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer">
-              <h4 className="font-semibold mb-2">Hover Effects</h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Cards lift and glow on hover
-              </p>
-            </div>
+            <AnimatedSection animation="slide-up" delay={300}>
+              <div className="p-6 rounded-xl border bg-card">
+                <h4 className="font-semibold mb-4">🎨 Gradient Sliders</h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Enhanced sliders with gradient track fills and smooth hover effects
+                </p>
+                <SliderInput
+                  label="Demo Gradient Slider"
+                  value={returnRate}
+                  onChange={setReturnRate}
+                  min={0}
+                  max={15}
+                  step={0.5}
+                  unit="%"
+                  description="Watch the gradient track and hover effects!"
+                />
+              </div>
+            </AnimatedSection>
 
-            <div className="p-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-              <h4 className="font-semibold mb-2">Color System</h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Full dark mode support
-              </p>
-            </div>
+            <AnimatedSection animation="slide-up" delay={400}>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="p-6 rounded-xl border bg-card hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer">
+                  <h4 className="font-semibold mb-2">🎭 Hover Effects</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Cards lift and glow on hover with smooth transitions
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                  <h4 className="font-semibold mb-2">🌓 Color System</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Full dark mode support with accessible contrast
+                  </p>
+                </div>
+              </div>
+            </AnimatedSection>
+
+            <AnimatedSection animation="scale-in" delay={500}>
+              <div className="p-6 rounded-xl border bg-card">
+                <h4 className="font-semibold mb-2">🎬 Animated Reveals</h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Smooth scroll-triggered animations using Intersection Observer API with staggered delays
+                </p>
+              </div>
+            </AnimatedSection>
           </div>
-        </div>
-      </Section>
+        </Section>
+      </AnimatedSection>
     </div>
   );
 }
