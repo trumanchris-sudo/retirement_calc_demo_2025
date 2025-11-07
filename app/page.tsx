@@ -665,7 +665,7 @@ type Cohort = { size: number; age: number };
  * - Works in 2025 dollars (real terms).
  * - fund starts as EOL deflated to 2025 dollars.
  * - Real growth at r = realReturn(nominal, inflation).
- * - Each year, pay (perBenReal * living).
+ * - Each year, pay (perBenReal * eligible), where eligible = beneficiaries >= minDistAge.
  * - Births every birthInterval years: each living ben creates birthMultiple new age-0 bens.
  * - Death at deathAge.
  */
@@ -679,6 +679,7 @@ function simulateRealPerBeneficiaryPayout(
   birthMultiple: number,
   birthInterval = 30,
   deathAge = 90,
+  minDistAge = 21,
   capYears = 10000,
   initialBenAges: number[] = [0]
 ) {
@@ -703,7 +704,12 @@ function simulateRealPerBeneficiaryPayout(
     }
 
     fundReal *= 1 + r;
-    const payout = perBenReal * living;
+
+    // Only beneficiaries at or above minDistAge receive distributions
+    const eligible = cohorts
+      .filter(c => c.age >= minDistAge)
+      .reduce((acc, c) => acc + c.size, 0);
+    const payout = perBenReal * eligible;
     fundReal -= payout;
 
     if (fundReal < 0) {
@@ -1148,6 +1154,7 @@ export default function App() {
   const [hypBirthInterval, setHypBirthInterval] = useState(30);
   const [hypDeathAge, setHypDeathAge] = useState(90);
   const [hypBenAgesStr, setHypBenAgesStr] = useState("35, 40");
+  const [hypMinDistAge, setHypMinDistAge] = useState(21); // Minimum age to receive distributions
 
   const [retMode, setRetMode] = useState<"fixed" | "randomWalk">("randomWalk");
   const [seed, setSeed] = useState(42);
@@ -1447,6 +1454,7 @@ export default function App() {
             Math.max(0, hypBirthMultiple),
             Math.max(1, hypBirthInterval),
             Math.max(1, hypDeathAge),
+            Math.max(0, hypMinDistAge),
             10000,
             benAges.length > 0 ? benAges : [0]
           );
@@ -1827,6 +1835,7 @@ export default function App() {
           Math.max(0, hypBirthMultiple),
           Math.max(1, hypBirthInterval),
           Math.max(1, hypDeathAge),
+          Math.max(0, hypMinDistAge),
           10000,
           benAges.length > 0 ? benAges : [0]
         );
@@ -1901,7 +1910,7 @@ export default function App() {
     cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
     retRate, infRate, stateRate, incContrib, incRate, wdRate,
     showGen, total, marital,
-    hypPerBen, hypStartBens, hypBirthMultiple, hypBirthInterval, hypDeathAge,
+    hypPerBen, hypStartBens, hypBirthMultiple, hypBirthInterval, hypDeathAge, hypMinDistAge,
     retMode, seed, walkSeries,
     includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2, hypBenAgesStr,
   ]);
@@ -2820,6 +2829,14 @@ export default function App() {
                       step={1}
                       tip="Maximum age for all beneficiaries"
                     />
+                    <Input
+                      label="Min Distribution Age"
+                      value={hypMinDistAge}
+                      setter={setHypMinDistAge}
+                      min={0}
+                      step={1}
+                      tip="Minimum age before beneficiaries can receive distributions (e.g., 21 for legal adulthood, 25 for financial maturity)"
+                    />
                   </div>
 
                   {res?.genPayout && (
@@ -3087,7 +3104,7 @@ export default function App() {
                   <ul className="list-disc pl-6 space-y-1 text-gray-700">
                     <li>The net estate (after estate tax) is deflated to 2025 purchasing power</li>
                     <li>Each year, the fund grows at a real rate (nominal return minus inflation)</li>
-                    <li>Each living beneficiary receives a fixed annual payout in constant 2025 dollars</li>
+                    <li>Only beneficiaries at or above the minimum distribution age receive payouts in constant 2025 dollars</li>
                     <li>Beneficiaries age each year; those reaching max lifespan exit the model</li>
                     <li>Every N years (birth interval), fertile beneficiaries (ages 20-40) produce offspring</li>
                     <li>Simulation continues until funds are exhausted or 10,000 years (effectively perpetual)</li>

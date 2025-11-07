@@ -152,7 +152,11 @@ export const BrandLoader: React.FC<{
     >
       <div className="stage" style={{ width: 72, height: 72, perspective: "900px", perspectiveOrigin: "50% 40%" }}>
         <div
-          className={`cube ${!prefersReduced && phase === "spin" ? "spin3d" : ""}`}
+          className={`cube ${
+            !prefersReduced && phase === "spin" ? "spin3d" : ""
+          } ${
+            !prefersReduced && phase === "settle" ? "settle3d" : ""
+          }`}
           style={{
             width: 72,
             height: 72,
@@ -181,9 +185,18 @@ export const BrandLoader: React.FC<{
       </div>
 
       <style jsx>{`
-        .spin3d { animation: spin3d 2.4s linear infinite; }
+        .spin3d {
+          animation: spin3d 2.4s linear infinite;
+        }
+        .settle3d {
+          animation: settle3d 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
         @keyframes spin3d {
           to { transform: rotateX(360deg) rotateY(360deg); }
+        }
+        @keyframes settle3d {
+          from { transform: rotateX(360deg) rotateY(360deg); }
+          to { transform: rotateX(0deg) rotateY(0deg); }
         }
         .face { position:absolute; inset:0; border:1px solid rgba(0,0,0,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.05); backface-visibility:hidden; }
         .front { overflow:hidden; display:flex; align-items:center; justify-content:center; }
