@@ -18,15 +18,14 @@ export const BrandLoader: React.FC<{
     }
   }, [onComplete]);
 
-  // Orchestrate timing for spin -> settle -> handoff
+  // Orchestrate timing for spin -> handoff (no settle delay)
   useEffect(() => {
     if (phase !== "spin") return;
-    const t1 = setTimeout(() => setPhase("settle"), 2600);
-    const t2 = setTimeout(() => {
+    const timer = setTimeout(() => {
       setPhase("handoff");
-      onHandoffStart?.(); // Notify parent to start fading in UI
-    }, 2900);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+      onHandoffStart?.(); // Notify parent to start fading in UI immediately
+    }, 2600); // Go straight to handoff after spinning
+    return () => clearTimeout(timer);
   }, [phase, onHandoffStart]);
 
   // Safety timeout for entire sequence
@@ -152,11 +151,7 @@ export const BrandLoader: React.FC<{
     >
       <div className="stage" style={{ width: 72, height: 72, perspective: "900px", perspectiveOrigin: "50% 40%" }}>
         <div
-          className={`cube ${
-            !prefersReduced && phase === "spin" ? "spin3d" : ""
-          } ${
-            !prefersReduced && phase === "settle" ? "settle3d" : ""
-          }`}
+          className={`cube ${!prefersReduced && phase === "spin" ? "spin3d" : ""}`}
           style={{
             width: 72,
             height: 72,
