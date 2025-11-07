@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
-import { ChevronDown } from "lucide-react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 
 export type TabGroupRef = {
   closeAll: () => void;
@@ -10,7 +9,6 @@ export type TabGroupRef = {
 type Tab = {
   id: string;
   label: string;
-  icon?: React.ReactNode;
   content: React.ReactNode;
   defaultOpen?: boolean;
 };
@@ -21,68 +19,52 @@ type TabGroupProps = {
 };
 
 export const TabGroup = forwardRef<TabGroupRef, TabGroupProps>(({ tabs, className = "" }, ref) => {
-  const [openTabs, setOpenTabs] = useState<Set<string>>(() => {
-    const initial = new Set<string>();
-    tabs.forEach(tab => {
-      if (tab.defaultOpen) {
-        initial.add(tab.id);
-      }
-    });
-    return initial;
+  // Only one tab can be open at a time (or none)
+  const [activeTab, setActiveTab] = useState<string | null>(() => {
+    const defaultTab = tabs.find(tab => tab.defaultOpen);
+    return defaultTab?.id ?? null;
   });
 
   // Expose closeAll method to parent
   useImperativeHandle(ref, () => ({
-    closeAll: () => setOpenTabs(new Set()),
+    closeAll: () => setActiveTab(null),
   }));
 
   const toggleTab = (id: string) => {
-    setOpenTabs(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+    setActiveTab(prev => prev === id ? null : id);
   };
 
   return (
-    <div className={`space-y-4 ${className}`}>
-      {tabs.map(tab => {
-        const isOpen = openTabs.has(tab.id);
-        return (
-          <div
-            key={tab.id}
-            className="border rounded-lg overflow-hidden transition-all"
-          >
+    <div className={className}>
+      {/* Horizontal tab bar */}
+      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
+        {tabs.map(tab => {
+          const isActive = activeTab === tab.id;
+          return (
             <button
+              key={tab.id}
               onClick={() => toggleTab(tab.id)}
-              className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900 dark:hover:to-indigo-900 transition-colors"
+              className={`
+                px-4 py-2 text-sm font-medium transition-colors relative
+                rounded-t-md border-t border-l border-r
+                ${isActive
+                  ? "bg-white dark:bg-neutral-900 border-gray-200 dark:border-gray-700 text-blue-600 dark:text-blue-400 border-b-white dark:border-b-neutral-900 -mb-px"
+                  : "bg-gray-50 dark:bg-neutral-800 border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700"
+                }
+              `}
             >
-              <div className="flex items-center gap-3">
-                {tab.icon && <span className="text-xl">{tab.icon}</span>}
-                <h3 className="text-lg font-semibold text-left">{tab.label}</h3>
-              </div>
-              <ChevronDown
-                className={`w-5 h-5 transition-transform duration-200 ${
-                  isOpen ? "rotate-180" : ""
-                }`}
-              />
+              {tab.label}
             </button>
-            <div
-              className={`transition-all duration-200 ease-in-out ${
-                isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
-              }`}
-            >
-              <div className="p-6 bg-white dark:bg-neutral-900">
-                {tab.content}
-              </div>
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+
+      {/* Content panel */}
+      {activeTab && (
+        <div className="border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-md bg-white dark:bg-neutral-900 p-6">
+          {tabs.find(tab => tab.id === activeTab)?.content}
+        </div>
+      )}
     </div>
   );
 });

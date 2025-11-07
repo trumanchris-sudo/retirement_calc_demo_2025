@@ -2509,46 +2509,41 @@ export default function App() {
             <CardDescription>Enter your information to calculate your retirement projections</CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
-            {/* Personal Info Section */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 mb-4">
-                <UsersIcon className="w-5 h-5 text-blue-600" />
-                <h3 className="text-lg font-semibold">Personal Info</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Marital Status</Label>
-                  <select
-                    value={marital}
-                    onChange={(e) => setMarital(e.target.value as FilingStatus)}
-                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="single">Single</option>
-                    <option value="married">Married</option>
-                  </select>
-                </div>
-
-                <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} />
-                {isMar && (
-                  <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} />
-                )}
-
-                <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
-              </div>
-            </div>
-
-            <Separator />
-
             {/* Tabbed Form Sections */}
             <TabGroup
               ref={tabGroupRef}
               tabs={[
                 {
+                  id: "personal",
+                  label: "Personal Info",
+                  defaultOpen: false,
+                  content: (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Marital Status</Label>
+                        <select
+                          value={marital}
+                          onChange={(e) => setMarital(e.target.value as FilingStatus)}
+                          className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="single">Single</option>
+                          <option value="married">Married</option>
+                        </select>
+                      </div>
+
+                      <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} />
+                      {isMar && (
+                        <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} />
+                      )}
+
+                      <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
+                    </div>
+                  ),
+                },
+                {
                   id: "balances",
                   label: "Current Balances",
-                  icon: "💰",
-                  defaultOpen: true,
+                  defaultOpen: false,
                   content: (
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2568,7 +2563,6 @@ export default function App() {
                 {
                   id: "contributions",
                   label: "Annual Contributions",
-                  icon: "📈",
                   defaultOpen: false,
                   content: (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -2594,7 +2588,6 @@ export default function App() {
                   {
                     id: "assumptions",
                     label: "Assumptions",
-                    icon: "⚙️",
                     defaultOpen: false,
                     content: (
               <div className="space-y-6">
