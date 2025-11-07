@@ -22,21 +22,30 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 }) => {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
         {/* Logo/Title */}
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
+          <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center">
             <span className="text-white font-bold text-lg">R</span>
           </div>
-          <span className="font-semibold text-slate-900 dark:text-slate-50 hidden sm:inline-block">
+          <span className="font-semibold text-slate-900 dark:text-slate-50 hidden sm:inline-block truncate">
             Retirement Calculator
           </span>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           {showActions && (
             <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onPrint}
+                className="md:hidden no-print"
+                aria-label="Print"
+              >
+                <Printer className="w-4 h-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -45,6 +54,16 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               >
                 <Printer className="w-4 h-4 mr-2" />
                 Print
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onShare}
+                className="md:hidden no-print"
+                aria-label="Share"
+              >
+                <Share2 className="w-4 h-4" />
               </Button>
               <Button
                 variant="ghost"
@@ -63,7 +82,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             size="icon"
             onClick={onToggleDarkMode}
             aria-label="Toggle dark mode"
-            className="no-print"
+            className="no-print flex-shrink-0"
           >
             {isDarkMode ? (
               <Sun className="w-5 h-5" />
