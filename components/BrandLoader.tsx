@@ -61,6 +61,11 @@ export const BrandLoader: React.FC<{
         clearTimeout(handoffTimerRef.current);
       }
 
+      // Clear any existing children (like the fallback span) before appending
+      while (slot.firstChild) {
+        slot.removeChild(slot.firstChild);
+      }
+
       // Append face to slot
       slot.appendChild(rFace);
       Object.assign(rFace.style, {

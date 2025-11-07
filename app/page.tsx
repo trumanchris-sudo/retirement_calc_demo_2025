@@ -2849,27 +2849,27 @@ export default function App() {
 
                       {/* Dynasty Trust Impact Commentary */}
                       {res.genPayout.fundLeftReal > 0 && (
-                        <div className="p-6 rounded-xl bg-gradient-to-br from-violet-50 via-purple-50 to-blue-50 dark:from-violet-900/20 dark:via-purple-900/20 dark:to-blue-900/20 border-2 border-violet-200 dark:border-violet-800 shadow-sm">
+                        <div className="p-4 sm:p-6 rounded-xl bg-gradient-to-br from-violet-50 via-purple-50 to-blue-50 dark:from-violet-900/20 dark:via-purple-900/20 dark:to-blue-900/20 border-2 border-violet-200 dark:border-violet-800 shadow-sm overflow-hidden">
                           <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                            <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center text-white font-bold text-base sm:text-lg">
                               ∞
                             </div>
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-violet-900 dark:text-violet-100 mb-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-violet-900 dark:text-violet-100 mb-2 text-sm sm:text-base">
                                 What This Means for Your Descendants
                               </h4>
-                              <p className="text-sm text-violet-800 dark:text-violet-200 leading-relaxed mb-3">
-                                A beneficiary born today could receive <strong>{fmt(res.genPayout.perBenReal)}</strong> per year
+                              <p className="text-xs sm:text-sm text-violet-800 dark:text-violet-200 leading-relaxed mb-3 break-words">
+                                A beneficiary born today could receive <strong className="whitespace-nowrap">{fmt(res.genPayout.perBenReal)}</strong> per year
                                 (in 2025 dollars, inflation-adjusted) for their <em>entire life</em>—from age {hypMinDistAge} to {hypDeathAge}.
                                 That's {hypDeathAge - hypMinDistAge} years of guaranteed income.
                               </p>
-                              <p className="text-sm text-violet-800 dark:text-violet-200 leading-relaxed mb-3">
-                                In practical terms, this is equivalent to having a <strong>{fmt(res.genPayout.perBenReal * 25)}</strong> trust
+                              <p className="text-xs sm:text-sm text-violet-800 dark:text-violet-200 leading-relaxed mb-3 break-words">
+                                In practical terms, this is equivalent to having a <strong className="whitespace-nowrap">{fmt(res.genPayout.perBenReal * 25)}</strong> trust
                                 fund (using the 4% rule), but paid annually and inflation-protected. They would never worry about retirement
                                 savings, could pursue any career path—teacher, artist, entrepreneur, public servant—and have the security to
                                 take risks and build their own wealth on top of this foundation.
                               </p>
-                              <p className="text-sm text-violet-800 dark:text-violet-200 leading-relaxed italic">
+                              <p className="text-xs sm:text-sm text-violet-800 dark:text-violet-200 leading-relaxed italic break-words">
                                 This is generational wealth in its truest form: not a one-time windfall, but a perpetual foundation
                                 that empowers every generation to live with purpose, security, and freedom.
                               </p>
