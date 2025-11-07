@@ -24,6 +24,12 @@ export const AnimatedSection: React.FC<AnimatedSectionProps> = ({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Guard against SSR or browsers without IntersectionObserver
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      setIsVisible(true); // Fallback: show immediately
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -43,13 +49,14 @@ export const AnimatedSection: React.FC<AnimatedSectionProps> = ({
       }
     );
 
-    if (ref.current) {
-      observer.observe(ref.current);
+    const currentRef = ref.current;
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
   }, [delay, threshold]);

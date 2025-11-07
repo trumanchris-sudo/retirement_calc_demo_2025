@@ -24,6 +24,7 @@ export const ScrollIndicator: React.FC<ScrollIndicatorProps> = ({ targetId, show
   }, [show]);
 
   const handleClick = () => {
+    if (typeof document === 'undefined') return;
     const target = document.getElementById(targetId);
     if (target) {
       target.scrollIntoView({ behavior: "smooth", block: "start" });

@@ -45,7 +45,7 @@ export const BrandLoader: React.FC<{
     };
 
     // Handle reduced motion
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const prefersReduced = typeof window !== 'undefined' && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReduced) {
       overlay.remove();
       onComplete?.();

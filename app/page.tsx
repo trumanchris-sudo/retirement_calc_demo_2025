@@ -1860,6 +1860,7 @@ export default function App() {
         showActions={!!res}
         onPrint={() => window.print()}
         onShare={() => {
+          if (!res) return;
           const shareData = {
             title: 'Tax-Aware Retirement Plan',
             text: `Retirement projection: ${fmt(res.finReal)} by age ${retAge}, ${fmt(res.wdReal)}/yr after-tax income`,
