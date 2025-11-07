@@ -1,7 +1,10 @@
 "use client";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-export const BrandLoader: React.FC<{ onComplete?: () => void }> = ({ onComplete }) => {
+export const BrandLoader: React.FC<{
+  onHandoffStart?: () => void;
+  onComplete?: () => void;
+}> = ({ onHandoffStart, onComplete }) => {
   const [phase, setPhase] = useState<"spin" | "settle" | "handoff" | "hidden">("spin");
   const rFaceRef = useRef<HTMLDivElement>(null);
   const handoffTimerRef = useRef<NodeJS.Timeout>();
@@ -19,9 +22,12 @@ export const BrandLoader: React.FC<{ onComplete?: () => void }> = ({ onComplete 
   useEffect(() => {
     if (phase !== "spin") return;
     const t1 = setTimeout(() => setPhase("settle"), 2600);
-    const t2 = setTimeout(() => setPhase("handoff"), 2900);
+    const t2 = setTimeout(() => {
+      setPhase("handoff");
+      onHandoffStart?.(); // Notify parent to start fading in UI
+    }, 2900);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [phase]);
+  }, [phase, onHandoffStart]);
 
   // Safety timeout for entire sequence
   useEffect(() => {
@@ -84,10 +90,16 @@ export const BrandLoader: React.FC<{ onComplete?: () => void }> = ({ onComplete 
     const sx = to.width / from.width;
     const sy = to.height / from.height;
 
+    // Ensure cube face stays on top during animation
+    rFace.style.position = "fixed";
+    rFace.style.left = from.left + "px";
+    rFace.style.top = from.top + "px";
+    rFace.style.zIndex = "10000";
+
     // Force reflow before setting transition
     rFace.getBoundingClientRect();
 
-    rFace.style.transition = "transform .35s cubic-bezier(.15,.9,.1,1), box-shadow .35s";
+    rFace.style.transition = "transform .5s cubic-bezier(.15,.9,.1,1), box-shadow .5s";
     rFace.style.transformOrigin = "top left";
     rFace.style.willChange = "transform";
     rFace.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
@@ -106,7 +118,7 @@ export const BrandLoader: React.FC<{ onComplete?: () => void }> = ({ onComplete 
       console.log("Handoff timeout triggered, forcing completion");
       rFace.removeEventListener("transitionend", onEnd);
       finishHandoff();
-    }, 600); // 600ms safety (longer than 350ms animation)
+    }, 700); // 700ms safety (longer than 500ms animation)
 
     return () => {
       rFace.removeEventListener("transitionend", onEnd);
@@ -133,7 +145,9 @@ export const BrandLoader: React.FC<{ onComplete?: () => void }> = ({ onComplete 
         display: "grid",
         placeItems: "center",
         background: "#f1f1f3",
-        transition: "opacity .3s ease",
+        opacity: phase === "handoff" ? 0 : 1,
+        transition: "opacity .5s ease",
+        pointerEvents: "none", // Allow clicks through during handoff
       }}
     >
       <div className="stage" style={{ width: 72, height: 72, perspective: "900px", perspectiveOrigin: "50% 40%" }}>
