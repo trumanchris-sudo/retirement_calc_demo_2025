@@ -1,140 +1,47 @@
 "use client";
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export const BrandLoader: React.FC<{
   onHandoffStart?: () => void;
   onCubeAppended?: () => void;
   onComplete?: () => void;
 }> = ({ onHandoffStart, onCubeAppended, onComplete }) => {
-  const [phase, setPhase] = useState<"spin" | "settle" | "handoff" | "hidden">("spin");
-  const rFaceRef = useRef<HTMLDivElement>(null);
-  const handoffTimerRef = useRef<NodeJS.Timeout>();
+  const [phase, setPhase] = useState<"spin" | "handoff" | "hidden">("spin");
 
-  // One-shot guard: if already played this session, skip immediately
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (sessionStorage.getItem("brandLoaderPlayed") === "1") {
-      setPhase("hidden");
-      onComplete?.();
-    }
-  }, [onComplete]);
-
-  // Orchestrate timing for spin -> handoff (no settle delay)
+  // Orchestrate timing for spin -> handoff
   useEffect(() => {
     if (phase !== "spin") return;
     const timer = setTimeout(() => {
       setPhase("handoff");
       onHandoffStart?.(); // Notify parent to start fading in UI immediately
-    }, 2600); // Go straight to handoff after spinning
+    }, 2600);
     return () => clearTimeout(timer);
   }, [phase, onHandoffStart]);
 
-  // Safety timeout for entire sequence
+  // Complete the animation sequence
   useEffect(() => {
-    const safetyTimer = setTimeout(() => {
-      if (phase !== "hidden") {
-        console.log("Brand loader safety timeout triggered, completing...");
-        sessionStorage.setItem("brandLoaderPlayed", "1");
-        setPhase("hidden");
-        onComplete?.();
-      }
-    }, 4000); // 4 seconds max
-    return () => clearTimeout(safetyTimer);
-  }, [phase, onComplete]);
-
-  // Handoff: animate front face to #logoSlot, then append it there
-  useLayoutEffect(() => {
     if (phase !== "handoff") return;
 
-    const rFace = rFaceRef.current;
-    const slot = document.getElementById("logoSlot");
-
-    if (!rFace || !slot) {
-      console.warn("Brand loader: Missing rFace or logoSlot, completing immediately");
-      sessionStorage.setItem("brandLoaderPlayed", "1");
-      setPhase("hidden");
-      onComplete?.();
-      return;
-    }
-
-    const finishHandoff = () => {
-      if (handoffTimerRef.current) {
-        clearTimeout(handoffTimerRef.current);
-      }
-
-      // Clear any existing children (like the fallback span) before appending
-      while (slot.firstChild) {
-        slot.removeChild(slot.firstChild);
-      }
-
-      // Append face to slot
-      slot.appendChild(rFace);
-      Object.assign(rFace.style, {
-        position: "relative",
-        left: "0",
-        top: "0",
-        width: "100%",
-        height: "100%",
-        transform: "none",
-        transition: "none",
-        boxShadow: "none",
-        borderRadius: "8px"
-      });
-
-      // Notify that cube has been appended
+    // After handoff animation completes, hide loader
+    const completeTimer = setTimeout(() => {
       onCubeAppended?.();
-
-      // Mark complete
-      sessionStorage.setItem("brandLoaderPlayed", "1");
       setPhase("hidden");
       onComplete?.();
-    };
+    }, 600); // Wait for handoff animation to complete
 
-    // Calculate FLIP animation
-    const from = rFace.getBoundingClientRect();
-    const to = slot.getBoundingClientRect();
-    const dx = to.left - from.left;
-    const dy = to.top - from.top;
-    const sx = to.width / from.width;
-    const sy = to.height / from.height;
+    return () => clearTimeout(completeTimer);
+  }, [phase, onCubeAppended, onComplete]);
 
-    // Ensure cube face stays on top during animation
-    rFace.style.position = "fixed";
-    rFace.style.left = from.left + "px";
-    rFace.style.top = from.top + "px";
-    rFace.style.zIndex = "10000";
-
-    // Force reflow before setting transition
-    rFace.getBoundingClientRect();
-
-    rFace.style.transition = "transform .5s cubic-bezier(.15,.9,.1,1), box-shadow .5s";
-    rFace.style.transformOrigin = "top left";
-    rFace.style.willChange = "transform";
-    rFace.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
-    rFace.style.boxShadow = "0 10px 20px rgba(0,0,0,.15)";
-
-    const onEnd = (e: TransitionEvent) => {
-      if (e.propertyName !== "transform") return;
-      rFace.removeEventListener("transitionend", onEnd);
-      finishHandoff();
-    };
-
-    rFace.addEventListener("transitionend", onEnd);
-
-    // Safety timeout for handoff animation
-    handoffTimerRef.current = setTimeout(() => {
-      console.log("Handoff timeout triggered, forcing completion");
-      rFace.removeEventListener("transitionend", onEnd);
-      finishHandoff();
-    }, 700); // 700ms safety (longer than 500ms animation)
-
-    return () => {
-      rFace.removeEventListener("transitionend", onEnd);
-      if (handoffTimerRef.current) {
-        clearTimeout(handoffTimerRef.current);
-      }
-    };
-  }, [phase, onComplete]);
+  // Handle reduced motion
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReduced && phase === "spin") {
+      setPhase("hidden");
+      onCubeAppended?.();
+      onComplete?.();
+    }
+  }, [phase, onCubeAppended, onComplete]);
 
   if (phase === "hidden") return null;
 
@@ -155,7 +62,7 @@ export const BrandLoader: React.FC<{
         background: "#f1f1f3",
         opacity: phase === "handoff" ? 0 : 1,
         transition: "opacity .5s ease",
-        pointerEvents: "none", // Allow clicks through during handoff
+        pointerEvents: "none",
       }}
     >
       <div className="stage" style={{ width: 72, height: 72, perspective: "900px", perspectiveOrigin: "50% 40%" }}>
@@ -170,7 +77,6 @@ export const BrandLoader: React.FC<{
         >
           {/* Front face with R + subtle shine */}
           <div
-            ref={rFaceRef}
             className="face front"
             style={face("#6b4cd6", "translateZ(36px)")}
           >
@@ -192,15 +98,8 @@ export const BrandLoader: React.FC<{
         .spin3d {
           animation: spin3d 2.4s linear infinite;
         }
-        .settle3d {
-          animation: settle3d 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
         @keyframes spin3d {
           to { transform: rotateX(360deg) rotateY(360deg); }
-        }
-        @keyframes settle3d {
-          from { transform: rotateX(360deg) rotateY(360deg); }
-          to { transform: rotateX(0deg) rotateY(0deg); }
         }
         .face { position:absolute; inset:0; border:1px solid rgba(0,0,0,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.05); backface-visibility:hidden; }
         .front { overflow:hidden; display:flex; align-items:center; justify-content:center; }
