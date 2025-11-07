@@ -76,47 +76,55 @@ html {
   --ty: 0px;
 }
 
-/* 3D cube face styles */
-.face {
+/* =====================================================
+  3D CUBE STYLES (CORRECT)
+=====================================================
+*/
+.scene {
+  width: 60px;
+  height: 60px;
+  perspective: 400px;
+}
+
+.cube {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  /* This transform ensures the 'R' face is visible initially */
+  transform: translateZ(-30px);
+}
+
+.cube__face {
   position: absolute;
-  inset: 0;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  backface-visibility: hidden;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6b7bff, #5a2dff);
+  display: grid;
+  place-items: center;
+  color: white;
+  font-weight: 800;
+  font-size: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-.front {
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.dark .cube__face {
+   background: linear-gradient(135deg, #8b9bff, #7a4dff);
 }
 
-.specular {
-  position: absolute;
-  inset: -40% -40% auto auto;
-  width: 120%;
-  height: 120%;
-  background: radial-gradient(
-    100% 60% at 80% 20%,
-    rgba(255, 255, 255, 0.35),
-    rgba(255, 255, 255, 0) 60%
-  );
-  mix-blend-mode: screen;
-  animation: shimmer-cube 2.2s ease-in-out infinite alternate;
-  pointer-events: none;
-}
+/* X-Y-Z transforms to build the cube */
+.cube__face--front  { transform: rotateY(0deg) translateZ(30px); }
+.cube__face--right  { transform: rotateY(90deg) translateZ(30px); }
+.cube__face--back   { transform: rotateY(180deg) translateZ(30px); }
+.cube__face--left   { transform: rotateY(-90deg) translateZ(30px); }
+.cube__face--top    { transform: rotateX(90deg) translateZ(30px); }
+.cube__face--bottom { transform: rotateX(-90deg) translateZ(30px); }
 
-@keyframes shimmer-cube {
-  from {
-    opacity: 0.45;
-    transform: translate(-10%, -10%) rotate(0deg);
-  }
-  to {
-    opacity: 0.25;
-    transform: translate(10%, 10%) rotate(5deg);
-  }
-}
+/* =====================================================
+  END 3D CUBE STYLES
+=====================================================
+*/
 
 /* Docking animation (movement only; spin/settle/handoff are separate) */
 @keyframes brand-dock {
@@ -158,21 +166,23 @@ html {
   background: linear-gradient(135deg, #8b9bff, #7a4dff);
 }
 
+/* These animations apply to the INNER cube/scene */
 @keyframes brand-spin {
   0% {
-    transform: rotateX(0deg) rotateY(0deg);
+    transform: translateZ(-30px) rotateX(0deg) rotateY(0deg);
   }
   100% {
-    transform: rotateX(720deg) rotateY(720deg);
+    transform: translateZ(-30px) rotateX(720deg) rotateY(720deg);
   }
 }
 
 @keyframes brand-settle {
   0% {
-    transform: rotateX(720deg) rotateY(720deg);
+    transform: translateZ(-30px) rotateX(720deg) rotateY(720deg);
   }
   100% {
-    transform: rotateX(0deg) rotateY(0deg);
+    /* Settles back to the original 'R' face front */
+    transform: translateZ(-30px) rotateX(0deg) rotateY(0deg);
   }
 }
 
