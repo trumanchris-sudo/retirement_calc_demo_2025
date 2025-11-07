@@ -35,36 +35,32 @@ export const TabGroup = forwardRef<TabGroupRef, TabGroupProps>(({ tabs, classNam
   };
 
   return (
-    <div className={className}>
-      {/* Horizontal tab bar */}
-      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
-        {tabs.map(tab => {
-          const isActive = activeTab === tab.id;
-          return (
+    <div className={`space-y-2 ${className}`}>
+      {tabs.map(tab => {
+        const isActive = activeTab === tab.id;
+        return (
+          <div key={tab.id} className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
             <button
-              key={tab.id}
               onClick={() => toggleTab(tab.id)}
               className={`
-                px-4 py-2 text-sm font-medium transition-colors relative
-                rounded-t-md border-t border-l border-r
+                w-full px-4 py-3 text-left text-sm font-medium transition-colors
                 ${isActive
-                  ? "bg-white dark:bg-neutral-900 border-gray-200 dark:border-gray-700 text-blue-600 dark:text-blue-400 border-b-white dark:border-b-neutral-900 -mb-px"
-                  : "bg-gray-50 dark:bg-neutral-800 border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700"
+                  ? "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300"
+                  : "bg-gray-50 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-700"
                 }
               `}
             >
               {tab.label}
             </button>
-          );
-        })}
-      </div>
 
-      {/* Content panel */}
-      {activeTab && (
-        <div className="border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-md bg-white dark:bg-neutral-900 p-6">
-          {tabs.find(tab => tab.id === activeTab)?.content}
-        </div>
-      )}
+            {isActive && (
+              <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-neutral-900 p-6">
+                {tab.content}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 });

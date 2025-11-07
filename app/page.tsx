@@ -2701,72 +2701,76 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="include-ss"
-                      checked={includeSS}
-                      onChange={(e) => setIncludeSS(e.target.checked)}
-                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
-                    />
-                    <Label htmlFor="include-ss" className="text-base font-semibold cursor-pointer">
-                      Include Social Security Benefits {includeSS && <span className="print-only">✓</span>}
-                    </Label>
-                  </div>
-
-                  {includeSS && (
-                    <div className="space-y-6 pl-7">
-                      <div>
-                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 mb-2">Primary</Badge>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Input
-                            label="Avg Career Earnings ($/yr)"
-                            value={ssIncome}
-                            setter={setSSIncome}
-                            step={1000}
-                            tip="Your average indexed earnings for SS calculation (AIME)"
-                          />
-                          <Input
-                            label="Claim Age"
-                            value={ssClaimAge}
-                            setter={setSSClaimAge}
-                            step={1}
-                            min={62}
-                            max={70}
-                            tip="Age when you start claiming SS (62-70). FRA is typically 67."
-                          />
-                        </div>
                       </div>
-                      {isMar && (
-                        <div>
-                          <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 mb-2">Spouse</Badge>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                              label="Avg Career Earnings ($/yr)"
-                              value={ssIncome2}
-                              setter={setSSIncome2}
-                              step={1000}
-                              tip="Spouse's average indexed earnings for SS calculation (AIME)"
-                            />
-                            <Input
-                              label="Claim Age"
-                              value={ssClaimAge2}
-                              setter={setSSClaimAge2}
-                              step={1}
-                              min={62}
-                              max={70}
-                              tip="Age when spouse starts claiming SS (62-70). FRA is typically 67."
-                            />
-                          </div>
+                    ),
+                  },
+                  {
+                    id: "social-security",
+                    label: "Social Security",
+                    defaultOpen: false,
+                    content: (
+                      <div className="space-y-6">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="include-ss"
+                            checked={includeSS}
+                            onChange={(e) => setIncludeSS(e.target.checked)}
+                            className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
+                          />
+                          <Label htmlFor="include-ss" className="text-base font-semibold cursor-pointer">
+                            Include Social Security Benefits {includeSS && <span className="print-only">✓</span>}
+                          </Label>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+
+                        {includeSS && (
+                          <div className="space-y-6">
+                            <div>
+                              <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 mb-2">Primary</Badge>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                  label="Avg Career Earnings ($/yr)"
+                                  value={ssIncome}
+                                  setter={setSSIncome}
+                                  step={1000}
+                                  tip="Your average indexed earnings for SS calculation (AIME)"
+                                />
+                                <Input
+                                  label="Claim Age"
+                                  value={ssClaimAge}
+                                  setter={setSSClaimAge}
+                                  step={1}
+                                  min={62}
+                                  max={70}
+                                  tip="Age when you start claiming SS (62-70). FRA is typically 67."
+                                />
+                              </div>
+                            </div>
+                            {isMar && (
+                              <div>
+                                <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 mb-2">Spouse</Badge>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <Input
+                                    label="Avg Career Earnings ($/yr)"
+                                    value={ssIncome2}
+                                    setter={setSSIncome2}
+                                    step={1000}
+                                    tip="Spouse's average indexed earnings for SS calculation (AIME)"
+                                  />
+                                  <Input
+                                    label="Claim Age"
+                                    value={ssClaimAge2}
+                                    setter={setSSClaimAge2}
+                                    step={1}
+                                    min={62}
+                                    max={70}
+                                    tip="Age when spouse starts claiming SS (62-70). FRA is typically 67."
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ),
                   },
