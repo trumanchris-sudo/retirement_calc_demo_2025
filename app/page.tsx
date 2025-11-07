@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
   Area,
   AreaChart,
+  ComposedChart,
   PieChart,
   Pie,
   Cell,
@@ -1181,6 +1182,11 @@ export default function App() {
       ? false
       : sessionStorage.getItem("brandLoaderPlayed") === "1" // If already played, show UI immediately
   );
+  const [cubeAppended, setCubeAppended] = useState(
+    typeof window === "undefined"
+      ? false
+      : sessionStorage.getItem("brandLoaderPlayed") === "1" // If already played, cube is already in place
+  );
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
@@ -1920,6 +1926,7 @@ export default function App() {
       {!loaderComplete && (
         <BrandLoader
           onHandoffStart={() => setLoaderHandoff(true)}
+          onCubeAppended={() => setCubeAppended(true)}
           onComplete={() => {
             sessionStorage.setItem("brandLoaderPlayed", "1");
             setLoaderComplete(true);
@@ -1940,6 +1947,7 @@ export default function App() {
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         showActions={!!res}
+        cubeAppended={cubeAppended}
         onPrint={() => window.print()}
         onShare={() => {
           const shareData = {
@@ -2356,7 +2364,7 @@ export default function App() {
                   </div>
                 )}
                 <ResponsiveContainer width="100%" height={400}>
-                  <AreaChart data={res.data}>
+                  <ComposedChart data={res.data}>
                     <defs>
                       <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -2433,7 +2441,7 @@ export default function App() {
                         legendType="none"
                       />
                     ))}
-                  </AreaChart>
+                  </ComposedChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>

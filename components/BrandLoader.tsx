@@ -3,8 +3,9 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 export const BrandLoader: React.FC<{
   onHandoffStart?: () => void;
+  onCubeAppended?: () => void;
   onComplete?: () => void;
-}> = ({ onHandoffStart, onComplete }) => {
+}> = ({ onHandoffStart, onCubeAppended, onComplete }) => {
   const [phase, setPhase] = useState<"spin" | "settle" | "handoff" | "hidden">("spin");
   const rFaceRef = useRef<HTMLDivElement>(null);
   const handoffTimerRef = useRef<NodeJS.Timeout>();
@@ -79,6 +80,9 @@ export const BrandLoader: React.FC<{
         boxShadow: "none",
         borderRadius: "8px"
       });
+
+      // Notify that cube has been appended
+      onCubeAppended?.();
 
       // Mark complete
       sessionStorage.setItem("brandLoaderPlayed", "1");
