@@ -64,61 +64,7 @@ import {
   mulberry32,
 } from "@/lib/utils";
 
-import type { ReturnMode, WalkSeries, BatchSummary } from "@/types/planner";
-
-// Re-export types for compatibility
-export type { ReturnMode, WalkSeries, BatchSummary };
-
-/**
- * Build a generator that yields **annual** gross return factors for N years:
- * - mode=fixed -> constant nominal return (e.g., 9.8% -> 1.098)
- * - mode=randomWalk -> bootstrap from YoY array (with replacement)
- * If series="real", subtract infPct from the sampled nominal before converting.
- */
-export function buildReturnGenerator(options: {
-  mode: ReturnMode;
-  years: number;
-  nominalPct?: number;
-  infPct?: number;
-  walkSeries?: WalkSeries;
-  walkData?: number[];
-  seed?: number;
-}) {
-  const {
-    mode,
-    years,
-    nominalPct = 9.8,
-    infPct = 2.6,
-    walkSeries = "nominal",
-    walkData = SP500_YOY_NOMINAL,
-    seed = 12345,
-  } = options;
-
-  if (mode === "fixed") {
-    const g = 1 + nominalPct / 100;
-    return function* fixedGen() {
-      for (let i = 0; i < years; i++) yield g;
-    };
-  }
-
-  if (!walkData.length) throw new Error("walkData is empty");
-  const rnd = mulberry32(seed);
-  const inflRate = infPct / 100;
-
-  return function* walkGen() {
-    for (let i = 0; i < years; i++) {
-      const ix = Math.floor(rnd() * walkData.length);
-      let pct = walkData[ix];
-
-      if (walkSeries === "real") {
-        const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
-        yield 1 + realRate;
-      } else {
-        yield 1 + pct / 100;
-      }
-    }
-  };
-}
+import type { ReturnMode, WalkSeries, BatchSummary, Inputs } from "@/types/planner";
 
 
 /** ===============================
@@ -779,6 +725,55 @@ export type SimResult = {
 };
 
 /**
+ * Build a generator for returns (kept for single-run mode).
+ * Batch mode (1,000 simulations) uses the Web Worker instead.
+ */
+function buildReturnGenerator(options: {
+  mode: ReturnMode;
+  years: number;
+  nominalPct?: number;
+  infPct?: number;
+  walkSeries?: WalkSeries;
+  walkData?: number[];
+  seed?: number;
+}) {
+  const {
+    mode,
+    years,
+    nominalPct = 9.8,
+    infPct = 2.6,
+    walkSeries = "nominal",
+    walkData = SP500_YOY_NOMINAL,
+    seed = 12345,
+  } = options;
+
+  if (mode === "fixed") {
+    const g = 1 + nominalPct / 100;
+    return function* fixedGen() {
+      for (let i = 0; i < years; i++) yield g;
+    };
+  }
+
+  if (!walkData.length) throw new Error("walkData is empty");
+  const rnd = mulberry32(seed);
+  const inflRate = infPct / 100;
+
+  return function* walkGen() {
+    for (let i = 0; i < years; i++) {
+      const ix = Math.floor(rnd() * walkData.length);
+      let pct = walkData[ix];
+
+      if (walkSeries === "real") {
+        const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
+        yield 1 + realRate;
+      } else {
+        yield 1 + pct / 100;
+      }
+    }
+  };
+}
+
+/**
  * Run a single simulation with the given inputs and seed.
  * Returns only the essential data needed for batch summaries.
  */
@@ -1049,66 +1044,9 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
 }
 
 /**
- * Run 25 simulations with different seeds and compute median summaries.
- * This provides more stable results for truly random mode.
+ * Note: The batch simulation logic (1,000 Monte Carlo runs) has been moved to
+ * simulation.worker.ts for parallel execution and better performance.
  */
-async function runTenSeedsAndSummarize(params: Inputs, baseSeed: number): Promise<BatchSummary> {
-  const N = 25;
-  const results: SimResult[] = [];
-
-  // Generate 25 random seeds from the baseSeed for more varied simulations
-  const rng = mulberry32(baseSeed);
-  const seeds: number[] = [];
-  for (let i = 0; i < N; i++) {
-    seeds.push(Math.floor(rng() * 1000000));
-  }
-
-  for (let i = 0; i < N; i++) {
-    // Yield to UI so we don't block rendering
-    await new Promise(r => setTimeout(r, 0));
-    results.push(runSingleSimulation(params, seeds[i]));
-  }
-
-  // Assume all runs produced the same length T
-  const T = results[0].balancesReal.length;
-
-  // Calculate percentiles (p10, p50, p90) series by year
-  const p10BalancesReal: number[] = [];
-  const p50BalancesReal: number[] = [];
-  const p90BalancesReal: number[] = [];
-  for (let t = 0; t < T; t++) {
-    const col = results.map(r => r.balancesReal[t]);
-    p10BalancesReal.push(percentile(col, 10));
-    p50BalancesReal.push(percentile(col, 50));
-    p90BalancesReal.push(percentile(col, 90));
-  }
-
-  const eolValues = results.map(r => r.eolReal);
-  const eolReal_p10 = percentile(eolValues, 10);
-  const eolReal_p50 = percentile(eolValues, 50);
-  const eolReal_p90 = percentile(eolValues, 90);
-
-  const y1Values = results.map(r => r.y1AfterTaxReal);
-  const y1AfterTaxReal_p10 = percentile(y1Values, 10);
-  const y1AfterTaxReal_p50 = percentile(y1Values, 50);
-  const y1AfterTaxReal_p90 = percentile(y1Values, 90);
-
-  const probRuin = results.filter(r => r.ruined).length / N;
-
-  return {
-    p10BalancesReal,
-    p50BalancesReal,
-    p90BalancesReal,
-    eolReal_p10,
-    eolReal_p50,
-    eolReal_p90,
-    y1AfterTaxReal_p10,
-    y1AfterTaxReal_p50,
-    y1AfterTaxReal_p90,
-    probRuin,
-    allRuns: results,  // Include all simulation runs for spaghetti plot
-  };
-}
 
 /** ===============================
  * App
@@ -1170,8 +1108,6 @@ export default function App() {
   const [userQuestion, setUserQuestion] = useState<string>("");
 
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
-  const [showP10, setShowP10] = useState(false); // Show 10th percentile line
-  const [showP90, setShowP90] = useState(false); // Show 90th percentile line
   const [loaderComplete, setLoaderComplete] = useState(false); // Always show loader on mount
   const [loaderHandoff, setLoaderHandoff] = useState(false); // Track when handoff starts
   const [cubeAppended, setCubeAppended] = useState(false); // Track when cube animation completes
@@ -1303,7 +1239,7 @@ export default function App() {
 
       const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
 
-      // If truly random mode, run 10 seeds and use median values
+      // If truly random mode, run 1,000 simulations in a Web Worker
       if (walkSeries === 'trulyRandom') {
         const inputs: Inputs = {
           marital, age1, age2, retAge, sTax, sPre, sPost,
@@ -1312,7 +1248,28 @@ export default function App() {
           retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
         };
 
-        const batchSummary = await runTenSeedsAndSummarize(inputs, currentSeed);
+        // Create and start the worker
+        const worker = new Worker(new URL('./simulation.worker.ts', import.meta.url));
+
+        // Handle worker messages
+        const batchSummary = await new Promise<BatchSummary>((resolve, reject) => {
+          worker.onmessage = (event: MessageEvent) => {
+            if (event.data.error) {
+              reject(new Error(event.data.error));
+            } else {
+              resolve(event.data);
+            }
+            worker.terminate();
+          };
+
+          worker.onerror = (error) => {
+            reject(error);
+            worker.terminate();
+          };
+
+          // Start the simulation
+          worker.postMessage({ params: inputs, seed: currentSeed });
+        });
 
         // Reconstruct data array from batch summary percentile balances
         const data: any[] = [];
@@ -1325,7 +1282,7 @@ export default function App() {
           const p10Nom = batchSummary.p10BalancesReal[i] * Math.pow(1 + infl, i);
           const p90Nom = batchSummary.p90BalancesReal[i] * Math.pow(1 + infl, i);
 
-          const dataPoint: any = {
+          data.push({
             year: yr,
             a1,
             a2,
@@ -1333,24 +1290,8 @@ export default function App() {
             real: realBal,
             p10: p10Nom,
             p90: p90Nom,
-          };
-
-          // Add each run's balance to the data point for spaghetti plot
-          batchSummary.allRuns.forEach((run, runIdx) => {
-            const runRealBal = run.balancesReal[i];
-            dataPoint[`run${runIdx}`] = runRealBal * Math.pow(1 + infl, i); // Convert to nominal
           });
-
-          data.push(dataPoint);
         }
-
-        // Process all runs for spaghetti plot (for display in chart)
-        const allRuns = batchSummary.allRuns.map((run) =>
-          run.balancesReal.map((realBal, i) => ({
-            year: CURR_YEAR + i,
-            balance: realBal * Math.pow(1 + infl, i), // Convert to nominal
-          }))
-        );
 
         // Use median values for key metrics
         const finReal = batchSummary.p50BalancesReal[yrsToRet];
@@ -1479,7 +1420,6 @@ export default function App() {
           totalRMDs: 0,
           genPayout,
           probRuin: batchSummary.probRuin,  // New field!
-          allRuns,  // Add spaghetti plot data
           rmdData,  // Add RMD vs spending data for tax bomb chart
           tax: {
             fedOrd: wdAfterY1 * 0.10,  // rough estimates
@@ -2302,42 +2242,21 @@ export default function App() {
             </Card>
 
             <AnimatedSection animation="slide-up" delay={300}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Accumulation Projection</CardTitle>
-                <CardDescription>Your wealth over time in nominal and real dollars</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {walkSeries === 'trulyRandom' && (
-                  <div className="flex gap-6 mb-4 items-center">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="show-p10"
-                        checked={showP10}
-                        onCheckedChange={(checked) => setShowP10(checked as boolean)}
-                      />
-                      <label
-                        htmlFor="show-p10"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        Show 10th Percentile (Nominal)
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="show-p90"
-                        checked={showP90}
-                        onCheckedChange={(checked) => setShowP90(checked as boolean)}
-                      />
-                      <label
-                        htmlFor="show-p90"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        Show 90th Percentile (Nominal)
-                      </label>
-                    </div>
-                  </div>
-                )}
+              <FlippingCard
+                frontContent={
+                  <>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>Accumulation Projection</CardTitle>
+                          <CardDescription>Your wealth over time in nominal and real dollars</CardDescription>
+                        </div>
+                        {walkSeries === 'trulyRandom' && (
+                          <span className="text-xs text-muted-foreground">Click to flip ↻</span>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
                 <ResponsiveContainer width="100%" height={400}>
                   <ComposedChart data={res.data}>
                     <defs>
@@ -2360,28 +2279,6 @@ export default function App() {
                     />
                     <Legend />
 
-                    {/*
-                      FIX 1: Render Spaghetti Plot FIRST (in the background).
-                      This draws the 25 faint runs behind everything else.
-                    */}
-                    {res.allRuns && res.allRuns.map((_, runIdx) => (
-                      <Line
-                        key={`run-${runIdx}`}
-                        type="monotone"
-                        dataKey={`run${runIdx}`}
-                        stroke="#9ca3af"
-                        strokeWidth={0.8}
-                        strokeOpacity={0.25}
-                        dot={false}
-                        isAnimationActive={false}
-                        legendType="none"
-                      />
-                    ))}
-
-                    {/*
-                      FIX 2: Use dynamic labels for the Area charts.
-                      The labels now correctly change based on the sim mode.
-                    */}
                     <Area
                       type="monotone"
                       dataKey="bal"
@@ -2403,39 +2300,76 @@ export default function App() {
                     />
 
                     {/*
-                      Render P10/P90 lines LAST.
-                      This ensures they are drawn on top of the Area fills
-                      and are no longer hidden by the spaghetti plot.
+                      Render P10/P50/P90 lines from 1,000 Monte Carlo simulations.
+                      These show the range of possible outcomes.
                     */}
-                    {showP10 && (
-                      <Line
-                        type="monotone"
-                        dataKey="p10"
-                        stroke="#ef4444"
-                        strokeWidth={2}
-                        strokeDasharray="3 3"
-                        dot={false}
-                        name="10th Percentile (Nominal)"
-                      />
+                    {walkSeries === 'trulyRandom' && (
+                      <>
+                        <Line
+                          type="monotone"
+                          dataKey="p10"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          strokeDasharray="3 3"
+                          dot={false}
+                          name="10th Percentile"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="p90"
+                          stroke="#8b5cf6"
+                          strokeWidth={2}
+                          strokeDasharray="3 3"
+                          dot={false}
+                          name="90th Percentile"
+                        />
+                      </>
                     )}
-                    {showP90 && (
-                      <Line
-                        type="monotone"
-                        dataKey="p90"
-                        stroke="#8b5cf6"
-                        strokeWidth={2}
-                        strokeDasharray="3 3"
-                        dot={false}
-                        name="90th Percentile (Nominal)"
-                      />
-                    )}
-
-                    {/* The spaghetti plot block was here, it's now at the top */}
                   </ComposedChart>
                 </ResponsiveContainer>
               </CardContent>
-            </Card>
-            </AnimatedSection>
+            </>
+          }
+          backContent={
+            walkSeries === 'trulyRandom' ? (
+              <>
+                <div className="flip-card-header">
+                  <span className="flip-card-title">About This Chart</span>
+                  <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                </div>
+                <div className="flip-card-body-details">
+                  <p className="mb-4">
+                    This chart shows the results of <strong>1,000 Monte Carlo simulations</strong> based on historical S&P 500 returns.
+                  </p>
+                  <ul className="flip-card-list">
+                    <li>
+                      <span className="flip-card-list-label" style={{ color: "#3b82f6" }}>
+                        <strong>50th Percentile (Median)</strong>
+                      </span>
+                      <span className="flip-card-list-value">The most likely outcome. You have a 50% chance of finishing at or above this line.</span>
+                    </li>
+                    <li>
+                      <span className="flip-card-list-label" style={{ color: "#8b5cf6" }}>
+                        <strong>90th Percentile (Good)</strong>
+                      </span>
+                      <span className="flip-card-list-value">A "good luck" scenario. Only 10% of simulations performed better than this.</span>
+                    </li>
+                    <li>
+                      <span className="flip-card-list-label" style={{ color: "#ef4444" }}>
+                        <strong>10th Percentile (Bad)</strong>
+                      </span>
+                      <span className="flip-card-list-value">A "bad luck" scenario. 90% of simulations performed better than this.</span>
+                    </li>
+                  </ul>
+                  <p className="flip-card-details-text">
+                    There is an 80% probability that your actual outcome will fall between the <strong>red (P10)</strong> and <strong>purple (P90)</strong> lines.
+                  </p>
+                </div>
+              </>
+            ) : undefined
+          }
+        />
+      </AnimatedSection>
 
             {/* RMD Tax Bomb Chart */}
             {res.rmdData && res.rmdData.length > 0 && (
