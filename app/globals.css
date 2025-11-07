@@ -70,12 +70,6 @@ html {
   background: hsl(var(--background));
 }
 
-/* CSS vars set via JS for docking delta */
-.brand-cube {
-  --tx: 0px;
-  --ty: 0px;
-}
-
 /* =====================================================
   3D CUBE STYLES (CORRECT)
 =====================================================
@@ -126,47 +120,7 @@ html {
 =====================================================
 */
 
-/* Docking animation (movement only; spin/settle/handoff are separate) */
-@keyframes brand-dock {
-  0%   { transform: translate3d(0, 0, 0); }
-  100% { transform: translate3d(var(--tx), var(--ty), 0); }
-}
-
-.animate-brand-dock {
-  animation: brand-dock 900ms cubic-bezier(.2,.7,.1,1) forwards;
-}
-
-/* 2D logo square: hidden by default, revealed after docking */
-.logo-square {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, #6b7bff, #5a2dff);
-  color: #fff;
-  font-weight: 800;
-  font-size: 18px;
-  opacity: 0;
-  transform: scale(.9);
-  transition: opacity .35s ease, transform .35s ease;
-  z-index: 50;
-}
-
-.logo-square--reveal {
-  opacity: 1;
-  transform: none;
-}
-
-/* Dark mode logo */
-.dark .logo-square {
-  background: linear-gradient(135deg, #8b9bff, #7a4dff);
-}
-
-/* These animations apply to the INNER cube/scene */
+/* Spin animation for the cube */
 @keyframes brand-spin {
   0% {
     transform: translateZ(-30px) rotateX(0deg) rotateY(0deg);
@@ -176,37 +130,23 @@ html {
   }
 }
 
-@keyframes brand-settle {
+@keyframes brand-fadeout {
   0% {
-    transform: translateZ(-30px) rotateX(720deg) rotateY(720deg);
-  }
-  100% {
-    /* Settles back to the original 'R' face front */
-    transform: translateZ(-30px) rotateX(0deg) rotateY(0deg);
-  }
-}
-
-@keyframes brand-handoff {
-  0% {
-    transform: scale(1);
     opacity: 1;
+    transform: translateZ(-30px) rotateX(720deg) rotateY(720deg) scale(1);
   }
   100% {
-    transform: scale(0.5);
     opacity: 0;
+    transform: translateZ(-30px) rotateX(720deg) rotateY(720deg) scale(0.5);
   }
 }
 
 .animate-brand-spin {
-  animation: brand-spin 2.6s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: brand-spin 2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.animate-brand-settle {
-  animation: brand-settle 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.animate-brand-handoff {
-  animation: brand-handoff 0.3s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+.animate-brand-fadeout {
+  animation: brand-fadeout 0.5s ease-out forwards;
 }
 
 /* Reduce motion for accessibility */

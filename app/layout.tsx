@@ -49,9 +49,6 @@ export default function RootLayout({
         `}} />
       </head>
       <body>
-        <div className="logo-square" aria-label="App logo">
-          R
-        </div>
         {children}
         <Analytics />
       </body>
