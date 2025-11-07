@@ -32,6 +32,7 @@ import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { SliderInput } from "@/components/form/SliderInput";
 import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
 import { BrandLoader } from "@/components/BrandLoader";
+import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
 
 // Import from new modules
 import {
@@ -1180,6 +1181,7 @@ export default function App() {
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
+  const tabGroupRef = useRef<TabGroupRef>(null);
 
   // State for tracking simulation progress
   const [simProgress, setSimProgress] = useState<{ completed: number; total: number } | null>(null);
@@ -1322,6 +1324,10 @@ export default function App() {
     setAiInsight("");
     setAiError(null);
     setIsLoadingAi(true);
+
+    // Close all form tabs when calculation starts
+    tabGroupRef.current?.closeAll();
+
     let newRes: any = null;
     let olderAgeForAI: number = 0;
 
@@ -2503,55 +2509,62 @@ export default function App() {
             <CardDescription>Enter your information to calculate your retirement projections</CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <UsersIcon className="w-5 h-5 text-blue-600" />
-                  <h3 className="text-lg font-semibold">Personal Info</h3>
-                </div>
+            {/* Tabbed Form Sections */}
+            <TabGroup
+              ref={tabGroupRef}
+              tabs={[
+                {
+                  id: "personal",
+                  label: "Personal Info",
+                  defaultOpen: false,
+                  content: (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Marital Status</Label>
+                        <select
+                          value={marital}
+                          onChange={(e) => setMarital(e.target.value as FilingStatus)}
+                          className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="single">Single</option>
+                          <option value="married">Married</option>
+                        </select>
+                      </div>
 
-                <div className="space-y-2">
-                  <Label>Marital Status</Label>
-                  <select
-                    value={marital}
-                    onChange={(e) => setMarital(e.target.value as FilingStatus)}
-                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="single">Single</option>
-                    <option value="married">Married</option>
-                  </select>
-                </div>
+                      <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} />
+                      {isMar && (
+                        <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} />
+                      )}
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} />
-                  {isMar && (
-                    <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} />
-                  )}
-                </div>
-
-                <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
-              </div>
-
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <DollarSignIcon className="w-5 h-5 text-green-600" />
-                  <h3 className="text-lg font-semibold">Current Balances</h3>
-                </div>
-                <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} />
-                <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} />
-                <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} />
-                <div className="p-3 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 dark:from-blue-900 dark:via-blue-800 dark:to-indigo-900 rounded-lg border-2 border-blue-300 dark:border-blue-700">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-blue-700 dark:text-blue-300">Total Current Balance</p>
-                    <p className="text-lg font-bold text-blue-900 dark:text-blue-100">{fmt(total)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            <CollapsibleSection title="Annual Contributions" icon={DollarSignIcon} defaultOpen={false}>
+                      <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
+                    </div>
+                  ),
+                },
+                {
+                  id: "balances",
+                  label: "Current Balances",
+                  defaultOpen: false,
+                  content: (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} />
+                        <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} />
+                        <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} />
+                      </div>
+                      <div className="p-3 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 dark:from-blue-900 dark:via-blue-800 dark:to-indigo-900 rounded-lg border-2 border-blue-300 dark:border-blue-700">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-medium text-blue-700 dark:text-blue-300">Total Current Balance</p>
+                          <p className="text-lg font-bold text-blue-900 dark:text-blue-100">{fmt(total)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  id: "contributions",
+                  label: "Annual Contributions",
+                  defaultOpen: false,
+                  content: (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-4">
                   <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Primary</Badge>
@@ -2569,12 +2582,14 @@ export default function App() {
                     <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} />
                   </div>
                 )}
-              </div>
-            </CollapsibleSection>
-
-            <Separator />
-
-            <CollapsibleSection title="Assumptions" icon={TrendingUpIcon} defaultOpen={false}>
+                      </div>
+                    ),
+                  },
+                  {
+                    id: "assumptions",
+                    label: "Assumptions",
+                    defaultOpen: false,
+                    content: (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <SliderInput
@@ -2686,74 +2701,81 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="include-ss"
-                      checked={includeSS}
-                      onChange={(e) => setIncludeSS(e.target.checked)}
-                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
-                    />
-                    <Label htmlFor="include-ss" className="text-base font-semibold cursor-pointer">
-                      Include Social Security Benefits {includeSS && <span className="print-only">✓</span>}
-                    </Label>
-                  </div>
-
-                  {includeSS && (
-                    <div className="space-y-6 pl-7">
-                      <div>
-                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 mb-2">Primary</Badge>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Input
-                            label="Avg Career Earnings ($/yr)"
-                            value={ssIncome}
-                            setter={setSSIncome}
-                            step={1000}
-                            tip="Your average indexed earnings for SS calculation (AIME)"
-                          />
-                          <Input
-                            label="Claim Age"
-                            value={ssClaimAge}
-                            setter={setSSClaimAge}
-                            step={1}
-                            min={62}
-                            max={70}
-                            tip="Age when you start claiming SS (62-70). FRA is typically 67."
-                          />
-                        </div>
                       </div>
-                      {isMar && (
-                        <div>
-                          <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 mb-2">Spouse</Badge>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                              label="Avg Career Earnings ($/yr)"
-                              value={ssIncome2}
-                              setter={setSSIncome2}
-                              step={1000}
-                              tip="Spouse's average indexed earnings for SS calculation (AIME)"
-                            />
-                            <Input
-                              label="Claim Age"
-                              value={ssClaimAge2}
-                              setter={setSSClaimAge2}
-                              step={1}
-                              min={62}
-                              max={70}
-                              tip="Age when spouse starts claiming SS (62-70). FRA is typically 67."
-                            />
-                          </div>
+                    ),
+                  },
+                  {
+                    id: "social-security",
+                    label: "Social Security",
+                    defaultOpen: false,
+                    content: (
+                      <div className="space-y-6">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="include-ss"
+                            checked={includeSS}
+                            onChange={(e) => setIncludeSS(e.target.checked)}
+                            className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
+                          />
+                          <Label htmlFor="include-ss" className="text-base font-semibold cursor-pointer">
+                            Include Social Security Benefits {includeSS && <span className="print-only">✓</span>}
+                          </Label>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CollapsibleSection>
+
+                        {includeSS && (
+                          <div className="space-y-6">
+                            <div>
+                              <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 mb-2">Primary</Badge>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                  label="Avg Career Earnings ($/yr)"
+                                  value={ssIncome}
+                                  setter={setSSIncome}
+                                  step={1000}
+                                  tip="Your average indexed earnings for SS calculation (AIME)"
+                                />
+                                <Input
+                                  label="Claim Age"
+                                  value={ssClaimAge}
+                                  setter={setSSClaimAge}
+                                  step={1}
+                                  min={62}
+                                  max={70}
+                                  tip="Age when you start claiming SS (62-70). FRA is typically 67."
+                                />
+                              </div>
+                            </div>
+                            {isMar && (
+                              <div>
+                                <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 mb-2">Spouse</Badge>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <Input
+                                    label="Avg Career Earnings ($/yr)"
+                                    value={ssIncome2}
+                                    setter={setSSIncome2}
+                                    step={1000}
+                                    tip="Spouse's average indexed earnings for SS calculation (AIME)"
+                                  />
+                                  <Input
+                                    label="Claim Age"
+                                    value={ssClaimAge2}
+                                    setter={setSSClaimAge2}
+                                    step={1}
+                                    min={62}
+                                    max={70}
+                                    tip="Age when spouse starts claiming SS (62-70). FRA is typically 67."
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  },
+                ]}
+              />
 
             <Separator />
 
