@@ -30,6 +30,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { SliderInput } from "@/components/form/SliderInput";
 import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
+import { BrandLoader } from "@/components/BrandLoader";
 
 // Import from new modules
 import {
@@ -1163,6 +1164,11 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
   const [showP90, setShowP90] = useState(false); // Show 90th percentile line
+  const [loaderComplete, setLoaderComplete] = useState(
+    typeof window === "undefined"
+      ? false
+      : sessionStorage.getItem("brandLoaderPlayed") === "1"
+  );
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
@@ -1175,6 +1181,16 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  // Safety: skip loader if prefers-reduced-motion is set
+  useEffect(() => {
+    if (loaderComplete) return;
+    if (typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      sessionStorage.setItem("brandLoaderPlayed", "1");
+      setLoaderComplete(true);
+    }
+  }, [loaderComplete]);
 
   const isMar = useMemo(() => marital === "married", [marital]);
   const total = useMemo(() => sTax + sPre + sPost, [sTax, sPre, sPost]);
@@ -1886,8 +1902,24 @@ export default function App() {
   ]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopBanner />
+    <>
+      {!loaderComplete && (
+        <BrandLoader
+          onComplete={() => {
+            sessionStorage.setItem("brandLoaderPlayed", "1");
+            setLoaderComplete(true);
+          }}
+        />
+      )}
+      <div
+        className="min-h-screen bg-background"
+        style={{
+          opacity: loaderComplete ? 1 : 0,
+          transition: "opacity .6s ease",
+          pointerEvents: loaderComplete ? 'auto' : 'none'
+        }}
+      >
+        <TopBanner />
 
       <PageHeader
         isDarkMode={isDarkMode}
@@ -3128,8 +3160,9 @@ export default function App() {
         </Card>
       </div>
 
-      {/* Scroll Indicator - shows when results are available */}
-      <ScrollIndicator targetId="results" show={!!res} />
-    </div>
+        {/* Scroll Indicator - shows when results are available */}
+        <ScrollIndicator targetId="results" show={!!res} />
+      </div>
+    </>
   );
 }

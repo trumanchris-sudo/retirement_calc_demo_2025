@@ -25,8 +25,15 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
         {/* Logo/Title */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
-          <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">R</span>
+          <div
+            id="logoSlot"
+            className="w-8 h-8 flex-shrink-0 rounded-lg bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center"
+            style={{ overflow: 'visible' }}
+          >
+            {/* Logo will be inserted here by BrandLoader, or show fallback */}
+            {typeof window !== 'undefined' && !sessionStorage.getItem('brandLoaderPlayed') ? null : (
+              <span className="text-white font-bold text-lg">R</span>
+            )}
           </div>
           <span className="font-semibold text-slate-900 dark:text-slate-50 hidden sm:inline-block truncate">
             Retirement Calculator
