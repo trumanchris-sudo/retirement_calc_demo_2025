@@ -1169,6 +1169,11 @@ export default function App() {
       ? false
       : sessionStorage.getItem("brandLoaderPlayed") === "1"
   );
+  const [loaderHandoff, setLoaderHandoff] = useState(
+    typeof window === "undefined"
+      ? false
+      : sessionStorage.getItem("brandLoaderPlayed") === "1" // If already played, show UI immediately
+  );
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
@@ -1905,6 +1910,7 @@ export default function App() {
     <>
       {!loaderComplete && (
         <BrandLoader
+          onHandoffStart={() => setLoaderHandoff(true)}
           onComplete={() => {
             sessionStorage.setItem("brandLoaderPlayed", "1");
             setLoaderComplete(true);
@@ -1914,7 +1920,7 @@ export default function App() {
       <div
         className="min-h-screen bg-background"
         style={{
-          opacity: loaderComplete ? 1 : 0,
+          opacity: loaderComplete || loaderHandoff ? 1 : 0,
           transition: "opacity .6s ease",
           pointerEvents: loaderComplete ? 'auto' : 'none'
         }}
