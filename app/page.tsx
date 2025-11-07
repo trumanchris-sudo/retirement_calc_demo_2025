@@ -25,6 +25,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FlippingCard } from "@/components/FlippingCard";
 import { LegacyResultCard } from "@/components/LegacyResultCard";
+import { TopBanner } from "@/components/layout/TopBanner";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { AnimatedSection } from "@/components/ui/AnimatedSection";
 
 // Import from new modules
 import {
@@ -1881,81 +1884,34 @@ export default function App() {
   ]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-slate-200 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 py-12 px-4 font-sans">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <Card className="overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 dark:from-blue-800 dark:via-blue-900 dark:to-indigo-900">
-          <CardHeader className="py-12">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-white/10 backdrop-blur-sm rounded-2xl shadow-lg">
-                  <TrendingUpIcon className="w-12 h-12 text-white" />
-                </div>
-                <div>
-                  <CardTitle className="text-5xl font-bold text-white tracking-tight">
-                    Tax-Aware Retirement Planner
-                  </CardTitle>
-                </div>
-              </div>
-              <Button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                variant="ghost"
-                size="icon"
-                className="h-12 w-12 text-white hover:bg-white/20 rounded-full"
-              >
-                {isDarkMode ? (
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                ) : (
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                )}
-              </Button>
-            </div>
-          </CardHeader>
-        </Card>
+    <div className="min-h-screen bg-background">
+      <TopBanner />
 
-        {/* Print/Share Buttons */}
-        {res && (
-          <div className="flex justify-center gap-3 no-print">
-            <Button
-              onClick={() => window.print()}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              Print Report
-            </Button>
-            <Button
-              onClick={() => {
-                const shareData = {
-                  title: 'Tax-Aware Retirement Plan',
-                  text: `Retirement projection: ${fmt(res.finReal)} by age ${retAge}, ${fmt(res.wdReal)}/yr after-tax income`,
-                  url: window.location.href
-                };
-                if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-                  navigator.share(shareData);
-                } else {
-                  navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
-                  alert('Plan summary copied to clipboard!');
-                }
-              }}
-              className="flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-              Share Results
-            </Button>
-          </div>
-        )}
+      <PageHeader
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        showActions={!!res}
+        onPrint={() => window.print()}
+        onShare={() => {
+          const shareData = {
+            title: 'Tax-Aware Retirement Plan',
+            text: `Retirement projection: ${fmt(res.finReal)} by age ${retAge}, ${fmt(res.wdReal)}/yr after-tax income`,
+            url: window.location.href
+          };
+          if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+            navigator.share(shareData);
+          } else {
+            navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+            alert('Plan summary copied to clipboard!');
+          }
+        }}
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
         {res && (
-          <div ref={resRef} className="space-y-6 scroll-mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <AnimatedSection animation="slide-up" duration={700}>
+            <div ref={resRef} className="space-y-6 scroll-mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <FlippingStatCard
                 title="Future Balance"
@@ -2482,6 +2438,7 @@ export default function App() {
               </Card>
             )}
           </div>
+          </AnimatedSection>
         )}
 
         {/* Input Form */}
