@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion, useMotionValue } from "framer-motion"
 import { ReactNode, useState } from "react"
 import { cn } from "@/lib/utils"
 
@@ -19,6 +19,11 @@ interface FlippingCardCubeProps {
 export function FlippingCardCube({ faces, className, size = 400 }: FlippingCardCubeProps) {
   const [currentFace, setCurrentFace] = useState<"front" | "back" | "right" | "left" | "top" | "bottom">("front")
   const [rotation, setRotation] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+
+  // Motion values for live rotation during drag
+  const liveRotateX = useMotionValue(0)
+  const liveRotateY = useMotionValue(0)
 
   const navigateToFace = (face: "front" | "back" | "right" | "left" | "top" | "bottom") => {
     const rotations = {
@@ -31,6 +36,52 @@ export function FlippingCardCube({ faces, className, size = 400 }: FlippingCardC
     }
     setRotation(rotations[face])
     setCurrentFace(face)
+    liveRotateX.set(rotations[face].x)
+    liveRotateY.set(rotations[face].y)
+  }
+
+  // Snap to nearest face on drag end
+  const snapToNearestFace = () => {
+    const currentRotX = liveRotateX.get()
+    const currentRotY = liveRotateY.get()
+
+    // Normalize rotations to -180 to 180
+    const normalizeAngle = (angle: number) => {
+      let normalized = angle % 360
+      if (normalized > 180) normalized -= 360
+      if (normalized < -180) normalized += 360
+      return normalized
+    }
+
+    const normX = normalizeAngle(currentRotX)
+    const normY = normalizeAngle(currentRotY)
+
+    // Determine closest face based on rotation
+    let closestFace: typeof currentFace = "front"
+
+    // Priority: vertical rotation (X) takes precedence if significant
+    if (Math.abs(normX) > 60) {
+      if (normX > 0) closestFace = "bottom"
+      else closestFace = "top"
+    } else {
+      // Horizontal rotation (Y)
+      if (Math.abs(normY) < 45) closestFace = "front"
+      else if (normY >= 45 && normY < 135) closestFace = "left"
+      else if (Math.abs(normY) >= 135) closestFace = "back"
+      else closestFace = "right"
+    }
+
+    navigateToFace(closestFace)
+    setIsDragging(false)
+  }
+
+  const handleDrag = (_: any, info: any) => {
+    // Convert drag offset to rotation (0.5 degrees per pixel)
+    const newRotX = rotation.x - info.offset.y * 0.5
+    const newRotY = rotation.y + info.offset.x * 0.5
+
+    liveRotateX.set(newRotX)
+    liveRotateY.set(newRotY)
   }
 
   const currentFaceIndex = faces.findIndex(f => f.position === currentFace)
@@ -69,21 +120,35 @@ export function FlippingCardCube({ faces, className, size = 400 }: FlippingCardC
         >
           <motion.div
             className="cube-container"
-            animate={{
-              rotateX: rotation.x,
-              rotateY: rotation.y,
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 100,
-              damping: 20,
-              mass: 1,
-            }}
+            drag
+            dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+            dragElastic={0}
+            dragMomentum={false}
+            onDragStart={() => setIsDragging(true)}
+            onDrag={handleDrag}
+            onDragEnd={snapToNearestFace}
             style={{
               width: "100%",
               height: "100%",
               position: "relative",
               transformStyle: "preserve-3d",
+              rotateX: liveRotateX,
+              rotateY: liveRotateY,
+              cursor: isDragging ? "grabbing" : "grab",
+            }}
+            animate={
+              !isDragging
+                ? {
+                    rotateX: rotation.x,
+                    rotateY: rotation.y,
+                  }
+                : undefined
+            }
+            transition={{
+              type: "spring",
+              stiffness: 100,
+              damping: 20,
+              mass: 1,
             }}
           >
             {faces.map((face) => (
@@ -99,6 +164,7 @@ export function FlippingCardCube({ faces, className, size = 400 }: FlippingCardC
                   height: "100%",
                   backfaceVisibility: "hidden",
                   transform: getFaceTransform(face.position, size / 2),
+                  pointerEvents: isDragging ? "none" : "auto", // Disable card interaction while dragging
                 }}
               >
                 {face.card}
@@ -122,7 +188,7 @@ export function FlippingCardCube({ faces, className, size = 400 }: FlippingCardC
 
       {/* Instruction */}
       <div className="text-center mt-4 text-xs text-slate-500 dark:text-slate-400">
-        Click buttons above to rotate cube • Click cards to flip
+        Drag cube to rotate • Click buttons to navigate • Click cards to flip
       </div>
     </div>
   )
