@@ -33,6 +33,7 @@ import { SliderInput } from "@/components/form/SliderInput";
 import { InteractiveWithdrawalSlider } from "@/components/form/InteractiveWithdrawalSlider";
 import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
 import { MetricsCube } from "@/components/ui/MetricsCube";
+import { FlippingCardCarousel } from "@/components/ui/FlippingCardCarousel";
 import { BrandLoader } from "@/components/BrandLoader";
 import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
 
@@ -1984,8 +1985,10 @@ export default function App() {
         {res && (
           <AnimatedSection animation="slide-up" duration={700}>
             <div ref={resRef} className="space-y-6 scroll-mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <FlippingStatCard
+            <FlippingCardCarousel
+              cards={[
+                <FlippingStatCard
+                  key="future-balance"
                 title="Future Balance"
                 value={fmt(res.finNom)}
                 sub={`At age ${retAge} (nominal)`}
@@ -2030,8 +2033,9 @@ export default function App() {
                     </div>
                   </>
                 }
-              />
-              <FlippingStatCard
+              />,
+                <FlippingStatCard
+                  key="todays-dollars"
                 title="Today's Dollars"
                 value={fmt(res.finReal)}
                 sub={`At age ${retAge} (real)`}
@@ -2073,8 +2077,9 @@ export default function App() {
                     </div>
                   </>
                 }
-              />
-              <FlippingStatCard
+              />,
+                <FlippingStatCard
+                  key="annual-withdrawal"
                 title="Annual Withdrawal"
                 value={fmt(res.wd)}
                 sub={`Year 1 (${wdRate}% rate)`}
@@ -2114,8 +2119,9 @@ export default function App() {
                     </div>
                   </>
                 }
-              />
-              <FlippingStatCard
+              />,
+                <FlippingStatCard
+                  key="after-tax-income"
                 title="After-Tax Income"
                 value={fmt(res.wdReal)}
                 sub="Year 1 real spending"
@@ -2165,7 +2171,8 @@ export default function App() {
                   </>
                 }
               />
-            </div>
+              ]}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card>
