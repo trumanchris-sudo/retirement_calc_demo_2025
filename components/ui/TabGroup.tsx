@@ -19,48 +19,64 @@ type TabGroupProps = {
 };
 
 export const TabGroup = forwardRef<TabGroupRef, TabGroupProps>(({ tabs, className = "" }, ref) => {
-  // Only one tab can be open at a time (or none)
-  const [activeTab, setActiveTab] = useState<string | null>(() => {
+  // Track which tab is active (first tab by default, or the one marked defaultOpen)
+  const [activeTab, setActiveTab] = useState<string>(() => {
     const defaultTab = tabs.find(tab => tab.defaultOpen);
-    return defaultTab?.id ?? null;
+    return defaultTab?.id ?? tabs[0]?.id ?? "";
   });
 
-  // Expose closeAll method to parent
+  // Expose closeAll method to parent - set to first tab
   useImperativeHandle(ref, () => ({
-    closeAll: () => setActiveTab(null),
+    closeAll: () => setActiveTab(tabs[0]?.id ?? ""),
   }));
 
-  const toggleTab = (id: string) => {
-    setActiveTab(prev => prev === id ? null : id);
-  };
+  const activeTabData = tabs.find(tab => tab.id === activeTab);
 
   return (
-    <div className={`space-y-2 ${className}`}>
-      {tabs.map(tab => {
-        const isActive = activeTab === tab.id;
-        return (
-          <div key={tab.id} className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
-            <button
-              onClick={() => toggleTab(tab.id)}
-              className={`
-                w-full px-4 py-3 text-left text-sm font-medium transition-colors
-                ${isActive
-                  ? "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300"
-                  : "bg-gray-50 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-700"
-                }
-              `}
-            >
-              {tab.label}
-            </button>
+    <div className={`grid grid-cols-1 lg:grid-cols-[280px,1fr] gap-6 ${className}`}>
+      {/* Desktop: Left navigation column (fixed) */}
+      <div className="hidden lg:block">
+        <nav className="sticky top-4 space-y-1">
+          {tabs.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
+                  w-full px-4 py-3 text-left text-sm font-medium transition-all rounded-md
+                  ${isActive
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "bg-white dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-700 border border-gray-200 dark:border-gray-700"
+                  }
+                `}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
 
-            {isActive && (
-              <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-neutral-900 p-6">
-                {tab.content}
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {/* Mobile: Dropdown selector */}
+      <div className="lg:hidden">
+        <select
+          value={activeTab}
+          onChange={(e) => setActiveTab(e.target.value)}
+          className="w-full px-4 py-3 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-neutral-800 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          {tabs.map(tab => (
+            <option key={tab.id} value={tab.id}>
+              {tab.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Right content panel */}
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        {activeTabData?.content}
+      </div>
     </div>
   );
 });

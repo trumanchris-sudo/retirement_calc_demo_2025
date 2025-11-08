@@ -139,3 +139,35 @@
 .dark .flip-card-face {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
 }
+
+/* Print styles - disable 3D transforms and show front face only */
+@media print {
+  .flip-card-scene {
+    perspective: none !important;
+  }
+
+  .flip-card {
+    transform: none !important;
+    transform-style: flat !important;
+    transition: none !important;
+  }
+
+  .flip-card.is-flipped {
+    transform: none !important;
+  }
+
+  .flip-card-face {
+    backface-visibility: visible !important;
+    -webkit-backface-visibility: visible !important;
+  }
+
+  .flip-card-back {
+    transform: none !important;
+    display: none !important; /* Hide back face when printing */
+  }
+
+  .flip-card-front {
+    position: relative !important;
+    transform: none !important;
+  }
+}

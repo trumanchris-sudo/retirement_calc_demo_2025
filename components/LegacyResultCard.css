@@ -181,3 +181,20 @@
 .dark .legacy-card__promise strong {
   color: #6da3ff;
 }
+
+/* Print styles - disable transforms and transitions */
+@media print {
+  .legacy-card {
+    transform: none !important;
+    transition: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .legacy-card:hover {
+    transform: none !important;
+  }
+
+  .legacy-card:before {
+    display: none !important;
+  }
+}
