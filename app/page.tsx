@@ -30,6 +30,7 @@ import { TopBanner } from "@/components/layout/TopBanner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { SliderInput } from "@/components/form/SliderInput";
+import { InteractiveWithdrawalSlider } from "@/components/form/InteractiveWithdrawalSlider";
 import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
 import { BrandLoader } from "@/components/BrandLoader";
 import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
@@ -2668,15 +2669,14 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <SliderInput
+                  <InteractiveWithdrawalSlider
                     label="Withdrawal Rate"
                     value={wdRate}
                     onChange={setWdRate}
                     min={1}
                     max={8}
                     step={0.1}
-                    unit="%"
-                    description="Annual spending rate"
+                    description="Annual spending rate (4% rule: safe withdrawal rate)"
                   />
                   <div className="space-y-4">
                     <Input
