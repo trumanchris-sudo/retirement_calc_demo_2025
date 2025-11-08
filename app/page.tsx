@@ -1209,14 +1209,137 @@ export default function App() {
   const isMar = useMemo(() => marital === "married", [marital]);
   const total = useMemo(() => sTax + sPre + sPost, [sTax, sPre, sPost]);
 
+  // Simple cache for AI Q&A responses (24 hour TTL)
+  const aiCache = useRef<Map<string, { response: string; timestamp: number }>>(new Map());
+  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+  const getCacheKey = (question: string, calcResult: any): string => {
+    // Create a hash from key parameters + question
+    const keyData = {
+      q: question.toLowerCase().trim(),
+      bal: Math.round(calcResult.finReal / 1000), // Round to nearest $1k
+      wd: Math.round(calcResult.wdReal / 100), // Round to nearest $100
+      age: retAge,
+      estate: Math.round((calcResult.estateTax || 0) / 10000), // Round to nearest $10k
+      prob: calcResult.probRuin !== undefined ? Math.round(calcResult.probRuin * 100) : 0,
+    };
+    return JSON.stringify(keyData);
+  };
+
+  const getCachedResponse = (cacheKey: string): string | null => {
+    const cached = aiCache.current.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.response;
+    }
+    if (cached) {
+      // Expired, remove it
+      aiCache.current.delete(cacheKey);
+    }
+    return null;
+  };
+
+  const setCachedResponse = (cacheKey: string, response: string): void => {
+    aiCache.current.set(cacheKey, {
+      response,
+      timestamp: Date.now(),
+    });
+  };
+
+  // Generate local insights using templates (no API call needed)
+  const generateLocalInsight = (calcResult: any, olderAge: number): string => {
+    if (!calcResult) return "";
+
+    const probability = calcResult.probRuin !== undefined ? Math.round((1 - calcResult.probRuin) * 100) : 100;
+    const endAge = retAge + calcResult.survYrs;
+    const estateTax = calcResult.estateTax || 0;
+    const hasRMDs = (calcResult.totalRMDs || 0) > 0;
+    const eolWealth = calcResult.eol;
+    const withdrawalRate = wdRate;
+    const afterTaxIncome = calcResult.wdReal;
+    const survivalYears = calcResult.survYrs;
+    const targetYears = calcResult.yrsToSim;
+
+    let analysis = "";
+
+    // Success/Risk Assessment
+    if (survivalYears < targetYears) {
+      const shortfallYears = targetYears - survivalYears;
+      analysis += `⚠️ Your retirement plan shows a critical funding gap. Based on your current withdrawal rate of ${withdrawalRate}%, funds are projected to be exhausted after ${survivalYears} years (age ${endAge}), which is ${shortfallYears} years short of your planning horizon.\n\n`;
+      analysis += `Consider reducing your withdrawal rate, increasing savings before retirement, or adjusting your retirement age to ensure long-term sustainability.\n\n`;
+    } else if (probability >= 95) {
+      analysis += `Your retirement plan demonstrates excellent financial security with a ${probability}% success probability. Funds are projected to last through age ${endAge} and beyond.\n\n`;
+    } else if (probability >= 85) {
+      analysis += `Your retirement plan shows strong financial security with a ${probability}% success probability. Funds are projected to last through age ${endAge}.\n\n`;
+    } else if (probability >= 70) {
+      analysis += `Your retirement plan shows moderate financial security with a ${probability}% success probability. Consider strategies to improve your success rate for greater peace of mind.\n\n`;
+    } else {
+      analysis += `Your retirement plan shows elevated risk with a ${probability}% success probability. Consult with a financial advisor to strengthen your plan.\n\n`;
+    }
+
+    // Withdrawal Rate Guidance
+    if (withdrawalRate <= 3) {
+      analysis += `Your ${withdrawalRate}% withdrawal rate is very conservative, providing strong longevity protection and potential for wealth growth.\n\n`;
+    } else if (withdrawalRate <= 4) {
+      analysis += `Your ${withdrawalRate}% withdrawal rate aligns with traditional safe withdrawal guidelines, balancing income needs with portfolio preservation.\n\n`;
+    } else if (withdrawalRate <= 5) {
+      analysis += `Your ${withdrawalRate}% withdrawal rate is moderately aggressive. Monitor your plan annually and be prepared to adjust spending if market conditions decline.\n\n`;
+    } else {
+      analysis += `Your ${withdrawalRate}% withdrawal rate is quite aggressive and may pose longevity risk. Consider reducing withdrawals or exploring ways to supplement retirement income.\n\n`;
+    }
+
+    // Estate Tax Planning
+    if (estateTax > 1000000) {
+      analysis += `⚡ Significant Estate Tax Impact: Your projected estate of $${eolWealth.toLocaleString()} will incur approximately $${estateTax.toLocaleString()} in federal estate taxes. `;
+      analysis += `Strategic gifting, charitable giving, or trust structures could help preserve more wealth for your heirs. This is complex - consult with an estate planning attorney.\n\n`;
+    } else if (estateTax > 100000) {
+      analysis += `Your estate is projected to incur $${estateTax.toLocaleString()} in federal estate taxes. Consider estate planning strategies to reduce this burden.\n\n`;
+    }
+
+    // RMD Analysis
+    if (hasRMDs) {
+      const totalRMDs = calcResult.totalRMDs;
+      analysis += `Required Minimum Distributions (RMDs) starting at age 73 will require you to withdraw $${totalRMDs.toLocaleString()} from pre-tax accounts over your retirement. These mandatory withdrawals may push you into higher tax brackets. `;
+      if (olderAge < 60) {
+        analysis += `Since you're currently ${olderAge}, consider Roth conversion strategies during lower-income years to reduce future RMD impact.\n\n`;
+      } else {
+        analysis += `Qualified Charitable Distributions (QCDs) can help manage RMD tax impact if you're charitably inclined.\n\n`;
+      }
+    }
+
+    // Income Adequacy
+    const monthlyIncome = Math.round(afterTaxIncome / 12);
+    analysis += `Your projected after-tax retirement income of $${afterTaxIncome.toLocaleString()}/year ($${monthlyIncome.toLocaleString()}/month) will determine your lifestyle in retirement.`;
+    if (includeSS) {
+      analysis += ` This includes Social Security benefits.`;
+    }
+
+    return analysis.trim();
+  };
+
   const fetchAiInsight = async (calcResult: any, olderAge: number, customQuestion?: string) => {
     if (!calcResult) return;
+
+    // Only use API for custom questions (Q&A feature)
+    // Auto-generated insights are now handled locally
+    if (!customQuestion || !customQuestion.trim()) {
+      return;
+    }
 
     setIsLoadingAi(true);
     setAiInsight("");
     setAiError(null);
 
     try {
+      // Check cache first
+      const cacheKey = getCacheKey(customQuestion, calcResult);
+      const cachedResponse = getCachedResponse(cacheKey);
+
+      if (cachedResponse) {
+        setAiInsight(cachedResponse);
+        setIsLoadingAi(false);
+        return;
+      }
+
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
@@ -1269,6 +1392,8 @@ export default function App() {
         }
       } else {
         setAiInsight(data.insight);
+        // Cache the successful response
+        setCachedResponse(cacheKey, data.insight);
       }
     } catch (error: any) {
       console.error('Failed to fetch AI insight:', error);
@@ -1286,6 +1411,20 @@ export default function App() {
 
     const older = Math.max(age1, isMar ? age2 : age1);
     await fetchAiInsight(res, older, userQuestion);
+  };
+
+  // Helper to ask a pre-filled question
+  const askExplainQuestion = async (question: string) => {
+    if (!res) return;
+
+    setUserQuestion(question);
+    const older = Math.max(age1, isMar ? age2 : age1);
+    await fetchAiInsight(res, older, question);
+
+    // Scroll to the insight box
+    setTimeout(() => {
+      resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   };
 
   // Helper function to run Monte Carlo simulation via web worker
@@ -1536,7 +1675,10 @@ export default function App() {
           } else {
             resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
           }
-          fetchAiInsight(newRes, olderAgeForAI);
+          // Use local insight generation instead of API call
+          const localInsight = generateLocalInsight(newRes, olderAgeForAI);
+          setAiInsight(localInsight);
+          setIsLoadingAi(false);
         }, 100);
 
         return; // Exit early, we're done with batch mode
@@ -1919,7 +2061,10 @@ export default function App() {
         } else {
           resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         }
-        fetchAiInsight(newRes, olderAgeForAI);
+        // Use local insight generation instead of API call
+        const localInsight = generateLocalInsight(newRes, olderAgeForAI);
+        setAiInsight(localInsight);
+        setIsLoadingAi(false);
       }, 100);
 
     } catch (e: any) {
@@ -2247,7 +2392,17 @@ export default function App() {
                 {res.totalRMDs > 0 && (
                   <Card className="border-2 border-purple-200 bg-purple-50 dark:border-purple-700 dark:bg-purple-950">
                     <CardContent className="p-6">
-                      <p className="text-sm text-muted-foreground mb-2">Total RMDs (Age 73+)</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm text-muted-foreground">Total RMDs (Age 73+)</p>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-100"
+                          onClick={() => askExplainQuestion("How do my Required Minimum Distributions affect my tax situation?")}
+                        >
+                          Explain This
+                        </Button>
+                      </div>
                       <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{fmt(res.totalRMDs)}</p>
                       <p className="text-xs text-muted-foreground mt-2">
                         Cumulative Required Minimum Distributions from pre-tax accounts
@@ -2259,7 +2414,17 @@ export default function App() {
                   <>
                     <Card className="border-2 border-red-200 bg-red-50 dark:border-red-700 dark:bg-red-950">
                       <CardContent className="p-6">
-                        <p className="text-sm text-muted-foreground mb-2">Estate Tax</p>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm text-muted-foreground">Estate Tax</p>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-xs text-red-600 hover:text-red-800 hover:bg-red-100"
+                            onClick={() => askExplainQuestion("What strategies can I use to reduce my estate tax burden?")}
+                          >
+                            Explain This
+                          </Button>
+                        </div>
                         <p className="text-2xl font-bold text-red-700 dark:text-red-300">{fmt(res.estateTax)}</p>
                         <p className="text-xs text-muted-foreground mt-2">
                           40% on amount over ${(ESTATE_TAX_EXEMPTION[marital] / 1_000_000).toFixed(2)}M exemption
