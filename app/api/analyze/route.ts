@@ -116,25 +116,69 @@ ${rmdAnalysis}
 ${estateAnalysis}
 ${ssAnalysis}`;
 
-    // Create the prompt based on whether there's a user question
-    let prompt: string;
-    if (userQuestion && userQuestion.trim().length > 0) {
-      prompt = `You are a financial planning assistant. A user has run a retirement calculation and has the following question about their plan:
-
-Question: ${userQuestion}
-
-${planContext}
-
-Please answer the user's question based on the retirement plan data above. Be helpful, accurate, and provide specific guidance related to their situation. Don't use any "*" or "#" in your responses. Format your response professionally. Keep your response concise but comprehensive.`;
-    } else {
-      prompt = `Analyze this retirement plan and provide insights. Keep your response limited to 5 sentences max. Don't use any "*" or "#" in your responses. Format your response professionally. If truly random is selected (which is the default) don't tell the user they have a fixed 9.8% return rate (that is the default fixed rate only when fixed rate is selected.
-
-${planContext}`;
+    // Only process Q&A requests - auto-generated insights are now handled client-side
+    if (!userQuestion || !userQuestion.trim()) {
+      return NextResponse.json(
+        {
+          error: 'No question provided',
+          insight: 'This API endpoint is now only for Q&A. Auto-generated insights are handled locally.'
+        },
+        { status: 400 }
+      );
     }
+
+    // Optimized prompt with structured context for Q&A
+    const prompt = `You are a financial planning assistant. Answer the user's question about their retirement plan based on the structured data below.
+
+QUESTION: ${userQuestion}
+
+RETIREMENT PROFILE:
+{
+  "current_age": ${age},
+  "retirement_age": ${retirementAge},
+  "marital_status": "${maritalStatus}",
+  "current_balance": ${currentBalance},
+  "starting_accounts": {
+    "taxable": ${startingTaxable},
+    "pre_tax": ${startingPretax},
+    "roth": ${startingRoth}
+  }
+}
+
+WITHDRAWAL STRATEGY:
+{
+  "annual_withdrawal": ${annualWithdrawal},
+  "withdrawal_rate": ${withdrawalRate}%,
+  "after_tax_income": ${afterTaxIncome},
+  "return_model": "${returnModel}",
+  "assumed_return": ${returnRate}%,
+  "inflation_rate": ${inflationRate}%
+}
+
+PROJECTED RESULTS:
+{
+  "funds_last": "${duration >= maxDuration ? `Full retirement (${maxDuration} years to age ${retirementAge + maxDuration})` : `⚠️ Only ${duration} years (age ${retirementAge + duration}), ${maxDuration - duration} years short`}",
+  "end_of_life_wealth": ${endOfLifeWealth},
+  "total_lifetime_tax": ${totalTax},
+  "total_rmds": ${totalRMDs},
+  "estate_tax": ${estateTax},
+  "net_estate": ${netEstate}${eolAccounts ? `,
+  "final_accounts": {
+    "taxable": ${eolAccounts.taxable},
+    "pre_tax": ${eolAccounts.pretax},
+    "roth": ${eolAccounts.roth}
+  }` : ''}${includeSS ? `,
+  "social_security": {
+    "avg_earnings": ${ssIncome},
+    "claim_age": ${ssClaimAge}
+  }` : ''}
+}
+
+Provide a concise, specific answer focused on their question. Keep your response under 200 words. Don't use markdown formatting (* or #). Be direct and actionable.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
+      max_tokens: 300,
       temperature: 0.7,
       messages: [
         {
