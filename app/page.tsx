@@ -30,7 +30,6 @@ import { TopBanner } from "@/components/layout/TopBanner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { SliderInput } from "@/components/form/SliderInput";
-import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
 import { BrandLoader } from "@/components/BrandLoader";
 import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
 
@@ -359,14 +358,14 @@ const Spinner: React.FC = () => (
 const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading: boolean }> = ({ insight, error, isLoading }) => {
   if (isLoading) {
      return (
-      <div className="p-6 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-sm">
+      <div className="p-6 rounded-xl bg-card border shadow-sm">
         <div className="flex items-center gap-3 mb-3">
           <div className="animate-spin">
-            <SparkleIcon className="text-blue-600" />
+            <SparkleIcon className="text-blue-600 dark:text-blue-400" />
           </div>
-          <h4 className="text-lg font-semibold text-blue-900">Analyzing Your Plan...</h4>
+          <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Analyzing Your Plan...</h4>
         </div>
-        <p className="text-sm text-blue-700 leading-relaxed">
+        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
           Please wait a moment while we generate your personalized insights.
         </p>
       </div>
@@ -375,19 +374,19 @@ const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading
 
   if (error) {
     return (
-      <div className="p-6 rounded-xl bg-red-50 border-2 border-red-200 shadow-sm">
+      <div className="p-6 rounded-xl bg-card border shadow-sm">
         <div className="flex items-center gap-3 mb-3">
-          <SparkleIcon className="text-red-600" />
-          <h4 className="text-lg font-semibold text-red-900">Analysis Error</h4>
+          <SparkleIcon className="text-red-600 dark:text-red-400" />
+          <h4 className="text-lg font-semibold text-red-900 dark:text-red-100">Analysis Error</h4>
         </div>
-        <p className="text-sm text-red-700 leading-relaxed">{error}</p>
+        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{error}</p>
       </div>
     );
   }
 
   if (!insight) {
     return (
-      <div className="p-6 rounded-xl bg-gray-50 border-2 border-gray-200 shadow-sm text-center">
+      <div className="p-6 rounded-xl bg-card border shadow-sm text-center">
         <p className="text-sm text-muted-foreground">
           Click "Calculate Retirement Plan" to see your personalized analysis
         </p>
@@ -396,8 +395,8 @@ const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading
   }
 
   return (
-    <div className="p-6 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-sm">
-      <p className="text-sm text-blue-800 leading-relaxed whitespace-pre-wrap">{insight}</p>
+    <div className="p-6 rounded-xl bg-card border shadow-sm">
+      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{insight}</p>
     </div>
   );
 };
@@ -2310,7 +2309,7 @@ export default function App() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardContent className="p-6">
                   <p className="text-sm text-muted-foreground mb-2">Duration</p>
@@ -2356,7 +2355,13 @@ export default function App() {
                             </Pie>
                             <RTooltip
                               formatter={(value: number) => fmt(value)}
-                              contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                              contentStyle={{
+                                backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                                borderRadius: "8px",
+                                border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+                                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                                color: isDarkMode ? '#f3f4f6' : '#1f2937'
+                              }}
                             />
                           </PieChart>
                         </ResponsiveContainer>
@@ -2377,12 +2382,6 @@ export default function App() {
                       </div>
                     </>
                   )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-sm text-muted-foreground mb-2">Year 1 Tax (all-in)</p>
-                  <p className="text-2xl font-bold text-orange-600">{fmt(res.tax.tot)}</p>
                 </CardContent>
               </Card>
             </div>
@@ -2558,8 +2557,18 @@ export default function App() {
                     <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
                     <RTooltip
                       formatter={(v) => fmt(v as number)}
-                      labelFormatter={(l) => String(l)}
-                      contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                      labelFormatter={(l) => `Year ${l}`}
+                      contentStyle={{
+                        backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                        borderRadius: "8px",
+                        border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        color: isDarkMode ? '#f3f4f6' : '#1f2937'
+                      }}
+                      labelStyle={{
+                        color: isDarkMode ? '#f3f4f6' : '#1f2937',
+                        fontWeight: 'bold'
+                      }}
                     />
                     <Legend />
                     {/* Draw filled areas first so lines appear on top */}
@@ -2629,7 +2638,17 @@ export default function App() {
                       <YAxis tickFormatter={(v) => fmt(v as number)} label={{ value: "Annual Amount", angle: -90, position: "insideLeft" }} />
                       <RTooltip
                         formatter={(v) => fmt(v as number)}
-                        contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                        contentStyle={{
+                          backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                          borderRadius: "8px",
+                          border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                          color: isDarkMode ? '#f3f4f6' : '#1f2937'
+                        }}
+                        labelStyle={{
+                          color: isDarkMode ? '#f3f4f6' : '#1f2937',
+                          fontWeight: 'bold'
+                        }}
                       />
                       <Legend />
                       <Line
@@ -2715,12 +2734,6 @@ export default function App() {
                         <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} />
                         <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} />
                         <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} />
-                      </div>
-                      <div className="p-3 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 dark:from-blue-900 dark:via-blue-800 dark:to-indigo-900 rounded-lg border-2 border-blue-300 dark:border-blue-700">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-medium text-blue-700 dark:text-blue-300">Total Current Balance</p>
-                          <p className="text-lg font-bold text-blue-900 dark:text-blue-100">{fmt(total)}</p>
-                        </div>
                       </div>
                     </div>
                   ),
@@ -3405,9 +3418,6 @@ export default function App() {
           </CardContent>
         </Card>
       </div>
-
-        {/* Scroll Indicator - shows when results are available */}
-        <ScrollIndicator targetId="results" show={!!res} />
       </div>
     </>
   );
