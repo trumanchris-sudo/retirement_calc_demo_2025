@@ -32,6 +32,7 @@ import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { SliderInput } from "@/components/form/SliderInput";
 import { InteractiveWithdrawalSlider } from "@/components/form/InteractiveWithdrawalSlider";
 import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
+import { MetricsCube } from "@/components/ui/MetricsCube";
 import { BrandLoader } from "@/components/BrandLoader";
 import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
 
@@ -3240,6 +3241,18 @@ export default function App() {
           </CardContent>
         </Card>
       </div>
+
+        {/* Floating Metrics Cube - shows when results are available */}
+        {res && (
+          <MetricsCube
+            totalBalance={total}
+            successRate={(1 - (res.probRuin || 0)) * 100}
+            withdrawalRate={wdRate}
+            returnRate={retRate}
+            yearsToRetirement={retAge - age1}
+            endOfLifeValue={res.eolReal_p50 || 0}
+          />
+        )}
 
         {/* Scroll Indicator - shows when results are available */}
         <ScrollIndicator targetId="results" show={!!res} />
