@@ -37,6 +37,10 @@ import { FlippingCardCarousel } from "@/components/ui/FlippingCardCarousel";
 import { FlippingCardCube } from "@/components/ui/FlippingCardCube";
 import { BrandLoader } from "@/components/BrandLoader";
 import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
+import { KonamiCode } from "@/components/effects/KonamiCode";
+import { ConfettiCelebration } from "@/components/effects/ConfettiCelebration";
+import { ShakeEffect } from "@/components/effects/ShakeEffect";
+import { ParticleExplosion } from "@/components/effects/ParticleExplosion";
 
 // Import from new modules
 import {
@@ -1182,6 +1186,11 @@ export default function App() {
   const [loaderHandoff, setLoaderHandoff] = useState(false); // Track when handoff starts
   const [cubeAppended, setCubeAppended] = useState(false); // Track when cube animation completes
 
+  // Effect states
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [triggerShake, setTriggerShake] = useState(false);
+  const [showParticles, setShowParticles] = useState(false);
+
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -1209,6 +1218,23 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  // Trigger effects based on results
+  useEffect(() => {
+    if (!res) return;
+
+    // Confetti on high success rate (>90%)
+    if (res.successRate && res.successRate > 0.9) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000);
+    }
+
+    // Shake if portfolio is depleted early (survivalYears < targetYears)
+    if (res.survivalYears && res.targetYears && res.survivalYears < res.targetYears) {
+      setTriggerShake(true);
+      setTimeout(() => setTriggerShake(false), 600);
+    }
+  }, [res]);
 
   const isMar = useMemo(() => marital === "married", [marital]);
   const total = useMemo(() => sTax + sPre + sPost, [sTax, sPre, sPost]);
@@ -1943,6 +1969,14 @@ export default function App() {
 
   return (
     <>
+      <KonamiCode onActivate={() => {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 5000);
+      }} />
+
+      {showConfetti && <ConfettiCelebration />}
+      {showParticles && <ParticleExplosion onComplete={() => setShowParticles(false)} />}
+
       {!loaderComplete && (
         <BrandLoader
           onHandoffStart={() => setLoaderHandoff(true)}
@@ -1984,8 +2018,9 @@ export default function App() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
         {res && (
-          <AnimatedSection animation="slide-up" duration={700}>
-            <div ref={resRef} className="space-y-6 scroll-mt-4">
+          <ShakeEffect trigger={triggerShake}>
+            <AnimatedSection animation="slide-up" duration={700}>
+              <div ref={resRef} className="space-y-6 scroll-mt-4">
             <FlippingCardCube
               faces={[
                 {
@@ -2623,6 +2658,7 @@ export default function App() {
             )}
           </div>
           </AnimatedSection>
+          </ShakeEffect>
         )}
 
         {/* Input Form */}
@@ -3033,7 +3069,10 @@ export default function App() {
 
             <div className="flex flex-col items-center pt-6 pb-2 no-print">
               <Button
-                onClick={calc}
+                onClick={() => {
+                  calc();
+                  setShowParticles(true);
+                }}
                 disabled={isLoadingAi}
                 size="lg"
                 className="w-full md:w-auto text-lg px-16 py-7 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"

@@ -17,7 +17,7 @@ interface Confetti {
 
 export function ConfettiCelebration() {
   const [confetti, setConfetti] = useState<Confetti[]>(() => {
-    const items: Confetti[] []
+    const items: Confetti[] = []
     const colors = ["#ff6b6b", "#4ecdc4", "#45b7d1", "#f9ca24", "#6c5ce7", "#a29bfe", "#fd79a8", "#fdcb6e"]
 
     for (let i = 0; i < 100; i++) {
