@@ -34,6 +34,7 @@ import { InteractiveWithdrawalSlider } from "@/components/form/InteractiveWithdr
 import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
 import { MetricsCube } from "@/components/ui/MetricsCube";
 import { FlippingCardCarousel } from "@/components/ui/FlippingCardCarousel";
+import { FlippingCardCube } from "@/components/ui/FlippingCardCube";
 import { BrandLoader } from "@/components/BrandLoader";
 import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
 
@@ -1985,9 +1986,12 @@ export default function App() {
         {res && (
           <AnimatedSection animation="slide-up" duration={700}>
             <div ref={resRef} className="space-y-6 scroll-mt-4">
-            <FlippingCardCarousel
-              cards={[
-                <FlippingStatCard
+            <FlippingCardCube
+              faces={[
+                {
+                  position: "front" as const,
+                  label: "Future Balance",
+                  card: <FlippingStatCard
                   key="future-balance"
                 title="Future Balance"
                 value={fmt(res.finNom)}
@@ -2033,8 +2037,12 @@ export default function App() {
                     </div>
                   </>
                 }
-              />,
-                <FlippingStatCard
+              />
+                },
+                {
+                  position: "back" as const,
+                  label: "Today's Dollars",
+                  card: <FlippingStatCard
                   key="todays-dollars"
                 title="Today's Dollars"
                 value={fmt(res.finReal)}
@@ -2077,8 +2085,12 @@ export default function App() {
                     </div>
                   </>
                 }
-              />,
-                <FlippingStatCard
+              />
+                },
+                {
+                  position: "right" as const,
+                  label: "Annual Withdrawal",
+                  card: <FlippingStatCard
                   key="annual-withdrawal"
                 title="Annual Withdrawal"
                 value={fmt(res.wd)}
@@ -2119,8 +2131,12 @@ export default function App() {
                     </div>
                   </>
                 }
-              />,
-                <FlippingStatCard
+              />
+                },
+                {
+                  position: "left" as const,
+                  label: "After-Tax Income",
+                  card: <FlippingStatCard
                   key="after-tax-income"
                 title="After-Tax Income"
                 value={fmt(res.wdReal)}
@@ -2171,6 +2187,105 @@ export default function App() {
                   </>
                 }
               />
+                },
+                {
+                  position: "top" as const,
+                  label: "Duration",
+                  card: <FlippingStatCard
+                  key="duration"
+                title="Duration"
+                value={res.survYrs === res.yrsToSim ? `${res.yrsToSim} years` : `${res.survYrs} years`}
+                sub={res.survYrs === res.yrsToSim ? `To age ${LIFE_EXP}` : "Funds depleted"}
+                color="blue"
+                icon={HourglassIcon}
+                backContent={
+                  <>
+                    <div className="flip-card-header">
+                      <span className="flip-card-title">Duration - Details</span>
+                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                    </div>
+                    <div className="flip-card-body-details">
+                      <p className="mb-4">
+                        This shows how long your retirement savings will last based on your withdrawal rate and returns.
+                      </p>
+                      <ul className="flip-card-list">
+                        <li>
+                          <span className="flip-card-list-label">Years in Retirement</span>
+                          <span className="flip-card-list-value">{res.survYrs} years</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Target Age</span>
+                          <span className="flip-card-list-value">{LIFE_EXP}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Withdrawal Rate</span>
+                          <span className="flip-card-list-value">{wdRate}%</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Return Rate</span>
+                          <span className="flip-card-list-value">{retRate}%</span>
+                        </li>
+                      </ul>
+                      <p className="flip-card-details-text">
+                        {res.survYrs === res.yrsToSim
+                          ? "Your portfolio is projected to last through your entire retirement!"
+                          : "Consider adjusting your withdrawal rate or contributions to extend your portfolio's lifespan."}
+                      </p>
+                    </div>
+                  </>
+                }
+              />
+                },
+                {
+                  position: "bottom" as const,
+                  label: "End-of-Life Value",
+                  card: <FlippingStatCard
+                  key="eol-value"
+                title="End-of-Life Wealth"
+                value={fmt(res.eol)}
+                sub={`At age ${LIFE_EXP} (nominal)`}
+                color="emerald"
+                icon={SparkleIcon}
+                backContent={
+                  <>
+                    <div className="flip-card-header">
+                      <span className="flip-card-title">End-of-Life Wealth - Details</span>
+                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                    </div>
+                    <div className="flip-card-body-details">
+                      <p className="mb-4">
+                        This is the wealth you'll have remaining at age {LIFE_EXP}, which can be passed to heirs or charitable causes.
+                      </p>
+                      <ul className="flip-card-list">
+                        <li>
+                          <span className="flip-card-list-label">Nominal Value</span>
+                          <span className="flip-card-list-value">{fmt(res.eol)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">In Today's Dollars</span>
+                          <span className="flip-card-list-value">{fmt(res.eolReal)}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Years in Retirement</span>
+                          <span className="flip-card-list-value">{res.survYrs}</span>
+                        </li>
+                        <li>
+                          <span className="flip-card-list-label">Estate Tax Status</span>
+                          <span className="flip-card-list-value">
+                            {res.eol > ESTATE_TAX_EXEMPTION[marital] ? "May apply" : "Exempt"}
+                          </span>
+                        </li>
+                      </ul>
+                      <p className="flip-card-details-text">
+                        {res.eol > 0
+                          ? "You're leaving a legacy! Consider estate planning strategies to maximize value for your heirs."
+                          : "Your portfolio is depleted. Consider adjusting your plan to leave a legacy if that's important to you."}
+                      </p>
+                    </div>
+                  </>
+                }
+              />
+                }
               ]}
             />
 
