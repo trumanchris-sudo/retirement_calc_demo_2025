@@ -12,6 +12,7 @@ import { CalculateButton } from "@/components/form/CalculateButton";
 import { AnimatedStatCard } from "@/components/results/AnimatedStatCard";
 import { ResultsGrid } from "@/components/results/ResultsGrid";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
+import { CardCarousel } from "@/components/ui/CardCarousel";
 import { DollarSign, TrendingUp, PiggyBank, Wallet } from "lucide-react";
 
 export default function DemoPage() {
@@ -244,7 +245,17 @@ export default function DemoPage() {
               </div>
             </AnimatedSection>
 
-            <AnimatedSection animation="scale-in" delay={500}>
+            <AnimatedSection animation="slide-up" delay={500}>
+              <div className="p-6 rounded-xl border bg-card">
+                <h4 className="font-semibold mb-4 text-center">🎠 Interactive Card Carousel</h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 text-center">
+                  Swipe through retirement tips with smooth AnimatePresence transitions
+                </p>
+                <CardCarousel />
+              </div>
+            </AnimatedSection>
+
+            <AnimatedSection animation="scale-in" delay={600}>
               <div className="p-6 rounded-xl border bg-card">
                 <h4 className="font-semibold mb-2">🎬 Animated Reveals</h4>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
