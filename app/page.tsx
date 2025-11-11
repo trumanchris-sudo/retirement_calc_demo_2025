@@ -2322,7 +2322,17 @@ export default function App() {
               </Card>
               <Card>
                 <CardContent className="p-6">
-                  <p className="text-sm text-muted-foreground mb-2">End-of-Life Wealth</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-muted-foreground">End-of-Life Wealth</p>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-xs hover:bg-green-100 dark:hover:bg-green-900/20"
+                      onClick={() => askExplainQuestion("How can I optimize my end-of-life wealth and account distribution?")}
+                    >
+                      Explain This
+                    </Button>
+                  </div>
                   <p className="text-2xl font-bold text-green-600">{fmt(res.eol)}</p>
                   {res.eolAccounts && (
                     <>
@@ -2342,7 +2352,7 @@ export default function App() {
                               fill="#8884d8"
                               paddingAngle={2}
                               dataKey="value"
-                              label={(entry) => `${entry.name}: ${fmt(entry.value)}`}
+                              label={false}
                               labelLine={false}
                             >
                               {[
@@ -2409,48 +2419,54 @@ export default function App() {
                     </CardContent>
                   </Card>
                 )}
-                {res.estateTax > 0 && (
-                  <>
-                    <Card className="border-2 border-red-200 bg-red-50 dark:border-red-700 dark:bg-red-950">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-sm text-muted-foreground">Estate Tax</p>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-2 text-xs text-red-600 hover:text-red-800 hover:bg-red-100"
-                            onClick={() => askExplainQuestion("What strategies can I use to reduce my estate tax burden?")}
-                          >
-                            Explain This
-                          </Button>
-                        </div>
-                        <p className="text-2xl font-bold text-red-700 dark:text-red-300">{fmt(res.estateTax)}</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          40% on amount over ${(ESTATE_TAX_EXEMPTION[marital] / 1_000_000).toFixed(2)}M exemption
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card className="border-2 border-emerald-200 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950">
-                      <CardContent className="p-6">
-                        <p className="text-sm text-muted-foreground mb-2">Net Estate to Heirs</p>
-                        <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{fmt(res.netEstate)}</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          After 40% estate tax
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </>
-                )}
-                {res.probRuin !== undefined && (
-                  <Card className="border-2 border-blue-200 bg-blue-50 dark:border-blue-700 dark:bg-blue-950">
+                {(res.estateTax > 0 || res.probRuin !== undefined) && (
+                  <Card className="border-2 border-slate-200 bg-gradient-to-br from-slate-50 to-gray-50 dark:border-slate-700 dark:from-slate-900 dark:to-gray-900">
                     <CardContent className="p-6">
-                      <p className="text-sm text-muted-foreground mb-2">Probability of Running Out</p>
-                      <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{(res.probRuin * 100).toFixed(0)}%</p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Based on 1,000 random simulations. {res.probRuin === 0 ? "All scenarios succeeded!" :
-                        res.probRuin === 1 ? "All scenarios failed." :
-                        `${(res.probRuin * 1000).toFixed(0)} out of 1,000 scenarios ran out of money.`}
-                      </p>
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-base font-semibold text-foreground">Estate & Risk Analysis</p>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs hover:bg-slate-200 dark:hover:bg-slate-800"
+                          onClick={() => askExplainQuestion("What strategies can I use to reduce my estate tax burden and manage retirement risks?")}
+                        >
+                          Explain This
+                        </Button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {res.estateTax > 0 && (
+                          <>
+                            <div className="pb-4 border-b border-slate-200 dark:border-slate-700">
+                              <p className="text-sm text-muted-foreground mb-1">Estate Tax</p>
+                              <p className="text-2xl font-bold text-red-600 dark:text-red-400">{fmt(res.estateTax)}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                40% on amount over ${(ESTATE_TAX_EXEMPTION[marital] / 1_000_000).toFixed(2)}M exemption
+                              </p>
+                            </div>
+
+                            <div className="pb-4 border-b border-slate-200 dark:border-slate-700">
+                              <p className="text-sm text-muted-foreground mb-1">Net Estate to Heirs</p>
+                              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{fmt(res.netEstate)}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                After estate tax deduction
+                              </p>
+                            </div>
+                          </>
+                        )}
+
+                        {res.probRuin !== undefined && (
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-1">Probability of Running Out</p>
+                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{(res.probRuin * 100).toFixed(0)}%</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {res.probRuin === 0 ? "All 1,000 scenarios succeeded!" :
+                              res.probRuin === 1 ? "All 1,000 scenarios failed." :
+                              `${(res.probRuin * 1000).toFixed(0)} of 1,000 simulations ran out`}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -3050,29 +3066,17 @@ export default function App() {
 
                       {/* Dynasty Trust Impact Commentary */}
                       {res.genPayout.fundLeftReal > 0 && (
-                        <div className="p-4 sm:p-6 rounded-xl bg-gradient-to-br from-violet-50 via-purple-50 to-blue-50 dark:from-violet-900/20 dark:via-purple-900/20 dark:to-blue-900/20 border-2 border-violet-200 dark:border-violet-800 shadow-sm overflow-hidden">
+                        <div className="p-4 sm:p-6 rounded-xl bg-gradient-to-br from-violet-50 via-purple-50 to-blue-50 dark:from-violet-900/20 dark:via-purple-900/20 dark:to-blue-900/20 border-2 border-violet-200 dark:border-violet-800 shadow-sm">
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center text-white font-bold text-base sm:text-lg">
                               ∞
                             </div>
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1">
                               <h4 className="font-semibold text-violet-900 dark:text-violet-100 mb-2 text-sm sm:text-base">
-                                What This Means for Your Descendants
+                                What This Means
                               </h4>
-                              <p className="text-xs sm:text-sm text-violet-800 dark:text-violet-200 leading-relaxed mb-3 break-words">
-                                A beneficiary born today could receive <strong className="whitespace-nowrap">{fmt(res.genPayout.perBenReal)}</strong> per year
-                                (in 2025 dollars, inflation-adjusted) for their <em>entire life</em>—from age {hypMinDistAge} to {hypDeathAge}.
-                                That's {hypDeathAge - hypMinDistAge} years of guaranteed income.
-                              </p>
-                              <p className="text-xs sm:text-sm text-violet-800 dark:text-violet-200 leading-relaxed mb-3 break-words">
-                                In practical terms, this is equivalent to having a <strong className="whitespace-nowrap">{fmt(res.genPayout.perBenReal * 25)}</strong> trust
-                                fund (using the 4% rule), but paid annually and inflation-protected. They would never worry about retirement
-                                savings, could pursue any career path—teacher, artist, entrepreneur, public servant—and have the security to
-                                take risks and build their own wealth on top of this foundation.
-                              </p>
-                              <p className="text-xs sm:text-sm text-violet-800 dark:text-violet-200 leading-relaxed italic break-words">
-                                This is generational wealth in its truest form: not a one-time windfall, but a perpetual foundation
-                                that empowers every generation to live with purpose, security, and freedom.
+                              <p className="text-xs sm:text-sm text-violet-800 dark:text-violet-200 leading-relaxed">
+                                Each beneficiary receives <strong>{fmt(res.genPayout.perBenReal)}/year</strong> (inflation-adjusted) from age {hypMinDistAge} to {hypDeathAge}—equivalent to a <strong>{fmt(res.genPayout.perBenReal * 25)}</strong> trust fund. This provides lifelong financial security and freedom to pursue any career path.
                               </p>
                             </div>
                           </div>
