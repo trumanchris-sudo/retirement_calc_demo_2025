@@ -48,7 +48,6 @@ export const LegacyResultCard: React.FC<LegacyProps> = ({
   const big = isPerpetual ? "∞" : String(duration);
   const micro = isPerpetual ? "Inflation-indexed, principal preserved" : "Inflation-indexed support";
   const chip = isPerpetual ? "Real $ / yr" : `${duration} yrs`;
-  const payoff = `${fmtMoney(payout, currency)} per beneficiary / year (real)`;
 
   return (
     <div className={`legacy-card ${isPerpetual ? "is-perpetual" : "is-finite"}`} role="region" aria-label={headline}>
@@ -62,7 +61,11 @@ export const LegacyResultCard: React.FC<LegacyProps> = ({
       </div>
 
       <p className="legacy-card__promise">
-        <strong>{payoff}</strong>
+        <strong>
+          {fmtMoney(payout, currency)}
+          <br />
+          per beneficiary / year (real)
+        </strong>
       </p>
 
       <p className="legacy-card__detail">

@@ -2481,11 +2481,26 @@ export default function App() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <AiInsightBox
-                  insight={aiInsight}
-                  error={aiError}
-                  isLoading={isLoadingAi}
-                />
+                {res && !aiInsight && !isLoadingAi && (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Get AI-powered insights about your retirement plan
+                    </p>
+                    <Button
+                      onClick={() => askExplainQuestion("Please analyze my retirement plan and provide key insights and recommendations.")}
+                      className="whitespace-nowrap"
+                    >
+                      Get Claude Analysis
+                    </Button>
+                  </div>
+                )}
+                {(aiInsight || isLoadingAi || aiError) && (
+                  <AiInsightBox
+                    insight={aiInsight}
+                    error={aiError}
+                    isLoading={isLoadingAi}
+                  />
+                )}
                 {res && (
                   <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <Label htmlFor="ai-question" className="text-sm font-medium mb-2 block">
