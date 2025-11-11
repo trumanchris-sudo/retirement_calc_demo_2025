@@ -2919,34 +2919,41 @@ export default function App() {
                 {showScenarios && (
                   <CardContent>
                     {/* Save Current Scenario */}
-                    <div className="mb-6 p-4 bg-muted rounded-lg">
-                      <Label htmlFor="scenario-name" className="text-sm font-medium mb-2 block">
-                        Save Current Plan
-                      </Label>
-                      <div className="flex gap-2">
-                        <UIInput
-                          id="scenario-name"
-                          type="text"
-                          placeholder="e.g., Current Plan, Retire at 67, Max Savings"
-                          value={scenarioName}
-                          onChange={(e) => setScenarioName(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              saveScenario();
-                            }
-                          }}
-                          className="flex-1"
-                          disabled={!res}
-                        />
-                        <Button
-                          onClick={saveScenario}
-                          disabled={!res || !scenarioName.trim()}
-                          className="whitespace-nowrap"
-                        >
-                          Save
-                        </Button>
+                    {res && (
+                      <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="flex items-start gap-2 mb-3">
+                          <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div className="text-xs text-blue-800 dark:text-blue-200">
+                            <strong>Save your current calculation</strong> to compare with other strategies later.
+                            To create more scenarios: adjust inputs → recalculate → save with a new name.
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <UIInput
+                            id="scenario-name"
+                            type="text"
+                            placeholder="Give this scenario a name (e.g., 'Retire at 67', 'Max Savings')"
+                            value={scenarioName}
+                            onChange={(e) => setScenarioName(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter' && scenarioName.trim()) {
+                                saveScenario();
+                              }
+                            }}
+                            className="flex-1"
+                          />
+                          <Button
+                            onClick={saveScenario}
+                            disabled={!scenarioName.trim()}
+                            className="whitespace-nowrap"
+                          >
+                            💾 Save
+                          </Button>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Saved Scenarios List */}
                     {savedScenarios.length === 0 ? (
