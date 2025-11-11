@@ -46,7 +46,7 @@
     0 10px 15px -3px rgba(0, 0, 0, 0.1),
     0 20px 25px -5px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-  transition: box-shadow 0.3s ease, transform 0.2s ease;
+  transition: box-shadow 0.3s ease;
 }
 
 /* The front face (initial state) */
@@ -142,7 +142,7 @@
   color: hsl(var(--foreground));
 }
 
-/* Hover effect - subtle lift */
+/* Hover effect - enhanced shadows only (no transform to avoid conflicts with 3D flip) */
 .flip-card-scene:hover .flip-card-face {
   box-shadow:
     0 2px 4px 0 rgba(0, 0, 0, 0.06),
@@ -150,7 +150,6 @@
     0 15px 20px -3px rgba(0, 0, 0, 0.12),
     0 25px 35px -5px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
 }
 
 /* Dark mode specific adjustments */
