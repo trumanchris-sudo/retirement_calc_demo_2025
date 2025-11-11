@@ -3089,8 +3089,8 @@ export default function App() {
               </div>
 
               {showGen && (
-                <div className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border-2 border-purple-200">
-                  <h4 className="text-lg font-semibold text-purple-900 mb-4">
+                <div className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-700">
+                  <h4 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-4">
                     Hypothetical Per-Beneficiary Payout (Real $)
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -3119,7 +3119,7 @@ export default function App() {
                   </div>
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-2">
-                      <Label className="flex items-center gap-1.5">
+                      <Label className="flex items-center gap-1.5 text-foreground">
                         Initial Beneficiary Ages at Death
                         <Tip text="Enter ages of living beneficiaries at your time of death, separated by commas (e.g., '35, 40, 45'). Only fertile beneficiaries (ages 20-40) will produce children." />
                       </Label>
@@ -3130,7 +3130,7 @@ export default function App() {
                         placeholder="e.g., 35, 40"
                         className="transition-all"
                       />
-                      <p className="text-xs text-purple-700">
+                      <p className="text-xs text-purple-700 dark:text-purple-300">
                         {hypBenAgesStr.split(',').filter(s => {
                           const n = parseInt(s.trim(), 10);
                           return !isNaN(n) && n >= 0 && n < 90;
@@ -3231,18 +3231,6 @@ export default function App() {
                               </div>
                             </div>
                           )}
-
-                          {/* Methodology Note */}
-                          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                            <div className="flex items-start gap-2">
-                              <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              <div className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
-                                <strong>Why we don't simulate 1,000 years × 1,000 runs:</strong> Running full Monte Carlo simulations (N=1,000) for each potential generational wealth timeline would require simulating hundreds of thousands of years of market returns and family dynamics—computationally impractical in a browser. Instead, we use the three key end-of-life wealth percentiles (P10, P50, P90) from your retirement Monte Carlo to show the range of possible generational outcomes. This provides a realistic view of how market uncertainty affects your legacy without running a million-year simulation.
-                              </div>
-                            </div>
-                          </div>
                         </div>
                       )}
 
@@ -3264,6 +3252,18 @@ export default function App() {
                           </div>
                         </div>
                       )}
+
+                      {/* Methodology Note */}
+                      <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <div className="flex items-start gap-2">
+                          <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+                            <strong>Why we don't simulate 1,000 years × 1,000 runs:</strong> Running full Monte Carlo simulations (N=1,000) for each potential generational wealth timeline would require simulating hundreds of thousands of years of market returns and family dynamics—computationally impractical in a browser. Instead, we use the three key end-of-life wealth percentiles (P10, P50, P90) from your retirement Monte Carlo to show the range of possible generational outcomes. This provides a realistic view of how market uncertainty affects your legacy without running a million-year simulation.
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
