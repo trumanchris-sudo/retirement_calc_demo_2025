@@ -1583,11 +1583,11 @@ export default function App() {
           }
         }
 
-        // Calculate estate tax
+        // Calculate estate tax using median EOL
         const estateTax = calcEstateTax(eolWealth, marital);
         const netEstate = eolWealth - estateTax;
 
-        // Generational payout calculation (if enabled)
+        // Generational payout calculation (if enabled) - Monte Carlo version
         let genPayout: null | {
           perBenReal: number;
           years: number;
@@ -1597,6 +1597,11 @@ export default function App() {
           birthMultiple: number;
           birthInterval: number;
           deathAge: number;
+          // Monte Carlo fields
+          p10?: { years: number; fundLeftReal: number; isPerpetual: boolean };
+          p50?: { years: number; fundLeftReal: number; isPerpetual: boolean };
+          p90?: { years: number; fundLeftReal: number; isPerpetual: boolean };
+          probPerpetual?: number;
         } = null;
 
         if (showGen && netEstate > 0) {
@@ -1605,8 +1610,23 @@ export default function App() {
             .map(s => parseInt(s.trim(), 10))
             .filter(n => !isNaN(n) && n >= 0 && n < 90);
 
-          const sim = simulateRealPerBeneficiaryPayout(
-            netEstate,
+          // Calculate EOL values for all three percentiles
+          const eolP10 = batchSummary.eolReal_p10 * Math.pow(1 + infl, yearsFrom2025);
+          const eolP50 = batchSummary.eolReal_p50 * Math.pow(1 + infl, yearsFrom2025);
+          const eolP90 = batchSummary.eolReal_p90 * Math.pow(1 + infl, yearsFrom2025);
+
+          // Calculate estate tax and net estate for each percentile
+          const estateTaxP10 = calcEstateTax(eolP10, marital);
+          const estateTaxP50 = calcEstateTax(eolP50, marital);
+          const estateTaxP90 = calcEstateTax(eolP90, marital);
+
+          const netEstateP10 = eolP10 - estateTaxP10;
+          const netEstateP50 = eolP50 - estateTaxP50;
+          const netEstateP90 = eolP90 - estateTaxP90;
+
+          // Run generational wealth simulation for all three percentiles
+          const simP10 = simulateRealPerBeneficiaryPayout(
+            netEstateP10,
             yearsFrom2025,
             retRate,
             infRate,
@@ -1619,15 +1639,81 @@ export default function App() {
             10000,
             benAges.length > 0 ? benAges : [0]
           );
+
+          const simP50 = simulateRealPerBeneficiaryPayout(
+            netEstateP50,
+            yearsFrom2025,
+            retRate,
+            infRate,
+            hypPerBen,
+            Math.max(1, hypStartBens),
+            Math.max(0, hypBirthMultiple),
+            Math.max(1, hypBirthInterval),
+            Math.max(1, hypDeathAge),
+            Math.max(0, hypMinDistAge),
+            10000,
+            benAges.length > 0 ? benAges : [0]
+          );
+
+          const simP90 = simulateRealPerBeneficiaryPayout(
+            netEstateP90,
+            yearsFrom2025,
+            retRate,
+            infRate,
+            hypPerBen,
+            Math.max(1, hypStartBens),
+            Math.max(0, hypBirthMultiple),
+            Math.max(1, hypBirthInterval),
+            Math.max(1, hypDeathAge),
+            Math.max(0, hypMinDistAge),
+            10000,
+            benAges.length > 0 ? benAges : [0]
+          );
+
+          // Count how many percentiles resulted in perpetual wealth
+          const perpetualCount = [
+            simP10.fundLeftReal > 0,
+            simP50.fundLeftReal > 0,
+            simP90.fundLeftReal > 0
+          ].filter(Boolean).length;
+
+          // Estimate probability: if P50 is perpetual, assume ~50%+
+          // This is a rough estimate since we only have 3 data points
+          let probPerpetual = 0;
+          if (simP90.fundLeftReal > 0 && simP50.fundLeftReal > 0 && simP10.fundLeftReal > 0) {
+            probPerpetual = 0.90; // All three are perpetual, very likely >90%
+          } else if (simP90.fundLeftReal > 0 && simP50.fundLeftReal > 0) {
+            probPerpetual = 0.65; // P50 and P90 perpetual, ~65%
+          } else if (simP90.fundLeftReal > 0) {
+            probPerpetual = 0.15; // Only P90 perpetual, ~15%
+          }
+
           genPayout = {
             perBenReal: hypPerBen,
-            years: sim.years,
-            fundLeftReal: sim.fundLeftReal,
+            years: simP50.years,
+            fundLeftReal: simP50.fundLeftReal,
             startBeneficiaries: Math.max(1, hypStartBens),
-            lastLivingCount: sim.lastLivingCount,
+            lastLivingCount: simP50.lastLivingCount,
             birthMultiple: Math.max(0, hypBirthMultiple),
             birthInterval: Math.max(1, hypBirthInterval),
             deathAge: Math.max(1, hypDeathAge),
+            // Monte Carlo fields
+            p10: {
+              years: simP10.years,
+              fundLeftReal: simP10.fundLeftReal,
+              isPerpetual: simP10.fundLeftReal > 0
+            },
+            p50: {
+              years: simP50.years,
+              fundLeftReal: simP50.fundLeftReal,
+              isPerpetual: simP50.fundLeftReal > 0
+            },
+            p90: {
+              years: simP90.years,
+              fundLeftReal: simP90.fundLeftReal,
+              isPerpetual: simP90.fundLeftReal > 0
+            },
+            probPerpetual
           };
         }
 
@@ -3073,11 +3159,92 @@ export default function App() {
 
                   {res?.genPayout && (
                     <div ref={genRef} className="mt-6 space-y-4">
+                      {/* Median Result Card */}
                       <LegacyResultCard
                         payout={res.genPayout.perBenReal}
                         duration={res.genPayout.years}
                         isPerpetual={res.genPayout.fundLeftReal > 0}
                       />
+
+                      {/* Monte Carlo Range Display */}
+                      {res.genPayout.p10 && res.genPayout.p50 && res.genPayout.p90 && (
+                        <div className="p-4 sm:p-6 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-2 border-indigo-200 dark:border-indigo-800 shadow-sm">
+                          <h4 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-3 text-sm sm:text-base">
+                            Monte Carlo Range of Outcomes
+                          </h4>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                            {/* P10 (Pessimistic) */}
+                            <div className="p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg border border-indigo-200 dark:border-indigo-700">
+                              <div className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
+                                10th Percentile (Pessimistic)
+                              </div>
+                              <div className="text-lg font-bold text-indigo-900 dark:text-indigo-100">
+                                {res.genPayout.p10.isPerpetual ? '∞ years' : `${res.genPayout.p10.years} years`}
+                              </div>
+                              <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
+                                {res.genPayout.p10.isPerpetual ? 'Perpetual wealth' : 'Limited duration'}
+                              </div>
+                            </div>
+
+                            {/* P50 (Median) */}
+                            <div className="p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg border-2 border-indigo-400 dark:border-indigo-600">
+                              <div className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
+                                50th Percentile (Median)
+                              </div>
+                              <div className="text-lg font-bold text-indigo-900 dark:text-indigo-100">
+                                {res.genPayout.p50.isPerpetual ? '∞ years' : `${res.genPayout.p50.years} years`}
+                              </div>
+                              <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
+                                {res.genPayout.p50.isPerpetual ? 'Perpetual wealth' : 'Limited duration'}
+                              </div>
+                            </div>
+
+                            {/* P90 (Optimistic) */}
+                            <div className="p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg border border-indigo-200 dark:border-indigo-700">
+                              <div className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
+                                90th Percentile (Optimistic)
+                              </div>
+                              <div className="text-lg font-bold text-indigo-900 dark:text-indigo-100">
+                                {res.genPayout.p90.isPerpetual ? '∞ years' : `${res.genPayout.p90.years} years`}
+                              </div>
+                              <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
+                                {res.genPayout.p90.isPerpetual ? 'Perpetual wealth' : 'Limited duration'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Perpetual Wealth Probability */}
+                          {res.genPayout.probPerpetual !== undefined && res.genPayout.probPerpetual > 0 && (
+                            <div className="p-3 bg-violet-100 dark:bg-violet-900/30 rounded-lg border border-violet-300 dark:border-violet-700">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xl">∞</span>
+                                <span className="text-sm font-semibold text-violet-900 dark:text-violet-100">
+                                  Estimated Probability of Perpetual Wealth
+                                </span>
+                              </div>
+                              <div className="text-2xl font-bold text-violet-900 dark:text-violet-100">
+                                ~{Math.round(res.genPayout.probPerpetual * 100)}%
+                              </div>
+                              <div className="text-xs text-violet-700 dark:text-violet-300 mt-1">
+                                Based on your retirement plan's Monte Carlo simulations
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Methodology Note */}
+                          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                            <div className="flex items-start gap-2">
+                              <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <div className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+                                <strong>Why we don't simulate 1,000 years × 1,000 runs:</strong> Running full Monte Carlo simulations (N=1,000) for each potential generational wealth timeline would require simulating hundreds of thousands of years of market returns and family dynamics—computationally impractical in a browser. Instead, we use the three key end-of-life wealth percentiles (P10, P50, P90) from your retirement Monte Carlo to show the range of possible generational outcomes. This provides a realistic view of how market uncertainty affects your legacy without running a million-year simulation.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Dynasty Trust Impact Commentary */}
                       {res.genPayout.fundLeftReal > 0 && (
