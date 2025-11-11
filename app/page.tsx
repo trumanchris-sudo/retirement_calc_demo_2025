@@ -1177,6 +1177,8 @@ export default function App() {
   const [showScenarios, setShowScenarios] = useState(false);
   const [historicalYear, setHistoricalYear] = useState<number | null>(null);
   const [scenarioName, setScenarioName] = useState<string>("");
+  const [selectedScenarios, setSelectedScenarios] = useState<Set<string>>(new Set());
+  const [showComparison, setShowComparison] = useState(false);
 
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
@@ -2796,7 +2798,7 @@ export default function App() {
 
             {/* Sensitivity Analysis */}
             <AnimatedSection animation="slide-up" delay={200}>
-              <Card>
+              <Card data-sensitivity-section>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
@@ -2813,13 +2815,14 @@ export default function App() {
                         }
                         setShowSensitivity(!showSensitivity);
                       }}
+                      className="no-print"
                     >
                       {showSensitivity ? "Hide" : "Analyze"}
                     </Button>
                   </div>
                 </CardHeader>
                 {showSensitivity && sensitivityData && (
-                  <CardContent>
+                  <CardContent className="print:block">
                     <p className="text-sm text-muted-foreground mb-6">
                       This chart shows how changes to key inputs affect your end-of-life wealth.
                       Longer bars = higher impact. Focus your planning on these high-impact variables.
@@ -2900,7 +2903,7 @@ export default function App() {
 
             {/* Save/Compare Scenarios */}
             <AnimatedSection animation="slide-up" delay={250}>
-              <Card>
+              <Card data-scenarios-section>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
@@ -2911,13 +2914,21 @@ export default function App() {
                       variant={showScenarios ? "default" : "outline"}
                       size="sm"
                       onClick={() => setShowScenarios(!showScenarios)}
+                      className="no-print"
                     >
                       {showScenarios ? "Hide" : `Show (${savedScenarios.length})`}
                     </Button>
                   </div>
+                  {!showScenarios && savedScenarios.length > 0 && (
+                    <div className="print-only mt-4">
+                      <p className="text-sm text-muted-foreground">
+                        {savedScenarios.length} saved scenario{savedScenarios.length === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                  )}
                 </CardHeader>
-                {showScenarios && (
-                  <CardContent>
+                {(showScenarios || savedScenarios.length > 0) && (
+                  <CardContent className="print:block">
                     {/* Save Current Scenario */}
                     {res && (
                       <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg">
@@ -2963,11 +2974,149 @@ export default function App() {
                       </div>
                     ) : (
                       <>
+                        {/* Compare Selected Button */}
+                        {savedScenarios.length >= 2 && (
+                          <div className="mb-4 flex items-center gap-3">
+                            <Button
+                              variant={showComparison ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setShowComparison(!showComparison)}
+                              disabled={selectedScenarios.size === 0}
+                            >
+                              {showComparison ? "Hide" : "Compare Selected"} ({selectedScenarios.size})
+                            </Button>
+                            {selectedScenarios.size > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedScenarios(new Set())}
+                                className="text-xs"
+                              >
+                                Clear Selection
+                              </Button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Comparison Chart */}
+                        {showComparison && selectedScenarios.size > 0 && (
+                          <div className="comparison-chart mb-6 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 border-2 border-indigo-200 dark:border-indigo-800 rounded-lg print:border-gray-300">
+                            <h4 className="font-semibold mb-4 text-indigo-900 dark:text-indigo-100">Visual Comparison</h4>
+                            <div className="space-y-4">
+                              {/* EOL Wealth Comparison */}
+                              <div>
+                                <div className="text-xs font-medium mb-2 text-muted-foreground">End-of-Life Wealth</div>
+                                {Array.from(selectedScenarios).map((id) => {
+                                  const scenario = savedScenarios.find(s => s.id === id);
+                                  if (!scenario) return null;
+                                  const maxEOL = Math.max(...Array.from(selectedScenarios).map(sid => savedScenarios.find(s => s.id === sid)?.results.eol || 0));
+                                  const pct = (scenario.results.eol / maxEOL) * 100;
+                                  return (
+                                    <div key={id} className="mb-2">
+                                      <div className="flex items-center justify-between text-xs mb-1">
+                                        <span className="font-medium">{scenario.name}</span>
+                                        <span className="text-muted-foreground">{fmt(scenario.results.eol)}</span>
+                                      </div>
+                                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6">
+                                        <div
+                                          className="bg-gradient-to-r from-green-500 to-emerald-600 h-6 rounded-full flex items-center justify-end px-2 transition-all"
+                                          style={{ width: `${pct}%` }}
+                                        >
+                                          {pct > 20 && (
+                                            <span className="text-xs font-semibold text-white">{pct.toFixed(0)}%</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Annual Income Comparison */}
+                              <div>
+                                <div className="text-xs font-medium mb-2 text-muted-foreground">Annual Retirement Income</div>
+                                {Array.from(selectedScenarios).map((id) => {
+                                  const scenario = savedScenarios.find(s => s.id === id);
+                                  if (!scenario) return null;
+                                  const maxIncome = Math.max(...Array.from(selectedScenarios).map(sid => savedScenarios.find(s => s.id === sid)?.results.wdReal || 0));
+                                  const pct = (scenario.results.wdReal / maxIncome) * 100;
+                                  return (
+                                    <div key={id} className="mb-2">
+                                      <div className="flex items-center justify-between text-xs mb-1">
+                                        <span className="font-medium">{scenario.name}</span>
+                                        <span className="text-muted-foreground">{fmt(scenario.results.wdReal)}</span>
+                                      </div>
+                                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6">
+                                        <div
+                                          className="bg-gradient-to-r from-blue-500 to-indigo-600 h-6 rounded-full flex items-center justify-end px-2 transition-all"
+                                          style={{ width: `${pct}%` }}
+                                        >
+                                          {pct > 20 && (
+                                            <span className="text-xs font-semibold text-white">{pct.toFixed(0)}%</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Retirement Balance Comparison */}
+                              <div>
+                                <div className="text-xs font-medium mb-2 text-muted-foreground">Balance at Retirement</div>
+                                {Array.from(selectedScenarios).map((id) => {
+                                  const scenario = savedScenarios.find(s => s.id === id);
+                                  if (!scenario) return null;
+                                  const maxBalance = Math.max(...Array.from(selectedScenarios).map(sid => savedScenarios.find(s => s.id === sid)?.results.finReal || 0));
+                                  const pct = (scenario.results.finReal / maxBalance) * 100;
+                                  return (
+                                    <div key={id} className="mb-2">
+                                      <div className="flex items-center justify-between text-xs mb-1">
+                                        <span className="font-medium">{scenario.name}</span>
+                                        <span className="text-muted-foreground">{fmt(scenario.results.finReal)}</span>
+                                      </div>
+                                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6">
+                                        <div
+                                          className="bg-gradient-to-r from-purple-500 to-violet-600 h-6 rounded-full flex items-center justify-end px-2 transition-all"
+                                          style={{ width: `${pct}%` }}
+                                        >
+                                          {pct > 20 && (
+                                            <span className="text-xs font-semibold text-white">{pct.toFixed(0)}%</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Print Header for Scenarios */}
+                        <div className="print-only print-scenario-header">
+                          Saved Retirement Scenarios
+                        </div>
+
                         {/* Comparison Table */}
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-border">
+                                {savedScenarios.length >= 2 && (
+                                  <th className="text-left py-2 px-2 font-semibold w-8">
+                                    <Checkbox
+                                      checked={selectedScenarios.size === savedScenarios.length}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setSelectedScenarios(new Set(savedScenarios.map(s => s.id)));
+                                        } else {
+                                          setSelectedScenarios(new Set());
+                                        }
+                                      }}
+                                    />
+                                  </th>
+                                )}
                                 <th className="text-left py-2 px-2 font-semibold">Scenario</th>
                                 <th className="text-right py-2 px-2 font-semibold">Retire Age</th>
                                 <th className="text-right py-2 px-2 font-semibold">Balance @ Retirement</th>
@@ -2983,6 +3132,7 @@ export default function App() {
                               {/* Current Plan Row (if calculated) */}
                               {res && (
                                 <tr className="border-b border-border bg-primary/5">
+                                  {savedScenarios.length >= 2 && <td className="py-2 px-2"></td>}
                                   <td className="py-2 px-2 font-medium text-primary">Current Plan (unsaved)</td>
                                   <td className="text-right py-2 px-2">{retAge}</td>
                                   <td className="text-right py-2 px-2">{fmt(res.finReal)} <span className="text-xs text-muted-foreground">real</span></td>
@@ -2999,6 +3149,22 @@ export default function App() {
                               {/* Saved Scenarios */}
                               {savedScenarios.map((scenario) => (
                                 <tr key={scenario.id} className="border-b border-border hover:bg-muted/50">
+                                  {savedScenarios.length >= 2 && (
+                                    <td className="py-2 px-2">
+                                      <Checkbox
+                                        checked={selectedScenarios.has(scenario.id)}
+                                        onCheckedChange={(checked) => {
+                                          const newSet = new Set(selectedScenarios);
+                                          if (checked) {
+                                            newSet.add(scenario.id);
+                                          } else {
+                                            newSet.delete(scenario.id);
+                                          }
+                                          setSelectedScenarios(newSet);
+                                        }}
+                                      />
+                                    </td>
+                                  )}
                                   <td className="py-2 px-2 font-medium">{scenario.name}</td>
                                   <td className="text-right py-2 px-2">{scenario.inputs.retAge}</td>
                                   <td className="text-right py-2 px-2">{fmt(scenario.results.finReal)} <span className="text-xs text-muted-foreground">real</span></td>

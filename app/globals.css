@@ -331,6 +331,50 @@ html {
     border: 1px solid #e5e7eb;
     background: white;
   }
+
+  /* Force show all data sections for print */
+  [data-print-section] {
+    display: block !important;
+    page-break-inside: avoid;
+  }
+
+  /* Force show sensitivity analysis if exists */
+  [data-sensitivity-section] {
+    display: block !important;
+  }
+
+  /* Force show scenario comparison table and charts */
+  [data-scenarios-section] {
+    display: block !important;
+  }
+
+  /* Scenario comparison headers */
+  .print-scenario-header {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #1f2937;
+    padding-bottom: 8px;
+    page-break-after: avoid;
+  }
+
+  /* Ensure scenario tables print well */
+  table {
+    page-break-inside: avoid;
+  }
+
+  /* Better page breaks */
+  h2, h3, h4 {
+    page-break-after: avoid;
+  }
+
+  /* Show comparison charts in print */
+  .comparison-chart {
+    display: block !important;
+    page-break-inside: avoid;
+    margin-bottom: 20px;
+  }
 }
 
 @media screen {
