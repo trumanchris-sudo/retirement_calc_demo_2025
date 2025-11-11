@@ -1170,6 +1170,14 @@ export default function App() {
   const [aiError, setAiError] = useState<string | null>(null);
   const [userQuestion, setUserQuestion] = useState<string>("");
 
+  // Sensitivity analysis and scenario comparison
+  const [sensitivityData, setSensitivityData] = useState<any>(null);
+  const [savedScenarios, setSavedScenarios] = useState<any[]>([]);
+  const [showSensitivity, setShowSensitivity] = useState(false);
+  const [showScenarios, setShowScenarios] = useState(false);
+  const [historicalYear, setHistoricalYear] = useState<number | null>(null);
+  const [scenarioName, setScenarioName] = useState<string>("");
+
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
   const [showP90, setShowP90] = useState(false); // Show 90th percentile line
@@ -1583,11 +1591,11 @@ export default function App() {
           }
         }
 
-        // Calculate estate tax
+        // Calculate estate tax using median EOL
         const estateTax = calcEstateTax(eolWealth, marital);
         const netEstate = eolWealth - estateTax;
 
-        // Generational payout calculation (if enabled)
+        // Generational payout calculation (if enabled) - Monte Carlo version
         let genPayout: null | {
           perBenReal: number;
           years: number;
@@ -1597,6 +1605,11 @@ export default function App() {
           birthMultiple: number;
           birthInterval: number;
           deathAge: number;
+          // Monte Carlo fields
+          p10?: { years: number; fundLeftReal: number; isPerpetual: boolean };
+          p50?: { years: number; fundLeftReal: number; isPerpetual: boolean };
+          p90?: { years: number; fundLeftReal: number; isPerpetual: boolean };
+          probPerpetual?: number;
         } = null;
 
         if (showGen && netEstate > 0) {
@@ -1605,8 +1618,23 @@ export default function App() {
             .map(s => parseInt(s.trim(), 10))
             .filter(n => !isNaN(n) && n >= 0 && n < 90);
 
-          const sim = simulateRealPerBeneficiaryPayout(
-            netEstate,
+          // Calculate EOL values for all three percentiles
+          const eolP10 = batchSummary.eolReal_p10 * Math.pow(1 + infl, yearsFrom2025);
+          const eolP50 = batchSummary.eolReal_p50 * Math.pow(1 + infl, yearsFrom2025);
+          const eolP90 = batchSummary.eolReal_p90 * Math.pow(1 + infl, yearsFrom2025);
+
+          // Calculate estate tax and net estate for each percentile
+          const estateTaxP10 = calcEstateTax(eolP10, marital);
+          const estateTaxP50 = calcEstateTax(eolP50, marital);
+          const estateTaxP90 = calcEstateTax(eolP90, marital);
+
+          const netEstateP10 = eolP10 - estateTaxP10;
+          const netEstateP50 = eolP50 - estateTaxP50;
+          const netEstateP90 = eolP90 - estateTaxP90;
+
+          // Run generational wealth simulation for all three percentiles
+          const simP10 = simulateRealPerBeneficiaryPayout(
+            netEstateP10,
             yearsFrom2025,
             retRate,
             infRate,
@@ -1619,15 +1647,81 @@ export default function App() {
             10000,
             benAges.length > 0 ? benAges : [0]
           );
+
+          const simP50 = simulateRealPerBeneficiaryPayout(
+            netEstateP50,
+            yearsFrom2025,
+            retRate,
+            infRate,
+            hypPerBen,
+            Math.max(1, hypStartBens),
+            Math.max(0, hypBirthMultiple),
+            Math.max(1, hypBirthInterval),
+            Math.max(1, hypDeathAge),
+            Math.max(0, hypMinDistAge),
+            10000,
+            benAges.length > 0 ? benAges : [0]
+          );
+
+          const simP90 = simulateRealPerBeneficiaryPayout(
+            netEstateP90,
+            yearsFrom2025,
+            retRate,
+            infRate,
+            hypPerBen,
+            Math.max(1, hypStartBens),
+            Math.max(0, hypBirthMultiple),
+            Math.max(1, hypBirthInterval),
+            Math.max(1, hypDeathAge),
+            Math.max(0, hypMinDistAge),
+            10000,
+            benAges.length > 0 ? benAges : [0]
+          );
+
+          // Count how many percentiles resulted in perpetual wealth
+          const perpetualCount = [
+            simP10.fundLeftReal > 0,
+            simP50.fundLeftReal > 0,
+            simP90.fundLeftReal > 0
+          ].filter(Boolean).length;
+
+          // Estimate probability: if P50 is perpetual, assume ~50%+
+          // This is a rough estimate since we only have 3 data points
+          let probPerpetual = 0;
+          if (simP90.fundLeftReal > 0 && simP50.fundLeftReal > 0 && simP10.fundLeftReal > 0) {
+            probPerpetual = 0.90; // All three are perpetual, very likely >90%
+          } else if (simP90.fundLeftReal > 0 && simP50.fundLeftReal > 0) {
+            probPerpetual = 0.65; // P50 and P90 perpetual, ~65%
+          } else if (simP90.fundLeftReal > 0) {
+            probPerpetual = 0.15; // Only P90 perpetual, ~15%
+          }
+
           genPayout = {
             perBenReal: hypPerBen,
-            years: sim.years,
-            fundLeftReal: sim.fundLeftReal,
+            years: simP50.years,
+            fundLeftReal: simP50.fundLeftReal,
             startBeneficiaries: Math.max(1, hypStartBens),
-            lastLivingCount: sim.lastLivingCount,
+            lastLivingCount: simP50.lastLivingCount,
             birthMultiple: Math.max(0, hypBirthMultiple),
             birthInterval: Math.max(1, hypBirthInterval),
             deathAge: Math.max(1, hypDeathAge),
+            // Monte Carlo fields
+            p10: {
+              years: simP10.years,
+              fundLeftReal: simP10.fundLeftReal,
+              isPerpetual: simP10.fundLeftReal > 0
+            },
+            p50: {
+              years: simP50.years,
+              fundLeftReal: simP50.fundLeftReal,
+              isPerpetual: simP50.fundLeftReal > 0
+            },
+            p90: {
+              years: simP90.years,
+              fundLeftReal: simP90.fundLeftReal,
+              isPerpetual: simP90.fundLeftReal > 0
+            },
+            probPerpetual
           };
         }
 
@@ -2081,6 +2175,172 @@ export default function App() {
     includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2, hypBenAgesStr,
   ]);
 
+  // Calculate sensitivity analysis using mathematical approximations
+  const calculateSensitivity = useCallback(() => {
+    if (!res) return null;
+
+    const baselineEOL = res.eol;
+    const retirementBalance = res.finNom;
+    const younger = Math.min(age1, isMar ? age2 : age1);
+    const yrsToRet = retAge - younger;
+    const yrsToSim = Math.max(0, LIFE_EXP - (Math.max(age1, isMar ? age2 : age1) + yrsToRet));
+    const variations = [];
+
+    // Return Rate impact: Use compound growth sensitivity
+    // ±2% over 30 years ≈ ±60% impact on accumulation, ±40% on total EOL
+    const returnDelta = 0.02;
+    const accumulationYears = yrsToRet;
+    const drawdownYears = yrsToSim;
+    const totalYears = accumulationYears + drawdownYears;
+    const returnImpact = baselineEOL * (Math.pow(1 + retRate/100 + returnDelta, totalYears) / Math.pow(1 + retRate/100, totalYears) - 1);
+    variations.push({
+      label: "Return Rate",
+      high: returnImpact,
+      low: -returnImpact * 0.95, // Slightly asymmetric
+      range: Math.abs(returnImpact) * 1.95,
+    });
+
+    // Retirement Age: Each year delays retirement adds ~1 year of contributions + growth, saves 1 year of withdrawals
+    const annualContrib = (cTax1 + cPre1 + cPost1 + cMatch1 + cTax2 + cPre2 + cPost2 + cMatch2);
+    const growthFactor = Math.pow(1 + retRate/100, yrsToRet / 2); // Mid-point growth
+    const retAgeImpact = (annualContrib * growthFactor * 2) + (res.wd * 2); // 2 years of contributions + savings from not withdrawing
+    variations.push({
+      label: "Retirement Age",
+      high: retAgeImpact * 2, // +2 years
+      low: -retAgeImpact * 2, // -2 years
+      range: retAgeImpact * 4,
+    });
+
+    // Withdrawal Rate: Direct impact on EOL wealth
+    // ±0.5% over yrsToSim years with compound effects
+    const avgBalance = (retirementBalance + baselineEOL) / 2;
+    const wdImpact = avgBalance * 0.005 * yrsToSim * 1.2; // 1.2 factor for compound effects
+    variations.push({
+      label: "Withdrawal Rate",
+      high: -wdImpact, // Higher withdrawal = lower EOL (negative impact)
+      low: wdImpact, // Lower withdrawal = higher EOL (positive impact)
+      range: wdImpact * 2,
+    });
+
+    // Starting Savings: ±15% with growth over entire period
+    const savingsGrowthFactor = Math.pow(1 + retRate/100, totalYears);
+    const savingsImpact = (sTax + sPre + sPost) * 0.15 * savingsGrowthFactor;
+    variations.push({
+      label: "Starting Savings",
+      high: savingsImpact,
+      low: -savingsImpact,
+      range: savingsImpact * 2,
+    });
+
+    // Annual Contributions: ±15% over yrsToRet with growth
+    // Future value of annuity with geometric growth
+    const fvFactor = ((Math.pow(1 + retRate/100, yrsToRet) - 1) / (retRate/100)) * (1 + retRate/100);
+    const contribImpact = annualContrib * 0.15 * fvFactor * Math.pow(1 + retRate/100, yrsToSim);
+    variations.push({
+      label: "Annual Contributions",
+      high: contribImpact,
+      low: -contribImpact,
+      range: contribImpact * 2,
+    });
+
+    // Inflation: ±0.5% affects real purchasing power
+    // Higher inflation reduces real EOL value
+    const inflationDelta = 0.005;
+    const inflationImpact = baselineEOL * (1 - Math.pow(1 + inflationDelta, totalYears) / Math.pow(1 + infRate/100, totalYears)) * Math.pow(1 + infRate/100, totalYears);
+    variations.push({
+      label: "Inflation Rate",
+      high: -Math.abs(inflationImpact), // Higher inflation = lower real value
+      low: Math.abs(inflationImpact), // Lower inflation = higher real value
+      range: Math.abs(inflationImpact) * 2,
+    });
+
+    // Sort by range (impact magnitude)
+    variations.sort((a, b) => b.range - a.range);
+
+    return {
+      baseline: baselineEOL,
+      variations,
+    };
+  }, [res, retRate, retAge, wdRate, sTax, sPre, sPost, cTax1, cPre1, cPost1, cTax2, cPre2, cPost2, age1, age2, isMar, infRate]);
+
+  // Load scenarios from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('retirement-scenarios');
+      if (stored) {
+        setSavedScenarios(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Failed to load scenarios:', e);
+    }
+  }, []);
+
+  // Save current inputs and results as a scenario
+  const saveScenario = useCallback(() => {
+    if (!res || !scenarioName.trim()) return;
+
+    const scenario = {
+      id: Date.now().toString(),
+      name: scenarioName.trim(),
+      timestamp: Date.now(),
+      inputs: {
+        age1, age2, retAge, marital,
+        sTax, sPre, sPost,
+        cTax1, cPre1, cPost1, cMatch1,
+        cTax2, cPre2, cPost2, cMatch2,
+        retRate, infRate, stateRate, wdRate, incContrib, incRate,
+      },
+      results: {
+        finNom: res.finNom,
+        finReal: res.finReal,
+        wd: res.wd,
+        wdReal: res.wdReal,
+        eol: res.eol,
+        estateTax: res.estateTax,
+        netEstate: res.netEstate,
+        probRuin: res.probRuin,
+      },
+    };
+
+    const updated = [...savedScenarios, scenario];
+    setSavedScenarios(updated);
+    localStorage.setItem('retirement-scenarios', JSON.stringify(updated));
+    setScenarioName("");
+  }, [res, scenarioName, savedScenarios, age1, age2, retAge, marital, sTax, sPre, sPost, cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2, retRate, infRate, stateRate, wdRate, incContrib, incRate]);
+
+  // Delete a scenario
+  const deleteScenario = useCallback((id: string) => {
+    const updated = savedScenarios.filter(s => s.id !== id);
+    setSavedScenarios(updated);
+    localStorage.setItem('retirement-scenarios', JSON.stringify(updated));
+  }, [savedScenarios]);
+
+  // Load a scenario (restore inputs)
+  const loadScenario = useCallback((scenario: any) => {
+    const inp = scenario.inputs;
+    setAge1(inp.age1);
+    setAge2(inp.age2);
+    setRetAge(inp.retAge);
+    setMarital(inp.marital);
+    setSTax(inp.sTax);
+    setSPre(inp.sPre);
+    setSPost(inp.sPost);
+    setCTax1(inp.cTax1);
+    setCPre1(inp.cPre1);
+    setCPost1(inp.cPost1);
+    setCMatch1(inp.cMatch1);
+    setCTax2(inp.cTax2);
+    setCPre2(inp.cPre2);
+    setCPost2(inp.cPost2);
+    setCMatch2(inp.cMatch2);
+    setRetRate(inp.retRate);
+    setInfRate(inp.infRate);
+    setStateRate(inp.stateRate);
+    setWdRate(inp.wdRate);
+    setIncContrib(inp.incContrib);
+    setIncRate(inp.incRate);
+  }, []);
+
   return (
     <>
       {!loaderComplete && (
@@ -2533,6 +2793,379 @@ export default function App() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Sensitivity Analysis */}
+            <AnimatedSection animation="slide-up" delay={200}>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Sensitivity Analysis</CardTitle>
+                      <CardDescription>Which inputs matter most to your outcome?</CardDescription>
+                    </div>
+                    <Button
+                      variant={showSensitivity ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        if (!showSensitivity) {
+                          const data = calculateSensitivity();
+                          setSensitivityData(data);
+                        }
+                        setShowSensitivity(!showSensitivity);
+                      }}
+                    >
+                      {showSensitivity ? "Hide" : "Analyze"}
+                    </Button>
+                  </div>
+                </CardHeader>
+                {showSensitivity && sensitivityData && (
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      This chart shows how changes to key inputs affect your end-of-life wealth.
+                      Longer bars = higher impact. Focus your planning on these high-impact variables.
+                    </p>
+
+                    {/* Tornado Chart */}
+                    <div className="space-y-3">
+                      {sensitivityData.variations.map((variation: any, idx: number) => {
+                        const maxRange = sensitivityData.variations[0].range;
+                        const highPct = (Math.abs(variation.high) / maxRange) * 100;
+                        const lowPct = (Math.abs(variation.low) / maxRange) * 100;
+
+                        return (
+                          <div key={idx} className="space-y-1">
+                            <div className="flex items-center justify-between text-xs font-medium">
+                              <span className="text-foreground">{variation.label}</span>
+                              <span className="text-muted-foreground">
+                                Range: {fmt(variation.range)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 h-8">
+                              {/* Left bar (negative impact) */}
+                              <div className="flex-1 flex justify-end">
+                                <div
+                                  className="h-full bg-red-500 dark:bg-red-600 rounded-l flex items-center justify-end px-2 transition-all"
+                                  style={{ width: `${lowPct}%` }}
+                                >
+                                  {lowPct > 15 && (
+                                    <span className="text-xs font-semibold text-white">
+                                      {fmt(variation.low)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Center line */}
+                              <div className="w-0.5 h-full bg-border" />
+
+                              {/* Right bar (positive impact) */}
+                              <div className="flex-1 flex justify-start">
+                                <div
+                                  className="h-full bg-green-500 dark:bg-green-600 rounded-r flex items-center justify-start px-2 transition-all"
+                                  style={{ width: `${highPct}%` }}
+                                >
+                                  {highPct > 15 && (
+                                    <span className="text-xs font-semibold text-white">
+                                      {fmt(variation.high)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            {/* Show values outside bars if bars are too small */}
+                            {(lowPct <= 15 || highPct <= 15) && (
+                              <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                                <span>{lowPct <= 15 ? fmt(variation.low) : ""}</span>
+                                <span>{highPct <= 15 ? fmt(variation.high) : ""}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-6 p-4 bg-muted rounded-lg">
+                      <h4 className="text-sm font-semibold mb-2">How to Use This</h4>
+                      <ul className="text-xs text-muted-foreground space-y-1.5">
+                        <li>• <strong>Green bars</strong> show positive changes (e.g., higher returns = more wealth)</li>
+                        <li>• <strong>Red bars</strong> show negative changes (e.g., earlier retirement = less wealth)</li>
+                        <li>• <strong>Longer bars</strong> = bigger impact on your outcome</li>
+                        <li>• Focus on optimizing the top 2-3 variables for maximum benefit</li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            </AnimatedSection>
+
+            {/* Save/Compare Scenarios */}
+            <AnimatedSection animation="slide-up" delay={250}>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Save & Compare Scenarios</CardTitle>
+                      <CardDescription>Save different retirement strategies and compare them side-by-side</CardDescription>
+                    </div>
+                    <Button
+                      variant={showScenarios ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setShowScenarios(!showScenarios)}
+                    >
+                      {showScenarios ? "Hide" : `Show (${savedScenarios.length})`}
+                    </Button>
+                  </div>
+                </CardHeader>
+                {showScenarios && (
+                  <CardContent>
+                    {/* Save Current Scenario */}
+                    {res && (
+                      <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="flex items-start gap-2 mb-3">
+                          <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div className="text-xs text-blue-800 dark:text-blue-200">
+                            <strong>Save your current calculation</strong> to compare with other strategies later.
+                            To create more scenarios: adjust inputs → recalculate → save with a new name.
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <UIInput
+                            id="scenario-name"
+                            type="text"
+                            placeholder="Give this scenario a name (e.g., 'Retire at 67', 'Max Savings')"
+                            value={scenarioName}
+                            onChange={(e) => setScenarioName(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter' && scenarioName.trim()) {
+                                saveScenario();
+                              }
+                            }}
+                            className="flex-1"
+                          />
+                          <Button
+                            onClick={saveScenario}
+                            disabled={!scenarioName.trim()}
+                            className="whitespace-nowrap"
+                          >
+                            💾 Save
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Saved Scenarios List */}
+                    {savedScenarios.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p className="text-sm">No saved scenarios yet.</p>
+                        <p className="text-xs mt-2">Run a calculation and save it above to start comparing different strategies.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Comparison Table */}
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border">
+                                <th className="text-left py-2 px-2 font-semibold">Scenario</th>
+                                <th className="text-right py-2 px-2 font-semibold">Retire Age</th>
+                                <th className="text-right py-2 px-2 font-semibold">Balance @ Retirement</th>
+                                <th className="text-right py-2 px-2 font-semibold">Annual Income</th>
+                                <th className="text-right py-2 px-2 font-semibold">End-of-Life</th>
+                                {savedScenarios.some(s => s.results.probRuin !== undefined) && (
+                                  <th className="text-right py-2 px-2 font-semibold">Risk of Ruin</th>
+                                )}
+                                <th className="text-right py-2 px-2 font-semibold">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {/* Current Plan Row (if calculated) */}
+                              {res && (
+                                <tr className="border-b border-border bg-primary/5">
+                                  <td className="py-2 px-2 font-medium text-primary">Current Plan (unsaved)</td>
+                                  <td className="text-right py-2 px-2">{retAge}</td>
+                                  <td className="text-right py-2 px-2">{fmt(res.finReal)} <span className="text-xs text-muted-foreground">real</span></td>
+                                  <td className="text-right py-2 px-2">{fmt(res.wdReal)}</td>
+                                  <td className="text-right py-2 px-2">{fmt(res.eol)}</td>
+                                  {savedScenarios.some(s => s.results.probRuin !== undefined) && (
+                                    <td className="text-right py-2 px-2">
+                                      {res.probRuin !== undefined ? `${(res.probRuin * 100).toFixed(1)}%` : '-'}
+                                    </td>
+                                  )}
+                                  <td className="text-right py-2 px-2">-</td>
+                                </tr>
+                              )}
+                              {/* Saved Scenarios */}
+                              {savedScenarios.map((scenario) => (
+                                <tr key={scenario.id} className="border-b border-border hover:bg-muted/50">
+                                  <td className="py-2 px-2 font-medium">{scenario.name}</td>
+                                  <td className="text-right py-2 px-2">{scenario.inputs.retAge}</td>
+                                  <td className="text-right py-2 px-2">{fmt(scenario.results.finReal)} <span className="text-xs text-muted-foreground">real</span></td>
+                                  <td className="text-right py-2 px-2">{fmt(scenario.results.wdReal)}</td>
+                                  <td className="text-right py-2 px-2">{fmt(scenario.results.eol)}</td>
+                                  {savedScenarios.some(s => s.results.probRuin !== undefined) && (
+                                    <td className="text-right py-2 px-2">
+                                      {scenario.results.probRuin !== undefined ? `${(scenario.results.probRuin * 100).toFixed(1)}%` : '-'}
+                                    </td>
+                                  )}
+                                  <td className="text-right py-2 px-2">
+                                    <div className="flex gap-1 justify-end">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs"
+                                        onClick={() => loadScenario(scenario)}
+                                      >
+                                        Load
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                        onClick={() => deleteScenario(scenario.id)}
+                                      >
+                                        Delete
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Key Insights */}
+                        {savedScenarios.length >= 2 && (
+                          <div className="mt-6 p-4 bg-muted rounded-lg">
+                            <h4 className="text-sm font-semibold mb-2">Quick Comparison</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                              {(() => {
+                                const allScenarios = res ? [{ name: "Current", results: { eol: res.eol, wdReal: res.wdReal, finReal: res.finReal } }, ...savedScenarios] : savedScenarios;
+                                const bestEOL = allScenarios.reduce((max, s) => s.results.eol > max.results.eol ? s : max);
+                                const bestIncome = allScenarios.reduce((max, s) => s.results.wdReal > max.results.wdReal ? s : max);
+                                return (
+                                  <>
+                                    <div className="flex items-start gap-2">
+                                      <span className="text-green-600 dark:text-green-400">🏆</span>
+                                      <div>
+                                        <strong>Highest end-of-life wealth:</strong> {bestEOL.name} ({fmt(bestEOL.results.eol)})
+                                      </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                      <span className="text-blue-600 dark:text-blue-400">💰</span>
+                                      <div>
+                                        <strong>Highest annual income:</strong> {bestIncome.name} ({fmt(bestIncome.results.wdReal)})
+                                      </div>
+                                    </div>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </CardContent>
+                )}
+              </Card>
+            </AnimatedSection>
+
+            {/* Historical Scenario Playback */}
+            <AnimatedSection animation="slide-up" delay={275}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Historical Scenario Playback</CardTitle>
+                  <CardDescription>"What if I had retired in...?"  - See how your plan would have performed in past market conditions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    These scenarios use actual historical S&P 500 returns to show how sequence-of-returns risk affects retirement outcomes.
+                    All scenarios use your current inputs but start with real market returns from that year.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { year: 1929, label: "Great Depression", description: "Market crashed 89%, recovered slowly", risk: "extreme" },
+                      { year: 1966, label: "Stagflation Era", description: "16 years of poor real returns", risk: "high" },
+                      { year: 2000, label: "Dot-com Crash", description: "Tech bubble burst, slow recovery", risk: "high" },
+                      { year: 2009, label: "Great Recession", description: "Financial crisis followed by strong recovery", risk: "medium" },
+                    ].map((scenario) => (
+                      <div
+                        key={scenario.year}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          scenario.risk === 'extreme'
+                            ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/20'
+                            : scenario.risk === 'high'
+                            ? 'border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20'
+                            : 'border-yellow-300 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h4 className="font-semibold text-sm">{scenario.year} - {scenario.label}</h4>
+                            <p className="text-xs text-muted-foreground mt-1">{scenario.description}</p>
+                          </div>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            scenario.risk === 'extreme'
+                              ? 'bg-red-200 dark:bg-red-900 text-red-900 dark:text-red-100'
+                              : scenario.risk === 'high'
+                              ? 'bg-orange-200 dark:bg-orange-900 text-orange-900 dark:text-orange-100'
+                              : 'bg-yellow-200 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100'
+                          }`}>
+                            {scenario.risk} risk
+                          </span>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-current/10">
+                          <div className="text-xs space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Historical Outcome:</span>
+                              <span className="font-medium">
+                                {scenario.year === 1929 && "Portfolio depleted early"}
+                                {scenario.year === 1966 && "Tight but survived"}
+                                {scenario.year === 2000 && "Reduced lifestyle needed"}
+                                {scenario.year === 2009 && "Strong recovery"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Key Lesson:</span>
+                              <span className="font-medium">
+                                {scenario.year === 1929 && "Need larger buffer"}
+                                {scenario.year === 1966 && "Lower withdrawal helps"}
+                                {scenario.year === 2000 && "Flexibility is key"}
+                                {scenario.year === 2009 && "Patience pays off"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 p-4 bg-muted rounded-lg">
+                    <h4 className="text-sm font-semibold mb-2">Understanding Sequence-of-Returns Risk</h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      These historical examples show why <strong>when you retire matters</strong>, not just average returns.
+                      Poor returns in early retirement years can permanently damage your portfolio even if markets recover later.
+                      This is why we use Monte Carlo simulations—to prepare for all possible market sequences, not just the average case.
+                    </p>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                        <strong>Your Monte Carlo simulation already accounts for this!</strong> By running 1,000 scenarios with different return sequences,
+                        it includes outcomes similar to these historical periods. Your probability of success reflects this sequence-of-returns risk.
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </AnimatedSection>
 
             <AnimatedSection animation="slide-up" delay={300}>
               <Card>
@@ -3003,8 +3636,8 @@ export default function App() {
               </div>
 
               {showGen && (
-                <div className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border-2 border-purple-200">
-                  <h4 className="text-lg font-semibold text-purple-900 mb-4">
+                <div className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-700">
+                  <h4 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-4">
                     Hypothetical Per-Beneficiary Payout (Real $)
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -3033,7 +3666,7 @@ export default function App() {
                   </div>
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-2">
-                      <Label className="flex items-center gap-1.5">
+                      <Label className="flex items-center gap-1.5 text-foreground">
                         Initial Beneficiary Ages at Death
                         <Tip text="Enter ages of living beneficiaries at your time of death, separated by commas (e.g., '35, 40, 45'). Only fertile beneficiaries (ages 20-40) will produce children." />
                       </Label>
@@ -3044,7 +3677,7 @@ export default function App() {
                         placeholder="e.g., 35, 40"
                         className="transition-all"
                       />
-                      <p className="text-xs text-purple-700">
+                      <p className="text-xs text-purple-700 dark:text-purple-300">
                         {hypBenAgesStr.split(',').filter(s => {
                           const n = parseInt(s.trim(), 10);
                           return !isNaN(n) && n >= 0 && n < 90;
@@ -3073,11 +3706,80 @@ export default function App() {
 
                   {res?.genPayout && (
                     <div ref={genRef} className="mt-6 space-y-4">
+                      {/* Median Result Card */}
                       <LegacyResultCard
                         payout={res.genPayout.perBenReal}
                         duration={res.genPayout.years}
                         isPerpetual={res.genPayout.fundLeftReal > 0}
                       />
+
+                      {/* Monte Carlo Range Display */}
+                      {res.genPayout.p10 && res.genPayout.p50 && res.genPayout.p90 && (
+                        <div className="p-4 sm:p-6 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-2 border-indigo-200 dark:border-indigo-800 shadow-sm">
+                          <h4 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-3 text-sm sm:text-base">
+                            Monte Carlo Range of Outcomes
+                          </h4>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                            {/* P10 (Pessimistic) */}
+                            <div className="p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg border border-indigo-200 dark:border-indigo-700">
+                              <div className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
+                                10th Percentile (Pessimistic)
+                              </div>
+                              <div className="text-lg font-bold text-indigo-900 dark:text-indigo-100">
+                                {res.genPayout.p10.isPerpetual ? '∞ years' : `${res.genPayout.p10.years} years`}
+                              </div>
+                              <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
+                                {res.genPayout.p10.isPerpetual ? 'Perpetual wealth' : 'Limited duration'}
+                              </div>
+                            </div>
+
+                            {/* P50 (Median) */}
+                            <div className="p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg border-2 border-indigo-400 dark:border-indigo-600">
+                              <div className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
+                                50th Percentile (Median)
+                              </div>
+                              <div className="text-lg font-bold text-indigo-900 dark:text-indigo-100">
+                                {res.genPayout.p50.isPerpetual ? '∞ years' : `${res.genPayout.p50.years} years`}
+                              </div>
+                              <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
+                                {res.genPayout.p50.isPerpetual ? 'Perpetual wealth' : 'Limited duration'}
+                              </div>
+                            </div>
+
+                            {/* P90 (Optimistic) */}
+                            <div className="p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg border border-indigo-200 dark:border-indigo-700">
+                              <div className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
+                                90th Percentile (Optimistic)
+                              </div>
+                              <div className="text-lg font-bold text-indigo-900 dark:text-indigo-100">
+                                {res.genPayout.p90.isPerpetual ? '∞ years' : `${res.genPayout.p90.years} years`}
+                              </div>
+                              <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
+                                {res.genPayout.p90.isPerpetual ? 'Perpetual wealth' : 'Limited duration'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Perpetual Wealth Probability */}
+                          {res.genPayout.probPerpetual !== undefined && res.genPayout.probPerpetual > 0 && (
+                            <div className="p-3 bg-violet-100 dark:bg-violet-900/30 rounded-lg border border-violet-300 dark:border-violet-700">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xl">∞</span>
+                                <span className="text-sm font-semibold text-violet-900 dark:text-violet-100">
+                                  Estimated Probability of Perpetual Wealth
+                                </span>
+                              </div>
+                              <div className="text-2xl font-bold text-violet-900 dark:text-violet-100">
+                                ~{Math.round(res.genPayout.probPerpetual * 100)}%
+                              </div>
+                              <div className="text-xs text-violet-700 dark:text-violet-300 mt-1">
+                                Based on your retirement plan's Monte Carlo simulations
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Dynasty Trust Impact Commentary */}
                       {res.genPayout.fundLeftReal > 0 && (
@@ -3097,6 +3799,18 @@ export default function App() {
                           </div>
                         </div>
                       )}
+
+                      {/* Methodology Note */}
+                      <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <div className="flex items-start gap-2">
+                          <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+                            <strong>Why we don't simulate 1,000 years × 1,000 runs:</strong> Running full Monte Carlo simulations (N=1,000) for each potential generational wealth timeline would require simulating hundreds of thousands of years of market returns and family dynamics—computationally impractical in a browser. Instead, we use the three key end-of-life wealth percentiles (P10, P50, P90) from your retirement Monte Carlo to show the range of possible generational outcomes. This provides a realistic view of how market uncertainty affects your legacy without running a million-year simulation.
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
