@@ -3064,6 +3064,102 @@ export default function App() {
               </Card>
             </AnimatedSection>
 
+            {/* Historical Scenario Playback */}
+            <AnimatedSection animation="slide-up" delay={275}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Historical Scenario Playback</CardTitle>
+                  <CardDescription>"What if I had retired in...?"  - See how your plan would have performed in past market conditions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    These scenarios use actual historical S&P 500 returns to show how sequence-of-returns risk affects retirement outcomes.
+                    All scenarios use your current inputs but start with real market returns from that year.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { year: 1929, label: "Great Depression", description: "Market crashed 89%, recovered slowly", risk: "extreme" },
+                      { year: 1966, label: "Stagflation Era", description: "16 years of poor real returns", risk: "high" },
+                      { year: 2000, label: "Dot-com Crash", description: "Tech bubble burst, slow recovery", risk: "high" },
+                      { year: 2009, label: "Great Recession", description: "Financial crisis followed by strong recovery", risk: "medium" },
+                    ].map((scenario) => (
+                      <div
+                        key={scenario.year}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          scenario.risk === 'extreme'
+                            ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/20'
+                            : scenario.risk === 'high'
+                            ? 'border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20'
+                            : 'border-yellow-300 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h4 className="font-semibold text-sm">{scenario.year} - {scenario.label}</h4>
+                            <p className="text-xs text-muted-foreground mt-1">{scenario.description}</p>
+                          </div>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            scenario.risk === 'extreme'
+                              ? 'bg-red-200 dark:bg-red-900 text-red-900 dark:text-red-100'
+                              : scenario.risk === 'high'
+                              ? 'bg-orange-200 dark:bg-orange-900 text-orange-900 dark:text-orange-100'
+                              : 'bg-yellow-200 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100'
+                          }`}>
+                            {scenario.risk} risk
+                          </span>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-current/10">
+                          <div className="text-xs space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Historical Outcome:</span>
+                              <span className="font-medium">
+                                {scenario.year === 1929 && "Portfolio depleted early"}
+                                {scenario.year === 1966 && "Tight but survived"}
+                                {scenario.year === 2000 && "Reduced lifestyle needed"}
+                                {scenario.year === 2009 && "Strong recovery"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Key Lesson:</span>
+                              <span className="font-medium">
+                                {scenario.year === 1929 && "Need larger buffer"}
+                                {scenario.year === 1966 && "Lower withdrawal helps"}
+                                {scenario.year === 2000 && "Flexibility is key"}
+                                {scenario.year === 2009 && "Patience pays off"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 p-4 bg-muted rounded-lg">
+                    <h4 className="text-sm font-semibold mb-2">Understanding Sequence-of-Returns Risk</h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      These historical examples show why <strong>when you retire matters</strong>, not just average returns.
+                      Poor returns in early retirement years can permanently damage your portfolio even if markets recover later.
+                      This is why we use Monte Carlo simulations—to prepare for all possible market sequences, not just the average case.
+                    </p>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                        <strong>Your Monte Carlo simulation already accounts for this!</strong> By running 1,000 scenarios with different return sequences,
+                        it includes outcomes similar to these historical periods. Your probability of success reflects this sequence-of-returns risk.
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </AnimatedSection>
+
             <AnimatedSection animation="slide-up" delay={300}>
               <Card>
                 <CardHeader>
