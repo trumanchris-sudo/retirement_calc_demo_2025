@@ -3173,7 +3173,8 @@ export default function App() {
                   </p>
                   <ul className="list-disc pl-6 space-y-1 text-gray-700">
                     <li><strong>Fixed Return:</strong> All accounts grow by a constant rate (e.g., 9.8%) each year: Balance<sub>year+1</sub> = Balance<sub>year</sub> × (1 + r)</li>
-                    <li><strong>Random Walk:</strong> Returns are randomly sampled from historical S&amp;P 500 data (1975-2024), using a seeded pseudo-random number generator for reproducibility. Each year gets a different historical return, bootstrapped with replacement.</li>
+                    <li><strong>Random Walk:</strong> Returns are randomly sampled from 97 years of historical S&amp;P 500 data (1928-2024), using a seeded pseudo-random number generator for reproducibility. Each year gets a different historical return, bootstrapped with replacement.</li>
+                    <li><strong>Truly Random (Monte Carlo):</strong> Runs 1,000 independent simulations, each with different sequences of returns randomly sampled from historical data. Reports median outcomes and calculates probability of portfolio depletion based on actual simulation results—no fixed return assumptions.</li>
                   </ul>
                 </div>
 
