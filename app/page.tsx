@@ -2472,7 +2472,7 @@ export default function App() {
                     {res.genPayout && (
                       <div>Generational: {res.genPayout.startBeneficiaries} heirs @ {fmt(res.genPayout.perBenReal)}/yr real → {res.genPayout.years} yrs median{res.genPayout.probPerpetual ? `, ${Math.round(res.genPayout.probPerpetual * 100)}% perpetual (P90 historical)` : ''}</div>
                     )}
-                    <div>Return assumption: {retRate}% nominal, {infRate}% inflation = {(retRate - infRate).toFixed(1)}% real</div>
+                    <div>Return assumption: {retRate}% nominal, {infRate}% inflation = {(retRate - infRate).toFixed(1)}% real{walkSeries === 'trulyRandom' ? ' (historical S&P 1928-2024 bootstrap)' : ''}</div>
                     <div>Starting balance: {fmt(sTax + sPre + sPost)} ({fmt(sTax)} taxable, {fmt(sPre)} pre-tax, {fmt(sPost)} Roth)</div>
                     <div>Annual contributions: {fmt(cTax1 + cPre1 + cPost1 + cMatch1)}{isMar ? ` + ${fmt(cTax2 + cPre2 + cPost2 + cMatch2)}` : ''}</div>
                     {res.probRuin !== undefined && (
@@ -4175,7 +4175,7 @@ export default function App() {
                   <ul className="list-disc pl-6 space-y-1 text-gray-700">
                     <li><strong>Fixed Return:</strong> All accounts grow by a constant rate (e.g., 9.8%) each year: Balance<sub>year+1</sub> = Balance<sub>year</sub> × (1 + r)</li>
                     <li><strong>Random Walk:</strong> Returns are randomly sampled from 97 years of historical S&amp;P 500 data (1928-2024), using a seeded pseudo-random number generator for reproducibility. Each year gets a different historical return, bootstrapped with replacement.</li>
-                    <li><strong>Truly Random (Monte Carlo):</strong> Runs 1,000 independent simulations, each with different sequences of returns randomly sampled from historical data. Reports median outcomes and calculates probability of portfolio depletion based on actual simulation results—no fixed return assumptions.</li>
+                    <li><strong>Truly Random (Monte Carlo):</strong> Runs 1,000 independent simulations, each with different sequences of returns randomly sampled from 97 years of S&amp;P 500 historical data (1928-2024, including Great Depression, stagflation, dot-com crash, 2008 crisis). Reports median outcomes and calculates probability of portfolio depletion based on actual simulation results—captures real sequence risk without idealized assumptions.</li>
                   </ul>
                 </div>
 
@@ -4419,7 +4419,7 @@ export default function App() {
             <section>
               <h3 className="text-xl font-semibold mb-3 text-blue-900">Data Sources</h3>
               <ul className="list-disc pl-6 space-y-1 text-gray-700">
-                <li><strong>S&amp;P 500 Returns:</strong> Historical total return data (1975-2024) used for random walk simulations</li>
+                <li><strong>S&amp;P 500 Returns:</strong> Historical total return data (1928-2024, 97 years) used for random walk and Monte Carlo simulations</li>
                 <li><strong>Tax Brackets:</strong> 2025 federal ordinary income tax brackets (IRS)</li>
                 <li><strong>LTCG Brackets:</strong> 2025 long-term capital gains tax rates (IRS)</li>
                 <li><strong>RMD Table:</strong> IRS Uniform Lifetime Table (Publication 590-B)</li>
