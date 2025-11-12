@@ -83,6 +83,7 @@ export function buildReturnGenerator(options: {
   walkSeries?: WalkSeries;
   walkData?: number[];
   seed?: number;
+  startYear?: number; // Historical year to start sequential playback (e.g., 1929)
 }) {
   const {
     mode,
@@ -92,6 +93,7 @@ export function buildReturnGenerator(options: {
     walkSeries = "nominal",
     walkData = SP500_YOY_NOMINAL,
     seed = 12345,
+    startYear,
   } = options;
 
   if (mode === "fixed") {
@@ -102,9 +104,28 @@ export function buildReturnGenerator(options: {
   }
 
   if (!walkData.length) throw new Error("walkData is empty");
-  const rnd = mulberry32(seed);
   const inflRate = infPct / 100;
 
+  // Historical sequential playback
+  if (startYear !== undefined) {
+    const startIndex = startYear - 1928; // SP500_YOY_NOMINAL starts at 1928
+    return function* historicalGen() {
+      for (let i = 0; i < years; i++) {
+        const ix = (startIndex + i) % walkData.length; // Wrap around if we exceed data
+        let pct = walkData[ix];
+
+        if (walkSeries === "real") {
+          const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
+          yield 1 + realRate;
+        } else {
+          yield 1 + pct / 100;
+        }
+      }
+    };
+  }
+
+  // Random bootstrap
+  const rnd = mulberry32(seed);
   return function* walkGen() {
     for (let i = 0; i < years; i++) {
       const ix = Math.floor(rnd() * walkData.length);
@@ -768,6 +789,7 @@ export type Inputs = {
   ssClaimAge: number;
   ssIncome2: number;
   ssClaimAge2: number;
+  historicalYear?: number; // Start year for historical sequential playback
 };
 
 /** Result from a single simulation run */
@@ -788,6 +810,7 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
     retRate, infRate, stateRate, incContrib, incRate, wdRate,
     retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+    historicalYear,
   } = params;
 
   const isMar = marital === "married";
@@ -812,6 +835,7 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     infPct: infRate,
     walkSeries,
     seed: seed,
+    startYear: historicalYear,
   })();
 
   const drawGen = buildReturnGenerator({
@@ -821,6 +845,7 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     infPct: infRate,
     walkSeries,
     seed: seed + 1,
+    startYear: historicalYear ? historicalYear + yrsToRet : undefined,
   })();
 
   let bTax = sTax;
@@ -1511,6 +1536,7 @@ export default function App() {
           cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
           retRate, infRate, stateRate, incContrib, incRate, wdRate,
           retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+          historicalYear: historicalYear || undefined,
         };
 
         const batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, 1000);
@@ -1788,6 +1814,7 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed,
+        startYear: historicalYear || undefined,
       })();
 
       const drawGen = buildReturnGenerator({
@@ -1797,6 +1824,7 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed + 1,
+        startYear: historicalYear ? historicalYear + yrsToRet : undefined,
       })();
 
       let bTax = sTax;
@@ -2386,7 +2414,127 @@ export default function App() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
         {res && (
-          <AnimatedSection animation="slide-up" duration={700}>
+          <>
+            {/* AI SNAPSHOT - Print Only (Page 1) */}
+            <div className="hidden print:block print-page-break-after">
+              <div className="border-4 border-gray-900 rounded-lg p-6 mb-8">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-gray-900">
+                  <h1 className="text-2xl font-bold">Tax-Aware Retirement Calculator</h1>
+                  <div className="flex gap-4 text-sm">
+                    <span>☑ {walkSeries === 'trulyRandom' ? 'Monte Carlo (N=1000)' : 'Optimized Path'}</span>
+                    <span className="text-gray-600">Page 1 - AI Snapshot</span>
+                  </div>
+                </div>
+
+                {/* Core Metrics Grid */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="border-2 border-gray-800 p-4">
+                    <div className="text-xs text-gray-600 mb-1">Future Balance</div>
+                    <div className="text-xl font-bold">{fmt(res.finNom)}</div>
+                    <div className="text-xs text-gray-600">nominal @{retAge}</div>
+                  </div>
+                  <div className="border-2 border-gray-800 p-4">
+                    <div className="text-xs text-gray-600 mb-1">Today's Dollars</div>
+                    <div className="text-xl font-bold">{fmt(res.finReal)}</div>
+                    <div className="text-xs text-gray-600">real @{retAge}</div>
+                  </div>
+                  <div className="border-2 border-gray-800 p-4">
+                    <div className="text-xs text-gray-600 mb-1">Annual Withdrawal</div>
+                    <div className="text-xl font-bold">{fmt(res.wd)}</div>
+                    <div className="text-xs text-gray-600">{wdRate}% → {fmt(res.wdReal)} after-tax</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="border-2 border-gray-800 p-4">
+                    <div className="text-xs text-gray-600 mb-1">EOL Wealth</div>
+                    <div className="text-xl font-bold">{fmt(res.eol)}</div>
+                    <div className="text-xs text-gray-600">nominal</div>
+                  </div>
+                  <div className="border-2 border-gray-800 p-4">
+                    <div className="text-xs text-gray-600 mb-1">Net to Heirs</div>
+                    <div className="text-xl font-bold">{fmt(res.netEstate)}</div>
+                    <div className="text-xs text-gray-600">after ${fmt(res.estateTax)} estate tax</div>
+                  </div>
+                  <div className="border-2 border-gray-800 p-4">
+                    <div className="text-xs text-gray-600 mb-1">Failure Probability</div>
+                    <div className="text-xl font-bold">
+                      {res.probRuin !== undefined ? `${(res.probRuin * 100).toFixed(1)}%` : 'N/A'}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {res.probRuin !== undefined ? `${Math.round(res.probRuin * 1000)}/1000 runs` : 'Single path'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Quick-Check Block */}
+                <div className="border-4 border-blue-600 bg-blue-50 p-4 font-mono text-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-bold">⚡ AI QUICK-CHECK (copy-paste this block):</div>
+                    <button
+                      onClick={() => {
+                        const content = document.getElementById('ai-quick-check-content')?.innerText || '';
+                        navigator.clipboard.writeText(content).then(() => {
+                          const btn = document.getElementById('copy-btn');
+                          if (btn) {
+                            btn.innerText = '✓ Copied!';
+                            setTimeout(() => { btn.innerText = '📋 Copy Block'; }, 2000);
+                          }
+                        });
+                      }}
+                      id="copy-btn"
+                      className="no-print px-3 py-1 text-xs font-semibold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                    >
+                      📋 Copy Block
+                    </button>
+                  </div>
+                  <div id="ai-quick-check-content" className="space-y-1">
+                    <div>Age {age1}→{retAge}: {fmt(res.finReal)} real at {retAge} (equiv. {fmt(res.finNom)} nom) → {wdRate}% SWR Gross: {fmt(res.finReal * (wdRate / 100))} real Yr1 ({fmt(res.wd)} nom) → After-tax: {fmt(res.wdReal)} real ({((((res.finReal * (wdRate / 100)) - res.wdReal) / (res.finReal * (wdRate / 100))) * 100).toFixed(0)}% eff. tax)</div>
+                    {res.rmdData && res.rmdData.length > 0 && (() => {
+                      const peakRMD = res.rmdData.reduce((max: any, curr: any) => curr.rmd > max.rmd ? curr : max, res.rmdData[0]);
+                      const excessRMD = Math.max(0, peakRMD.rmd - peakRMD.spending);
+                      return excessRMD > 100000 ? (
+                        <div>RMD peak during life @{peakRMD.age}: {fmt(peakRMD.rmd)} vs {fmt(peakRMD.spending)} need → {fmt(excessRMD)} excess taxed</div>
+                      ) : null;
+                    })()}
+                    {res.genPayout && (
+                      <div>Generational: {res.genPayout.startBeneficiaries} heirs @ {fmt(res.genPayout.perBenReal)}/yr real → {res.genPayout.years} yrs median{res.genPayout.probPerpetual ? `, ${Math.round(res.genPayout.probPerpetual * 100)}% perpetual (P90 historical)` : ''}</div>
+                    )}
+                    <div>Return assumption: {retRate}% nominal, {infRate}% inflation = {(retRate - infRate).toFixed(1)}% real{walkSeries === 'trulyRandom' ? ' (historical S&P 1928-2024 bootstrap)' : ''}</div>
+                    <div>Starting balance: {fmt(sTax + sPre + sPost)} ({fmt(sTax)} taxable, {fmt(sPre)} pre-tax, {fmt(sPost)} Roth)</div>
+                    <div>Annual contributions: {fmt(cTax1 + cPre1 + cPost1 + cMatch1)}{isMar ? ` + ${fmt(cTax2 + cPre2 + cPost2 + cMatch2)}` : ''}</div>
+                    {res.probRuin !== undefined && (
+                      <div>Success rate: {((1 - res.probRuin) * 100).toFixed(1)}% ({1000 - Math.round(res.probRuin * 1000)}/1000 Monte Carlo runs)</div>
+                    )}
+                    <div>EOL buckets: Taxable {fmt(res.eolAccounts.taxable)} ({((res.eolAccounts.taxable / res.eol) * 100).toFixed(0)}%), Pre-tax {fmt(res.eolAccounts.pretax)} ({((res.eolAccounts.pretax / res.eol) * 100).toFixed(0)}%), Roth {fmt(res.eolAccounts.roth)} ({((res.eolAccounts.roth / res.eol) * 100).toFixed(0)}%)</div>
+                  </div>
+                </div>
+
+                {/* Quick Analysis */}
+                <div className="mt-6 p-4 bg-gray-100 border-2 border-gray-700">
+                  <div className="font-bold mb-2">⚠️ PLAN ANALYSIS:</div>
+                  <div className="space-y-1 text-sm">
+                    <div>✓ Success: {res.probRuin !== undefined ? `${((1 - res.probRuin) * 100).toFixed(0)}%` : 'Deterministic'} | Withdrawal: {wdRate}% {wdRate <= 4 ? '(safe)' : '(aggressive)'}</div>
+                    {res.rmdData && res.rmdData.some((d: any) => d.rmd > d.spending * 2) && (
+                      <div>⚡ RMD bomb detected → Consider Roth conversions now</div>
+                    )}
+                    {res.genPayout && res.genPayout.fundLeftReal > 0 && (
+                      <div>💰 Legacy: {res.genPayout.fundLeftReal > 0 ? 'Perpetual trust achievable' : `${res.genPayout.years} years`}</div>
+                    )}
+                    {res.estateTax > 1000000 && (
+                      <div>🏛️ Estate tax: {fmt(res.estateTax)} ({((res.estateTax / res.eol) * 100).toFixed(0)}% of estate)</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-6 text-xs text-gray-600 text-center">
+                  Paste the "AI QUICK-CHECK" block into Claude/GPT/Grok for instant validation
+                </div>
+              </div>
+            </div>
+
+            {/* Human Dashboard - Page 2+ */}
+            <AnimatedSection animation="slide-up" duration={700}>
             <div ref={resRef} className="space-y-6 scroll-mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <FlippingStatCard
@@ -3241,30 +3389,46 @@ export default function App() {
             <AnimatedSection animation="slide-up" delay={275}>
               <Card>
                 <CardHeader>
-                  <CardTitle>Historical Scenario Playback</CardTitle>
-                  <CardDescription>"What if I had retired in...?"  - See how your plan would have performed in past market conditions</CardDescription>
+                  <CardTitle>Bear Market Retirement Scenarios</CardTitle>
+                  <CardDescription>Click to re-calculate with actual historical returns starting from major market crashes</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
-                    These scenarios use actual historical S&P 500 returns to show how sequence-of-returns risk affects retirement outcomes.
-                    All scenarios use your current inputs but start with real market returns from that year.
+                    Test your plan against the worst bear markets in history. Each scenario uses <strong>actual sequential S&P 500 returns</strong> from that year forward.
+                    {historicalYear && (
+                      <span className="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100 rounded text-xs font-semibold">
+                        Currently using {historicalYear} returns
+                      </span>
+                    )}
                   </p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {[
-                      { year: 1929, label: "Great Depression", description: "Market crashed 89%, recovered slowly", risk: "extreme" },
-                      { year: 1966, label: "Stagflation Era", description: "16 years of poor real returns", risk: "high" },
-                      { year: 2000, label: "Dot-com Crash", description: "Tech bubble burst, slow recovery", risk: "high" },
-                      { year: 2009, label: "Great Recession", description: "Financial crisis followed by strong recovery", risk: "medium" },
+                      { year: 1929, label: "Great Depression", description: "-43.8% → -8.3% → -25.1%", risk: "extreme", firstYear: "-43.8%" },
+                      { year: 1973, label: "Oil Crisis", description: "-14.3% → -25.9% bear market", risk: "high", firstYear: "-14.3%" },
+                      { year: 1987, label: "Black Monday", description: "Single-day crash, quick recovery", risk: "medium", firstYear: "+5.8%" },
+                      { year: 2000, label: "Dot-com Crash", description: "-9.0% → -11.9% → -22.0%", risk: "high", firstYear: "-9.0%" },
+                      { year: 2001, label: "9/11 Recession", description: "Tech bust continues", risk: "high", firstYear: "-11.9%" },
+                      { year: 2008, label: "Financial Crisis", description: "-36.6% worst year since 1931", risk: "extreme", firstYear: "-36.6%" },
+                      { year: 2022, label: "Inflation Shock", description: "-18.0% stocks + bonds down", risk: "medium", firstYear: "-18.0%" },
                     ].map((scenario) => (
-                      <div
+                      <button
                         key={scenario.year}
-                        className={`p-4 rounded-lg border-2 transition-all ${
-                          scenario.risk === 'extreme'
-                            ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/20'
+                        onClick={() => {
+                          setHistoricalYear(scenario.year);
+                          // Scroll to top to see results
+                          setTimeout(() => {
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }, 100);
+                        }}
+                        className={`p-3 rounded-lg border-2 transition-all text-left hover:shadow-lg hover:scale-[1.02] ${
+                          historicalYear === scenario.year
+                            ? 'border-blue-500 dark:border-blue-400 bg-blue-100 dark:bg-blue-950 ring-2 ring-blue-400'
+                            : scenario.risk === 'extreme'
+                            ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/20 hover:border-red-400'
                             : scenario.risk === 'high'
-                            ? 'border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20'
-                            : 'border-yellow-300 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20'
+                            ? 'border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 hover:border-orange-400'
+                            : 'border-yellow-300 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20 hover:border-yellow-400'
                         }`}
                       >
                         <div className="flex items-start justify-between mb-2">
@@ -3272,49 +3436,42 @@ export default function App() {
                             <h4 className="font-semibold text-sm">{scenario.year} - {scenario.label}</h4>
                             <p className="text-xs text-muted-foreground mt-1">{scenario.description}</p>
                           </div>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
                             scenario.risk === 'extreme'
                               ? 'bg-red-200 dark:bg-red-900 text-red-900 dark:text-red-100'
                               : scenario.risk === 'high'
                               ? 'bg-orange-200 dark:bg-orange-900 text-orange-900 dark:text-orange-100'
                               : 'bg-yellow-200 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100'
                           }`}>
-                            {scenario.risk} risk
+                            {scenario.firstYear}
                           </span>
                         </div>
-
-                        <div className="mt-3 pt-3 border-t border-current/10">
-                          <div className="text-xs space-y-1">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Historical Outcome:</span>
-                              <span className="font-medium">
-                                {scenario.year === 1929 && "Portfolio depleted early"}
-                                {scenario.year === 1966 && "Tight but survived"}
-                                {scenario.year === 2000 && "Reduced lifestyle needed"}
-                                {scenario.year === 2009 && "Strong recovery"}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Key Lesson:</span>
-                              <span className="font-medium">
-                                {scenario.year === 1929 && "Need larger buffer"}
-                                {scenario.year === 1966 && "Lower withdrawal helps"}
-                                {scenario.year === 2000 && "Flexibility is key"}
-                                {scenario.year === 2009 && "Patience pays off"}
-                              </span>
-                            </div>
+                        {historicalYear === scenario.year && (
+                          <div className="mt-2 pt-2 border-t border-blue-300 dark:border-blue-700">
+                            <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">✓ Active scenario</span>
                           </div>
-                        </div>
-                      </div>
+                        )}
+                      </button>
                     ))}
+                  </div>
+
+                  <div className="mt-4 flex gap-2">
+                    {historicalYear && (
+                      <Button
+                        onClick={() => setHistoricalYear(null)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Clear & Return to Normal Mode
+                      </Button>
+                    )}
                   </div>
 
                   <div className="mt-6 p-4 bg-muted rounded-lg">
                     <h4 className="text-sm font-semibold mb-2">Understanding Sequence-of-Returns Risk</h4>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      These historical examples show why <strong>when you retire matters</strong>, not just average returns.
-                      Poor returns in early retirement years can permanently damage your portfolio even if markets recover later.
-                      This is why we use Monte Carlo simulations—to prepare for all possible market sequences, not just the average case.
+                      These scenarios show why <strong>when you retire matters</strong>. Retiring into a bear market can permanently damage your portfolio even if markets recover later.
+                      Click any scenario above to recalculate using actual historical returns from that year—the ultimate stress test for your retirement plan.
                     </p>
                   </div>
 
@@ -3513,6 +3670,7 @@ export default function App() {
             )}
           </div>
           </AnimatedSection>
+          </>
         )}
 
         {/* Input Form */}
@@ -4054,7 +4212,7 @@ export default function App() {
                   <ul className="list-disc pl-6 space-y-1 text-gray-700">
                     <li><strong>Fixed Return:</strong> All accounts grow by a constant rate (e.g., 9.8%) each year: Balance<sub>year+1</sub> = Balance<sub>year</sub> × (1 + r)</li>
                     <li><strong>Random Walk:</strong> Returns are randomly sampled from 97 years of historical S&amp;P 500 data (1928-2024), using a seeded pseudo-random number generator for reproducibility. Each year gets a different historical return, bootstrapped with replacement.</li>
-                    <li><strong>Truly Random (Monte Carlo):</strong> Runs 1,000 independent simulations, each with different sequences of returns randomly sampled from historical data. Reports median outcomes and calculates probability of portfolio depletion based on actual simulation results—no fixed return assumptions.</li>
+                    <li><strong>Truly Random (Monte Carlo):</strong> Runs 1,000 independent simulations, each with different sequences of returns randomly sampled from 97 years of S&amp;P 500 historical data (1928-2024, including Great Depression, stagflation, dot-com crash, 2008 crisis). Reports median outcomes and calculates probability of portfolio depletion based on actual simulation results—captures real sequence risk without idealized assumptions.</li>
                   </ul>
                 </div>
 
@@ -4298,7 +4456,7 @@ export default function App() {
             <section>
               <h3 className="text-xl font-semibold mb-3 text-blue-900">Data Sources</h3>
               <ul className="list-disc pl-6 space-y-1 text-gray-700">
-                <li><strong>S&amp;P 500 Returns:</strong> Historical total return data (1975-2024) used for random walk simulations</li>
+                <li><strong>S&amp;P 500 Returns:</strong> Historical total return data (1928-2024, 97 years) used for random walk and Monte Carlo simulations</li>
                 <li><strong>Tax Brackets:</strong> 2025 federal ordinary income tax brackets (IRS)</li>
                 <li><strong>LTCG Brackets:</strong> 2025 long-term capital gains tax rates (IRS)</li>
                 <li><strong>RMD Table:</strong> IRS Uniform Lifetime Table (Publication 590-B)</li>

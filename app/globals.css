@@ -375,6 +375,11 @@ html {
     page-break-inside: avoid;
     margin-bottom: 20px;
   }
+
+  /* AI Snapshot specific */
+  .hidden.print\\:block {
+    display: block !important;
+  }
 }
 
 @media screen {
