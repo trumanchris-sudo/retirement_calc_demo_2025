@@ -2441,19 +2441,37 @@ export default function App() {
 
                 {/* AI Quick-Check Block */}
                 <div className="border-4 border-blue-600 bg-blue-50 p-4 font-mono text-sm">
-                  <div className="font-bold mb-2">⚡ AI QUICK-CHECK (copy-paste this block):</div>
-                  <div className="space-y-1">
-                    <div>Age {age1}→{retAge}: {fmt(res.finReal)} real → {wdRate}% = {fmt(res.wd)} gross</div>
-                    <div>After-tax: {fmt(res.wdReal)} ({((res.tax.tot / res.wd) * 100).toFixed(0)}% effective tax)</div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-bold">⚡ AI QUICK-CHECK (copy-paste this block):</div>
+                    <button
+                      onClick={() => {
+                        const content = document.getElementById('ai-quick-check-content')?.innerText || '';
+                        navigator.clipboard.writeText(content).then(() => {
+                          const btn = document.getElementById('copy-btn');
+                          if (btn) {
+                            btn.innerText = '✓ Copied!';
+                            setTimeout(() => { btn.innerText = '📋 Copy Block'; }, 2000);
+                          }
+                        });
+                      }}
+                      id="copy-btn"
+                      className="no-print px-3 py-1 text-xs font-semibold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                    >
+                      📋 Copy Block
+                    </button>
+                  </div>
+                  <div id="ai-quick-check-content" className="space-y-1">
+                    <div>Age {age1}→{retAge}: {fmt(res.finReal)} real at {retAge} (equiv. {fmt(res.finNom)} nom) → {wdRate}% SWR = {fmt(res.wdReal)} real gross Yr1 ({fmt(res.wd)} nom)</div>
+                    <div>After-tax: {fmt(res.wdReal - res.tax.tot)} real ({((res.tax.tot / res.wd) * 100).toFixed(0)}% effective tax rate)</div>
                     {res.rmdData && res.rmdData.length > 0 && (() => {
                       const peakRMD = res.rmdData.reduce((max: any, curr: any) => curr.rmd > max.rmd ? curr : max, res.rmdData[0]);
                       const excessRMD = Math.max(0, peakRMD.rmd - peakRMD.spending);
                       return excessRMD > 100000 ? (
-                        <div>RMD peak @{peakRMD.age}: {fmt(peakRMD.rmd)} vs {fmt(peakRMD.spending)} need → {fmt(excessRMD)} excess taxed</div>
+                        <div>RMD peak during life @{peakRMD.age}: {fmt(peakRMD.rmd)} vs {fmt(peakRMD.spending)} need → {fmt(excessRMD)} excess taxed</div>
                       ) : null;
                     })()}
                     {res.genPayout && (
-                      <div>Generational: {res.genPayout.startBeneficiaries} heirs @ {fmt(res.genPayout.perBenReal)} → {res.genPayout.years} yrs median{res.genPayout.probPerpetual ? `, ${Math.round(res.genPayout.probPerpetual * 100)}% perpetual` : ''}</div>
+                      <div>Generational: {res.genPayout.startBeneficiaries} heirs @ {fmt(res.genPayout.perBenReal)}/yr real → {res.genPayout.years} yrs median{res.genPayout.probPerpetual ? `, ${Math.round(res.genPayout.probPerpetual * 100)}% perpetual (P90 historical)` : ''}</div>
                     )}
                     <div>Return assumption: {retRate}% nominal, {infRate}% inflation = {(retRate - infRate).toFixed(1)}% real</div>
                     <div>Starting balance: {fmt(sTax + sPre + sPost)} ({fmt(sTax)} taxable, {fmt(sPre)} pre-tax, {fmt(sPost)} Roth)</div>
