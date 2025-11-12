@@ -83,6 +83,7 @@ export function buildReturnGenerator(options: {
   walkSeries?: WalkSeries;
   walkData?: number[];
   seed?: number;
+  startYear?: number; // Historical year to start sequential playback (e.g., 1929)
 }) {
   const {
     mode,
@@ -92,6 +93,7 @@ export function buildReturnGenerator(options: {
     walkSeries = "nominal",
     walkData = SP500_YOY_NOMINAL,
     seed = 12345,
+    startYear,
   } = options;
 
   if (mode === "fixed") {
@@ -102,9 +104,28 @@ export function buildReturnGenerator(options: {
   }
 
   if (!walkData.length) throw new Error("walkData is empty");
-  const rnd = mulberry32(seed);
   const inflRate = infPct / 100;
 
+  // Historical sequential playback
+  if (startYear !== undefined) {
+    const startIndex = startYear - 1928; // SP500_YOY_NOMINAL starts at 1928
+    return function* historicalGen() {
+      for (let i = 0; i < years; i++) {
+        const ix = (startIndex + i) % walkData.length; // Wrap around if we exceed data
+        let pct = walkData[ix];
+
+        if (walkSeries === "real") {
+          const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
+          yield 1 + realRate;
+        } else {
+          yield 1 + pct / 100;
+        }
+      }
+    };
+  }
+
+  // Random bootstrap
+  const rnd = mulberry32(seed);
   return function* walkGen() {
     for (let i = 0; i < years; i++) {
       const ix = Math.floor(rnd() * walkData.length);
@@ -768,6 +789,7 @@ export type Inputs = {
   ssClaimAge: number;
   ssIncome2: number;
   ssClaimAge2: number;
+  historicalYear?: number; // Start year for historical sequential playback
 };
 
 /** Result from a single simulation run */
@@ -788,6 +810,7 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
     retRate, infRate, stateRate, incContrib, incRate, wdRate,
     retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+    historicalYear,
   } = params;
 
   const isMar = marital === "married";
@@ -812,6 +835,7 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     infPct: infRate,
     walkSeries,
     seed: seed,
+    startYear: historicalYear,
   })();
 
   const drawGen = buildReturnGenerator({
@@ -821,6 +845,7 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     infPct: infRate,
     walkSeries,
     seed: seed + 1,
+    startYear: historicalYear ? historicalYear + yrsToRet : undefined,
   })();
 
   let bTax = sTax;
@@ -1511,6 +1536,7 @@ export default function App() {
           cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
           retRate, infRate, stateRate, incContrib, incRate, wdRate,
           retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+          historicalYear: historicalYear || undefined,
         };
 
         const batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, 1000);
@@ -1788,6 +1814,7 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed,
+        startYear: historicalYear || undefined,
       })();
 
       const drawGen = buildReturnGenerator({
@@ -1797,6 +1824,7 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed + 1,
+        startYear: historicalYear ? historicalYear + yrsToRet : undefined,
       })();
 
       let bTax = sTax;
@@ -3361,30 +3389,46 @@ export default function App() {
             <AnimatedSection animation="slide-up" delay={275}>
               <Card>
                 <CardHeader>
-                  <CardTitle>Historical Scenario Playback</CardTitle>
-                  <CardDescription>"What if I had retired in...?"  - See how your plan would have performed in past market conditions</CardDescription>
+                  <CardTitle>Bear Market Retirement Scenarios</CardTitle>
+                  <CardDescription>Click to re-calculate with actual historical returns starting from major market crashes</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
-                    These scenarios use actual historical S&P 500 returns to show how sequence-of-returns risk affects retirement outcomes.
-                    All scenarios use your current inputs but start with real market returns from that year.
+                    Test your plan against the worst bear markets in history. Each scenario uses <strong>actual sequential S&P 500 returns</strong> from that year forward.
+                    {historicalYear && (
+                      <span className="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100 rounded text-xs font-semibold">
+                        Currently using {historicalYear} returns
+                      </span>
+                    )}
                   </p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {[
-                      { year: 1929, label: "Great Depression", description: "Market crashed 89%, recovered slowly", risk: "extreme" },
-                      { year: 1966, label: "Stagflation Era", description: "16 years of poor real returns", risk: "high" },
-                      { year: 2000, label: "Dot-com Crash", description: "Tech bubble burst, slow recovery", risk: "high" },
-                      { year: 2009, label: "Great Recession", description: "Financial crisis followed by strong recovery", risk: "medium" },
+                      { year: 1929, label: "Great Depression", description: "-43.8% → -8.3% → -25.1%", risk: "extreme", firstYear: "-43.8%" },
+                      { year: 1973, label: "Oil Crisis", description: "-14.3% → -25.9% bear market", risk: "high", firstYear: "-14.3%" },
+                      { year: 1987, label: "Black Monday", description: "Single-day crash, quick recovery", risk: "medium", firstYear: "+5.8%" },
+                      { year: 2000, label: "Dot-com Crash", description: "-9.0% → -11.9% → -22.0%", risk: "high", firstYear: "-9.0%" },
+                      { year: 2001, label: "9/11 Recession", description: "Tech bust continues", risk: "high", firstYear: "-11.9%" },
+                      { year: 2008, label: "Financial Crisis", description: "-36.6% worst year since 1931", risk: "extreme", firstYear: "-36.6%" },
+                      { year: 2022, label: "Inflation Shock", description: "-18.0% stocks + bonds down", risk: "medium", firstYear: "-18.0%" },
                     ].map((scenario) => (
-                      <div
+                      <button
                         key={scenario.year}
-                        className={`p-4 rounded-lg border-2 transition-all ${
-                          scenario.risk === 'extreme'
-                            ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/20'
+                        onClick={() => {
+                          setHistoricalYear(scenario.year);
+                          // Scroll to top to see results
+                          setTimeout(() => {
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }, 100);
+                        }}
+                        className={`p-3 rounded-lg border-2 transition-all text-left hover:shadow-lg hover:scale-[1.02] ${
+                          historicalYear === scenario.year
+                            ? 'border-blue-500 dark:border-blue-400 bg-blue-100 dark:bg-blue-950 ring-2 ring-blue-400'
+                            : scenario.risk === 'extreme'
+                            ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/20 hover:border-red-400'
                             : scenario.risk === 'high'
-                            ? 'border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20'
-                            : 'border-yellow-300 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20'
+                            ? 'border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 hover:border-orange-400'
+                            : 'border-yellow-300 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20 hover:border-yellow-400'
                         }`}
                       >
                         <div className="flex items-start justify-between mb-2">
@@ -3392,49 +3436,42 @@ export default function App() {
                             <h4 className="font-semibold text-sm">{scenario.year} - {scenario.label}</h4>
                             <p className="text-xs text-muted-foreground mt-1">{scenario.description}</p>
                           </div>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
                             scenario.risk === 'extreme'
                               ? 'bg-red-200 dark:bg-red-900 text-red-900 dark:text-red-100'
                               : scenario.risk === 'high'
                               ? 'bg-orange-200 dark:bg-orange-900 text-orange-900 dark:text-orange-100'
                               : 'bg-yellow-200 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100'
                           }`}>
-                            {scenario.risk} risk
+                            {scenario.firstYear}
                           </span>
                         </div>
-
-                        <div className="mt-3 pt-3 border-t border-current/10">
-                          <div className="text-xs space-y-1">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Historical Outcome:</span>
-                              <span className="font-medium">
-                                {scenario.year === 1929 && "Portfolio depleted early"}
-                                {scenario.year === 1966 && "Tight but survived"}
-                                {scenario.year === 2000 && "Reduced lifestyle needed"}
-                                {scenario.year === 2009 && "Strong recovery"}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Key Lesson:</span>
-                              <span className="font-medium">
-                                {scenario.year === 1929 && "Need larger buffer"}
-                                {scenario.year === 1966 && "Lower withdrawal helps"}
-                                {scenario.year === 2000 && "Flexibility is key"}
-                                {scenario.year === 2009 && "Patience pays off"}
-                              </span>
-                            </div>
+                        {historicalYear === scenario.year && (
+                          <div className="mt-2 pt-2 border-t border-blue-300 dark:border-blue-700">
+                            <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">✓ Active scenario</span>
                           </div>
-                        </div>
-                      </div>
+                        )}
+                      </button>
                     ))}
+                  </div>
+
+                  <div className="mt-4 flex gap-2">
+                    {historicalYear && (
+                      <Button
+                        onClick={() => setHistoricalYear(null)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Clear & Return to Normal Mode
+                      </Button>
+                    )}
                   </div>
 
                   <div className="mt-6 p-4 bg-muted rounded-lg">
                     <h4 className="text-sm font-semibold mb-2">Understanding Sequence-of-Returns Risk</h4>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      These historical examples show why <strong>when you retire matters</strong>, not just average returns.
-                      Poor returns in early retirement years can permanently damage your portfolio even if markets recover later.
-                      This is why we use Monte Carlo simulations—to prepare for all possible market sequences, not just the average case.
+                      These scenarios show why <strong>when you retire matters</strong>. Retiring into a bear market can permanently damage your portfolio even if markets recover later.
+                      Click any scenario above to recalculate using actual historical returns from that year—the ultimate stress test for your retirement plan.
                     </p>
                   </div>
 
