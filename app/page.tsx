@@ -2461,8 +2461,7 @@ export default function App() {
                     </button>
                   </div>
                   <div id="ai-quick-check-content" className="space-y-1">
-                    <div>Age {age1}→{retAge}: {fmt(res.finReal)} real at {retAge} (equiv. {fmt(res.finNom)} nom) → {wdRate}% SWR = {fmt(res.wdReal)} real gross Yr1 ({fmt(res.wd)} nom)</div>
-                    <div>After-tax: {fmt(res.wdReal - res.tax.tot)} real ({((res.tax.tot / res.wd) * 100).toFixed(0)}% effective tax rate)</div>
+                    <div>Age {age1}→{retAge}: {fmt(res.finReal)} real at {retAge} (equiv. {fmt(res.finNom)} nom) → {wdRate}% SWR Gross: {fmt(res.finReal * (wdRate / 100))} real Yr1 ({fmt(res.wd)} nom) → After-tax: {fmt(res.wdReal)} real ({((((res.finReal * (wdRate / 100)) - res.wdReal) / (res.finReal * (wdRate / 100))) * 100).toFixed(0)}% eff. tax)</div>
                     {res.rmdData && res.rmdData.length > 0 && (() => {
                       const peakRMD = res.rmdData.reduce((max: any, curr: any) => curr.rmd > max.rmd ? curr : max, res.rmdData[0]);
                       const excessRMD = Math.max(0, peakRMD.rmd - peakRMD.spending);
@@ -2479,6 +2478,7 @@ export default function App() {
                     {res.probRuin !== undefined && (
                       <div>Success rate: {((1 - res.probRuin) * 100).toFixed(1)}% ({1000 - Math.round(res.probRuin * 1000)}/1000 Monte Carlo runs)</div>
                     )}
+                    <div>EOL buckets: Taxable {fmt(res.eolAccounts.taxable)} ({((res.eolAccounts.taxable / res.eol) * 100).toFixed(0)}%), Pre-tax {fmt(res.eolAccounts.pretax)} ({((res.eolAccounts.pretax / res.eol) * 100).toFixed(0)}%), Roth {fmt(res.eolAccounts.roth)} ({((res.eolAccounts.roth / res.eol) * 100).toFixed(0)}%)</div>
                   </div>
                 </div>
 
