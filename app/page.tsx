@@ -2386,7 +2386,109 @@ export default function App() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
         {res && (
-          <AnimatedSection animation="slide-up" duration={700}>
+          <>
+            {/* AI SNAPSHOT - Print Only (Page 1) */}
+            <div className="hidden print:block print-page-break-after">
+              <div className="border-4 border-gray-900 rounded-lg p-6 mb-8">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-gray-900">
+                  <h1 className="text-2xl font-bold">Tax-Aware Retirement Calculator</h1>
+                  <div className="flex gap-4 text-sm">
+                    <span>☑ {walkSeries === 'trulyRandom' ? 'Monte Carlo (N=1000)' : 'Optimized Path'}</span>
+                    <span className="text-gray-600">Page 1 - AI Snapshot</span>
+                  </div>
+                </div>
+
+                {/* Core Metrics Grid */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="border-2 border-gray-800 p-4">
+                    <div className="text-xs text-gray-600 mb-1">Future Balance</div>
+                    <div className="text-xl font-bold">{fmt(res.finNom)}</div>
+                    <div className="text-xs text-gray-600">nominal @{retAge}</div>
+                  </div>
+                  <div className="border-2 border-gray-800 p-4">
+                    <div className="text-xs text-gray-600 mb-1">Today's Dollars</div>
+                    <div className="text-xl font-bold">{fmt(res.finReal)}</div>
+                    <div className="text-xs text-gray-600">real @{retAge}</div>
+                  </div>
+                  <div className="border-2 border-gray-800 p-4">
+                    <div className="text-xs text-gray-600 mb-1">Annual Withdrawal</div>
+                    <div className="text-xl font-bold">{fmt(res.wd)}</div>
+                    <div className="text-xs text-gray-600">{wdRate}% → {fmt(res.wdReal)} after-tax</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="border-2 border-gray-800 p-4">
+                    <div className="text-xs text-gray-600 mb-1">EOL Wealth</div>
+                    <div className="text-xl font-bold">{fmt(res.eol)}</div>
+                    <div className="text-xs text-gray-600">nominal</div>
+                  </div>
+                  <div className="border-2 border-gray-800 p-4">
+                    <div className="text-xs text-gray-600 mb-1">Net to Heirs</div>
+                    <div className="text-xl font-bold">{fmt(res.netEstate)}</div>
+                    <div className="text-xs text-gray-600">after ${fmt(res.estateTax)} estate tax</div>
+                  </div>
+                  <div className="border-2 border-gray-800 p-4">
+                    <div className="text-xs text-gray-600 mb-1">Failure Probability</div>
+                    <div className="text-xl font-bold">
+                      {res.probRuin !== undefined ? `${(res.probRuin * 100).toFixed(1)}%` : 'N/A'}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {res.probRuin !== undefined ? `${Math.round(res.probRuin * 1000)}/1000 runs` : 'Single path'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Quick-Check Block */}
+                <div className="border-4 border-blue-600 bg-blue-50 p-4 font-mono text-sm">
+                  <div className="font-bold mb-2">⚡ AI QUICK-CHECK (copy-paste this block):</div>
+                  <div className="space-y-1">
+                    <div>Age {age1}→{retAge}: {fmt(res.finReal)} real → {wdRate}% = {fmt(res.wd)} gross</div>
+                    <div>After-tax: {fmt(res.wdReal)} ({((res.tax.tot / res.wd) * 100).toFixed(0)}% effective tax)</div>
+                    {res.rmdData && res.rmdData.length > 0 && (() => {
+                      const peakRMD = res.rmdData.reduce((max: any, curr: any) => curr.rmd > max.rmd ? curr : max, res.rmdData[0]);
+                      const excessRMD = Math.max(0, peakRMD.rmd - peakRMD.spending);
+                      return excessRMD > 100000 ? (
+                        <div>RMD peak @{peakRMD.age}: {fmt(peakRMD.rmd)} vs {fmt(peakRMD.spending)} need → {fmt(excessRMD)} excess taxed</div>
+                      ) : null;
+                    })()}
+                    {res.genPayout && (
+                      <div>Generational: {res.genPayout.startBeneficiaries} heirs @ {fmt(res.genPayout.perBenReal)} → {res.genPayout.years} yrs median{res.genPayout.probPerpetual ? `, ${Math.round(res.genPayout.probPerpetual * 100)}% perpetual` : ''}</div>
+                    )}
+                    <div>Return assumption: {retRate}% nominal, {infRate}% inflation = {(retRate - infRate).toFixed(1)}% real</div>
+                    <div>Starting balance: {fmt(sTax + sPre + sPost)} ({fmt(sTax)} taxable, {fmt(sPre)} pre-tax, {fmt(sPost)} Roth)</div>
+                    <div>Annual contributions: {fmt(cTax1 + cPre1 + cPost1 + cMatch1)}{isMar ? ` + ${fmt(cTax2 + cPre2 + cPost2 + cMatch2)}` : ''}</div>
+                    {res.probRuin !== undefined && (
+                      <div>Success rate: {((1 - res.probRuin) * 100).toFixed(1)}% ({1000 - Math.round(res.probRuin * 1000)}/1000 Monte Carlo runs)</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Analysis */}
+                <div className="mt-6 p-4 bg-gray-100 border-2 border-gray-700">
+                  <div className="font-bold mb-2">⚠️ PLAN ANALYSIS:</div>
+                  <div className="space-y-1 text-sm">
+                    <div>✓ Success: {res.probRuin !== undefined ? `${((1 - res.probRuin) * 100).toFixed(0)}%` : 'Deterministic'} | Withdrawal: {wdRate}% {wdRate <= 4 ? '(safe)' : '(aggressive)'}</div>
+                    {res.rmdData && res.rmdData.some((d: any) => d.rmd > d.spending * 2) && (
+                      <div>⚡ RMD bomb detected → Consider Roth conversions now</div>
+                    )}
+                    {res.genPayout && res.genPayout.fundLeftReal > 0 && (
+                      <div>💰 Legacy: {res.genPayout.fundLeftReal > 0 ? 'Perpetual trust achievable' : `${res.genPayout.years} years`}</div>
+                    )}
+                    {res.estateTax > 1000000 && (
+                      <div>🏛️ Estate tax: {fmt(res.estateTax)} ({((res.estateTax / res.eol) * 100).toFixed(0)}% of estate)</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-6 text-xs text-gray-600 text-center">
+                  Paste the "AI QUICK-CHECK" block into Claude/GPT/Grok for instant validation
+                </div>
+              </div>
+            </div>
+
+            {/* Human Dashboard - Page 2+ */}
+            <AnimatedSection animation="slide-up" duration={700}>
             <div ref={resRef} className="space-y-6 scroll-mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <FlippingStatCard
@@ -3513,6 +3615,7 @@ export default function App() {
             )}
           </div>
           </AnimatedSection>
+          </>
         )}
 
         {/* Input Form */}
