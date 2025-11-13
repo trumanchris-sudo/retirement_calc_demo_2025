@@ -144,6 +144,7 @@ function buildReturnGenerator(options) {
     walkSeries = "nominal",
     walkData = SP500_YOY_NOMINAL,
     seed = 12345,
+    startYear,
   } = options;
 
   if (mode === "fixed") {
@@ -154,9 +155,28 @@ function buildReturnGenerator(options) {
   }
 
   if (!walkData.length) throw new Error("walkData is empty");
-  const rnd = mulberry32(seed);
   const inflRate = infPct / 100;
 
+  // Historical sequential playback
+  if (startYear !== undefined) {
+    const startIndex = startYear - 1928; // SP500_YOY_NOMINAL starts at 1928
+    return function* historicalGen() {
+      for (let i = 0; i < years; i++) {
+        const ix = (startIndex + i) % walkData.length; // Wrap around if we exceed data
+        let pct = walkData[ix];
+
+        if (walkSeries === "real") {
+          const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
+          yield 1 + realRate;
+        } else {
+          yield 1 + pct / 100;
+        }
+      }
+    };
+  }
+
+  // Random bootstrap
+  const rnd = mulberry32(seed);
   return function* walkGen() {
     for (let i = 0; i < years; i++) {
       const ix = Math.floor(rnd() * walkData.length);
@@ -275,6 +295,7 @@ function runSingleSimulation(params, seed) {
     cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
     retRate, infRate, stateRate, incContrib, incRate, wdRate,
     retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+    historicalYear,
   } = params;
 
   const isMar = marital === "married";
@@ -299,6 +320,7 @@ function runSingleSimulation(params, seed) {
     infPct: infRate,
     walkSeries,
     seed: seed,
+    startYear: undefined, // Don't apply historical returns during accumulation
   })();
 
   const drawGen = buildReturnGenerator({
@@ -308,6 +330,7 @@ function runSingleSimulation(params, seed) {
     infPct: infRate,
     walkSeries,
     seed: seed + 1,
+    startYear: historicalYear, // Apply historical returns starting at retirement
   })();
 
   let bTax = sTax;
