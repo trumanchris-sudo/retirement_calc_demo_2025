@@ -2946,6 +2946,13 @@ export default function App() {
                       </Sankey>
                     </ResponsiveContainer>
 
+                    {/* Disclaimer */}
+                    <div className="pt-4 mt-2 border-t border-border">
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        <span className="font-semibold">Disclaimer:</span> This Lifetime Wealth Flow illustration attributes estate tax proportionally across all account types (taxable, pre-tax, and Roth) based on their share of the total estate. In practice, executors often choose to satisfy estate tax using taxable assets first to preserve tax-advantaged accounts like Roth IRAs. However, federal estate tax is imposed on the value of the entire estate—not on specific accounts—and the economic burden ultimately depends on your estate structure, beneficiary designations, and the tax treatment of your trust or inheritance plan (including whether a dynasty trust is used and how it is taxed). This chart is a simplified economic attribution model and should not be interpreted as guidance on which assets will or should be used to pay estate tax.
+                      </p>
+                    </div>
+
                     {/* Total RMDs if applicable */}
                     {res.totalRMDs > 0 && (
                       <div className="pt-4 border-t border-border">
