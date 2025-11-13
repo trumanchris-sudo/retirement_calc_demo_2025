@@ -85,7 +85,6 @@ import { computeWithdrawalTaxes } from "@/lib/calculations/withdrawalTax";
 // Import retirement engine
 import {
   runSingleSimulation,
-  buildReturnGenerator,
   type SimulationInputs,
   type SimulationResult,
 } from "@/lib/calculations/retirementEngine";

@@ -9,7 +9,8 @@ import { calcOrdinaryTax } from "./taxCalculations";
 import { computeWithdrawalTaxes } from "./withdrawalTax";
 import { getBearReturns } from "@/lib/simulation/bearMarkets";
 import { getEffectiveInflation } from "@/lib/simulation/inflationShocks";
-import { LIFE_EXP, RMD_START_AGE, RMD_DIVISORS } from "@/lib/constants";
+import { LIFE_EXP, RMD_START_AGE, RMD_DIVISORS, SP500_YOY_NOMINAL } from "@/lib/constants";
+import { mulberry32 } from "@/lib/utils";
 
 /**
  * Input parameters for a single simulation run
@@ -60,59 +61,73 @@ export type SimulationResult = {
 
 /**
  * Build a generator that yields annual gross return factors
+ * Returns a function that when called returns a generator
+ * NOTE: Not exported - internal use only. page.tsx has its own full-featured version.
  */
-export function* buildReturnGenerator(options: {
+function buildReturnGenerator(options: {
   mode: ReturnMode;
   years: number;
   nominalPct?: number;
   infPct?: number;
   walkSeries?: WalkSeries;
+  walkData?: number[];
   seed?: number;
-}): Generator<number, void, undefined> {
-  const { mode, years, nominalPct = 9.8, infPct = 3.0, walkSeries = "nominal", seed = 123 } = options;
+  startYear?: number;
+}) {
+  const {
+    mode,
+    years,
+    nominalPct = 9.8,
+    infPct = 2.6,
+    walkSeries = "nominal",
+    walkData = SP500_YOY_NOMINAL,
+    seed = 12345,
+    startYear,
+  } = options;
 
   if (mode === "fixed") {
-    const fixedRate = walkSeries === "real"
-      ? (1 + nominalPct / 100) / (1 + infPct / 100) - 1
-      : nominalPct / 100;
-    for (let i = 0; i < years; i++) {
-      yield 1 + fixedRate;
-    }
-    return;
-  }
-
-  // For random walk mode, import the actual implementation from constants
-  // This is a simplified version - the real implementation uses SP500_YOY_NOMINAL
-  const inflRate = infPct / 100;
-
-  // Simple PRNG (mulberry32)
-  function mulberry32(a: number) {
-    return function() {
-      let t = a += 0x6D2B79F5;
-      t = Math.imul(t ^ t >>> 15, t | 1);
-      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    const g = 1 + nominalPct / 100;
+    return function* fixedGen() {
+      for (let i = 0; i < years; i++) yield g;
     };
   }
 
-  const rnd = mulberry32(seed);
+  if (!walkData.length) throw new Error("walkData is empty");
+  const inflRate = infPct / 100;
 
-  // For now, use a simple normal distribution around the expected return
-  // In production, this would use historical data from SP500_YOY_NOMINAL
-  for (let i = 0; i < years; i++) {
-    // Box-Muller transform for normal distribution
-    const u1 = rnd();
-    const u2 = rnd();
-    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-    const pct = nominalPct + z * 18; // Mean 9.8%, std dev 18%
+  // Historical sequential playback
+  if (startYear !== undefined) {
+    const startIndex = startYear - 1928; // SP500_YOY_NOMINAL starts at 1928
+    return function* historicalGen() {
+      for (let i = 0; i < years; i++) {
+        const ix = (startIndex + i) % walkData.length; // Wrap around if we exceed data
+        let pct = walkData[ix];
 
-    if (walkSeries === "real") {
-      const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
-      yield 1 + realRate;
-    } else {
-      yield 1 + pct / 100;
-    }
+        if (walkSeries === "real") {
+          const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
+          yield 1 + realRate;
+        } else {
+          yield 1 + pct / 100;
+        }
+      }
+    };
   }
+
+  // Random bootstrap
+  const rnd = mulberry32(seed);
+  return function* walkGen() {
+    for (let i = 0; i < years; i++) {
+      const ix = Math.floor(rnd() * walkData.length);
+      let pct = walkData[ix];
+
+      if (walkSeries === "real") {
+        const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
+        yield 1 + realRate;
+      } else {
+        yield 1 + pct / 100;
+      }
+    }
+  };
 }
 
 /**
