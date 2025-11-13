@@ -6,7 +6,7 @@ export const BrandLoader: React.FC<{
   onCubeAppended?: () => void;
   onComplete?: () => void;
 }> = ({ onHandoffStart, onCubeAppended, onComplete }) => {
-  const [phase, setPhase] = useState<"spin" | "handoff" | "hidden">("spin");
+  const [phase, setPhase] = useState<"spin" | "handoff" | "settled">("spin");
 
   // Orchestrate timing for spin -> handoff
   useEffect(() => {
@@ -22,10 +22,10 @@ export const BrandLoader: React.FC<{
   useEffect(() => {
     if (phase !== "handoff") return;
 
-    // After handoff animation completes, hide loader
+    // After handoff animation completes, settle cube in header
     const completeTimer = setTimeout(() => {
       onCubeAppended?.();
-      setPhase("hidden");
+      setPhase("settled");
       onComplete?.();
     }, 600); // Wait for handoff animation to complete
 
@@ -37,48 +37,87 @@ export const BrandLoader: React.FC<{
     if (typeof window === "undefined") return;
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReduced && phase === "spin") {
-      setPhase("hidden");
+      setPhase("settled");
       onCubeAppended?.();
       onComplete?.();
     }
   }, [phase, onCubeAppended, onComplete]);
 
-  if (phase === "hidden") return null;
-
   const prefersReduced =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  // Calculate position for settled state
+  const getSettledStyle = () => {
+    if (phase !== "settled") return {};
+
+    // Position in header
+    return {
+      position: "fixed" as const,
+      top: "8px",
+      left: "16px",
+      zIndex: 60,
+      width: "32px",
+      height: "32px",
+    };
+  };
+
   return (
-    <div
-      aria-hidden="true"
-      role="presentation"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        display: "grid",
-        placeItems: "center",
-        background: "#f1f1f3",
-        opacity: phase === "handoff" ? 0 : 1,
-        transition: "opacity .5s ease",
-        pointerEvents: "none",
-      }}
-    >
-      <div className="stage" style={{ width: 72, height: 72, perspective: "900px", perspectiveOrigin: "50% 40%" }}>
+    <>
+      {/* Background overlay - only during spin/handoff */}
+      {phase !== "settled" && (
+        <div
+          aria-hidden="true"
+          role="presentation"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "#f1f1f3",
+            opacity: phase === "handoff" ? 0 : 1,
+            transition: "opacity .5s ease",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+
+      {/* Cube - always visible */}
+      <div
+        aria-hidden="true"
+        role="presentation"
+        style={{
+          ...(phase === "settled" ? getSettledStyle() : {
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            display: "grid",
+            placeItems: "center",
+            pointerEvents: "none",
+          }),
+          transition: phase === "handoff" ? "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)" : undefined,
+        }}
+      >
+      <div className="stage" style={{
+        width: phase === "settled" ? 32 : 72,
+        height: phase === "settled" ? 32 : 72,
+        perspective: "900px",
+        perspectiveOrigin: "50% 40%",
+        transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
+      }}>
         <div
           className={`cube ${!prefersReduced && phase === "spin" ? "spin3d" : ""}`}
           style={{
-            width: 72,
-            height: 72,
+            width: phase === "settled" ? 32 : 72,
+            height: phase === "settled" ? 32 : 72,
             position: "relative",
             transformStyle: "preserve-3d",
+            transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
           }}
         >
           {/* Front face with R + subtle shine */}
           <div
             className="face front"
-            style={face("#6b4cd6", "translateZ(36px)")}
+            style={face("#6b4cd6", phase === "settled" ? "translateZ(16px)" : "translateZ(36px)", phase === "settled" ? 32 : 72)}
           >
             <svg viewBox="0 0 100 100" style={{ width: "80%", height: "80%" }} aria-hidden="true">
               <text x="50" y="64" textAnchor="middle" fontWeight="700" fontSize="64" fill="#fff">R</text>
@@ -86,11 +125,11 @@ export const BrandLoader: React.FC<{
             <div className="specular" />
           </div>
 
-          <div className="face back"   style={face("#5a3db8", "rotateY(180deg) translateZ(36px)")} />
-          <div className="face right"  style={face("#7d5ee6", "rotateY(90deg)  translateZ(36px)")} />
-          <div className="face left"   style={face("#4e35a0", "rotateY(-90deg) translateZ(36px)")} />
-          <div className="face top"    style={face("#8366e8", "rotateX(90deg)  translateZ(36px)")} />
-          <div className="face bottom" style={face("#4a329c", "rotateX(-90deg) translateZ(36px)")} />
+          <div className="face back"   style={face("#5a3db8", phase === "settled" ? "rotateY(180deg) translateZ(16px)" : "rotateY(180deg) translateZ(36px)", phase === "settled" ? 32 : 72)} />
+          <div className="face right"  style={face("#7d5ee6", phase === "settled" ? "rotateY(90deg)  translateZ(16px)" : "rotateY(90deg)  translateZ(36px)", phase === "settled" ? 32 : 72)} />
+          <div className="face left"   style={face("#4e35a0", phase === "settled" ? "rotateY(-90deg) translateZ(16px)" : "rotateY(-90deg) translateZ(36px)", phase === "settled" ? 32 : 72)} />
+          <div className="face top"    style={face("#8366e8", phase === "settled" ? "rotateX(90deg)  translateZ(16px)" : "rotateX(90deg)  translateZ(36px)", phase === "settled" ? 32 : 72)} />
+          <div className="face bottom" style={face("#4a329c", phase === "settled" ? "rotateX(-90deg) translateZ(16px)" : "rotateX(-90deg) translateZ(36px)", phase === "settled" ? 32 : 72)} />
         </div>
       </div>
 
@@ -119,11 +158,12 @@ export const BrandLoader: React.FC<{
           .specular { animation: none; opacity:.2; }
         }
       `}</style>
-    </div>
+      </div>
+    </>
   );
 };
 
 // tiny helper for face style
-function face(bg: string, transform: string): React.CSSProperties {
-  return { width: 72, height: 72, background: bg, transform };
+function face(bg: string, transform: string, size: number = 72): React.CSSProperties {
+  return { width: size, height: size, background: bg, transform, transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)" };
 }

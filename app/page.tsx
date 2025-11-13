@@ -3003,36 +3003,37 @@ export default function App() {
             <div className="print-section print-block analysis-block">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <SparkleIcon className="text-blue-600" />
-                  Plan Analysis
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {res && !aiInsight && !isLoadingAi && (
-                  <div className="plan-analysis-container">
-                    <div className="text-center py-6">
-                      <Button
-                        onClick={async () => {
-                          if (res && olderAgeForAnalysis > 0) {
-                            await fetchAiInsight(res, olderAgeForAnalysis, "Please analyze my retirement plan and provide key insights and recommendations.");
-                          }
-                        }}
-                        className="whitespace-nowrap"
-                      >
-                        Generate AI Plan Analysis
-                      </Button>
-                    </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <SparkleIcon className="text-blue-600" />
+                      Plan Analysis
+                    </CardTitle>
+                    <CardDescription>Generate a Claude Haiku 4.5-based analysis of your retirement plan</CardDescription>
                   </div>
-                )}
-                {(aiInsight || isLoadingAi) && (
+                  {res && !aiInsight && !isLoadingAi && (
+                    <Button
+                      onClick={async () => {
+                        if (res && olderAgeForAnalysis > 0) {
+                          await fetchAiInsight(res, olderAgeForAnalysis, "Please analyze my retirement plan and provide key insights and recommendations.");
+                        }
+                      }}
+                      className="no-print whitespace-nowrap"
+                    >
+                      Generate AI Plan Analysis
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              {(aiInsight || isLoadingAi) && (
+                <CardContent>
                   <AiInsightBox
                     insight={aiInsight}
                     error={aiError}
                     isLoading={isLoadingAi}
                   />
-                )}
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
             </div>
 

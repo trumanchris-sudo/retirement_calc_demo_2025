@@ -27,19 +27,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
         {/* Logo/Title */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
-          <div
-            id="logoSlot"
-            className="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center"
-            style={{
-              overflow: 'visible',
-              backgroundColor: cubeAppended ? 'transparent' : '#6b4cd6'
-            }}
-          >
-            {/* Logo will be inserted here by BrandLoader, or show fallback */}
-            {!cubeAppended && (
-              <span className="text-white font-bold text-lg">R</span>
-            )}
-          </div>
+          {/* Cube placeholder - cube renders here via BrandLoader */}
+          <div className="w-8 h-8 flex-shrink-0" style={{ marginLeft: "8px" }} />
           <span className="font-semibold text-slate-900 dark:text-slate-50 hidden sm:inline-block truncate">
             Retirement Calculator
           </span>
