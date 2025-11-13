@@ -97,6 +97,23 @@ const SP500_YOY_NOMINAL = [
 // Utility Functions (from lib/utils.ts)
 // ===============================
 
+/**
+ * Extract 3 years of returns starting from a historical year
+ * for bear market scenario injection
+ */
+function getBearReturns(year) {
+  const startIndex = year - 1928; // SP500_YOY_NOMINAL starts at 1928
+  if (startIndex < 0 || startIndex + 2 >= SP500_YOY_NOMINAL.length) {
+    // Fallback if year is out of range
+    return [0, 0, 0];
+  }
+  return [
+    SP500_YOY_NOMINAL[startIndex],
+    SP500_YOY_NOMINAL[startIndex + 1],
+    SP500_YOY_NOMINAL[startIndex + 2],
+  ];
+}
+
 function mulberry32(seed) {
   let t = seed >>> 0;
   return function rand() {
@@ -320,7 +337,6 @@ function runSingleSimulation(params, seed) {
     infPct: infRate,
     walkSeries,
     seed: seed,
-    startYear: undefined, // Don't apply historical returns during accumulation
   })();
 
   const drawGen = buildReturnGenerator({
@@ -330,7 +346,7 @@ function runSingleSimulation(params, seed) {
     infPct: infRate,
     walkSeries,
     seed: seed + 1,
-    startYear: historicalYear, // Apply historical returns starting at retirement
+    // Bear market returns are injected directly in drawdown loop, not via generator
   })();
 
   let bTax = sTax;
@@ -471,9 +487,25 @@ function runSingleSimulation(params, seed) {
   let survYrs = 0;
   let ruined = false;
 
+  // Get bear market returns if applicable
+  const bearReturns = historicalYear ? getBearReturns(historicalYear) : null;
+
   // Drawdown phase
   for (let y = 1; y <= yrsToSim; y++) {
-    const g_retire = retMode === "fixed" ? g_fixed : drawGen.next().value;
+    let g_retire;
+
+    // Inject bear market returns in first 3 years of retirement if scenario is active
+    if (bearReturns && y >= 1 && y <= 3) {
+      const pct = bearReturns[y - 1]; // y=1 uses bearReturns[0], etc.
+      if (walkSeries === "real") {
+        const realRate = (1 + pct / 100) / (1 + infl) - 1;
+        g_retire = 1 + realRate;
+      } else {
+        g_retire = 1 + pct / 100;
+      }
+    } else {
+      g_retire = retMode === "fixed" ? g_fixed : drawGen.next().value;
+    }
 
     retBalTax *= g_retire;
     retBalPre *= g_retire;

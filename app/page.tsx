@@ -75,6 +75,23 @@ import type { ReturnMode, WalkSeries, BatchSummary } from "@/types/planner";
 export type { ReturnMode, WalkSeries, BatchSummary };
 
 /**
+ * Extract 3 years of returns starting from a historical year
+ * for bear market scenario injection
+ */
+function getBearReturns(year: number): number[] {
+  const startIndex = year - 1928; // SP500_YOY_NOMINAL starts at 1928
+  if (startIndex < 0 || startIndex + 2 >= SP500_YOY_NOMINAL.length) {
+    // Fallback if year is out of range
+    return [0, 0, 0];
+  }
+  return [
+    SP500_YOY_NOMINAL[startIndex],
+    SP500_YOY_NOMINAL[startIndex + 1],
+    SP500_YOY_NOMINAL[startIndex + 2],
+  ];
+}
+
+/**
  * Build a generator that yields **annual** gross return factors for N years:
  * - mode=fixed -> constant nominal return (e.g., 9.8% -> 1.098)
  * - mode=randomWalk -> bootstrap from YoY array (with replacement)
@@ -847,7 +864,6 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     infPct: infRate,
     walkSeries,
     seed: seed,
-    startYear: undefined, // Don't apply historical returns during accumulation
   })();
 
   const drawGen = buildReturnGenerator({
@@ -857,7 +873,7 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     infPct: infRate,
     walkSeries,
     seed: seed + 1,
-    startYear: historicalYear, // Apply historical returns starting at retirement
+    // Bear market returns are injected directly in drawdown loop, not via generator
   })();
 
   let bTax = sTax;
@@ -998,9 +1014,25 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
   let survYrs = 0;
   let ruined = false;
 
+  // Get bear market returns if applicable
+  const bearReturns = historicalYear ? getBearReturns(historicalYear) : null;
+
   // Drawdown phase
   for (let y = 1; y <= yrsToSim; y++) {
-    const g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
+    let g_retire: number;
+
+    // Inject bear market returns in first 3 years of retirement if scenario is active
+    if (bearReturns && y >= 1 && y <= 3) {
+      const pct = bearReturns[y - 1]; // y=1 uses bearReturns[0], etc.
+      if (walkSeries === "real") {
+        const realRate = (1 + pct / 100) / (1 + infl) - 1;
+        g_retire = 1 + realRate;
+      } else {
+        g_retire = 1 + pct / 100;
+      }
+    } else {
+      g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
+    }
 
     retBalTax *= g_retire;
     retBalPre *= g_retire;
@@ -1828,7 +1860,6 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed,
-        startYear: undefined, // Don't apply historical returns during accumulation
       })();
 
       const drawGen = buildReturnGenerator({
@@ -1838,7 +1869,7 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed + 1,
-        startYear: historicalYear || undefined, // Apply historical returns starting at retirement
+        // Bear market returns are injected directly in drawdown loop, not via generator
       })();
 
       let bTax = sTax;
@@ -1992,8 +2023,24 @@ export default function App() {
       let totalRMDs = 0; // Track cumulative RMDs
       const rmdData: { age: number; spending: number; rmd: number }[] = []; // Track RMD vs spending
 
+      // Get bear market returns if applicable
+      const bearReturns2 = historicalYear ? getBearReturns(historicalYear) : null;
+
       for (let y = 1; y <= yrsToSim; y++) {
-        const g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
+        let g_retire: number;
+
+        // Inject bear market returns in first 3 years of retirement if scenario is active
+        if (bearReturns2 && y >= 1 && y <= 3) {
+          const pct = bearReturns2[y - 1]; // y=1 uses bearReturns2[0], etc.
+          if (walkSeries === "real") {
+            const realRate = (1 + pct / 100) / (1 + infl) - 1;
+            g_retire = 1 + realRate;
+          } else {
+            g_retire = 1 + pct / 100;
+          }
+        } else {
+          g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
+        }
 
         retBalTax *= g_retire;
         retBalPre *= g_retire;
@@ -2214,7 +2261,7 @@ export default function App() {
     retRate, infRate, stateRate, incContrib, incRate, wdRate,
     showGen, total, marital,
     hypPerBen, hypStartBens, hypBirthMultiple, hypBirthInterval, hypDeathAge, hypMinDistAge,
-    retMode, seed, walkSeries,
+    retMode, seed, walkSeries, historicalYear,
     includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2, hypBenAgesStr,
   ]);
 
