@@ -1589,9 +1589,10 @@ export default function App() {
 
   /**
    * Run comparison between baseline and selected scenarios
+   * Merges comparison data onto existing res.data to preserve bal, real, p10, p90 keys
    */
   const runComparison = useCallback(async () => {
-    if (!comparisonMode) return;
+    if (!comparisonMode || !res?.data) return;
 
     setErr(null);
     const younger = Math.min(age1, isMar ? age2 : age1);
@@ -1611,11 +1612,6 @@ export default function App() {
 
       // Calculate baseline
       const baselineResult = runSingleSimulation(baseInputs, seed);
-      const baselineData = baselineResult.balancesReal.map((bal, i) => ({
-        year: CURR_YEAR + i,
-        age: age1 + i,
-        baseline: bal,
-      }));
 
       // Calculate bear market scenario if specified
       let bearData = null;
@@ -1637,11 +1633,13 @@ export default function App() {
         inflationData = inflationResult.balancesReal;
       }
 
-      // Merge all data
-      const mergedData = baselineData.map((row, i) => ({
-        ...row,
-        bearMarket: bearData ? bearData[i] : null,
-        inflation: inflationData ? inflationData[i] : null,
+      // Merge comparison data onto existing res.data structure
+      // This preserves bal, real, p10, p90 while adding baseline, bearMarket, inflation
+      const mergedData = res.data.map((row, i) => ({
+        ...row, // Keep year, a1, a2, bal, real, p10, p90, etc.
+        baseline: baselineResult.balancesReal[i] ?? null,
+        bearMarket: bearData ? bearData[i] ?? null : null,
+        inflation: inflationData ? inflationData[i] ?? null : null,
       }));
 
       // Update comparison state
@@ -1669,7 +1667,7 @@ export default function App() {
     } catch (error: any) {
       setErr(error.message);
     }
-  }, [comparisonMode, age1, age2, retAge, marital, sTax, sPre, sPost, cTax1, cPre1, cPost1, cMatch1,
+  }, [comparisonMode, res, age1, age2, retAge, marital, sTax, sPre, sPost, cTax1, cPre1, cPost1, cMatch1,
       cTax2, cPre2, cPost2, cMatch2, retRate, infRate, stateRate, incContrib, incRate, wdRate,
       retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
       historicalYear, inflationShockRate, inflationShockDuration, seed, isMar]);
@@ -4327,7 +4325,12 @@ export default function App() {
                       {/* Debug info - temporary */}
                       {!comparisonMode && res?.data && (
                         <div className="text-xs text-muted-foreground mb-2 print-hide">
-                          Data keys: {res.data[0] ? Object.keys(res.data[0]).join(', ') : 'No data'}
+                          Standard mode data keys: {res.data[0] ? Object.keys(res.data[0]).join(', ') : 'No data'}
+                        </div>
+                      )}
+                      {comparisonMode && comparisonData.baseline?.data?.length > 0 && (
+                        <div className="text-xs text-muted-foreground mb-2 print-hide">
+                          Comparison mode data keys: {Object.keys(comparisonData.baseline.data[0]).join(', ')}
                         </div>
                       )}
                       <ResponsiveContainer width="100%" height={400}>
@@ -4362,15 +4365,15 @@ export default function App() {
                           />
                           <Legend />
 
-                          {/* Standard view - show areas */}
-                          {!comparisonMode && res?.data && (
+                          {/* Wealth accumulation areas - always shown (now that comparison data merges onto res.data) */}
+                          {(res?.data || (comparisonData.baseline?.data || [])).length > 0 && (
                             <>
                               <Area
                                 type="monotone"
                                 dataKey="bal"
                                 stroke="#3b82f6"
                                 strokeWidth={3}
-                                fillOpacity={1}
+                                fillOpacity={comparisonMode ? 0.2 : 1}
                                 fill="url(#colorBal)"
                                 name="Nominal (50th Percentile)"
                               />
@@ -4380,7 +4383,7 @@ export default function App() {
                                 stroke="#10b981"
                                 strokeWidth={2}
                                 strokeDasharray="5 5"
-                                fillOpacity={1}
+                                fillOpacity={comparisonMode ? 0.2 : 1}
                                 fill="url(#colorReal)"
                                 name="Real (50th Percentile)"
                               />
