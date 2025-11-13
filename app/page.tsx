@@ -4376,9 +4376,10 @@ export default function App() {
                                 dataKey="bal"
                                 stroke="#3b82f6"
                                 strokeWidth={3}
-                                fillOpacity={1}
-                                fill="url(#colorBal)"
+                                fillOpacity={0.3}
+                                fill="#3b82f6"
                                 name="Nominal (50th Percentile)"
+                                isAnimationActive={false}
                               />
                               <Area
                                 type="monotone"
@@ -4386,9 +4387,10 @@ export default function App() {
                                 stroke="#10b981"
                                 strokeWidth={2}
                                 strokeDasharray="5 5"
-                                fillOpacity={1}
-                                fill="url(#colorReal)"
+                                fillOpacity={0.3}
+                                fill="#10b981"
                                 name="Real (50th Percentile)"
+                                isAnimationActive={false}
                               />
                             </>
                           )}
@@ -4402,8 +4404,9 @@ export default function App() {
                                 stroke="#3b82f6"
                                 strokeWidth={3}
                                 fillOpacity={0.2}
-                                fill="url(#colorBal)"
+                                fill="#3b82f6"
                                 name="Nominal (50th Percentile)"
+                                isAnimationActive={false}
                               />
                               <Area
                                 type="monotone"
@@ -4412,8 +4415,9 @@ export default function App() {
                                 strokeWidth={2}
                                 strokeDasharray="5 5"
                                 fillOpacity={0.2}
-                                fill="url(#colorReal)"
+                                fill="#10b981"
                                 name="Real (50th Percentile)"
+                                isAnimationActive={false}
                               />
                             </>
                           )}
