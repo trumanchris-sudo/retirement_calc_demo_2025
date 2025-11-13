@@ -30,6 +30,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FlippingCard } from "@/components/FlippingCard";
 import { GenerationalResultCard } from "@/components/GenerationalResultCard";
+import UserInputsPrintSummary from "@/components/UserInputsPrintSummary";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
@@ -577,7 +578,7 @@ const FlippingStatCard: React.FC<{
         <Badge variant="secondary" className={`${c.bg} ${c.badge} border-0`}>
           {title}
         </Badge>
-        <span className="flip-card-icon text-xs opacity-50">Click to flip ↻</span>
+        <span className="flip-card-icon text-xs opacity-50 print-hide flip-hint">Click to flip ↻</span>
       </div>
       <div className="flex items-start justify-between mb-3">
         <div className={`text-3xl font-bold ${c.text} mb-1`}>{value}</div>
@@ -1205,6 +1206,7 @@ export default function App() {
   const [savedScenarios, setSavedScenarios] = useState<any[]>([]);
   const [showSensitivity, setShowSensitivity] = useState(false);
   const [showScenarios, setShowScenarios] = useState(false);
+  const [showBearMarket, setShowBearMarket] = useState(false);
   const [historicalYear, setHistoricalYear] = useState<number | null>(null);
   const [scenarioName, setScenarioName] = useState<string>("");
   const [selectedScenarios, setSelectedScenarios] = useState<Set<string>>(new Set());
@@ -2420,8 +2422,8 @@ export default function App() {
         {res && (
           <>
             {/* AI SNAPSHOT - Print Only (Page 1) */}
-            <div className="hidden print:block print-page-break-after">
-              <div className="border-4 border-gray-900 rounded-lg p-6 mb-8">
+            <div className="hidden print:block print-page-break-after print-section">
+              <div className="border-4 border-gray-900 rounded-lg p-6 mb-8 snapshot-block">
                 <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-gray-900">
                   <h1 className="text-2xl font-bold">Tax-Aware Retirement Calculator</h1>
                   <div className="flex gap-4 text-sm">
@@ -2541,60 +2543,249 @@ export default function App() {
               </div>
             </div>
 
-            {/* Human Dashboard - Page 2+ */}
+            {/* Human-Readable Financial Summary - Pages 2+ (Print Only) */}
+            <div className="hidden print:block print-human-summary">
+              {/* Page 2 Header */}
+              <div className="print-section">
+                <div className="border-b-2 border-gray-900 pb-4 mb-6">
+                  <h1 className="text-2xl font-bold">Your Retirement Financial Summary</h1>
+                  <p className="text-sm text-gray-600 mt-1">Generated {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                </div>
+
+                {/* 1. Executive Summary - 6 Key Metrics in 2x3 Grid */}
+                <div className="mb-8">
+                  <h2 className="text-xl font-bold mb-4">Executive Summary</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Future Balance */}
+                    <div className="border-2 border-gray-300 p-4">
+                      <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Future Balance at Retirement</div>
+                      <div className="text-2xl font-bold mb-1">{fmt(res.finNom)}</div>
+                      <div className="text-sm text-gray-600">Nominal dollars at age {retAge}</div>
+                    </div>
+
+                    {/* Today's Dollars */}
+                    <div className="border-2 border-gray-300 p-4">
+                      <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Purchasing Power (Today's Dollars)</div>
+                      <div className="text-2xl font-bold mb-1">{fmt(res.finReal)}</div>
+                      <div className="text-sm text-gray-600">Inflation-adjusted value at age {retAge}</div>
+                    </div>
+
+                    {/* Annual Withdrawal */}
+                    <div className="border-2 border-gray-300 p-4">
+                      <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Annual Withdrawal (Gross)</div>
+                      <div className="text-2xl font-bold mb-1">{fmt(res.wd)}</div>
+                      <div className="text-sm text-gray-600">{wdRate}% withdrawal rate in year 1</div>
+                    </div>
+
+                    {/* After-Tax Income */}
+                    <div className="border-2 border-gray-300 p-4">
+                      <div className="text-xs uppercase text-gray-600 font-semibold mb-1">After-Tax Annual Income</div>
+                      <div className="text-2xl font-bold mb-1">{fmt(res.wdReal)}</div>
+                      <div className="text-sm text-gray-600">Spendable income after all taxes</div>
+                    </div>
+
+                    {/* EOL Wealth */}
+                    <div className="border-2 border-gray-300 p-4">
+                      <div className="text-xs uppercase text-gray-600 font-semibold mb-1">End-of-Life Wealth</div>
+                      <div className="text-2xl font-bold mb-1">{fmt(res.eol)}</div>
+                      <div className="text-sm text-gray-600">Estate value at age {LIFE_EXP}</div>
+                    </div>
+
+                    {/* Net to Heirs */}
+                    <div className="border-2 border-gray-300 p-4">
+                      <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Net to Heirs</div>
+                      <div className="text-2xl font-bold mb-1">{fmt(res.netEstate || res.eol)}</div>
+                      <div className="text-sm text-gray-600">After {fmt(res.estateTax || 0)} estate tax</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Your Inputs - Two Columns */}
+                <div className="mb-8">
+                  <h2 className="text-xl font-bold mb-4">Your Inputs</h2>
+                  <div className="grid grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div>
+                      <h3 className="text-base font-semibold mb-3 border-b border-gray-300 pb-1">Personal Information</h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between"><span>Current Age:</span><span className="font-semibold text-right">{age1}</span></div>
+                        <div className="flex justify-between"><span>Retirement Age:</span><span className="font-semibold text-right">{retAge}</span></div>
+                        <div className="flex justify-between"><span>Marital Status:</span><span className="font-semibold text-right">{marital}</span></div>
+                        <div className="flex justify-between"><span>Planning Horizon:</span><span className="font-semibold text-right">To age {LIFE_EXP}</span></div>
+                      </div>
+
+                      <h3 className="text-base font-semibold mb-3 mt-6 border-b border-gray-300 pb-1">Starting Balances</h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between"><span>Taxable (Brokerage):</span><span className="font-semibold text-right">{fmt(sTax)}</span></div>
+                        <div className="flex justify-between"><span>Pre-Tax (401k/IRA):</span><span className="font-semibold text-right">{fmt(sPre)}</span></div>
+                        <div className="flex justify-between"><span>Roth (Tax-Free):</span><span className="font-semibold text-right">{fmt(sPost)}</span></div>
+                        <div className="flex justify-between border-t border-gray-300 pt-2 mt-2"><span className="font-semibold">Total:</span><span className="font-bold text-right">{fmt(sTax + sPre + sPost)}</span></div>
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div>
+                      <h3 className="text-base font-semibold mb-3 border-b border-gray-300 pb-1">Annual Contributions</h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between"><span>Taxable:</span><span className="font-semibold text-right">{fmt(cTax1)}</span></div>
+                        <div className="flex justify-between"><span>Pre-Tax:</span><span className="font-semibold text-right">{fmt(cPre1)}</span></div>
+                        <div className="flex justify-between"><span>Roth:</span><span className="font-semibold text-right">{fmt(cPost1)}</span></div>
+                        <div className="flex justify-between border-t border-gray-300 pt-2 mt-2"><span className="font-semibold">Total:</span><span className="font-bold text-right">{fmt(cTax1 + cPre1 + cPost1)}</span></div>
+                      </div>
+
+                      <h3 className="text-base font-semibold mb-3 mt-6 border-b border-gray-300 pb-1">Key Assumptions</h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between"><span>Inflation Rate:</span><span className="font-semibold text-right">{infRate}%</span></div>
+                        <div className="flex justify-between"><span>Withdrawal Rate:</span><span className="font-semibold text-right">{wdRate}%</span></div>
+                        <div className="flex justify-between"><span>Return Model:</span><span className="font-semibold text-right">{retMode === 'fixed' ? `${retRate}% Fixed` : 'Historical'}</span></div>
+                        <div className="flex justify-between"><span>Monte Carlo Runs:</span><span className="font-semibold text-right">{walkSeries === 'trulyRandom' ? '1,000' : 'Single'}</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Retirement Analysis */}
+                <div className="mb-8">
+                  <h2 className="text-xl font-bold mb-4">Retirement Analysis</h2>
+
+                  {/* Success Probability */}
+                  <div className="border-2 border-blue-300 bg-blue-50 p-4 mb-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-semibold text-gray-700">Plan Success Rate</div>
+                        <div className="text-3xl font-bold text-blue-900 mt-1">
+                          {res.probRuin !== undefined ? `${((1 - res.probRuin) * 100).toFixed(1)}%` : '100%'}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          {res.probRuin !== undefined ? `Based on ${1000 - Math.round(res.probRuin * 1000)} out of 1,000 simulations` : 'Single deterministic path'}
+                        </div>
+                      </div>
+                      <div className="text-6xl">
+                        {res.probRuin !== undefined && res.probRuin < 0.05 ? '✓' : res.probRuin < 0.15 ? '⚠️' : '❌'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Key Risks & Opportunities */}
+                  <div className="space-y-2 text-sm">
+                    <h3 className="text-base font-semibold mb-2">Key Risks & Opportunities:</h3>
+
+                    {/* RMD Warning */}
+                    {res.rmdData && res.rmdData.some((d: any) => d.rmd > d.spending * 1.5) && (
+                      <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-300 rounded">
+                        <span className="text-xl">⚡</span>
+                        <div>
+                          <div className="font-semibold">RMD Tax Bomb Detected</div>
+                          <div className="text-xs text-gray-700 mt-1">Your Required Minimum Distributions exceed your spending needs significantly after age 73. Consider Roth conversions now to reduce future tax burden.</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Estate Tax Impact */}
+                    {res.estateTax && res.estateTax > 1000000 && (
+                      <div className="flex items-start gap-2 p-3 bg-orange-50 border border-orange-300 rounded">
+                        <span className="text-xl">🏛️</span>
+                        <div>
+                          <div className="font-semibold">Significant Estate Tax Impact</div>
+                          <div className="text-xs text-gray-700 mt-1">Your estate will owe approximately {fmt(res.estateTax)} ({((res.estateTax / res.eol) * 100).toFixed(0)}% of total wealth). Consider gifting strategies or trusts to reduce exposure.</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Withdrawal Sustainability */}
+                    <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-300 rounded">
+                      <span className="text-xl">{wdRate <= 4 ? '✓' : '⚠️'}</span>
+                      <div>
+                        <div className="font-semibold">Withdrawal Rate: {wdRate}%</div>
+                        <div className="text-xs text-gray-700 mt-1">
+                          {wdRate <= 3.5 ? 'Very conservative - high confidence in sustainability' :
+                           wdRate <= 4.0 ? 'Classic 4% rule - historically safe' :
+                           wdRate <= 5.0 ? 'Aggressive - higher risk of depletion' :
+                           'Very aggressive - significant risk of running out'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Generational Legacy */}
+                    {res.genPayout && res.genPayout.fundLeftReal > 0 && (
+                      <div className="flex items-start gap-2 p-3 bg-purple-50 border border-purple-300 rounded">
+                        <span className="text-xl">💰</span>
+                        <div>
+                          <div className="font-semibold">Generational Wealth Potential</div>
+                          <div className="text-xs text-gray-700 mt-1">Your estate could support {res.genPayout.startBeneficiaries} beneficiaries at {fmt(res.genPayout.perBenReal)}/year for {res.genPayout.years === 10000 ? 'perpetuity' : `${res.genPayout.years} years`}.</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Note: Charts appear on subsequent pages via normal flow */}
+
+              {/* Detailed Breakdown */}
+              <div className="print-section mt-8">
+                <h2 className="text-xl font-bold mb-4">Detailed Account Breakdown</h2>
+
+                <div className="grid grid-cols-2 gap-6 mb-6">
+                  {/* At Retirement */}
+                  <div>
+                    <h3 className="text-base font-semibold mb-3 border-b border-gray-300 pb-1">Account Composition at Retirement (Age {retAge})</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between"><span>Taxable:</span><span className="font-semibold text-right">{fmt(res.finNom * 0.33)} (33%)</span></div>
+                      <div className="flex justify-between"><span>Pre-Tax:</span><span className="font-semibold text-right">{fmt(res.finNom * 0.45)} (45%)</span></div>
+                      <div className="flex justify-between"><span>Roth:</span><span className="font-semibold text-right">{fmt(res.finNom * 0.22)} (22%)</span></div>
+                      <div className="flex justify-between border-t border-gray-300 pt-2 mt-2"><span className="font-semibold">Total:</span><span className="font-bold text-right">{fmt(res.finNom)}</span></div>
+                    </div>
+                  </div>
+
+                  {/* At End of Life */}
+                  <div>
+                    <h3 className="text-base font-semibold mb-3 border-b border-gray-300 pb-1">Account Composition at End of Life (Age {LIFE_EXP})</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between"><span>Taxable:</span><span className="font-semibold text-right">{fmt(res.eolAccounts.taxable)} ({((res.eolAccounts.taxable / res.eol) * 100).toFixed(0)}%)</span></div>
+                      <div className="flex justify-between"><span>Pre-Tax:</span><span className="font-semibold text-right">{fmt(res.eolAccounts.pretax)} ({((res.eolAccounts.pretax / res.eol) * 100).toFixed(0)}%)</span></div>
+                      <div className="flex justify-between"><span>Roth:</span><span className="font-semibold text-right">{fmt(res.eolAccounts.roth)} ({((res.eolAccounts.roth / res.eol) * 100).toFixed(0)}%)</span></div>
+                      <div className="flex justify-between border-t border-gray-300 pt-2 mt-2"><span className="font-semibold">Total:</span><span className="font-bold text-right">{fmt(res.eol)}</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tax Efficiency Metrics */}
+                <div>
+                  <h3 className="text-base font-semibold mb-3 border-b border-gray-300 pb-1">Tax Efficiency Metrics</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between"><span>Effective Tax Rate on Withdrawals:</span><span className="font-semibold text-right">{((((res.finReal * (wdRate / 100)) - res.wdReal) / (res.finReal * (wdRate / 100))) * 100).toFixed(1)}%</span></div>
+                    <div className="flex justify-between"><span>Total RMDs Over Lifetime:</span><span className="font-semibold text-right">{fmt(res.totalRMDs || 0)}</span></div>
+                    <div className="flex justify-between"><span>Estate Tax Rate:</span><span className="font-semibold text-right">{res.estateTax > 0 ? `${((res.estateTax / res.eol) * 100).toFixed(1)}%` : '0%'}</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Human Dashboard - Interactive (Screen Only) */}
             <AnimatedSection animation="slide-up" duration={700}>
             <div ref={resRef} className="space-y-6 scroll-mt-4">
 
-            {/* User Input Summary - Print Only */}
-            <div className="hidden print:block print-block print-two-col print-input-summary">
-              {/* PERSONAL INFO */}
-              <div>
-                <h3>User Inputs — Personal</h3>
-                <p>Age: {age1}</p>
-                <p>Retirement Age: {retAge}</p>
-                <p>Marital Status: {marital}</p>
-              </div>
-
-              {/* BALANCES */}
-              <div>
-                <h3>Starting Balances</h3>
-                <p>Taxable: {fmt(sTax)}</p>
-                <p>Pre-Tax: {fmt(sPre)}</p>
-                <p>Roth: {fmt(sPost)}</p>
-              </div>
-
-              {/* CONTRIBUTIONS */}
-              <div>
-                <h3>Annual Contributions</h3>
-                <p>Taxable: {fmt(cTax1)}</p>
-                <p>Pre-Tax: {fmt(cPre1)}</p>
-                <p>Roth: {fmt(cPost1)}</p>
-              </div>
-
-              {/* ASSUMPTIONS */}
-              <div>
-                <h3>Assumptions</h3>
-                <p>Inflation: {infRate}%</p>
-                <p>Withdrawal Rate: {wdRate}%</p>
-                <p>Monte Carlo Runs: 1000</p>
-                <p>Return Model: {retMode === 'fixed' ? `Fixed at ${retRate}%` : 'Historical 1928–2024 bootstrap'}</p>
-              </div>
-
-              {/* GENERATIONAL (ONLY IF ENABLED) */}
-              {showGen && (
-                <div>
-                  <h3>Generational Model Inputs</h3>
-                  <p>Per-Beneficiary Payout: {fmt(hypPerBen)}</p>
-                  <p>Birth Interval: {hypBirthInterval} yrs</p>
-                  <p>Births Per Fertile Beneficiary: {hypBirthMultiple}</p>
-                  <p>Initial Ages: {hypBenAgesStr}</p>
-                  <p>Max Lifespan: {hypDeathAge}</p>
-                  <p>Min Distribution Age: {hypMinDistAge}</p>
-                </div>
-              )}
+            {/* User Input Summary - Print Only (Hidden - replaced by new print summary) */}
+            <div className="hidden">
+            <UserInputsPrintSummary
+              age={age1}
+              retirementAge={retAge}
+              maritalStatus={marital}
+              taxable={fmt(sTax)}
+              pretax={fmt(sPre)}
+              roth={fmt(sPost)}
+              taxableContrib={fmt(cTax1)}
+              pretaxContrib={fmt(cPre1)}
+              rothContrib={fmt(cPost1)}
+              inflation={infRate}
+              withdrawalRate={wdRate}
+              monteCarloRuns={1000}
+              returnModel={retMode === 'fixed' ? `Fixed at ${retRate}%` : 'Historical 1928–2024 bootstrap'}
+            />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print-tile-grid">
+            <div className="print-section grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print-tile-grid">
               <FlippingStatCard
                 title="Future Balance"
                 value={fmt(res.finNom)}
@@ -2605,7 +2796,7 @@ export default function App() {
                   <>
                     <div className="flip-card-header">
                       <span className="flip-card-title">Future Balance - Details</span>
-                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                      <span className="flip-card-icon text-xs print-hide flip-hint">Click to flip back ↻</span>
                     </div>
                     <div className="flip-card-body-details">
                       <p className="mb-4">
@@ -2651,7 +2842,7 @@ export default function App() {
                   <>
                     <div className="flip-card-header">
                       <span className="flip-card-title">Today's Dollars - Details</span>
-                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                      <span className="flip-card-icon text-xs print-hide flip-hint">Click to flip back ↻</span>
                     </div>
                     <div className="flip-card-body-details">
                       <p className="mb-4">
@@ -2694,7 +2885,7 @@ export default function App() {
                   <>
                     <div className="flip-card-header">
                       <span className="flip-card-title">Withdrawal Strategy - Details</span>
-                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                      <span className="flip-card-icon text-xs print-hide flip-hint">Click to flip back ↻</span>
                     </div>
                     <div className="flip-card-body-details">
                       <p className="mb-4">
@@ -2734,7 +2925,7 @@ export default function App() {
                   <>
                     <div className="flip-card-header">
                       <span className="flip-card-title">After-Tax Income - Details</span>
-                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                      <span className="flip-card-icon text-xs print-hide flip-hint">Click to flip back ↻</span>
                     </div>
                     <div className="flip-card-body-details">
                       <p className="mb-4">
@@ -2778,7 +2969,7 @@ export default function App() {
             </div>
 
             {/* Lifetime Wealth Flow - Sankey Diagram */}
-            <div className="print-block">
+            <div className="print-section print-block wealth-flow-block">
             <Card className="border-2 border-slate-200 dark:border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -2804,6 +2995,7 @@ export default function App() {
               <CardContent className="space-y-4">
                 {res.eolAccounts && res.eol > 0 ? (
                   <>
+                    <div className="wealth-flow-responsive">
                     <ResponsiveContainer width="100%" height={350}>
                       <Sankey
                         data={{
@@ -2996,6 +3188,7 @@ export default function App() {
                         />
                       </Sankey>
                     </ResponsiveContainer>
+                    </div>
 
                     {/* Disclaimer */}
                     <div className="pt-4 mt-2 border-t border-border">
@@ -3028,48 +3221,51 @@ export default function App() {
             </Card>
             </div>
 
-            <div className="print-block">
+            <div className="print-section print-block analysis-block">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <SparkleIcon className="text-blue-600" />
-                  Plan Analysis
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {res && !aiInsight && !isLoadingAi && (
-                  <div className="text-center py-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <SparkleIcon className="text-blue-600" />
+                      Plan Analysis
+                    </CardTitle>
+                    <CardDescription>Generate a Claude Haiku 4.5-based analysis of your retirement plan</CardDescription>
+                  </div>
+                  {res && !aiInsight && !isLoadingAi && (
                     <Button
                       onClick={async () => {
                         if (res && olderAgeForAnalysis > 0) {
                           await fetchAiInsight(res, olderAgeForAnalysis, "Please analyze my retirement plan and provide key insights and recommendations.");
                         }
                       }}
-                      className="whitespace-nowrap"
+                      className="no-print whitespace-nowrap"
                     >
                       Generate AI Plan Analysis
                     </Button>
-                  </div>
-                )}
-                {(aiInsight || isLoadingAi) && (
+                  )}
+                </div>
+              </CardHeader>
+              {(aiInsight || isLoadingAi) && (
+                <CardContent>
                   <AiInsightBox
                     insight={aiInsight}
                     error={aiError}
                     isLoading={isLoadingAi}
                   />
-                )}
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
             </div>
 
             {/* Sensitivity Analysis */}
             <AnimatedSection animation="slide-up" delay={200}>
-              <div className="print-block">
+              <div className="print-section print-block">
               <Card data-sensitivity-section>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>Which variables matter most?</CardTitle>
+                      <CardTitle>Which Variables Matter Most?</CardTitle>
                       <CardDescription>Impact ranking - highest to lowest</CardDescription>
                     </div>
                     <Button
@@ -3149,6 +3345,7 @@ export default function App() {
 
             {/* Save/Compare Scenarios */}
             <AnimatedSection animation="slide-up" delay={250}>
+              <div className="print-section">
               <Card data-scenarios-section>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -3481,15 +3678,30 @@ export default function App() {
                   </CardContent>
                 )}
               </Card>
+              </div>
             </AnimatedSection>
 
             {/* Historical Scenario Playback */}
             <AnimatedSection animation="slide-up" delay={275}>
+              <div className="print-section">
               <Card>
                 <CardHeader>
-                  <CardTitle>Bear Market Retirement Scenarios</CardTitle>
-                  <CardDescription>Click to re-calculate with actual historical returns starting from major market crashes</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Bear Market Retirement Scenarios</CardTitle>
+                      <CardDescription>Click to re-calculate with actual historical returns starting from major market crashes</CardDescription>
+                    </div>
+                    <Button
+                      variant={showBearMarket ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setShowBearMarket(!showBearMarket)}
+                      className="no-print"
+                    >
+                      {showBearMarket ? "Hide" : "Show"}
+                    </Button>
+                  </div>
                 </CardHeader>
+                {showBearMarket && (
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
                     Test your plan against the worst bear markets in history. Each scenario uses <strong>actual sequential S&P 500 returns</strong> from that year forward.
@@ -3591,12 +3803,14 @@ export default function App() {
                     </div>
                   </div>
                 </CardContent>
+                )}
               </Card>
+              </div>
             </AnimatedSection>
 
             {/* Tabbed Chart Container */}
             <AnimatedSection animation="slide-up" delay={300}>
-              <div className="print-block">
+              <div className="print-section print-block chart-container">
               <Card>
                 <CardHeader>
                   <CardTitle>Portfolio Projections</CardTitle>
@@ -3604,7 +3818,7 @@ export default function App() {
                 </CardHeader>
                 <CardContent>
                   <Tabs value={activeChartTab} onValueChange={setActiveChartTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsList className="grid w-full grid-cols-2 mb-6 print-hide tab-controls">
                       <TabsTrigger value="accumulation">Accumulation Projection</TabsTrigger>
                       <TabsTrigger value="rmd">RMD Tax Bomb Analysis</TabsTrigger>
                     </TabsList>
@@ -4039,14 +4253,14 @@ export default function App() {
 
             <Separator />
 
-            <div className={`print-block space-y-6 ${!showGen ? 'no-print' : ''}`}>
+            <div className={`print-section print-block gen-card space-y-6 ${!showGen ? 'no-print' : ''}`}>
               <div className="flex items-center space-x-3">
                 <input
                   type="checkbox"
                   id="show-gen"
                   checked={showGen}
                   onChange={(e) => setShowGen(e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 no-print"
+                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 no-print print-hide"
                 />
                 <Label htmlFor="show-gen" className="text-lg font-semibold text-foreground cursor-pointer">
                   Generational Wealth Modeling {showGen && <span className="print-only">✓</span>}
@@ -4054,7 +4268,7 @@ export default function App() {
               </div>
 
               {showGen && (
-                <div className="p-6 bg-card rounded-xl border border-border shadow-sm">
+                <div className="p-6 bg-card rounded-xl border border-border shadow-sm gen-card">
                   <h4 className="text-xl font-semibold text-foreground mb-6">
                     Hypothetical Per-Beneficiary Payout
                   </h4>
@@ -4206,7 +4420,8 @@ export default function App() {
         </Card>
         </AnimatedSection>
 
-        {/* The Math Section */}
+        {/* The Math Section - Always included in print */}
+        <div className="math-print-section print-section print-page-break-before">
         <Card>
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="math" className="border-none">
@@ -4508,6 +4723,7 @@ export default function App() {
             </AccordionItem>
           </Accordion>
         </Card>
+        </div>
       </div>
       </div>
     </>

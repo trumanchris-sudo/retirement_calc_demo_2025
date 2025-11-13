@@ -4,6 +4,7 @@ import React from "react";
 import { Moon, Sun, Printer, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import CubeStaticMini from "@/components/CubeStaticMini";
 
 interface PageHeaderProps {
   showActions?: boolean;
@@ -25,22 +26,10 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
-        {/* Logo/Title */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
-          <div
-            id="logoSlot"
-            className="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center"
-            style={{
-              overflow: 'visible',
-              backgroundColor: cubeAppended ? 'transparent' : '#6b4cd6'
-            }}
-          >
-            {/* Logo will be inserted here by BrandLoader, or show fallback */}
-            {!cubeAppended && (
-              <span className="text-white font-bold text-lg">R</span>
-            )}
-          </div>
-          <span className="font-semibold text-slate-900 dark:text-slate-50 hidden sm:inline-block truncate">
+        {/* Logo/Title - CUBE ALWAYS RENDERS */}
+        <div className="flex items-center gap-3 min-w-0 flex-shrink retirement-header-left">
+          <CubeStaticMini />
+          <span className="font-semibold text-slate-900 dark:text-slate-50 hidden sm:inline-block truncate retirement-header-title">
             Retirement Calculator
           </span>
         </div>
