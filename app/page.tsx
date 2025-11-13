@@ -3085,7 +3085,7 @@ export default function App() {
                         height={350}
                         nodeWidth={15}
                         nodePadding={15}
-                        margin={{ top: 30, right: 150, bottom: 30, left: 150 }}
+                        margin={{ top: 30, right: 30, bottom: 30, left: 30 }}
                         link={(props: any) => {
                           const { sourceX, targetX, sourceY, targetY, sourceControlX, targetControlX, linkWidth, index, payload } = props;
 
@@ -3230,7 +3230,7 @@ export default function App() {
                       <SparkleIcon className="text-blue-600" />
                       Plan Analysis
                     </CardTitle>
-                    <CardDescription>Generate a Claude Haiku 4.5-based analysis of your retirement plan</CardDescription>
+                    <CardDescription>Generate AI analysis of your retirement plan</CardDescription>
                   </div>
                   {res && !aiInsight && !isLoadingAi && (
                     <Button
@@ -3241,7 +3241,7 @@ export default function App() {
                       }}
                       className="no-print whitespace-nowrap"
                     >
-                      Generate AI Plan Analysis
+                      Generate
                     </Button>
                   )}
                 </div>
@@ -3819,8 +3819,8 @@ export default function App() {
                 <CardContent>
                   <Tabs value={activeChartTab} onValueChange={setActiveChartTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-2 mb-6 print-hide tab-controls">
-                      <TabsTrigger value="accumulation">Accumulation Projection</TabsTrigger>
-                      <TabsTrigger value="rmd">RMD Tax Bomb Analysis</TabsTrigger>
+                      <TabsTrigger value="accumulation">Accumulation</TabsTrigger>
+                      <TabsTrigger value="rmd">RMD Tax Bomb</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="accumulation" className="space-y-4">
