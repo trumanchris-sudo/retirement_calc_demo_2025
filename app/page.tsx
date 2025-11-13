@@ -4321,67 +4321,42 @@ export default function App() {
                           </div>
                         </div>
                       )}
-                      <div className="chart-block">
-                      {/* Debug info - temporary */}
-                      {/* Debug: Check what data the chart is actually receiving */}
-                      {(() => {
-                        const chartData = comparisonMode && comparisonData.baseline
-                          ? comparisonData.baseline.data
-                          : (res?.data || []);
+                      {/* Default Wealth Accumulation Chart - Always shows when not in comparison mode */}
+                      {!comparisonMode && res?.data && res.data.length > 0 && (
+                        <div className="chart-block">
+                          <ResponsiveContainer width="100%" height={400}>
+                            <ComposedChart data={res.data}>
+                              <defs>
+                                <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                </linearGradient>
+                                <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                              <XAxis dataKey="year" className="text-sm" />
+                              <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
+                              <RTooltip
+                                formatter={(v) => fmt(v as number)}
+                                labelFormatter={(l) => `Year ${l}`}
+                                contentStyle={{
+                                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                                  borderRadius: "8px",
+                                  border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+                                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                                  color: isDarkMode ? '#f3f4f6' : '#1f2937'
+                                }}
+                                labelStyle={{
+                                  color: isDarkMode ? '#f3f4f6' : '#1f2937',
+                                  fontWeight: 'bold'
+                                }}
+                              />
+                              <Legend />
 
-                        if (chartData && chartData.length > 0) {
-                          console.log("Wealth chart sample point", chartData[0]);
-                          return (
-                            <div className="text-xs text-muted-foreground mb-2 print-hide space-y-1">
-                              <div>Mode: {comparisonMode ? 'COMPARISON' : 'STANDARD'}</div>
-                              <div>Chart data keys: {Object.keys(chartData[0] as any).join(', ')}</div>
-                              <div>Data length: {chartData.length}</div>
-                              <div>First row bal: {(chartData[0] as any)?.bal}, real: {(chartData[0] as any)?.real}</div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                      <ResponsiveContainer width="100%" height={400}>
-                        <ComposedChart data={(() => {
-                          const chartData = comparisonMode && comparisonData.baseline
-                            ? comparisonData.baseline.data
-                            : (res?.data || []);
-                          return chartData;
-                        })()}>
-                          <defs>
-                            <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                            </linearGradient>
-                            <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                          <XAxis dataKey="year" className="text-sm" />
-                          <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
-                          <RTooltip
-                            formatter={(v) => fmt(v as number)}
-                            labelFormatter={(l) => `Year ${l}`}
-                            contentStyle={{
-                              backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                              borderRadius: "8px",
-                              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-                              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                              color: isDarkMode ? '#f3f4f6' : '#1f2937'
-                            }}
-                            labelStyle={{
-                              color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                              fontWeight: 'bold'
-                            }}
-                          />
-                          <Legend />
-
-                          {/* Wealth accumulation - standard mode (using Line for debugging) */}
-                          {!comparisonMode && res?.data && res.data.length > 0 && (
-                            <>
+                              {/* Main 50th percentile lines */}
                               <Line
                                 type="monotone"
                                 dataKey="bal"
@@ -4401,94 +4376,95 @@ export default function App() {
                                 name="Real (50th Percentile)"
                                 isAnimationActive={false}
                               />
-                            </>
-                          )}
 
-                          {/* Wealth accumulation - comparison mode (using Line for debugging) */}
-                          {comparisonMode && comparisonData.baseline?.data && comparisonData.baseline.data.length > 0 && (
-                            <>
-                              <Line
-                                type="monotone"
-                                dataKey="bal"
-                                stroke="#3b82f6"
-                                strokeWidth={2}
-                                strokeOpacity={0.5}
-                                dot={false}
-                                name="Nominal (50th Percentile)"
-                                isAnimationActive={false}
+                              {/* Percentile lines (only in standard mode) */}
+                              {showP10 && (
+                                <Line
+                                  type="monotone"
+                                  dataKey="p10"
+                                  stroke="#ef4444"
+                                  strokeWidth={2}
+                                  strokeDasharray="3 3"
+                                  dot={false}
+                                  name="10th Percentile (Nominal)"
+                                />
+                              )}
+                              {showP90 && (
+                                <Line
+                                  type="monotone"
+                                  dataKey="p90"
+                                  stroke="#f59e0b"
+                                  strokeWidth={2}
+                                  strokeDasharray="3 3"
+                                  dot={false}
+                                  name="90th Percentile (Nominal)"
+                                />
+                              )}
+                            </ComposedChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+
+                      {/* Comparison Chart - Only shows when in comparison mode */}
+                      {comparisonMode && comparisonData.baseline?.data && comparisonData.baseline.data.length > 0 && (
+                        <div className="chart-block">
+                          <ResponsiveContainer width="100%" height={400}>
+                            <ComposedChart data={comparisonData.baseline.data}>
+                              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                              <XAxis dataKey="year" className="text-sm" />
+                              <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
+                              <RTooltip
+                                formatter={(v) => fmt(v as number)}
+                                labelFormatter={(l) => `Year ${l}`}
+                                contentStyle={{
+                                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                                  borderRadius: "8px",
+                                  border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+                                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                                  color: isDarkMode ? '#f3f4f6' : '#1f2937'
+                                }}
+                                labelStyle={{
+                                  color: isDarkMode ? '#f3f4f6' : '#1f2937',
+                                  fontWeight: 'bold'
+                                }}
                               />
-                              <Line
-                                type="monotone"
-                                dataKey="real"
-                                stroke="#10b981"
-                                strokeWidth={2}
-                                strokeDasharray="5 5"
-                                strokeOpacity={0.5}
-                                dot={false}
-                                name="Real (50th Percentile)"
-                                isAnimationActive={false}
-                              />
-                            </>
-                          )}
+                              <Legend />
 
-                          {/* Comparison mode - show lines */}
-                          {comparisonMode && comparisonData.baseline?.visible && (
-                            <Line
-                              type="monotone"
-                              dataKey="baseline"
-                              stroke="#3b82f6"
-                              strokeWidth={3}
-                              dot={false}
-                              name="Baseline"
-                            />
-                          )}
-                          {comparisonMode && comparisonData.bearMarket?.visible && (
-                            <Line
-                              type="monotone"
-                              dataKey="bearMarket"
-                              stroke="#ef4444"
-                              strokeWidth={3}
-                              dot={false}
-                              name={comparisonData.bearMarket.label}
-                            />
-                          )}
-                          {comparisonMode && comparisonData.inflation?.visible && (
-                            <Line
-                              type="monotone"
-                              dataKey="inflation"
-                              stroke="#f59e0b"
-                              strokeWidth={3}
-                              dot={false}
-                              name={comparisonData.inflation.label}
-                            />
-                          )}
-
-                          {/* Percentile lines (only in standard mode) */}
-                          {!comparisonMode && showP10 && (
-                            <Line
-                              type="monotone"
-                              dataKey="p10"
-                              stroke="#ef4444"
-                              strokeWidth={2}
-                              strokeDasharray="3 3"
-                              dot={false}
-                              name="10th Percentile (Nominal)"
-                            />
-                          )}
-                          {!comparisonMode && showP90 && (
-                            <Line
-                              type="monotone"
-                              dataKey="p90"
-                              stroke="#ef4444"
-                              strokeWidth={2}
-                              strokeDasharray="3 3"
-                              dot={false}
-                              name="90th Percentile (Nominal)"
-                            />
-                          )}
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                      </div>
+                              {/* Comparison scenario lines */}
+                              {comparisonData.baseline?.visible && (
+                                <Line
+                                  type="monotone"
+                                  dataKey="baseline"
+                                  stroke="#3b82f6"
+                                  strokeWidth={3}
+                                  dot={false}
+                                  name="Baseline"
+                                />
+                              )}
+                              {comparisonData.bearMarket?.visible && (
+                                <Line
+                                  type="monotone"
+                                  dataKey="bearMarket"
+                                  stroke="#ef4444"
+                                  strokeWidth={3}
+                                  dot={false}
+                                  name={comparisonData.bearMarket.label}
+                                />
+                              )}
+                              {comparisonData.inflation?.visible && (
+                                <Line
+                                  type="monotone"
+                                  dataKey="inflation"
+                                  stroke="#f59e0b"
+                                  strokeWidth={3}
+                                  dot={false}
+                                  name={comparisonData.inflation.label}
+                                />
+                              )}
+                            </ComposedChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
                     </TabsContent>
 
                     <TabsContent value="rmd" className="space-y-4">
