@@ -2504,7 +2504,11 @@ export default function App() {
                     {res.genPayout && (
                       <div>Generational: {res.genPayout.startBeneficiaries} heirs @ {fmt(res.genPayout.perBenReal)}/yr real → {res.genPayout.years} yrs median{res.genPayout.probPerpetual ? `, ${Math.round(res.genPayout.probPerpetual * 100)}% perpetual (P90 historical)` : ''}</div>
                     )}
-                    <div>Return assumption: {retRate}% nominal, {infRate}% inflation = {(retRate - infRate).toFixed(1)}% real{walkSeries === 'trulyRandom' ? ' (historical S&P 1928-2024 bootstrap)' : ''}</div>
+                    <div>
+                      {retMode === 'fixed'
+                        ? `Return assumption: ${retRate}% nominal, ${infRate}% inflation = ${(retRate - infRate).toFixed(1)}% real (Fixed return mode)`
+                        : `Return model: Historical S&P 500 total-return bootstrap (1928–2024) with ${infRate}% inflation`}
+                    </div>
                     <div>Starting balance: {fmt(sTax + sPre + sPost)} ({fmt(sTax)} taxable, {fmt(sPre)} pre-tax, {fmt(sPost)} Roth)</div>
                     <div>Annual contributions: {fmt(cTax1 + cPre1 + cPost1 + cMatch1)}{isMar ? ` + ${fmt(cTax2 + cPre2 + cPost2 + cMatch2)}` : ''}</div>
                     {res.probRuin !== undefined && (
@@ -2874,15 +2878,40 @@ export default function App() {
                           ];
                           const fill = colors[index] || (isDarkMode ? '#475569' : '#64748b');
 
+                          // Node labels
+                          const labels = ['Taxable', 'Pre-Tax', 'Roth', 'Estate Tax', 'Net to Heirs'];
+                          const label = labels[index] || '';
+
+                          // Determine text color (white for visibility on colored backgrounds)
+                          const textColor = '#ffffff';
+
+                          // Position text - center horizontally and vertically within node
+                          const textX = x + width / 2;
+                          const textY = y + height / 2;
+
                           return (
-                            <Rectangle
-                              x={x}
-                              y={y}
-                              width={width}
-                              height={height}
-                              fill={fill}
-                              fillOpacity={0.85}
-                            />
+                            <g>
+                              <Rectangle
+                                x={x}
+                                y={y}
+                                width={width}
+                                height={height}
+                                fill={fill}
+                                fillOpacity={0.85}
+                              />
+                              {/* Node label - positioned on the node */}
+                              <text
+                                x={index < 3 ? x - 10 : x + width + 10}
+                                y={textY}
+                                textAnchor={index < 3 ? "end" : "start"}
+                                dominantBaseline="middle"
+                                fill={isDarkMode ? '#d1d5db' : '#374151'}
+                                fontSize="12"
+                                fontWeight="500"
+                              >
+                                {label}
+                              </text>
+                            </g>
                           );
                         }}
                       >
@@ -3775,7 +3804,7 @@ export default function App() {
                       max={20}
                       step={0.1}
                       unit="%"
-                      description="S&P 500 avg ~9.8%"
+                      description={retMode === 'fixed' ? "Historical median ≈ 9.8% (context only)" : "Used for 'Fixed' mode only"}
                     />
                   )}
                   <SliderInput
