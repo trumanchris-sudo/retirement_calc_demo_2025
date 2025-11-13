@@ -131,58 +131,94 @@ ${ssAnalysis}`;
       );
     }
 
-    // Optimized prompt with structured context for Q&A
-    const prompt = `You are a financial planning assistant. Answer the user's question about their retirement plan based on the structured data below.
+    // Comprehensive prompt with validation framework
+    const prompt = `You are generating the Retirement Plan Analysis section for a tax-aware retirement calculator.
+Before writing any analysis, you must perform the required steps below in strict order using ONLY
+the data provided. Do not use assumptions, heuristics, or financial safety scripts.
 
-QUESTION: ${userQuestion}
+REQUIRED ANALYSIS STEPS (FOLLOW EXACTLY):
+
+1. Extract Inputs - Parse all user inputs:
+   - Age: ${age}, Retirement Age: ${retirementAge}
+   - Current balances: Taxable $${startingTaxable.toLocaleString()}, Pre-tax $${startingPretax.toLocaleString()}, Roth $${startingRoth.toLocaleString()}
+   - Withdrawal rate: ${withdrawalRate}%
+   - Inflation rate: ${inflationRate}%
+   - Return model: ${returnModel === 'fixed' ? `Fixed at ${returnRate}%` : 'Historical S&P 500 bootstrap (1928–2024)'}
+
+2. Reconstruct Core Calculations - Validate the math:
+   - Future Balance (Nominal): $${futureBalance.toLocaleString()}
+   - Real Balance (Today's Dollars): $${realBalance.toLocaleString()}
+   - Year 1 Withdrawal: $${annualWithdrawal.toLocaleString()} (${withdrawalRate}% of balance)
+   - After-Tax Income: $${afterTaxIncome.toLocaleString()}
+   - Total Lifetime Tax: $${totalTax.toLocaleString()}${totalRMDs > 0 ? `
+   - Total RMDs: $${totalRMDs.toLocaleString()}` : ''}${estateTax > 0 ? `
+   - Estate Tax: $${estateTax.toLocaleString()}
+   - Net Estate: $${netEstate.toLocaleString()}` : ''}
+
+3. Evaluate Model Outputs:
+   - Recognize that long-horizon compounding creates right-skewed distributions
+   - Large end-of-life wealth projections are NORMAL under high-return historical bootstraps
+   - Use provided percentiles and failure probability to drive insight
+   - Do NOT label outputs as "unrealistic" unless numbers contradict inputs
+
+4. Identify True Errors ONLY if They Exist:
+   Valid reasons to flag issues:
+   - FV does not match return assumptions
+   - Real vs nominal conversion incorrect
+   - Tax ordering not applied correctly
+
+   Invalid reasons (do NOT use):
+   - Numbers appear large or unusual
+   - Generic advisor caution
+   - Heuristics from typical calculators
+
+5. Generate Plan Analysis:
+   Your analysis must:
+   - Be factual and grounded in validated math
+   - Use actual extracted values
+   - Identify key drivers (return rate, inflation, contributions, withdrawal rate)
+   - Provide actionable insights based only on verified model behavior
+   - Avoid ALL financial-advisor boilerplate (e.g., "Consult your advisor")
+
+6. Tone Requirements:
+   - Analytical, numerical, precise
+   - No paternalistic language
+   - No safety disclaimers
+   - No statements based purely on intuition
+   - Respect the model's intentional design and the user's assumptions
+
+USER QUESTION: ${userQuestion}
 
 RETIREMENT PROFILE:
-{
-  "current_age": ${age},
-  "retirement_age": ${retirementAge},
-  "marital_status": "${maritalStatus}",
-  "current_balance": ${currentBalance},
-  "starting_accounts": {
-    "taxable": ${startingTaxable},
-    "pre_tax": ${startingPretax},
-    "roth": ${startingRoth}
-  }
-}
+- Current Age: ${age}
+- Retirement Age: ${retirementAge}
+- Marital Status: ${maritalStatus}
+- Current Balance: $${currentBalance.toLocaleString()}
+- Starting Accounts: Taxable $${startingTaxable.toLocaleString()} | Pre-tax $${startingPretax.toLocaleString()} | Roth $${startingRoth.toLocaleString()}
 
 WITHDRAWAL STRATEGY:
-{
-  "annual_withdrawal": ${annualWithdrawal},
-  "withdrawal_rate": ${withdrawalRate}%,
-  "after_tax_income": ${afterTaxIncome},
-  "return_model": "${returnModel === 'fixed' ? `Fixed at ${returnRate}%` : 'Historical S&P 500 total-return bootstrap (1928–2024)'}",
-  "inflation_rate": ${inflationRate}%
-}
+- Annual Withdrawal: $${annualWithdrawal.toLocaleString()} (${withdrawalRate}% initial rate)
+- After-Tax Income: $${afterTaxIncome.toLocaleString()}
+${returnModelDesc}
+- Inflation Rate: ${inflationRate}%
 
 PROJECTED RESULTS:
-{
-  "funds_last": "${duration >= maxDuration ? `Full retirement (${maxDuration} years to age ${retirementAge + maxDuration})` : `⚠️ Only ${duration} years (age ${retirementAge + duration}), ${maxDuration - duration} years short`}",
-  "end_of_life_wealth": ${endOfLifeWealth},
-  "total_lifetime_tax": ${totalTax},
-  "total_rmds": ${totalRMDs},
-  "estate_tax": ${estateTax},
-  "net_estate": ${netEstate}${eolAccounts ? `,
-  "final_accounts": {
-    "taxable": ${eolAccounts.taxable},
-    "pre_tax": ${eolAccounts.pretax},
-    "roth": ${eolAccounts.roth}
-  }` : ''}${includeSS ? `,
-  "social_security": {
-    "avg_earnings": ${ssIncome},
-    "claim_age": ${ssClaimAge}
-  }` : ''}
-}
+- ${duration >= maxDuration ? `✓ Funds last full retirement (${maxDuration} years to age ${retirementAge + maxDuration})` : `⚠️ CRITICAL: Funds exhausted after ${duration} years (age ${retirementAge + duration}), but projected to live to ${retirementAge + maxDuration}`}
+- Future Balance (Nominal): $${futureBalance.toLocaleString()}
+- Real Balance (Today's Dollars): $${realBalance.toLocaleString()}
+- Total Lifetime Tax: $${totalTax.toLocaleString()}${totalRMDs > 0 ? `
+- Total RMDs Over Retirement: $${totalRMDs.toLocaleString()}` : ''}${estateTax > 0 ? `
+- Estate Tax: $${estateTax.toLocaleString()}
+- Net Estate to Heirs: $${netEstate.toLocaleString()}` : ''}${eolAccounts ? `
+- Final Accounts: Taxable $${eolAccounts.taxable.toLocaleString()}, Pre-tax $${eolAccounts.pretax.toLocaleString()}, Roth $${eolAccounts.roth.toLocaleString()}` : ''}${includeSS ? `
+- Social Security: Avg earnings $${ssIncome.toLocaleString()}/year, Claiming age ${ssClaimAge}` : ''}
 
-Provide a concise, specific answer focused on their question. Keep your response under 200 words. Don't use markdown formatting (* or #). Be direct and actionable.`;
+Provide a concise, specific answer focused on their question. Keep your response under 250 words. Don't use markdown formatting (* or #). Be direct and actionable. Follow all analysis steps above before responding.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
-      temperature: 0.7,
+      max_tokens: 500,
+      temperature: 0.5,
       messages: [
         {
           role: 'user',
