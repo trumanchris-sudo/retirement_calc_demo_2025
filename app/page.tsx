@@ -1095,12 +1095,15 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     balancesReal.push(totalNow / Math.pow(1 + infl, yrsToRet + y));
 
     if (totalNow <= 0) {
-      survYrs = y - 1;
-      ruined = true;
+      if (!ruined) {
+        survYrs = y - 1;
+        ruined = true;
+      }
       retBalTax = retBalPre = retBalRoth = 0;
-      break;
+      // Continue loop to maintain chart data through age 95
+    } else {
+      survYrs = y;
     }
-    survYrs = y;
 
     currWdGross *= infl_factor;
   }
@@ -2020,6 +2023,7 @@ export default function App() {
       let currBasis = basisTax;
       let currWdGross = wdGrossY1;
       let survYrs = 0;
+      let ruined = false;
       let totalRMDs = 0; // Track cumulative RMDs
       const rmdData: { age: number; spending: number; rmd: number }[] = []; // Track RMD vs spending
 
@@ -2132,11 +2136,15 @@ export default function App() {
         });
 
         if (totalNow <= 0) {
-          survYrs = y - 1;
+          if (!ruined) {
+            survYrs = y - 1;
+            ruined = true;
+          }
           retBalTax = retBalPre = retBalRoth = 0;
-          break;
+          // Continue loop to maintain chart data through age 95
+        } else {
+          survYrs = y;
         }
-        survYrs = y;
 
         currWdGross *= infl_factor;
       }

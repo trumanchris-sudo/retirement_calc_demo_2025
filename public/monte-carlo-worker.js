@@ -566,12 +566,15 @@ function runSingleSimulation(params, seed) {
     balancesReal.push(totalNow / Math.pow(1 + infl, yrsToRet + y));
 
     if (totalNow <= 0) {
-      survYrs = y - 1;
-      ruined = true;
+      if (!ruined) {
+        survYrs = y - 1;
+        ruined = true;
+      }
       retBalTax = retBalPre = retBalRoth = 0;
-      break;
+      // Continue loop to maintain chart data through age 95
+    } else {
+      survYrs = y;
     }
-    survYrs = y;
 
     currWdGross *= infl_factor;
   }
