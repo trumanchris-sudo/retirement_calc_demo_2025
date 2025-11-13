@@ -2584,6 +2584,7 @@ export default function App() {
         wd: res.wd,
         wdReal: res.wdReal,
         eol: res.eol,
+        eolReal: res.eolReal,  // Include inflation-adjusted EOL for comparisons
         estateTax: res.estateTax,
         netEstate: res.netEstate,
         probRuin: res.probRuin,
