@@ -4324,6 +4324,12 @@ export default function App() {
                         </div>
                       )}
                       <div className="chart-block">
+                      {/* Debug info - temporary */}
+                      {!comparisonMode && res?.data && (
+                        <div className="text-xs text-muted-foreground mb-2 print-hide">
+                          Data keys: {res.data[0] ? Object.keys(res.data[0]).join(', ') : 'No data'}
+                        </div>
+                      )}
                       <ResponsiveContainer width="100%" height={400}>
                         <ComposedChart data={comparisonMode && comparisonData.baseline ? comparisonData.baseline.data : (res?.data || [])}>
                           <defs>
@@ -4357,7 +4363,7 @@ export default function App() {
                           <Legend />
 
                           {/* Standard view - show areas */}
-                          {!comparisonMode && (
+                          {!comparisonMode && res?.data && (
                             <>
                               <Area
                                 type="monotone"
