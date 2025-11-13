@@ -146,7 +146,6 @@ export const BrandLoader: React.FC<{
           .specular { animation: none; opacity:.2; }
         }
       `}</style>
-      </div>
     </>
   );
 };
