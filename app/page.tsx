@@ -4365,15 +4365,15 @@ export default function App() {
                           />
                           <Legend />
 
-                          {/* Wealth accumulation areas - always shown (now that comparison data merges onto res.data) */}
-                          {(res?.data || (comparisonData.baseline?.data || [])).length > 0 && (
+                          {/* Wealth accumulation areas - standard mode */}
+                          {!comparisonMode && res?.data && res.data.length > 0 && (
                             <>
                               <Area
                                 type="monotone"
                                 dataKey="bal"
                                 stroke="#3b82f6"
                                 strokeWidth={3}
-                                fillOpacity={comparisonMode ? 0.2 : 1}
+                                fillOpacity={1}
                                 fill="url(#colorBal)"
                                 name="Nominal (50th Percentile)"
                               />
@@ -4383,7 +4383,32 @@ export default function App() {
                                 stroke="#10b981"
                                 strokeWidth={2}
                                 strokeDasharray="5 5"
-                                fillOpacity={comparisonMode ? 0.2 : 1}
+                                fillOpacity={1}
+                                fill="url(#colorReal)"
+                                name="Real (50th Percentile)"
+                              />
+                            </>
+                          )}
+
+                          {/* Wealth accumulation areas - comparison mode */}
+                          {comparisonMode && comparisonData.baseline?.data && comparisonData.baseline.data.length > 0 && (
+                            <>
+                              <Area
+                                type="monotone"
+                                dataKey="bal"
+                                stroke="#3b82f6"
+                                strokeWidth={3}
+                                fillOpacity={0.2}
+                                fill="url(#colorBal)"
+                                name="Nominal (50th Percentile)"
+                              />
+                              <Area
+                                type="monotone"
+                                dataKey="real"
+                                stroke="#10b981"
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                                fillOpacity={0.2}
                                 fill="url(#colorReal)"
                                 name="Real (50th Percentile)"
                               />
