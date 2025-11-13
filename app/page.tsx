@@ -24,6 +24,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FlippingCard } from "@/components/FlippingCard";
 import { LegacyResultCard } from "@/components/LegacyResultCard";
 import { TopBanner } from "@/components/layout/TopBanner";
@@ -1208,6 +1210,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
   const [showP90, setShowP90] = useState(false); // Show 90th percentile line
+  const [activeChartTab, setActiveChartTab] = useState("accumulation"); // Track active chart tab
   const [loaderComplete, setLoaderComplete] = useState(false); // Always show loader on mount
   const [loaderHandoff, setLoaderHandoff] = useState(false); // Track when handoff starts
   const [cubeAppended, setCubeAppended] = useState(false); // Track when cube animation completes
@@ -2670,7 +2673,7 @@ export default function App() {
               <FlippingStatCard
                 title="After-Tax Income"
                 value={fmt(res.wdReal)}
-                sub="Year 1 real spending"
+                sub={`Year 1 real spending · Duration: ${res.survYrs === res.yrsToSim ? `${res.yrsToSim} yrs (to age ${LIFE_EXP})` : `${res.survYrs} yrs (to age ${retAge + res.survYrs})`}`}
                 color="emerald"
                 backContent={
                   <>
@@ -2719,74 +2722,69 @@ export default function App() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-sm text-muted-foreground mb-2">Duration</p>
-                  <p className="text-2xl font-bold">
-                    {res.survYrs === res.yrsToSim
-                      ? `${res.yrsToSim} yrs (to ${LIFE_EXP})`
-                      : `${res.survYrs} yrs`}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
+            {/* Unified Lifetime Wealth Flow Component */}
+            <Card className="border-2 border-slate-200 dark:border-slate-700">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Lifetime Wealth Flow</span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => askExplainQuestion("How can I optimize my end-of-life wealth and estate planning?")}
+                  >
+                    Explain This
+                  </Button>
+                </CardTitle>
+                <CardDescription>From end-of-life wealth to net inheritance</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* End-of-Life Wealth Breakdown */}
+                <div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm text-muted-foreground">End-of-Life Wealth</p>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 px-2 text-xs hover:bg-green-100 dark:hover:bg-green-900/20"
-                      onClick={() => askExplainQuestion("How can I optimize my end-of-life wealth and account distribution?")}
-                    >
-                      Explain This
-                    </Button>
+                    <p className="text-sm font-medium text-foreground">End-of-Life Wealth</p>
+                    <p className="text-lg font-bold text-green-600 dark:text-green-400">{fmt(res.eol)}</p>
                   </div>
-                  <p className="text-2xl font-bold text-green-600">{fmt(res.eol)}</p>
-                  {res.eolAccounts && (
+                  {res.eolAccounts && res.eol > 0 && (
                     <>
-                      <div className="mt-4">
-                        <ResponsiveContainer width="100%" height={200}>
-                          <PieChart>
-                            <Pie
-                              data={[
-                                { name: "Taxable", value: res.eolAccounts.taxable, color: "#3b82f6" },
-                                { name: "Pre-tax", value: res.eolAccounts.pretax, color: "#f59e0b" },
-                                { name: "Roth", value: res.eolAccounts.roth, color: "#10b981" },
-                              ]}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={50}
-                              outerRadius={80}
-                              fill="#8884d8"
-                              paddingAngle={2}
-                              dataKey="value"
-                              label={false}
-                              labelLine={false}
-                            >
-                              {[
-                                { name: "Taxable", value: res.eolAccounts.taxable, color: "#3b82f6" },
-                                { name: "Pre-tax", value: res.eolAccounts.pretax, color: "#f59e0b" },
-                                { name: "Roth", value: res.eolAccounts.roth, color: "#10b981" },
-                              ].map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                            <RTooltip
-                              formatter={(value: number) => fmt(value)}
-                              contentStyle={{
-                                backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                                borderRadius: "8px",
-                                border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-                                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                                color: isDarkMode ? '#f3f4f6' : '#1f2937'
-                              }}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
+                      {/* Stacked Horizontal Bar */}
+                      <div className="w-full h-12 rounded-lg overflow-hidden flex shadow-sm">
+                        {res.eolAccounts.taxable > 0 && (
+                          <div
+                            className="bg-blue-500 flex items-center justify-center text-white text-xs font-semibold transition-all hover:opacity-90"
+                            style={{ width: `${(res.eolAccounts.taxable / res.eol) * 100}%` }}
+                            title={`Taxable: ${fmt(res.eolAccounts.taxable)}`}
+                          >
+                            {((res.eolAccounts.taxable / res.eol) * 100) > 15 && (
+                              <span>Taxable: {fmt(res.eolAccounts.taxable)}</span>
+                            )}
+                          </div>
+                        )}
+                        {res.eolAccounts.pretax > 0 && (
+                          <div
+                            className="bg-amber-500 flex items-center justify-center text-white text-xs font-semibold transition-all hover:opacity-90"
+                            style={{ width: `${(res.eolAccounts.pretax / res.eol) * 100}%` }}
+                            title={`Pre-tax: ${fmt(res.eolAccounts.pretax)}`}
+                          >
+                            {((res.eolAccounts.pretax / res.eol) * 100) > 15 && (
+                              <span>Pre-tax: {fmt(res.eolAccounts.pretax)}</span>
+                            )}
+                          </div>
+                        )}
+                        {res.eolAccounts.roth > 0 && (
+                          <div
+                            className="bg-green-500 flex items-center justify-center text-white text-xs font-semibold transition-all hover:opacity-90"
+                            style={{ width: `${(res.eolAccounts.roth / res.eol) * 100}%` }}
+                            title={`Roth: ${fmt(res.eolAccounts.roth)}`}
+                          >
+                            {((res.eolAccounts.roth / res.eol) * 100) > 15 && (
+                              <span>Roth: {fmt(res.eolAccounts.roth)}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <div className="mt-2 text-xs text-muted-foreground space-y-1">
+                      {/* Legend */}
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                           <span>Taxable: {fmt(res.eolAccounts.taxable)}</span>
@@ -2802,86 +2800,65 @@ export default function App() {
                       </div>
                     </>
                   )}
-                </CardContent>
-              </Card>
-            </div>
+                </div>
 
-            {(res.totalRMDs > 0 || res.estateTax > 0 || res.probRuin !== undefined) && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Estate Tax Connector */}
+                {res.estateTax > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-red-300 to-transparent"></div>
+                      <div className="text-center px-4 py-2 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800">
+                        <p className="text-xs text-muted-foreground mb-1">Estate Tax</p>
+                        <p className="text-xl font-bold text-red-600 dark:text-red-400">{fmt(res.estateTax)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {((res.estateTax / res.eol) * 100).toFixed(1)}% lost
+                        </p>
+                      </div>
+                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-red-300 to-transparent"></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Net to Heirs */}
+                {res.netEstate !== undefined && res.netEstate > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-foreground">Net Estate to Heirs</p>
+                      <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{fmt(res.netEstate)}</p>
+                    </div>
+                    {/* Net to Heirs Bar */}
+                    <div className="w-full h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 flex items-center justify-center text-white font-semibold shadow-sm">
+                      {fmt(res.netEstate)} after estate tax
+                    </div>
+                  </div>
+                )}
+
+                {/* Probability of Running Out */}
+                {res.probRuin !== undefined && (
+                  <div className="pt-4 border-t border-border">
+                    <p className="text-sm text-muted-foreground text-center">
+                      Probability of Running Out: <span className="font-semibold text-foreground">{(res.probRuin * 100).toFixed(0)}%</span>
+                      {res.probRuin === 0 && <span className="ml-2 text-green-600 dark:text-green-400">✓ All 1,000 scenarios succeeded!</span>}
+                    </p>
+                  </div>
+                )}
+
+                {/* Total RMDs if applicable */}
                 {res.totalRMDs > 0 && (
-                  <Card className="border-2 border-purple-200 bg-purple-50 dark:border-purple-700 dark:bg-purple-950">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm text-muted-foreground">Total RMDs (Age 73+)</p>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 px-2 text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-100"
-                          onClick={() => askExplainQuestion("How do my Required Minimum Distributions affect my tax situation?")}
-                        >
-                          Explain This
-                        </Button>
+                  <div className="pt-4 border-t border-border">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Total RMDs (Age 73+)</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Cumulative Required Minimum Distributions
+                        </p>
                       </div>
-                      <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{fmt(res.totalRMDs)}</p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Cumulative Required Minimum Distributions from pre-tax accounts
-                      </p>
-                    </CardContent>
-                  </Card>
+                      <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{fmt(res.totalRMDs)}</p>
+                    </div>
+                  </div>
                 )}
-                {(res.estateTax > 0 || res.probRuin !== undefined) && (
-                  <Card className="border-2 border-slate-200 bg-gradient-to-br from-slate-50 to-gray-50 dark:border-slate-700 dark:from-slate-900 dark:to-gray-900">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <p className="text-base font-semibold text-foreground">Estate & Risk Analysis</p>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 px-2 text-xs hover:bg-slate-200 dark:hover:bg-slate-800"
-                          onClick={() => askExplainQuestion("What strategies can I use to reduce my estate tax burden and manage retirement risks?")}
-                        >
-                          Explain This
-                        </Button>
-                      </div>
-
-                      <div className="space-y-4">
-                        {res.estateTax > 0 && (
-                          <>
-                            <div className="pb-4 border-b border-slate-200 dark:border-slate-700">
-                              <p className="text-sm text-muted-foreground mb-1">Estate Tax</p>
-                              <p className="text-2xl font-bold text-red-600 dark:text-red-400">{fmt(res.estateTax)}</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                40% on amount over ${(ESTATE_TAX_EXEMPTION[marital] / 1_000_000).toFixed(2)}M exemption
-                              </p>
-                            </div>
-
-                            <div className="pb-4 border-b border-slate-200 dark:border-slate-700">
-                              <p className="text-sm text-muted-foreground mb-1">Net Estate to Heirs</p>
-                              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{fmt(res.netEstate)}</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                After estate tax deduction
-                              </p>
-                            </div>
-                          </>
-                        )}
-
-                        {res.probRuin !== undefined && (
-                          <div>
-                            <p className="text-sm text-muted-foreground mb-1">Probability of Running Out</p>
-                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{(res.probRuin * 100).toFixed(0)}%</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {res.probRuin === 0 ? "All 1,000 scenarios succeeded!" :
-                              res.probRuin === 1 ? "All 1,000 scenarios failed." :
-                              `${(res.probRuin * 1000).toFixed(0)} of 1,000 simulations ran out`}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )}
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader>
@@ -2950,8 +2927,8 @@ export default function App() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>Sensitivity Analysis</CardTitle>
-                      <CardDescription>Which inputs matter most to your outcome?</CardDescription>
+                      <CardTitle>Which variables matter most?</CardTitle>
+                      <CardDescription>Impact ranking - highest to lowest</CardDescription>
                     </div>
                     <Button
                       variant={showSensitivity ? "default" : "outline"}
@@ -2972,64 +2949,42 @@ export default function App() {
                 {showSensitivity && sensitivityData && (
                   <CardContent className="print:block">
                     <p className="text-sm text-muted-foreground mb-6">
-                      This chart shows how changes to key inputs affect your end-of-life wealth.
-                      Longer bars = higher impact. Focus your planning on these high-impact variables.
+                      Variables ranked by impact on your end-of-life wealth. Focus your planning on the top factors.
                     </p>
 
-                    {/* Tornado Chart */}
-                    <div className="space-y-3">
+                    {/* Impact Ranking List */}
+                    <div className="space-y-4">
                       {sensitivityData.variations.map((variation: any, idx: number) => {
                         const maxRange = sensitivityData.variations[0].range;
-                        const highPct = (Math.abs(variation.high) / maxRange) * 100;
-                        const lowPct = (Math.abs(variation.low) / maxRange) * 100;
+                        const impactScore = Math.min(5, Math.max(1, Math.round((variation.range / maxRange) * 5)));
 
                         return (
-                          <div key={idx} className="space-y-1">
-                            <div className="flex items-center justify-between text-xs font-medium">
-                              <span className="text-foreground">{variation.label}</span>
-                              <span className="text-muted-foreground">
-                                Range: {fmt(variation.range)}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1 h-8">
-                              {/* Left bar (negative impact) */}
-                              <div className="flex-1 flex justify-end">
-                                <div
-                                  className="h-full bg-red-500 dark:bg-red-600 rounded-l flex items-center justify-end px-2 transition-all"
-                                  style={{ width: `${lowPct}%` }}
-                                >
-                                  {lowPct > 15 && (
-                                    <span className="text-xs font-semibold text-white">
-                                      {fmt(variation.low)}
-                                    </span>
-                                  )}
+                          <div key={idx} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3 flex-1">
+                                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100 font-bold text-sm">
+                                  {idx + 1}
+                                </span>
+                                <div className="flex-1">
+                                  <p className="text-sm font-semibold text-foreground">{variation.label}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Impact range: {fmt(variation.range)}
+                                  </p>
                                 </div>
                               </div>
-
-                              {/* Center line */}
-                              <div className="w-0.5 h-full bg-border" />
-
-                              {/* Right bar (positive impact) */}
-                              <div className="flex-1 flex justify-start">
-                                <div
-                                  className="h-full bg-green-500 dark:bg-green-600 rounded-r flex items-center justify-start px-2 transition-all"
-                                  style={{ width: `${highPct}%` }}
-                                >
-                                  {highPct > 15 && (
-                                    <span className="text-xs font-semibold text-white">
-                                      {fmt(variation.high)}
-                                    </span>
-                                  )}
-                                </div>
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((level) => (
+                                  <div
+                                    key={level}
+                                    className={`w-3 h-6 rounded-sm ${
+                                      level <= impactScore
+                                        ? 'bg-blue-500 dark:bg-blue-400'
+                                        : 'bg-gray-200 dark:bg-gray-700'
+                                    }`}
+                                  />
+                                ))}
                               </div>
                             </div>
-                            {/* Show values outside bars if bars are too small */}
-                            {(lowPct <= 15 || highPct <= 15) && (
-                              <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-                                <span>{lowPct <= 15 ? fmt(variation.low) : ""}</span>
-                                <span>{highPct <= 15 ? fmt(variation.high) : ""}</span>
-                              </div>
-                            )}
                           </div>
                         );
                       })}
@@ -3038,10 +2993,10 @@ export default function App() {
                     <div className="mt-6 p-4 bg-muted rounded-lg">
                       <h4 className="text-sm font-semibold mb-2">How to Use This</h4>
                       <ul className="text-xs text-muted-foreground space-y-1.5">
-                        <li>• <strong>Green bars</strong> show positive changes (e.g., higher returns = more wealth)</li>
-                        <li>• <strong>Red bars</strong> show negative changes (e.g., earlier retirement = less wealth)</li>
-                        <li>• <strong>Longer bars</strong> = bigger impact on your outcome</li>
+                        <li>• <strong>Top-ranked variables</strong> have the biggest influence on your retirement outcome</li>
+                        <li>• <strong>Impact bars (1-5)</strong> show relative importance at a glance</li>
                         <li>• Focus on optimizing the top 2-3 variables for maximum benefit</li>
+                        <li>• Consider small changes to high-impact variables before big changes to low-impact ones</li>
                       </ul>
                     </div>
                   </CardContent>
@@ -3416,10 +3371,6 @@ export default function App() {
                         key={scenario.year}
                         onClick={() => {
                           setHistoricalYear(scenario.year);
-                          // Scroll to top to see results
-                          setTimeout(() => {
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }, 100);
                         }}
                         className={`p-3 rounded-lg border-2 transition-all text-left hover:shadow-lg hover:scale-[1.02] ${
                           historicalYear === scenario.year
@@ -3457,13 +3408,23 @@ export default function App() {
 
                   <div className="mt-4 flex gap-2">
                     {historicalYear && (
-                      <Button
-                        onClick={() => setHistoricalYear(null)}
-                        variant="outline"
-                        size="sm"
-                      >
-                        Clear & Return to Normal Mode
-                      </Button>
+                      <>
+                        <Button
+                          onClick={calc}
+                          variant="default"
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Recalculate With This Scenario
+                        </Button>
+                        <Button
+                          onClick={() => setHistoricalYear(null)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Clear & Return to Normal Mode
+                        </Button>
+                      </>
                     )}
                   </div>
 
@@ -3490,184 +3451,187 @@ export default function App() {
               </Card>
             </AnimatedSection>
 
+            {/* Tabbed Chart Container */}
             <AnimatedSection animation="slide-up" delay={300}>
               <Card>
                 <CardHeader>
-                  <CardTitle>Accumulation Projection</CardTitle>
-                <CardDescription>Your wealth over time in nominal and real dollars</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {walkSeries === 'trulyRandom' && (
-                  <div className="flex gap-6 mb-4 items-center">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="show-p10"
-                        checked={showP10}
-                        onCheckedChange={(checked) => setShowP10(checked as boolean)}
-                      />
-                      <label
-                        htmlFor="show-p10"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        Show 10th Percentile (Nominal)
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="show-p90"
-                        checked={showP90}
-                        onCheckedChange={(checked) => setShowP90(checked as boolean)}
-                      />
-                      <label
-                        htmlFor="show-p90"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        Show 90th Percentile (Nominal)
-                      </label>
-                    </div>
-                  </div>
-                )}
-                <ResponsiveContainer width="100%" height={400}>
-                  <ComposedChart data={res.data}>
-                    <defs>
-                      <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis dataKey="year" className="text-sm" />
-                    <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
-                    <RTooltip
-                      formatter={(v) => fmt(v as number)}
-                      labelFormatter={(l) => `Year ${l}`}
-                      contentStyle={{
-                        backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                        borderRadius: "8px",
-                        border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                        color: isDarkMode ? '#f3f4f6' : '#1f2937'
-                      }}
-                      labelStyle={{
-                        color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                        fontWeight: 'bold'
-                      }}
-                    />
-                    <Legend />
-                    {/* Draw filled areas first so lines appear on top */}
-                    <Area
-                      type="monotone"
-                      dataKey="bal"
-                      stroke="#3b82f6"
-                      strokeWidth={3}
-                      fillOpacity={1}
-                      fill="url(#colorBal)"
-                      name="Nominal (50th Percentile)"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="real"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      fillOpacity={1}
-                      fill="url(#colorReal)"
-                      name="Real (50th Percentile)"
-                    />
-                    {/* Now draw percentile lines on top */}
-                    {showP10 && (
-                      <Line
-                        type="monotone"
-                        dataKey="p10"
-                        stroke="#ef4444"
-                        strokeWidth={2}
-                        strokeDasharray="3 3"
-                        dot={false}
-                        name="10th Percentile (Nominal)"
-                      />
-                    )}
-                    {showP90 && (
-                      <Line
-                        type="monotone"
-                        dataKey="p90"
-                        stroke="#ef4444"
-                        strokeWidth={2}
-                        strokeDasharray="3 3"
-                        dot={false}
-                        name="90th Percentile (Nominal)"
-                      />
-                    )}
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-            </AnimatedSection>
-
-            {/* RMD Tax Bomb Chart */}
-            {res.rmdData && res.rmdData.length > 0 && (
-              <AnimatedSection animation="slide-up" delay={400}>
-                <Card>
-                <CardHeader>
-                  <CardTitle>RMD Tax Bomb Analysis</CardTitle>
-                  <CardDescription>
-                    When Required Minimum Distributions exceed your spending needs (age {RMD_START_AGE}+)
-                  </CardDescription>
+                  <CardTitle>Portfolio Projections</CardTitle>
+                  <CardDescription>Visualize your wealth accumulation and tax planning</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <LineChart data={res.rmdData}>
-                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                      <XAxis dataKey="age" label={{ value: "Age", position: "insideBottom", offset: -5 }} />
-                      <YAxis tickFormatter={(v) => fmt(v as number)} label={{ value: "Annual Amount", angle: -90, position: "insideLeft" }} />
-                      <RTooltip
-                        formatter={(v) => fmt(v as number)}
-                        contentStyle={{
-                          backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                          borderRadius: "8px",
-                          border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                          color: isDarkMode ? '#f3f4f6' : '#1f2937'
-                        }}
-                        labelStyle={{
-                          color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                          fontWeight: 'bold'
-                        }}
-                      />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="spending"
-                        stroke="#10b981"
-                        strokeWidth={2}
-                        dot={false}
-                        name="Spending Need (after SS)"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="rmd"
-                        stroke="#ef4444"
-                        strokeWidth={2}
-                        strokeDasharray="5 5"
-                        dot={false}
-                        name="Required RMD"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                  <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
-                    <p className="text-sm text-amber-800 dark:text-amber-200">
-                      <strong>Tax Planning Tip:</strong> When the red dashed line (RMD) crosses above the green line (Spending),
-                      you&apos;re forced to withdraw more than you need. This excess gets taxed and reinvested in taxable accounts.
-                      Consider Roth conversions before age {RMD_START_AGE} to reduce future RMDs.
-                    </p>
-                  </div>
+                  <Tabs value={activeChartTab} onValueChange={setActiveChartTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-6">
+                      <TabsTrigger value="accumulation">Accumulation Projection</TabsTrigger>
+                      <TabsTrigger value="rmd">RMD Tax Bomb Analysis</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="accumulation" className="space-y-4">
+                      {walkSeries === 'trulyRandom' && (
+                        <div className="flex gap-6 items-center">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="show-p10"
+                              checked={showP10}
+                              onCheckedChange={(checked) => setShowP10(checked as boolean)}
+                            />
+                            <label
+                              htmlFor="show-p10"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                              Show 10th Percentile (Nominal)
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="show-p90"
+                              checked={showP90}
+                              onCheckedChange={(checked) => setShowP90(checked as boolean)}
+                            />
+                            <label
+                              htmlFor="show-p90"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                              Show 90th Percentile (Nominal)
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                      <ResponsiveContainer width="100%" height={400}>
+                        <ComposedChart data={res.data}>
+                          <defs>
+                            <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                          <XAxis dataKey="year" className="text-sm" />
+                          <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
+                          <RTooltip
+                            formatter={(v) => fmt(v as number)}
+                            labelFormatter={(l) => `Year ${l}`}
+                            contentStyle={{
+                              backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                              borderRadius: "8px",
+                              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+                              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                              color: isDarkMode ? '#f3f4f6' : '#1f2937'
+                            }}
+                            labelStyle={{
+                              color: isDarkMode ? '#f3f4f6' : '#1f2937',
+                              fontWeight: 'bold'
+                            }}
+                          />
+                          <Legend />
+                          <Area
+                            type="monotone"
+                            dataKey="bal"
+                            stroke="#3b82f6"
+                            strokeWidth={3}
+                            fillOpacity={1}
+                            fill="url(#colorBal)"
+                            name="Nominal (50th Percentile)"
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="real"
+                            stroke="#10b981"
+                            strokeWidth={2}
+                            strokeDasharray="5 5"
+                            fillOpacity={1}
+                            fill="url(#colorReal)"
+                            name="Real (50th Percentile)"
+                          />
+                          {showP10 && (
+                            <Line
+                              type="monotone"
+                              dataKey="p10"
+                              stroke="#ef4444"
+                              strokeWidth={2}
+                              strokeDasharray="3 3"
+                              dot={false}
+                              name="10th Percentile (Nominal)"
+                            />
+                          )}
+                          {showP90 && (
+                            <Line
+                              type="monotone"
+                              dataKey="p90"
+                              stroke="#ef4444"
+                              strokeWidth={2}
+                              strokeDasharray="3 3"
+                              dot={false}
+                              name="90th Percentile (Nominal)"
+                            />
+                          )}
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </TabsContent>
+
+                    <TabsContent value="rmd" className="space-y-4">
+                      {res.rmdData && res.rmdData.length > 0 ? (
+                        <>
+                          <ResponsiveContainer width="100%" height={400}>
+                            <LineChart data={res.rmdData}>
+                              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                              <XAxis dataKey="age" label={{ value: "Age", position: "insideBottom", offset: -5 }} />
+                              <YAxis tickFormatter={(v) => fmt(v as number)} label={{ value: "Annual Amount", angle: -90, position: "insideLeft" }} />
+                              <RTooltip
+                                formatter={(v) => fmt(v as number)}
+                                contentStyle={{
+                                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                                  borderRadius: "8px",
+                                  border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+                                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                                  color: isDarkMode ? '#f3f4f6' : '#1f2937'
+                                }}
+                                labelStyle={{
+                                  color: isDarkMode ? '#f3f4f6' : '#1f2937',
+                                  fontWeight: 'bold'
+                                }}
+                              />
+                              <Legend />
+                              <Line
+                                type="monotone"
+                                dataKey="spending"
+                                stroke="#10b981"
+                                strokeWidth={2}
+                                dot={false}
+                                name="Spending Need (after SS)"
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="rmd"
+                                stroke="#ef4444"
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                                dot={false}
+                                name="Required RMD"
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                          <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
+                            <p className="text-sm text-amber-800 dark:text-amber-200">
+                              <strong>Tax Planning Tip:</strong> When the red dashed line (RMD) crosses above the green line (Spending),
+                              you&apos;re forced to withdraw more than you need. This excess gets taxed and reinvested in taxable accounts.
+                              Consider Roth conversions before age {RMD_START_AGE} to reduce future RMDs.
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-12 text-muted-foreground">
+                          <p className="text-sm">No RMD data available. RMDs begin at age {RMD_START_AGE} when you have pre-tax account balances.</p>
+                        </div>
+                      )}
+                    </TabsContent>
+                  </Tabs>
                 </CardContent>
               </Card>
-              </AnimatedSection>
-            )}
+            </AnimatedSection>
           </div>
           </AnimatedSection>
           </>
@@ -3690,25 +3654,27 @@ export default function App() {
                   label: "Personal Info",
                   defaultOpen: false,
                   content: (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="space-y-2">
-                        <Label>Marital Status</Label>
-                        <select
-                          value={marital}
-                          onChange={(e) => setMarital(e.target.value as FilingStatus)}
-                          className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <option value="single">Single</option>
-                          <option value="married">Married</option>
-                        </select>
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} />
+                        <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
+                        <div className="space-y-2">
+                          <Label>Marital Status</Label>
+                          <select
+                            value={marital}
+                            onChange={(e) => setMarital(e.target.value as FilingStatus)}
+                            className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                          >
+                            <option value="single">Single</option>
+                            <option value="married">Married</option>
+                          </select>
+                        </div>
                       </div>
-
-                      <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} />
                       {isMar && (
-                        <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} />
+                        </div>
                       )}
-
-                      <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
                     </div>
                   ),
                 },
@@ -3733,7 +3699,9 @@ export default function App() {
                   content: (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Primary</Badge>
+                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
+                    {marital === 'single' ? 'Your Contributions' : 'Your Contributions'}
+                  </Badge>
                   <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} />
                   <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} />
                   <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} />
@@ -3741,7 +3709,9 @@ export default function App() {
                 </div>
                 {isMar && (
                   <div className="space-y-4">
-                    <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Spouse</Badge>
+                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
+                      Spouse's Contributions
+                    </Badge>
                     <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} />
                     <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} />
                     <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} />
@@ -3758,17 +3728,18 @@ export default function App() {
                     content: (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <SliderInput
-                    label="Return Rate"
-                    value={retRate}
-                    onChange={setRetRate}
-                    min={0}
-                    max={20}
-                    step={0.1}
-                    unit="%"
-                    description={retMode === 'fixed' ? "S&P 500 avg ~9.8%" : "Used for 'Fixed' mode"}
-                    className={retMode === 'randomWalk' ? "opacity-50 pointer-events-none" : ""}
-                  />
+                  {retMode === 'fixed' && (
+                    <SliderInput
+                      label="Return Rate"
+                      value={retRate}
+                      onChange={setRetRate}
+                      min={0}
+                      max={20}
+                      step={0.1}
+                      unit="%"
+                      description="S&P 500 avg ~9.8%"
+                    />
+                  )}
                   <SliderInput
                     label="Inflation"
                     value={infRate}
@@ -3796,41 +3767,19 @@ export default function App() {
                     <Label>Return Model</Label>
                     <select
                       value={retMode}
-                      onChange={(e) => setRetMode(e.target.value as "fixed" | "randomWalk")}
-                      className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      onChange={(e) => {
+                        const newMode = e.target.value as "fixed" | "randomWalk";
+                        setRetMode(newMode);
+                        if (newMode === "randomWalk") {
+                          setWalkSeries("trulyRandom");
+                        }
+                      }}
+                      className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
                     >
                       <option value="fixed">Fixed (single rate)</option>
                       <option value="randomWalk">Random Walk (S&P bootstrap)</option>
                     </select>
                   </div>
-
-                  {retMode === "randomWalk" && (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Series Basis</Label>
-                        <select
-                          value={walkSeries}
-                          onChange={(e) => setWalkSeries(e.target.value as "nominal" | "real" | "trulyRandom")}
-                          className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <option value="nominal">Nominal YoY (Fixed Seed)</option>
-                          <option value="real">Real YoY (Fixed Seed)</option>
-                          <option value="trulyRandom">Truly Random (New Seed)</option>
-                        </select>
-                      </div>
-                      {walkSeries !== 'trulyRandom' && (
-                        <div className="space-y-2">
-                          <Label>Seed</Label>
-                          <UIInput
-                            type="number"
-                            value={seed}
-                            onChange={(e) => setSeed(parseInt(e.target.value || "0", 10))}
-                            className="transition-all"
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -4183,11 +4132,16 @@ export default function App() {
 
         {/* The Math Section */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-3xl">The Math</CardTitle>
-            <CardDescription>Understanding the calculations behind your retirement projections</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6 text-sm leading-relaxed">
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="math" className="border-none">
+              <AccordionTrigger className="px-6 pt-6 pb-2 hover:no-underline">
+                <div className="text-left">
+                  <h2 className="text-3xl font-bold">The Math (Click to Expand)</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Understanding the calculations behind your retirement projections</p>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-6 pb-6">
+                <div className="space-y-6 text-sm leading-relaxed pt-4">
             <section>
               <h3 className="text-xl font-semibold mb-3 text-blue-900">Overview</h3>
               <p className="text-gray-700">
@@ -4473,7 +4427,10 @@ export default function App() {
                 significant financial decisions. Past performance (historical returns) does not guarantee future results.
               </p>
             </div>
-          </CardContent>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </Card>
       </div>
       </div>
