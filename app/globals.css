@@ -114,6 +114,25 @@ html {
   }
 }
 
+/* Cube Mini - Always-visible header icon */
+.cube-mini {
+  width: 32px;
+  height: 32px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.cube-mini-inner {
+  width: 100%;
+  height: 100%;
+}
+
+.cube-mini-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -360,6 +379,16 @@ html {
 
   .print-only {
     display: inline !important;
+  }
+
+  /* Cube Mini - Always visible in print, loader hidden */
+  .cube-mini {
+    display: block !important;
+    filter: none !important;
+  }
+
+  .cube-loader {
+    display: none !important;
   }
 
   /* Flatten all cards - remove shadows and 3D effects */

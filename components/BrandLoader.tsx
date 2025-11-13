@@ -47,21 +47,6 @@ export const BrandLoader: React.FC<{
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Calculate position for settled state
-  const getSettledStyle = () => {
-    if (phase !== "settled") return {};
-
-    // Position in header
-    return {
-      position: "fixed" as const,
-      top: "8px",
-      left: "16px",
-      zIndex: 60,
-      width: "32px",
-      height: "32px",
-    };
-  };
-
   return (
     <>
       {/* Background overlay - only during spin/handoff */}
@@ -81,25 +66,26 @@ export const BrandLoader: React.FC<{
         />
       )}
 
-      {/* Cube - always visible */}
-      <div
-        aria-hidden="true"
-        role="presentation"
-        style={{
-          ...(phase === "settled" ? getSettledStyle() : {
+      {/* Cube - only visible during spin/handoff, then hands off to CubeStaticMini */}
+      {phase !== "settled" && (
+        <div
+          aria-hidden="true"
+          role="presentation"
+          className="cube-loader"
+          style={{
             position: "fixed",
             inset: 0,
             zIndex: 9999,
             display: "grid",
             placeItems: "center",
             pointerEvents: "none",
-          }),
-          transition: phase === "handoff" ? "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)" : undefined,
-        }}
-      >
+            opacity: phase === "handoff" ? 0 : 1,
+            transition: phase === "handoff" ? "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)" : undefined,
+          }}
+        >
       <div className="stage" style={{
-        width: phase === "settled" ? 32 : 72,
-        height: phase === "settled" ? 32 : 72,
+        width: 72,
+        height: 72,
         perspective: "900px",
         perspectiveOrigin: "50% 40%",
         transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
@@ -107,8 +93,8 @@ export const BrandLoader: React.FC<{
         <div
           className={`cube ${!prefersReduced && phase === "spin" ? "spin3d" : ""}`}
           style={{
-            width: phase === "settled" ? 32 : 72,
-            height: phase === "settled" ? 32 : 72,
+            width: 72,
+            height: 72,
             position: "relative",
             transformStyle: "preserve-3d",
             transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
@@ -117,7 +103,7 @@ export const BrandLoader: React.FC<{
           {/* Front face with R + subtle shine */}
           <div
             className="face front"
-            style={face("#6b4cd6", phase === "settled" ? "translateZ(16px)" : "translateZ(36px)", phase === "settled" ? 32 : 72)}
+            style={face("#6b4cd6", "translateZ(36px)", 72)}
           >
             <svg viewBox="0 0 100 100" style={{ width: "80%", height: "80%" }} aria-hidden="true">
               <text x="50" y="64" textAnchor="middle" fontWeight="700" fontSize="64" fill="#fff">R</text>
@@ -125,13 +111,15 @@ export const BrandLoader: React.FC<{
             <div className="specular" />
           </div>
 
-          <div className="face back"   style={face("#5a3db8", phase === "settled" ? "rotateY(180deg) translateZ(16px)" : "rotateY(180deg) translateZ(36px)", phase === "settled" ? 32 : 72)} />
-          <div className="face right"  style={face("#7d5ee6", phase === "settled" ? "rotateY(90deg)  translateZ(16px)" : "rotateY(90deg)  translateZ(36px)", phase === "settled" ? 32 : 72)} />
-          <div className="face left"   style={face("#4e35a0", phase === "settled" ? "rotateY(-90deg) translateZ(16px)" : "rotateY(-90deg) translateZ(36px)", phase === "settled" ? 32 : 72)} />
-          <div className="face top"    style={face("#8366e8", phase === "settled" ? "rotateX(90deg)  translateZ(16px)" : "rotateX(90deg)  translateZ(36px)", phase === "settled" ? 32 : 72)} />
-          <div className="face bottom" style={face("#4a329c", phase === "settled" ? "rotateX(-90deg) translateZ(16px)" : "rotateX(-90deg) translateZ(36px)", phase === "settled" ? 32 : 72)} />
+          <div className="face back"   style={face("#5a3db8", "rotateY(180deg) translateZ(36px)", 72)} />
+          <div className="face right"  style={face("#7d5ee6", "rotateY(90deg)  translateZ(36px)", 72)} />
+          <div className="face left"   style={face("#4e35a0", "rotateY(-90deg) translateZ(36px)", 72)} />
+          <div className="face top"    style={face("#8366e8", "rotateX(90deg)  translateZ(36px)", 72)} />
+          <div className="face bottom" style={face("#4a329c", "rotateX(-90deg) translateZ(36px)", 72)} />
         </div>
       </div>
+      </div>
+      )}
 
       <style jsx>{`
         .spin3d {
