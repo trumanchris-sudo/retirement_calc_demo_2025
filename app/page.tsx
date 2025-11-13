@@ -2544,7 +2544,57 @@ export default function App() {
             {/* Human Dashboard - Page 2+ */}
             <AnimatedSection animation="slide-up" duration={700}>
             <div ref={resRef} className="space-y-6 scroll-mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            {/* User Input Summary - Print Only */}
+            <div className="hidden print:block print-block print-two-col print-input-summary">
+              {/* PERSONAL INFO */}
+              <div>
+                <h3>User Inputs — Personal</h3>
+                <p>Age: {age1}</p>
+                <p>Retirement Age: {retAge}</p>
+                <p>Marital Status: {marital}</p>
+              </div>
+
+              {/* BALANCES */}
+              <div>
+                <h3>Starting Balances</h3>
+                <p>Taxable: {fmt(sTax)}</p>
+                <p>Pre-Tax: {fmt(sPre)}</p>
+                <p>Roth: {fmt(sPost)}</p>
+              </div>
+
+              {/* CONTRIBUTIONS */}
+              <div>
+                <h3>Annual Contributions</h3>
+                <p>Taxable: {fmt(cTax1)}</p>
+                <p>Pre-Tax: {fmt(cPre1)}</p>
+                <p>Roth: {fmt(cPost1)}</p>
+              </div>
+
+              {/* ASSUMPTIONS */}
+              <div>
+                <h3>Assumptions</h3>
+                <p>Inflation: {infRate}%</p>
+                <p>Withdrawal Rate: {wdRate}%</p>
+                <p>Monte Carlo Runs: 1000</p>
+                <p>Return Model: {retMode === 'fixed' ? `Fixed at ${retRate}%` : 'Historical 1928–2024 bootstrap'}</p>
+              </div>
+
+              {/* GENERATIONAL (ONLY IF ENABLED) */}
+              {showGen && (
+                <div>
+                  <h3>Generational Model Inputs</h3>
+                  <p>Per-Beneficiary Payout: {fmt(hypPerBen)}</p>
+                  <p>Birth Interval: {hypBirthInterval} yrs</p>
+                  <p>Births Per Fertile Beneficiary: {hypBirthMultiple}</p>
+                  <p>Initial Ages: {hypBenAgesStr}</p>
+                  <p>Max Lifespan: {hypDeathAge}</p>
+                  <p>Min Distribution Age: {hypMinDistAge}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print-tile-grid">
               <FlippingStatCard
                 title="Future Balance"
                 value={fmt(res.finNom)}
@@ -2728,6 +2778,7 @@ export default function App() {
             </div>
 
             {/* Lifetime Wealth Flow - Sankey Diagram */}
+            <div className="print-block">
             <Card className="border-2 border-slate-200 dark:border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -2735,7 +2786,7 @@ export default function App() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-6 px-2 text-xs"
+                    className="h-6 px-2 text-xs print-hide"
                     onClick={() => askExplainQuestion("How can I optimize my end-of-life wealth and estate planning?")}
                   >
                     Explain This
@@ -2975,7 +3026,9 @@ export default function App() {
                 )}
               </CardContent>
             </Card>
+            </div>
 
+            <div className="print-block">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -3007,9 +3060,11 @@ export default function App() {
                 )}
               </CardContent>
             </Card>
+            </div>
 
             {/* Sensitivity Analysis */}
             <AnimatedSection animation="slide-up" delay={200}>
+              <div className="print-block">
               <Card data-sensitivity-section>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -3089,6 +3144,7 @@ export default function App() {
                   </CardContent>
                 )}
               </Card>
+              </div>
             </AnimatedSection>
 
             {/* Save/Compare Scenarios */}
@@ -3540,6 +3596,7 @@ export default function App() {
 
             {/* Tabbed Chart Container */}
             <AnimatedSection animation="slide-up" delay={300}>
+              <div className="print-block">
               <Card>
                 <CardHeader>
                   <CardTitle>Portfolio Projections</CardTitle>
@@ -3554,7 +3611,7 @@ export default function App() {
 
                     <TabsContent value="accumulation" className="space-y-4">
                       {walkSeries === 'trulyRandom' && (
-                        <div className="flex gap-6 items-center">
+                        <div className="flex gap-6 items-center print-hide">
                           <div className="flex items-center space-x-2">
                             <Checkbox
                               id="show-p10"
@@ -3583,6 +3640,7 @@ export default function App() {
                           </div>
                         </div>
                       )}
+                      <div className="chart-block">
                       <ResponsiveContainer width="100%" height={400}>
                         <ComposedChart data={res.data}>
                           <defs>
@@ -3657,11 +3715,13 @@ export default function App() {
                           )}
                         </ComposedChart>
                       </ResponsiveContainer>
+                      </div>
                     </TabsContent>
 
                     <TabsContent value="rmd" className="space-y-4">
                       {res.rmdData && res.rmdData.length > 0 ? (
                         <>
+                          <div className="chart-block">
                           <ResponsiveContainer width="100%" height={400}>
                             <LineChart data={res.rmdData}>
                               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -3701,6 +3761,7 @@ export default function App() {
                               />
                             </LineChart>
                           </ResponsiveContainer>
+                          </div>
                           <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
                             <p className="text-sm text-amber-800 dark:text-amber-200">
                               <strong>Tax Planning Tip:</strong> When the red dashed line (RMD) crosses above the green line (Spending),
@@ -3718,6 +3779,7 @@ export default function App() {
                   </Tabs>
                 </CardContent>
               </Card>
+              </div>
             </AnimatedSection>
           </div>
           </AnimatedSection>
@@ -3977,7 +4039,7 @@ export default function App() {
 
             <Separator />
 
-            <div className={`space-y-6 ${!showGen ? 'no-print' : ''}`}>
+            <div className={`print-block space-y-6 ${!showGen ? 'no-print' : ''}`}>
               <div className="flex items-center space-x-3">
                 <input
                   type="checkbox"

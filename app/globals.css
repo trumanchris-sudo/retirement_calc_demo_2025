@@ -471,6 +471,73 @@ html {
     padding: 10px;
     border-top: 1px solid #000;
   }
+
+  /* Prevent page breaks inside critical sections */
+  .print-block {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: block !important;
+  }
+
+  /* Hide all interactive elements */
+  button,
+  select,
+  [role="button"],
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Ensure charts do not break across pages */
+  .chart-block {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    max-width: 100% !important;
+  }
+
+  /* Two-column layout for inputs */
+  .print-two-col {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Two-by-two tile grid */
+  .print-tile-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 20px !important;
+  }
+
+  /* Three-column summary bar */
+  .print-summary-3 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 20px !important;
+  }
+
+  /* Clean body typography */
+  body {
+    font-size: 12pt !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Input summary styling */
+  .print-input-summary {
+    margin-bottom: 30px !important;
+    padding: 20px !important;
+    border: 2px solid #000 !important;
+  }
+
+  .print-input-summary h3 {
+    font-size: 14pt !important;
+    font-weight: bold !important;
+    margin-bottom: 8px !important;
+    margin-top: 0 !important;
+  }
+
+  .print-input-summary p {
+    margin: 4px 0 !important;
+  }
 }
 
 @media screen {
