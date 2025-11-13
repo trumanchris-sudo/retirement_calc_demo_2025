@@ -2878,15 +2878,12 @@ export default function App() {
                           ];
                           const fill = colors[index] || (isDarkMode ? '#475569' : '#64748b');
 
-                          // Node labels
-                          const labels = ['Taxable', 'Pre-Tax', 'Roth', 'Estate Tax', 'Net to Heirs'];
-                          const label = labels[index] || '';
+                          // Extract label and value from payload name
+                          // Format is "Label — $Value"
+                          const fullName = payload?.name || '';
+                          const [label, value] = fullName.split(' — ');
 
-                          // Determine text color (white for visibility on colored backgrounds)
-                          const textColor = '#ffffff';
-
-                          // Position text - center horizontally and vertically within node
-                          const textX = x + width / 2;
+                          // Position text - center vertically within node
                           const textY = y + height / 2;
 
                           return (
@@ -2899,17 +2896,29 @@ export default function App() {
                                 fill={fill}
                                 fillOpacity={0.85}
                               />
-                              {/* Node label - positioned on the node */}
+                              {/* Node label with value - positioned adjacent to node */}
                               <text
                                 x={index < 3 ? x - 10 : x + width + 10}
-                                y={textY}
+                                y={textY - 8}
                                 textAnchor={index < 3 ? "end" : "start"}
                                 dominantBaseline="middle"
                                 fill={isDarkMode ? '#d1d5db' : '#374151'}
+                                fontSize="13"
+                                fontWeight="600"
+                              >
+                                {label}
+                              </text>
+                              {/* Dollar value below label */}
+                              <text
+                                x={index < 3 ? x - 10 : x + width + 10}
+                                y={textY + 8}
+                                textAnchor={index < 3 ? "end" : "start"}
+                                dominantBaseline="middle"
+                                fill={isDarkMode ? '#9ca3af' : '#6b7280'}
                                 fontSize="12"
                                 fontWeight="500"
                               >
-                                {label}
+                                {value}
                               </text>
                             </g>
                           );
