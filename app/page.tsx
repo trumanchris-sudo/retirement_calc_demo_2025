@@ -660,9 +660,9 @@ const GenerationalWealthVisual: React.FC<{ genPayout: any }> = ({ genPayout }) =
   if (isSurviving) {
     return (
       <div className="flex-shrink-0 w-24 h-24 flex items-center justify-center" title="Survives indefinitely">
-        <span className="relative flex h-12 w-12 text-purple-600">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-12 w-12 bg-purple-500 p-2">
+        <span className="relative flex h-12 w-12 text-green-600 dark:text-green-400">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 dark:bg-green-500 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-12 w-12 bg-green-500 dark:bg-green-600 p-2">
             <UsersIcon className="m-auto text-white" size={32} />
           </span>
         </span>
@@ -671,7 +671,7 @@ const GenerationalWealthVisual: React.FC<{ genPayout: any }> = ({ genPayout }) =
   } else {
     return (
       <div className="flex-shrink-0 w-24 h-24 flex items-center justify-center" title={`Exhausts after ${genPayout.years} years`}>
-        <span className="relative flex h-12 w-12 text-gray-500">
+        <span className="relative flex h-12 w-12 text-muted-foreground">
            <HourglassIcon size={48} />
         </span>
       </div>
@@ -3565,8 +3565,8 @@ export default function App() {
                           <ResponsiveContainer width="100%" height={400}>
                             <LineChart data={res.rmdData}>
                               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                              <XAxis dataKey="age" label={{ value: "Age", position: "insideBottom", offset: -5 }} />
-                              <YAxis tickFormatter={(v) => fmt(v as number)} label={{ value: "Annual Amount", angle: -90, position: "insideLeft" }} />
+                              <XAxis dataKey="age" />
+                              <YAxis tickFormatter={(v) => fmt(v as number)} />
                               <RTooltip
                                 formatter={(v) => fmt(v as number)}
                                 contentStyle={{
@@ -3884,17 +3884,17 @@ export default function App() {
                   id="show-gen"
                   checked={showGen}
                   onChange={(e) => setShowGen(e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500 no-print"
+                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 no-print"
                 />
-                <Label htmlFor="show-gen" className="text-lg font-semibold text-purple-700 cursor-pointer">
+                <Label htmlFor="show-gen" className="text-lg font-semibold text-foreground cursor-pointer">
                   Generational Wealth Modeling {showGen && <span className="print-only">✓</span>}
                 </Label>
               </div>
 
               {showGen && (
-                <div className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-700">
-                  <h4 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-4">
-                    Hypothetical Per-Beneficiary Payout (Real $)
+                <div className="p-6 bg-card rounded-xl border border-border shadow-sm">
+                  <h4 className="text-xl font-semibold text-foreground mb-6">
+                    Hypothetical Per-Beneficiary Payout
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <Input
@@ -3933,7 +3933,7 @@ export default function App() {
                         placeholder="e.g., 35, 40"
                         className="transition-all"
                       />
-                      <p className="text-xs text-purple-700 dark:text-purple-300">
+                      <p className="text-xs text-muted-foreground">
                         {hypBenAgesStr.split(',').filter(s => {
                           const n = parseInt(s.trim(), 10);
                           return !isNaN(n) && n >= 0 && n < 90;
@@ -3969,101 +3969,54 @@ export default function App() {
                         isPerpetual={res.genPayout.fundLeftReal > 0}
                       />
 
-                      {/* Monte Carlo Range Display */}
+                      {/* Percentile Outcomes */}
                       {res.genPayout.p10 && res.genPayout.p50 && res.genPayout.p90 && (
-                        <div className="p-4 sm:p-6 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-2 border-indigo-200 dark:border-indigo-800 shadow-sm">
-                          <h4 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-3 text-sm sm:text-base">
-                            Monte Carlo Range of Outcomes
+                        <div className="p-5 bg-card rounded-xl border border-border">
+                          <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                            Percentile Outcomes
                           </h4>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                            {/* P10 (Pessimistic) */}
-                            <div className="p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg border border-indigo-200 dark:border-indigo-700">
-                              <div className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
-                                10th Percentile (Pessimistic)
-                              </div>
-                              <div className="text-lg font-bold text-indigo-900 dark:text-indigo-100">
-                                {res.genPayout.p10.isPerpetual ? '∞ years' : `${res.genPayout.p10.years} years`}
-                              </div>
-                              <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
-                                {res.genPayout.p10.isPerpetual ? 'Perpetual wealth' : 'Limited duration'}
-                              </div>
-                            </div>
-
-                            {/* P50 (Median) */}
-                            <div className="p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg border-2 border-indigo-400 dark:border-indigo-600">
-                              <div className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
-                                50th Percentile (Median)
-                              </div>
-                              <div className="text-lg font-bold text-indigo-900 dark:text-indigo-100">
-                                {res.genPayout.p50.isPerpetual ? '∞ years' : `${res.genPayout.p50.years} years`}
-                              </div>
-                              <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
-                                {res.genPayout.p50.isPerpetual ? 'Perpetual wealth' : 'Limited duration'}
-                              </div>
-                            </div>
-
-                            {/* P90 (Optimistic) */}
-                            <div className="p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg border border-indigo-200 dark:border-indigo-700">
-                              <div className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
-                                90th Percentile (Optimistic)
-                              </div>
-                              <div className="text-lg font-bold text-indigo-900 dark:text-indigo-100">
-                                {res.genPayout.p90.isPerpetual ? '∞ years' : `${res.genPayout.p90.years} years`}
-                              </div>
-                              <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
-                                {res.genPayout.p90.isPerpetual ? 'Perpetual wealth' : 'Limited duration'}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Perpetual Wealth Probability */}
-                          {res.genPayout.probPerpetual !== undefined && res.genPayout.probPerpetual > 0 && (
-                            <div className="p-3 bg-violet-100 dark:bg-violet-900/30 rounded-lg border border-violet-300 dark:border-violet-700">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xl">∞</span>
-                                <span className="text-sm font-semibold text-violet-900 dark:text-violet-100">
-                                  Estimated Probability of Perpetual Wealth
-                                </span>
-                              </div>
-                              <div className="text-2xl font-bold text-violet-900 dark:text-violet-100">
-                                ~{Math.round(res.genPayout.probPerpetual * 100)}%
-                              </div>
-                              <div className="text-xs text-violet-700 dark:text-violet-300 mt-1">
-                                Based on your retirement plan's Monte Carlo simulations
-                              </div>
-                            </div>
-                          )}
+                          <ul className="space-y-2 text-sm text-muted-foreground">
+                            <li>• 10th Percentile: {res.genPayout.p10.isPerpetual ? '∞ years (Perpetual)' : `${res.genPayout.p10.years} years`}</li>
+                            <li>• 50th Percentile: {res.genPayout.p50.isPerpetual ? '∞ years (Perpetual)' : `${res.genPayout.p50.years} years`}</li>
+                            <li>• 90th Percentile: {res.genPayout.p90.isPerpetual ? '∞ years (Perpetual)' : `${res.genPayout.p90.years} years`}</li>
+                          </ul>
                         </div>
                       )}
 
-                      {/* Dynasty Trust Impact Commentary */}
-                      {res.genPayout.fundLeftReal > 0 && (
-                        <div className="p-4 sm:p-6 rounded-xl bg-gradient-to-br from-violet-50 via-purple-50 to-blue-50 dark:from-violet-900/20 dark:via-purple-900/20 dark:to-blue-900/20 border-2 border-violet-200 dark:border-violet-800 shadow-sm">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center text-white font-bold text-base sm:text-lg">
-                              ∞
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-violet-900 dark:text-violet-100 mb-2 text-sm sm:text-base">
-                                What This Means
-                              </h4>
-                              <p className="text-xs sm:text-sm text-violet-800 dark:text-violet-200 leading-relaxed">
-                                Each beneficiary receives <strong>{fmt(res.genPayout.perBenReal)}/year</strong> (inflation-adjusted) from age {hypMinDistAge} to {hypDeathAge}—equivalent to a <strong>{fmt(res.genPayout.perBenReal * 25)}</strong> trust fund. This provides lifelong financial security and freedom to pursue any career path.
-                              </p>
-                            </div>
-                          </div>
+                      {/* Estimated Probability */}
+                      {res.genPayout.probPerpetual !== undefined && res.genPayout.probPerpetual > 0 && (
+                        <div className="p-5 bg-card rounded-xl border border-border">
+                          <p className="text-sm text-muted-foreground mb-2">Estimated Probability of Perpetual Wealth</p>
+                          <p className="text-2xl font-bold text-center text-foreground">
+                            ~{Math.round(res.genPayout.probPerpetual * 100)}%
+                          </p>
                         </div>
+                      )}
+
+                      {/* What This Means - Accordion */}
+                      {res.genPayout.fundLeftReal > 0 && (
+                        <Accordion type="single" collapsible className="w-full">
+                          <AccordionItem value="what-this-means" className="border border-border rounded-xl px-4">
+                            <AccordionTrigger className="hover:no-underline py-4">
+                              <h4 className="text-sm font-medium text-foreground">What This Means</h4>
+                            </AccordionTrigger>
+                            <AccordionContent className="pb-4">
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                Each beneficiary receives <strong className="text-foreground">{fmt(res.genPayout.perBenReal)}/year</strong> (inflation-adjusted) from age {hypMinDistAge} to {hypDeathAge}—equivalent to a <strong className="text-foreground">{fmt(res.genPayout.perBenReal * 25)}</strong> trust fund. This provides lifelong financial security and freedom to pursue any career path.
+                              </p>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
                       )}
 
                       {/* Methodology Note */}
-                      <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                      <div className="p-4 bg-muted/50 rounded-lg border border-border">
                         <div className="flex items-start gap-2">
-                          <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <div className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
-                            <strong>Why we don't simulate 1,000 years × 1,000 runs:</strong> Running full Monte Carlo simulations (N=1,000) for each potential generational wealth timeline would require simulating hundreds of thousands of years of market returns and family dynamics—computationally impractical in a browser. Instead, we use the three key end-of-life wealth percentiles (P10, P50, P90) from your retirement Monte Carlo to show the range of possible generational outcomes. This provides a realistic view of how market uncertainty affects your legacy without running a million-year simulation.
+                          <div className="text-xs text-muted-foreground leading-relaxed">
+                            <strong className="text-foreground">Why we don't simulate 1,000 years × 1,000 runs:</strong> Running full Monte Carlo simulations (N=1,000) for each potential generational wealth timeline would require simulating hundreds of thousands of years of market returns and family dynamics—computationally impractical in a browser. Instead, we use the three key end-of-life wealth percentiles (P10, P50, P90) from your retirement Monte Carlo to show the range of possible generational outcomes. This provides a realistic view of how market uncertainty affects your legacy without running a million-year simulation.
                           </div>
                         </div>
                       </div>
@@ -4119,7 +4072,7 @@ export default function App() {
             <AccordionItem value="math" className="border-none">
               <AccordionTrigger className="px-6 pt-6 pb-2 hover:no-underline">
                 <div className="text-left">
-                  <h2 className="text-3xl font-bold">The Math (Click to Expand)</h2>
+                  <h2 className="text-3xl font-bold">The Math</h2>
                   <p className="text-sm text-muted-foreground mt-1">Understanding the calculations behind your retirement projections</p>
                 </div>
               </AccordionTrigger>
