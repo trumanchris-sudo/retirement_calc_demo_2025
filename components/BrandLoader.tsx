@@ -118,7 +118,7 @@ export const BrandLoader: React.FC<{
           <div className="face bottom" style={face("#4a329c", "rotateX(-90deg) translateZ(36px)", 72)} />
         </div>
       </div>
-      </div>
+        </div>
       )}
 
       <style jsx>{`
