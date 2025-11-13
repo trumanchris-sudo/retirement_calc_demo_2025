@@ -1198,6 +1198,7 @@ export default function App() {
   const [isLoadingAi, setIsLoadingAi] = useState<boolean>(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [userQuestion, setUserQuestion] = useState<string>("");
+  const [olderAgeForAnalysis, setOlderAgeForAnalysis] = useState<number>(0);
 
   // Sensitivity analysis and scenario comparison
   const [sensitivityData, setSensitivityData] = useState<any>(null);
@@ -1801,9 +1802,8 @@ export default function App() {
           } else {
             resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
           }
-          // Use local insight generation instead of API call
-          const localInsight = generateLocalInsight(newRes, olderAgeForAI);
-          setAiInsight(localInsight);
+          // AI insight will be generated on demand when user clicks button
+          setOlderAgeForAnalysis(olderAgeForAI);
           setIsLoadingAi(false);
         }, 100);
 
@@ -2189,9 +2189,8 @@ export default function App() {
         } else {
           resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         }
-        // Use local insight generation instead of API call
-        const localInsight = generateLocalInsight(newRes, olderAgeForAI);
-        setAiInsight(localInsight);
+        // AI insight will be generated on demand when user clicks button
+        setOlderAgeForAnalysis(olderAgeForAI);
         setIsLoadingAi(false);
       }, 100);
 
@@ -2882,53 +2881,29 @@ export default function App() {
               <CardContent>
                 {res && !aiInsight && !isLoadingAi && (
                   <div className="text-center py-6">
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Get AI-powered insights about your retirement plan
-                    </p>
                     <Button
-                      onClick={() => askExplainQuestion("Please analyze my retirement plan and provide key insights and recommendations.")}
+                      onClick={() => {
+                        if (res && olderAgeForAnalysis > 0) {
+                          setIsLoadingAi(true);
+                          setTimeout(() => {
+                            const localInsight = generateLocalInsight(res, olderAgeForAnalysis);
+                            setAiInsight(localInsight);
+                            setIsLoadingAi(false);
+                          }, 100);
+                        }
+                      }}
                       className="whitespace-nowrap"
                     >
-                      Get Claude Analysis
+                      Generate AI Plan Analysis
                     </Button>
                   </div>
                 )}
-                {(aiInsight || isLoadingAi || aiError) && (
+                {(aiInsight || isLoadingAi) && (
                   <AiInsightBox
                     insight={aiInsight}
                     error={aiError}
                     isLoading={isLoadingAi}
                   />
-                )}
-                {res && (
-                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <Label htmlFor="ai-question" className="text-sm font-medium mb-2 block">
-                      Ask a question about your plan
-                    </Label>
-                    <div className="flex gap-2">
-                      <UIInput
-                        id="ai-question"
-                        type="text"
-                        placeholder="e.g., What if I retire 2 years earlier?"
-                        value={userQuestion}
-                        onChange={(e) => setUserQuestion(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            handleAskQuestion();
-                          }
-                        }}
-                        className="flex-1"
-                        disabled={isLoadingAi}
-                      />
-                      <Button
-                        onClick={handleAskQuestion}
-                        disabled={isLoadingAi || !userQuestion.trim()}
-                        className="whitespace-nowrap"
-                      >
-                        Ask Claude
-                      </Button>
-                    </div>
-                  </div>
                 )}
               </CardContent>
             </Card>
