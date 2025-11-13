@@ -4324,8 +4324,11 @@ export default function App() {
                       <div className="chart-block">
                       {/* Debug info - temporary */}
                       {!comparisonMode && res?.data && (
-                        <div className="text-xs text-muted-foreground mb-2 print-hide">
-                          Standard mode data keys: {res.data[0] ? Object.keys(res.data[0]).join(', ') : 'No data'}
+                        <div className="text-xs text-muted-foreground mb-2 print-hide space-y-1">
+                          <div>Standard mode data keys: {res.data[0] ? Object.keys(res.data[0]).join(', ') : 'No data'}</div>
+                          <div>Data length: {res.data.length}</div>
+                          <div>First row bal: {res.data[0]?.bal}, real: {res.data[0]?.real}</div>
+                          <div>Area conditional: {(!comparisonMode && res?.data && res.data.length > 0) ? 'TRUE' : 'FALSE'}</div>
                         </div>
                       )}
                       {comparisonMode && comparisonData.baseline?.data?.length > 0 && (
