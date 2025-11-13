@@ -3655,25 +3655,21 @@ export default function App() {
                   defaultOpen: false,
                   content: (
                     <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} />
-                        <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
-                        <div className="space-y-2">
-                          <Label>Marital Status</Label>
-                          <select
-                            value={marital}
-                            onChange={(e) => setMarital(e.target.value as FilingStatus)}
-                            className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
-                          >
-                            <option value="single">Single</option>
-                            <option value="married">Married</option>
-                          </select>
-                        </div>
+                      <div className="space-y-2">
+                        <Label>Marital Status</Label>
+                        <select
+                          value={marital}
+                          onChange={(e) => setMarital(e.target.value as FilingStatus)}
+                          className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                        >
+                          <option value="single">Single</option>
+                          <option value="married">Married</option>
+                        </select>
                       </div>
+                      <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} />
+                      <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
                       {isMar && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} />
-                        </div>
+                        <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} />
                       )}
                     </div>
                   ),
