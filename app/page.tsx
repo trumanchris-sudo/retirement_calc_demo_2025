@@ -743,10 +743,7 @@ function simulateRealPerBeneficiaryPayout(
       return { years, fundLeftReal: 0, lastLivingCount: living };
     }
 
-    years += 1;
-
-    cohorts.forEach((c) => (c.age += 1));
-
+    // Check for births BEFORE aging, at years 0, 30, 60, etc.
     if (years % birthInterval === 0) {
       // Only fertile beneficiaries (ages 20-40) can have children
       const fertile = cohorts.filter(c => c.age >= 20 && c.age <= 40);
@@ -754,6 +751,10 @@ function simulateRealPerBeneficiaryPayout(
       const births = fertileCount * birthMultiple;
       if (births > 0) cohorts.push({ size: births, age: 0 });
     }
+
+    years += 1;
+
+    cohorts.forEach((c) => (c.age += 1));
   }
 
   const lastLiving = cohorts.reduce((acc, c) => acc + c.size, 0);
@@ -840,7 +841,7 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     infPct: infRate,
     walkSeries,
     seed: seed,
-    startYear: historicalYear,
+    startYear: undefined, // Don't apply historical returns during accumulation
   })();
 
   const drawGen = buildReturnGenerator({
@@ -850,7 +851,7 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     infPct: infRate,
     walkSeries,
     seed: seed + 1,
-    startYear: historicalYear ? historicalYear + yrsToRet : undefined,
+    startYear: historicalYear, // Apply historical returns starting at retirement
   })();
 
   let bTax = sTax;
@@ -1821,7 +1822,7 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed,
-        startYear: historicalYear || undefined,
+        startYear: undefined, // Don't apply historical returns during accumulation
       })();
 
       const drawGen = buildReturnGenerator({
@@ -1831,7 +1832,7 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed + 1,
-        startYear: historicalYear ? historicalYear + yrsToRet : undefined,
+        startYear: historicalYear || undefined, // Apply historical returns starting at retirement
       })();
 
       let bTax = sTax;
