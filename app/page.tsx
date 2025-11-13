@@ -55,6 +55,7 @@ import {
   NET_WORTH_DATA,
   getNetWorthBracket,
   SP500_YOY_NOMINAL,
+  SP500_START_YEAR,
   COLOR,
   type ColorKey,
 } from "@/lib/constants";
@@ -77,17 +78,9 @@ export type { ReturnMode, WalkSeries, BatchSummary };
 /**
  * Extract 3 years of returns starting from a historical year
  * for bear market scenario injection
- *
- * NOTE: The SP500_YOY_NOMINAL array has 4 extra values in the 1941-1960 section,
- * so we need to add an offset of 4 for years after 1940.
  */
 function getBearReturns(year: number): number[] {
-  let startIndex = year - 1928; // SP500_YOY_NOMINAL starts at 1928
-
-  // Account for 4 extra values in the array after 1940
-  if (year > 1940) {
-    startIndex += 4;
-  }
+  const startIndex = year - SP500_START_YEAR;
 
   if (startIndex < 0 || startIndex + 2 >= SP500_YOY_NOMINAL.length) {
     // Fallback if year is out of range
