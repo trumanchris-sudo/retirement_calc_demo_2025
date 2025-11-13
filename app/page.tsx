@@ -4047,7 +4047,7 @@ export default function App() {
                     </TabsList>
 
                     <TabsContent value="accumulation" className="space-y-4">
-                      {walkSeries === 'trulyRandom' && (
+                      {walkSeries === 'trulyRandom' && !comparisonMode && (
                         <div className="flex gap-6 items-center print-hide">
                           <div className="flex items-center space-x-2">
                             <Checkbox
