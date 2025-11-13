@@ -1287,6 +1287,18 @@ export default function App() {
   const [inflationShockRate, setInflationShockRate] = useState<number>(0); // elevated inflation % - default 0 means no shock
   const [inflationShockDuration, setInflationShockDuration] = useState<number>(5); // years
 
+  // Scenario comparison mode
+  const [comparisonMode, setComparisonMode] = useState(false);
+  const [comparisonData, setComparisonData] = useState<{
+    baseline: { data: any[]; visible: boolean; label: string } | null;
+    bearMarket: { data: any[]; visible: boolean; label: string; year: number } | null;
+    inflation: { data: any[]; visible: boolean; label: string; rate: number; duration: number } | null;
+  }>({
+    baseline: null,
+    bearMarket: null,
+    inflation: null,
+  });
+
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
   const [showP90, setShowP90] = useState(false); // Show 90th percentile line
@@ -1574,6 +1586,93 @@ export default function App() {
       worker.postMessage({ type: 'run', params: inputs, baseSeed, N });
     });
   }, []);
+
+  /**
+   * Run comparison between baseline and selected scenarios
+   */
+  const runComparison = useCallback(async () => {
+    if (!comparisonMode) return;
+
+    setErr(null);
+    const younger = Math.min(age1, isMar ? age2 : age1);
+    const yrsToRet = retAge - younger;
+
+    try {
+      // Prepare baseline inputs
+      const baseInputs = {
+        marital, age1, age2, retAge, sTax, sPre, sPost,
+        cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+        retRate, infRate, stateRate, incContrib, incRate, wdRate,
+        retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+        historicalYear: undefined,
+        inflationShockRate: null,
+        inflationShockDuration: 5,
+      };
+
+      // Calculate baseline
+      const baselineResult = runSingleSimulation(baseInputs, seed);
+      const baselineData = baselineResult.balancesReal.map((bal, i) => ({
+        year: CURR_YEAR + i,
+        age: age1 + i,
+        baseline: bal,
+      }));
+
+      // Calculate bear market scenario if specified
+      let bearData = null;
+      if (historicalYear) {
+        const bearInputs = { ...baseInputs, historicalYear };
+        const bearResult = runSingleSimulation(bearInputs, seed);
+        bearData = bearResult.balancesReal;
+      }
+
+      // Calculate inflation shock scenario if specified
+      let inflationData = null;
+      if (inflationShockRate > 0) {
+        const inflationInputs = {
+          ...baseInputs,
+          inflationShockRate,
+          inflationShockDuration
+        };
+        const inflationResult = runSingleSimulation(inflationInputs, seed);
+        inflationData = inflationResult.balancesReal;
+      }
+
+      // Merge all data
+      const mergedData = baselineData.map((row, i) => ({
+        ...row,
+        bearMarket: bearData ? bearData[i] : null,
+        inflation: inflationData ? inflationData[i] : null,
+      }));
+
+      // Update comparison state
+      setComparisonData({
+        baseline: {
+          data: mergedData,
+          visible: true,
+          label: "Baseline",
+        },
+        bearMarket: historicalYear ? {
+          data: mergedData,
+          visible: true,
+          label: BEAR_MARKET_SCENARIOS.find(s => s.year === historicalYear)?.label || `${historicalYear} Crash`,
+          year: historicalYear,
+        } : null,
+        inflation: inflationShockRate > 0 ? {
+          data: mergedData,
+          visible: true,
+          label: `${inflationShockRate}% Inflation (${inflationShockDuration}yr)`,
+          rate: inflationShockRate,
+          duration: inflationShockDuration,
+        } : null,
+      });
+
+    } catch (error: any) {
+      setErr(error.message);
+    }
+  }, [comparisonMode, age1, age2, retAge, marital, sTax, sPre, sPost, cTax1, cPre1, cPost1, cMatch1,
+      cTax2, cPre2, cPost2, cMatch2, retRate, infRate, stateRate, incContrib, incRate, wdRate,
+      retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+      historicalYear, inflationShockRate, inflationShockDuration, seed, isMar]);
 
   const calc = useCallback(async () => {
     setErr(null);
@@ -4065,6 +4164,119 @@ export default function App() {
               </div>
             </AnimatedSection>
 
+            {/* Scenario Comparison Mode */}
+            <AnimatedSection animation="slide-up" delay={293}>
+              <div className="print-section">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Scenario Comparison</CardTitle>
+                      <CardDescription>Compare baseline vs bear market vs inflation shock side-by-side</CardDescription>
+                    </div>
+                    <Button
+                      variant={comparisonMode ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        const newMode = !comparisonMode;
+                        setComparisonMode(newMode);
+                        if (newMode) {
+                          runComparison();
+                        }
+                      }}
+                      className="no-print"
+                    >
+                      {comparisonMode ? "Exit Comparison" : "Compare Scenarios"}
+                    </Button>
+                  </div>
+                </CardHeader>
+                {comparisonMode && (
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                          <strong>Comparison Mode Active:</strong> The chart below now shows multiple scenarios overlaid.
+                          Select a bear market and/or inflation shock above, then click "Refresh Comparison" to update the chart.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Baseline Scenario */}
+                      <div className="p-4 border-2 border-blue-500 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                          <h4 className="font-semibold text-sm">Baseline</h4>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Your plan with current assumptions (no shocks)
+                        </p>
+                      </div>
+
+                      {/* Bear Market Scenario */}
+                      <div className={`p-4 border-2 rounded-lg ${
+                        historicalYear
+                          ? 'border-red-500 bg-red-50 dark:bg-red-950/20'
+                          : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`w-3 h-3 rounded-full ${historicalYear ? 'bg-red-500' : 'bg-gray-400'}`}></div>
+                          <h4 className="font-semibold text-sm">
+                            {historicalYear
+                              ? BEAR_MARKET_SCENARIOS.find(s => s.year === historicalYear)?.label
+                              : 'No Bear Market'}
+                          </h4>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {historicalYear
+                            ? `${historicalYear} crash applied`
+                            : 'Select a bear market scenario above'}
+                        </p>
+                      </div>
+
+                      {/* Inflation Shock Scenario */}
+                      <div className={`p-4 border-2 rounded-lg ${
+                        inflationShockRate > 0
+                          ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/20'
+                          : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`w-3 h-3 rounded-full ${inflationShockRate > 0 ? 'bg-orange-500' : 'bg-gray-400'}`}></div>
+                          <h4 className="font-semibold text-sm">
+                            {inflationShockRate > 0
+                              ? `${inflationShockRate}% Inflation`
+                              : 'No Inflation Shock'}
+                          </h4>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {inflationShockRate > 0
+                            ? `${inflationShockDuration} years of elevated inflation`
+                            : 'Select an inflation shock above'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-center">
+                      <Button
+                        onClick={runComparison}
+                        variant="default"
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Refresh Comparison
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+                )}
+              </Card>
+              </div>
+            </AnimatedSection>
+
             {/* Tabbed Chart Container */}
             <AnimatedSection animation="slide-up" delay={300}>
               <div className="print-section print-block chart-container">
@@ -4113,7 +4325,7 @@ export default function App() {
                       )}
                       <div className="chart-block">
                       <ResponsiveContainer width="100%" height={400}>
-                        <ComposedChart data={res.data}>
+                        <ComposedChart data={comparisonMode && comparisonData.baseline ? comparisonData.baseline.data : res.data}>
                           <defs>
                             <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -4143,26 +4355,66 @@ export default function App() {
                             }}
                           />
                           <Legend />
-                          <Area
-                            type="monotone"
-                            dataKey="bal"
-                            stroke="#3b82f6"
-                            strokeWidth={3}
-                            fillOpacity={1}
-                            fill="url(#colorBal)"
-                            name="Nominal (50th Percentile)"
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="real"
-                            stroke="#10b981"
-                            strokeWidth={2}
-                            strokeDasharray="5 5"
-                            fillOpacity={1}
-                            fill="url(#colorReal)"
-                            name="Real (50th Percentile)"
-                          />
-                          {showP10 && (
+
+                          {/* Standard view - show areas */}
+                          {!comparisonMode && (
+                            <>
+                              <Area
+                                type="monotone"
+                                dataKey="bal"
+                                stroke="#3b82f6"
+                                strokeWidth={3}
+                                fillOpacity={1}
+                                fill="url(#colorBal)"
+                                name="Nominal (50th Percentile)"
+                              />
+                              <Area
+                                type="monotone"
+                                dataKey="real"
+                                stroke="#10b981"
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                                fillOpacity={1}
+                                fill="url(#colorReal)"
+                                name="Real (50th Percentile)"
+                              />
+                            </>
+                          )}
+
+                          {/* Comparison mode - show lines */}
+                          {comparisonMode && comparisonData.baseline?.visible && (
+                            <Line
+                              type="monotone"
+                              dataKey="baseline"
+                              stroke="#3b82f6"
+                              strokeWidth={3}
+                              dot={false}
+                              name="Baseline"
+                            />
+                          )}
+                          {comparisonMode && comparisonData.bearMarket?.visible && (
+                            <Line
+                              type="monotone"
+                              dataKey="bearMarket"
+                              stroke="#ef4444"
+                              strokeWidth={3}
+                              dot={false}
+                              name={comparisonData.bearMarket.label}
+                            />
+                          )}
+                          {comparisonMode && comparisonData.inflation?.visible && (
+                            <Line
+                              type="monotone"
+                              dataKey="inflation"
+                              stroke="#f59e0b"
+                              strokeWidth={3}
+                              dot={false}
+                              name={comparisonData.inflation.label}
+                            />
+                          )}
+
+                          {/* Percentile lines (only in standard mode) */}
+                          {!comparisonMode && showP10 && (
                             <Line
                               type="monotone"
                               dataKey="p10"
@@ -4173,7 +4425,7 @@ export default function App() {
                               name="10th Percentile (Nominal)"
                             />
                           )}
-                          {showP90 && (
+                          {!comparisonMode && showP90 && (
                             <Line
                               type="monotone"
                               dataKey="p90"
