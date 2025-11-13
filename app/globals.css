@@ -538,6 +538,85 @@ html {
   .print-input-summary p {
     margin: 4px 0 !important;
   }
+
+  /* ==============================================
+   * ADDITIONAL PRINT-SPECIFIC CSS (NEW SECTION)
+   * ============================================== */
+
+  /* Disable animations and transitions */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Hide interactive UI */
+  .flip-hint,
+  .toggle,
+  .tab-controls {
+    display: none !important;
+  }
+
+  /* Prevent drift/out-of-bounds layout */
+  html, body {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* No card breakage */
+  .print-section,
+  .snapshot-block,
+  .analysis-block,
+  .wealth-flow-block,
+  .gen-card {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Grid layout for user input summary */
+  .user-inputs-print {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px 48px !important;
+    margin-top: 24px !important;
+  }
+
+  /* Flatten flip cards */
+  .flip-card-inner {
+    transform: none !important;
+  }
+
+  .flip-card-back {
+    display: none !important;
+  }
+
+  /* Chart scaling */
+  canvas,
+  svg {
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Clean print type */
+  body {
+    font-size: 12pt !important;
+    line-height: 1.35 !important;
+  }
+
+  /* Chart container fixes */
+  .chart-container {
+    max-height: 400px !important;
+    overflow: visible !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Generational wealth card clean printing */
+  .gen-card {
+    background: #e7e7e7 !important;
+    color: black !important;
+  }
 }
 
 @media screen {

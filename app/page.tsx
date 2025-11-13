@@ -30,6 +30,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FlippingCard } from "@/components/FlippingCard";
 import { GenerationalResultCard } from "@/components/GenerationalResultCard";
+import UserInputsPrintSummary from "@/components/UserInputsPrintSummary";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
@@ -577,7 +578,7 @@ const FlippingStatCard: React.FC<{
         <Badge variant="secondary" className={`${c.bg} ${c.badge} border-0`}>
           {title}
         </Badge>
-        <span className="flip-card-icon text-xs opacity-50">Click to flip ↻</span>
+        <span className="flip-card-icon text-xs opacity-50 print-hide flip-hint">Click to flip ↻</span>
       </div>
       <div className="flex items-start justify-between mb-3">
         <div className={`text-3xl font-bold ${c.text} mb-1`}>{value}</div>
@@ -2420,8 +2421,8 @@ export default function App() {
         {res && (
           <>
             {/* AI SNAPSHOT - Print Only (Page 1) */}
-            <div className="hidden print:block print-page-break-after">
-              <div className="border-4 border-gray-900 rounded-lg p-6 mb-8">
+            <div className="hidden print:block print-page-break-after print-section">
+              <div className="border-4 border-gray-900 rounded-lg p-6 mb-8 snapshot-block">
                 <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-gray-900">
                   <h1 className="text-2xl font-bold">Tax-Aware Retirement Calculator</h1>
                   <div className="flex gap-4 text-sm">
@@ -2546,55 +2547,23 @@ export default function App() {
             <div ref={resRef} className="space-y-6 scroll-mt-4">
 
             {/* User Input Summary - Print Only */}
-            <div className="hidden print:block print-block print-two-col print-input-summary">
-              {/* PERSONAL INFO */}
-              <div>
-                <h3>User Inputs — Personal</h3>
-                <p>Age: {age1}</p>
-                <p>Retirement Age: {retAge}</p>
-                <p>Marital Status: {marital}</p>
-              </div>
+            <UserInputsPrintSummary
+              age={age1}
+              retirementAge={retAge}
+              maritalStatus={marital}
+              taxable={fmt(sTax)}
+              pretax={fmt(sPre)}
+              roth={fmt(sPost)}
+              taxableContrib={fmt(cTax1)}
+              pretaxContrib={fmt(cPre1)}
+              rothContrib={fmt(cPost1)}
+              inflation={infRate}
+              withdrawalRate={wdRate}
+              monteCarloRuns={1000}
+              returnModel={retMode === 'fixed' ? `Fixed at ${retRate}%` : 'Historical 1928–2024 bootstrap'}
+            />
 
-              {/* BALANCES */}
-              <div>
-                <h3>Starting Balances</h3>
-                <p>Taxable: {fmt(sTax)}</p>
-                <p>Pre-Tax: {fmt(sPre)}</p>
-                <p>Roth: {fmt(sPost)}</p>
-              </div>
-
-              {/* CONTRIBUTIONS */}
-              <div>
-                <h3>Annual Contributions</h3>
-                <p>Taxable: {fmt(cTax1)}</p>
-                <p>Pre-Tax: {fmt(cPre1)}</p>
-                <p>Roth: {fmt(cPost1)}</p>
-              </div>
-
-              {/* ASSUMPTIONS */}
-              <div>
-                <h3>Assumptions</h3>
-                <p>Inflation: {infRate}%</p>
-                <p>Withdrawal Rate: {wdRate}%</p>
-                <p>Monte Carlo Runs: 1000</p>
-                <p>Return Model: {retMode === 'fixed' ? `Fixed at ${retRate}%` : 'Historical 1928–2024 bootstrap'}</p>
-              </div>
-
-              {/* GENERATIONAL (ONLY IF ENABLED) */}
-              {showGen && (
-                <div>
-                  <h3>Generational Model Inputs</h3>
-                  <p>Per-Beneficiary Payout: {fmt(hypPerBen)}</p>
-                  <p>Birth Interval: {hypBirthInterval} yrs</p>
-                  <p>Births Per Fertile Beneficiary: {hypBirthMultiple}</p>
-                  <p>Initial Ages: {hypBenAgesStr}</p>
-                  <p>Max Lifespan: {hypDeathAge}</p>
-                  <p>Min Distribution Age: {hypMinDistAge}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print-tile-grid">
+            <div className="print-section grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print-tile-grid">
               <FlippingStatCard
                 title="Future Balance"
                 value={fmt(res.finNom)}
@@ -2605,7 +2574,7 @@ export default function App() {
                   <>
                     <div className="flip-card-header">
                       <span className="flip-card-title">Future Balance - Details</span>
-                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                      <span className="flip-card-icon text-xs print-hide flip-hint">Click to flip back ↻</span>
                     </div>
                     <div className="flip-card-body-details">
                       <p className="mb-4">
@@ -2651,7 +2620,7 @@ export default function App() {
                   <>
                     <div className="flip-card-header">
                       <span className="flip-card-title">Today's Dollars - Details</span>
-                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                      <span className="flip-card-icon text-xs print-hide flip-hint">Click to flip back ↻</span>
                     </div>
                     <div className="flip-card-body-details">
                       <p className="mb-4">
@@ -2694,7 +2663,7 @@ export default function App() {
                   <>
                     <div className="flip-card-header">
                       <span className="flip-card-title">Withdrawal Strategy - Details</span>
-                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                      <span className="flip-card-icon text-xs print-hide flip-hint">Click to flip back ↻</span>
                     </div>
                     <div className="flip-card-body-details">
                       <p className="mb-4">
@@ -2734,7 +2703,7 @@ export default function App() {
                   <>
                     <div className="flip-card-header">
                       <span className="flip-card-title">After-Tax Income - Details</span>
-                      <span className="flip-card-icon text-xs">Click to flip back ↻</span>
+                      <span className="flip-card-icon text-xs print-hide flip-hint">Click to flip back ↻</span>
                     </div>
                     <div className="flip-card-body-details">
                       <p className="mb-4">
@@ -2778,7 +2747,7 @@ export default function App() {
             </div>
 
             {/* Lifetime Wealth Flow - Sankey Diagram */}
-            <div className="print-block">
+            <div className="print-section print-block wealth-flow-block">
             <Card className="border-2 border-slate-200 dark:border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -3028,7 +2997,7 @@ export default function App() {
             </Card>
             </div>
 
-            <div className="print-block">
+            <div className="print-section print-block analysis-block">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -3064,7 +3033,7 @@ export default function App() {
 
             {/* Sensitivity Analysis */}
             <AnimatedSection animation="slide-up" delay={200}>
-              <div className="print-block">
+              <div className="print-section print-block">
               <Card data-sensitivity-section>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -3149,6 +3118,7 @@ export default function App() {
 
             {/* Save/Compare Scenarios */}
             <AnimatedSection animation="slide-up" delay={250}>
+              <div className="print-section">
               <Card data-scenarios-section>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -3481,10 +3451,12 @@ export default function App() {
                   </CardContent>
                 )}
               </Card>
+              </div>
             </AnimatedSection>
 
             {/* Historical Scenario Playback */}
             <AnimatedSection animation="slide-up" delay={275}>
+              <div className="print-section">
               <Card>
                 <CardHeader>
                   <CardTitle>Bear Market Retirement Scenarios</CardTitle>
@@ -3592,11 +3564,12 @@ export default function App() {
                   </div>
                 </CardContent>
               </Card>
+              </div>
             </AnimatedSection>
 
             {/* Tabbed Chart Container */}
             <AnimatedSection animation="slide-up" delay={300}>
-              <div className="print-block">
+              <div className="print-section print-block chart-container">
               <Card>
                 <CardHeader>
                   <CardTitle>Portfolio Projections</CardTitle>
@@ -3604,7 +3577,7 @@ export default function App() {
                 </CardHeader>
                 <CardContent>
                   <Tabs value={activeChartTab} onValueChange={setActiveChartTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsList className="grid w-full grid-cols-2 mb-6 print-hide tab-controls">
                       <TabsTrigger value="accumulation">Accumulation Projection</TabsTrigger>
                       <TabsTrigger value="rmd">RMD Tax Bomb Analysis</TabsTrigger>
                     </TabsList>
@@ -4039,14 +4012,14 @@ export default function App() {
 
             <Separator />
 
-            <div className={`print-block space-y-6 ${!showGen ? 'no-print' : ''}`}>
+            <div className={`print-section print-block gen-card space-y-6 ${!showGen ? 'no-print' : ''}`}>
               <div className="flex items-center space-x-3">
                 <input
                   type="checkbox"
                   id="show-gen"
                   checked={showGen}
                   onChange={(e) => setShowGen(e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 no-print"
+                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 no-print print-hide"
                 />
                 <Label htmlFor="show-gen" className="text-lg font-semibold text-foreground cursor-pointer">
                   Generational Wealth Modeling {showGen && <span className="print-only">✓</span>}
@@ -4054,7 +4027,7 @@ export default function App() {
               </div>
 
               {showGen && (
-                <div className="p-6 bg-card rounded-xl border border-border shadow-sm">
+                <div className="p-6 bg-card rounded-xl border border-border shadow-sm gen-card">
                   <h4 className="text-xl font-semibold text-foreground mb-6">
                     Hypothetical Per-Beneficiary Payout
                   </h4>
