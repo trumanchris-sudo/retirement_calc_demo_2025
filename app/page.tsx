@@ -29,7 +29,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FlippingCard } from "@/components/FlippingCard";
-import { LegacyResultCard } from "@/components/LegacyResultCard";
+import { GenerationalResultCard } from "@/components/GenerationalResultCard";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
@@ -2544,7 +2544,57 @@ export default function App() {
             {/* Human Dashboard - Page 2+ */}
             <AnimatedSection animation="slide-up" duration={700}>
             <div ref={resRef} className="space-y-6 scroll-mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            {/* User Input Summary - Print Only */}
+            <div className="hidden print:block print-block print-two-col print-input-summary">
+              {/* PERSONAL INFO */}
+              <div>
+                <h3>User Inputs — Personal</h3>
+                <p>Age: {age1}</p>
+                <p>Retirement Age: {retAge}</p>
+                <p>Marital Status: {marital}</p>
+              </div>
+
+              {/* BALANCES */}
+              <div>
+                <h3>Starting Balances</h3>
+                <p>Taxable: {fmt(sTax)}</p>
+                <p>Pre-Tax: {fmt(sPre)}</p>
+                <p>Roth: {fmt(sPost)}</p>
+              </div>
+
+              {/* CONTRIBUTIONS */}
+              <div>
+                <h3>Annual Contributions</h3>
+                <p>Taxable: {fmt(cTax1)}</p>
+                <p>Pre-Tax: {fmt(cPre1)}</p>
+                <p>Roth: {fmt(cPost1)}</p>
+              </div>
+
+              {/* ASSUMPTIONS */}
+              <div>
+                <h3>Assumptions</h3>
+                <p>Inflation: {infRate}%</p>
+                <p>Withdrawal Rate: {wdRate}%</p>
+                <p>Monte Carlo Runs: 1000</p>
+                <p>Return Model: {retMode === 'fixed' ? `Fixed at ${retRate}%` : 'Historical 1928–2024 bootstrap'}</p>
+              </div>
+
+              {/* GENERATIONAL (ONLY IF ENABLED) */}
+              {showGen && (
+                <div>
+                  <h3>Generational Model Inputs</h3>
+                  <p>Per-Beneficiary Payout: {fmt(hypPerBen)}</p>
+                  <p>Birth Interval: {hypBirthInterval} yrs</p>
+                  <p>Births Per Fertile Beneficiary: {hypBirthMultiple}</p>
+                  <p>Initial Ages: {hypBenAgesStr}</p>
+                  <p>Max Lifespan: {hypDeathAge}</p>
+                  <p>Min Distribution Age: {hypMinDistAge}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print-tile-grid">
               <FlippingStatCard
                 title="Future Balance"
                 value={fmt(res.finNom)}
@@ -2585,7 +2635,7 @@ export default function App() {
                       </ul>
                       <p className="flip-card-details-text">
                         Includes current savings plus all contributions and growth from now until retirement,
-                        accounting for mid-year contributions and compounding returns at {retRate}% annual return.
+                        accounting for mid-year contributions and {retMode === 'fixed' ? `compounding returns at ${retRate}% annual return` : 'historical S&P 500 total-return bootstrap (1928–2024)'}.
                       </p>
                     </div>
                   </>
@@ -2728,6 +2778,7 @@ export default function App() {
             </div>
 
             {/* Lifetime Wealth Flow - Sankey Diagram */}
+            <div className="print-block">
             <Card className="border-2 border-slate-200 dark:border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -2735,7 +2786,7 @@ export default function App() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-6 px-2 text-xs"
+                    className="h-6 px-2 text-xs print-hide"
                     onClick={() => askExplainQuestion("How can I optimize my end-of-life wealth and estate planning?")}
                   >
                     Explain This
@@ -2946,6 +2997,13 @@ export default function App() {
                       </Sankey>
                     </ResponsiveContainer>
 
+                    {/* Disclaimer */}
+                    <div className="pt-4 mt-2 border-t border-border">
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        <span className="font-semibold">Disclaimer:</span> This Lifetime Wealth Flow illustration attributes estate tax proportionally across all account types (taxable, pre-tax, and Roth) based on their share of the total estate. In practice, executors often choose to satisfy estate tax using taxable assets first to preserve tax-advantaged accounts like Roth IRAs. However, federal estate tax is imposed on the value of the entire estate—not on specific accounts—and the economic burden ultimately depends on your estate structure, beneficiary designations, and the tax treatment of your trust or inheritance plan (including whether a dynasty trust is used and how it is taxed). This chart is a simplified economic attribution model and should not be interpreted as guidance on which assets will or should be used to pay estate tax.
+                      </p>
+                    </div>
+
                     {/* Total RMDs if applicable */}
                     {res.totalRMDs > 0 && (
                       <div className="pt-4 border-t border-border">
@@ -2968,7 +3026,9 @@ export default function App() {
                 )}
               </CardContent>
             </Card>
+            </div>
 
+            <div className="print-block">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -3000,9 +3060,11 @@ export default function App() {
                 )}
               </CardContent>
             </Card>
+            </div>
 
             {/* Sensitivity Analysis */}
             <AnimatedSection animation="slide-up" delay={200}>
+              <div className="print-block">
               <Card data-sensitivity-section>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -3082,6 +3144,7 @@ export default function App() {
                   </CardContent>
                 )}
               </Card>
+              </div>
             </AnimatedSection>
 
             {/* Save/Compare Scenarios */}
@@ -3533,6 +3596,7 @@ export default function App() {
 
             {/* Tabbed Chart Container */}
             <AnimatedSection animation="slide-up" delay={300}>
+              <div className="print-block">
               <Card>
                 <CardHeader>
                   <CardTitle>Portfolio Projections</CardTitle>
@@ -3547,7 +3611,7 @@ export default function App() {
 
                     <TabsContent value="accumulation" className="space-y-4">
                       {walkSeries === 'trulyRandom' && (
-                        <div className="flex gap-6 items-center">
+                        <div className="flex gap-6 items-center print-hide">
                           <div className="flex items-center space-x-2">
                             <Checkbox
                               id="show-p10"
@@ -3576,6 +3640,7 @@ export default function App() {
                           </div>
                         </div>
                       )}
+                      <div className="chart-block">
                       <ResponsiveContainer width="100%" height={400}>
                         <ComposedChart data={res.data}>
                           <defs>
@@ -3650,11 +3715,13 @@ export default function App() {
                           )}
                         </ComposedChart>
                       </ResponsiveContainer>
+                      </div>
                     </TabsContent>
 
                     <TabsContent value="rmd" className="space-y-4">
                       {res.rmdData && res.rmdData.length > 0 ? (
                         <>
+                          <div className="chart-block">
                           <ResponsiveContainer width="100%" height={400}>
                             <LineChart data={res.rmdData}>
                               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -3694,6 +3761,7 @@ export default function App() {
                               />
                             </LineChart>
                           </ResponsiveContainer>
+                          </div>
                           <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
                             <p className="text-sm text-amber-800 dark:text-amber-200">
                               <strong>Tax Planning Tip:</strong> When the red dashed line (RMD) crosses above the green line (Spending),
@@ -3711,6 +3779,7 @@ export default function App() {
                   </Tabs>
                 </CardContent>
               </Card>
+              </div>
             </AnimatedSection>
           </div>
           </AnimatedSection>
@@ -3970,7 +4039,7 @@ export default function App() {
 
             <Separator />
 
-            <div className={`space-y-6 ${!showGen ? 'no-print' : ''}`}>
+            <div className={`print-block space-y-6 ${!showGen ? 'no-print' : ''}`}>
               <div className="flex items-center space-x-3">
                 <input
                   type="checkbox"
@@ -4054,65 +4123,43 @@ export default function App() {
                   </div>
 
                   {res?.genPayout && (
-                    <div ref={genRef} className="mt-6 space-y-4">
-                      {/* Median Result Card */}
-                      <LegacyResultCard
-                        payout={res.genPayout.perBenReal}
-                        duration={res.genPayout.years}
-                        isPerpetual={res.genPayout.fundLeftReal > 0}
-                      />
+                    <div ref={genRef} className="mt-6">
+                      {(() => {
+                        // Determine if perpetual based on all three percentiles
+                        const isPerpetual =
+                          res.genPayout.p10?.isPerpetual === true &&
+                          res.genPayout.p50?.isPerpetual === true &&
+                          res.genPayout.p90?.isPerpetual === true;
 
-                      {/* Percentile Outcomes */}
-                      {res.genPayout.p10 && res.genPayout.p50 && res.genPayout.p90 && (
-                        <div className="p-5 bg-card rounded-xl border border-border">
-                          <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                            Percentile Outcomes
-                          </h4>
-                          <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li>• 10th Percentile: {res.genPayout.p10.isPerpetual ? '∞ years (Perpetual)' : `${res.genPayout.p10.years} years`}</li>
-                            <li>• 50th Percentile: {res.genPayout.p50.isPerpetual ? '∞ years (Perpetual)' : `${res.genPayout.p50.years} years`}</li>
-                            <li>• 90th Percentile: {res.genPayout.p90.isPerpetual ? '∞ years (Perpetual)' : `${res.genPayout.p90.years} years`}</li>
-                          </ul>
-                        </div>
-                      )}
+                        const variant = isPerpetual ? "perpetual" : "finite";
 
-                      {/* Estimated Probability */}
-                      {res.genPayout.probPerpetual !== undefined && res.genPayout.probPerpetual > 0 && (
-                        <div className="p-5 bg-card rounded-xl border border-border">
-                          <p className="text-sm text-muted-foreground mb-2">Estimated Probability of Perpetual Wealth</p>
-                          <p className="text-2xl font-bold text-center text-foreground">
-                            ~{Math.round(res.genPayout.probPerpetual * 100)}%
-                          </p>
-                        </div>
-                      )}
+                        const p10Value = res.genPayout.p10?.isPerpetual
+                          ? "Infinity"
+                          : res.genPayout.p10?.years || 0;
+                        const p50Value = res.genPayout.p50?.isPerpetual
+                          ? "Infinity"
+                          : res.genPayout.p50?.years || 0;
+                        const p90Value = res.genPayout.p90?.isPerpetual
+                          ? "Infinity"
+                          : res.genPayout.p90?.years || 0;
 
-                      {/* What This Means - Accordion */}
-                      {res.genPayout.fundLeftReal > 0 && (
-                        <Accordion type="single" collapsible className="w-full">
-                          <AccordionItem value="what-this-means" className="border border-border rounded-xl px-4">
-                            <AccordionTrigger className="hover:no-underline py-4">
-                              <h4 className="text-sm font-medium text-foreground">What This Means</h4>
-                            </AccordionTrigger>
-                            <AccordionContent className="pb-4">
-                              <p className="text-sm text-muted-foreground leading-relaxed">
-                                Each beneficiary receives <strong className="text-foreground">{fmt(res.genPayout.perBenReal)}/year</strong> (inflation-adjusted) from age {hypMinDistAge} to {hypDeathAge}—equivalent to a <strong className="text-foreground">{fmt(res.genPayout.perBenReal * 25)}</strong> trust fund. This provides lifelong financial security and freedom to pursue any career path.
-                              </p>
-                            </AccordionContent>
-                          </AccordionItem>
-                        </Accordion>
-                      )}
+                        const explanationText = isPerpetual
+                          ? `Each beneficiary receives ${fmt(res.genPayout.perBenReal)}/year (inflation-adjusted) from age ${hypMinDistAge} to ${hypDeathAge}—equivalent to a ${fmt(res.genPayout.perBenReal * 25)} trust fund. This provides lifelong financial security and freedom to pursue any career path.`
+                          : `Each beneficiary receives ${fmt(res.genPayout.perBenReal)}/year (inflation-adjusted) for ${res.genPayout.years} years, providing substantial financial support during their lifetime.`;
 
-                      {/* Methodology Note */}
-                      <div className="p-4 bg-muted/50 rounded-lg border border-border">
-                        <div className="flex items-start gap-2">
-                          <svg className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <div className="text-xs text-muted-foreground leading-relaxed">
-                            <strong className="text-foreground">Why we don't simulate 1,000 years × 1,000 runs:</strong> Running full Monte Carlo simulations (N=1,000) for each potential generational wealth timeline would require simulating hundreds of thousands of years of market returns and family dynamics—computationally impractical in a browser. Instead, we use the three key end-of-life wealth percentiles (P10, P50, P90) from your retirement Monte Carlo to show the range of possible generational outcomes. This provides a realistic view of how market uncertainty affects your legacy without running a million-year simulation.
-                          </div>
-                        </div>
-                      </div>
+                        return (
+                          <GenerationalResultCard
+                            variant={variant}
+                            amountPerBeneficiary={res.genPayout.perBenReal}
+                            yearsOfSupport={isPerpetual ? "Infinity" : res.genPayout.years}
+                            percentile10={p10Value}
+                            percentile50={p50Value}
+                            percentile90={p90Value}
+                            probability={res.genPayout.probPerpetual || 0}
+                            explanationText={explanationText}
+                          />
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
