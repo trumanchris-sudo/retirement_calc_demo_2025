@@ -3777,14 +3777,14 @@ export default function App() {
                           size="sm"
                           className="bg-blue-600 hover:bg-blue-700"
                         >
-                          Recalculate With This Scenario
+                          Recalculate
                         </Button>
                         <Button
                           onClick={() => setHistoricalYear(null)}
                           variant="outline"
                           size="sm"
                         >
-                          Clear & Return to Normal Mode
+                          Clear Scenario
                         </Button>
                       </>
                     )}
