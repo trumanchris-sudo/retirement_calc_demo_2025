@@ -16,6 +16,8 @@ import {
   PieChart,
   Pie,
   Cell,
+  Sankey,
+  Rectangle,
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -2722,7 +2724,7 @@ export default function App() {
               />
             </div>
 
-            {/* Unified Lifetime Wealth Flow Component */}
+            {/* Lifetime Wealth Flow - Sankey Diagram */}
             <Card className="border-2 border-slate-200 dark:border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -2738,123 +2740,133 @@ export default function App() {
                 </CardTitle>
                 <CardDescription>From end-of-life wealth to net inheritance</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* End-of-Life Wealth Breakdown */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-foreground">End-of-Life Wealth</p>
-                    <p className="text-lg font-bold text-green-600 dark:text-green-400">{fmt(res.eol)}</p>
-                  </div>
-                  {res.eolAccounts && res.eol > 0 && (
-                    <>
-                      {/* Stacked Horizontal Bar */}
-                      <div className="w-full h-12 rounded-lg overflow-hidden flex shadow-sm">
-                        {res.eolAccounts.taxable > 0 && (
-                          <div
-                            className="bg-blue-500 flex items-center justify-center text-white text-xs font-semibold transition-all hover:opacity-90"
-                            style={{ width: `${(res.eolAccounts.taxable / res.eol) * 100}%` }}
-                            title={`Taxable: ${fmt(res.eolAccounts.taxable)}`}
-                          >
-                            {((res.eolAccounts.taxable / res.eol) * 100) > 15 && (
-                              <span>Taxable: {fmt(res.eolAccounts.taxable)}</span>
-                            )}
-                          </div>
-                        )}
-                        {res.eolAccounts.pretax > 0 && (
-                          <div
-                            className="bg-amber-500 flex items-center justify-center text-white text-xs font-semibold transition-all hover:opacity-90"
-                            style={{ width: `${(res.eolAccounts.pretax / res.eol) * 100}%` }}
-                            title={`Pre-tax: ${fmt(res.eolAccounts.pretax)}`}
-                          >
-                            {((res.eolAccounts.pretax / res.eol) * 100) > 15 && (
-                              <span>Pre-tax: {fmt(res.eolAccounts.pretax)}</span>
-                            )}
-                          </div>
-                        )}
-                        {res.eolAccounts.roth > 0 && (
-                          <div
-                            className="bg-green-500 flex items-center justify-center text-white text-xs font-semibold transition-all hover:opacity-90"
-                            style={{ width: `${(res.eolAccounts.roth / res.eol) * 100}%` }}
-                            title={`Roth: ${fmt(res.eolAccounts.roth)}`}
-                          >
-                            {((res.eolAccounts.roth / res.eol) * 100) > 15 && (
-                              <span>Roth: {fmt(res.eolAccounts.roth)}</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      {/* Legend */}
-                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                          <span>Taxable: {fmt(res.eolAccounts.taxable)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                          <span>Pre-tax: {fmt(res.eolAccounts.pretax)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                          <span>Roth: {fmt(res.eolAccounts.roth)}</span>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+              <CardContent className="space-y-4">
+                {res.eolAccounts && res.eol > 0 ? (
+                  <>
+                    <ResponsiveContainer width="100%" height={350}>
+                      <Sankey
+                        data={{
+                          nodes: [
+                            { name: `Taxable\n${fmt(res.eolAccounts.taxable)}` },
+                            { name: `Pre-Tax\n${fmt(res.eolAccounts.pretax)}` },
+                            { name: `Roth\n${fmt(res.eolAccounts.roth)}` },
+                            { name: `Estate Tax\n${fmt(res.estateTax || 0)}\n(${((res.estateTax || 0) / res.eol * 100).toFixed(1)}% lost)` },
+                            { name: `Net to Heirs\n${fmt(res.netEstate || res.eol)}` },
+                          ],
+                          links: (() => {
+                            const taxRatio = (res.estateTax || 0) / res.eol;
+                            const heirRatio = (res.netEstate || res.eol) / res.eol;
 
-                {/* Estate Tax Connector */}
-                {res.estateTax > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-red-300 to-transparent"></div>
-                      <div className="text-center px-4 py-2 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800">
-                        <p className="text-xs text-muted-foreground mb-1">Estate Tax</p>
-                        <p className="text-xl font-bold text-red-600 dark:text-red-400">{fmt(res.estateTax)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {((res.estateTax / res.eol) * 100).toFixed(1)}% lost
+                            const links = [];
+
+                            // Taxable flows (blue #3b82f6)
+                            if (res.estateTax > 0 && res.eolAccounts.taxable > 0) {
+                              links.push({ source: 0, target: 3, value: res.eolAccounts.taxable * taxRatio, color: '#3b82f6' });
+                            }
+                            if (res.eolAccounts.taxable > 0) {
+                              links.push({ source: 0, target: 4, value: res.eolAccounts.taxable * heirRatio, color: '#3b82f6' });
+                            }
+
+                            // Pre-tax flows (amber #f59e0b)
+                            if (res.estateTax > 0 && res.eolAccounts.pretax > 0) {
+                              links.push({ source: 1, target: 3, value: res.eolAccounts.pretax * taxRatio, color: '#f59e0b' });
+                            }
+                            if (res.eolAccounts.pretax > 0) {
+                              links.push({ source: 1, target: 4, value: res.eolAccounts.pretax * heirRatio, color: '#f59e0b' });
+                            }
+
+                            // Roth flows (green #10b981)
+                            if (res.estateTax > 0 && res.eolAccounts.roth > 0) {
+                              links.push({ source: 2, target: 3, value: res.eolAccounts.roth * taxRatio, color: '#10b981' });
+                            }
+                            if (res.eolAccounts.roth > 0) {
+                              links.push({ source: 2, target: 4, value: res.eolAccounts.roth * heirRatio, color: '#10b981' });
+                            }
+
+                            return links;
+                          })(),
+                        }}
+                        width={800}
+                        height={350}
+                        nodeWidth={15}
+                        nodePadding={50}
+                        margin={{ top: 30, right: 150, bottom: 30, left: 150 }}
+                        link={(props: any) => {
+                          const { sourceX, targetX, sourceY, targetY, sourceControlX, targetControlX, linkWidth, index, payload } = props;
+
+                          return (
+                            <path
+                              d={`
+                                M${sourceX},${sourceY}
+                                C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}
+                              `}
+                              fill="none"
+                              stroke={payload?.color || (isDarkMode ? '#64748b' : '#94a3b8')}
+                              strokeWidth={linkWidth}
+                              strokeOpacity={0.5}
+                              style={{ transition: 'all 0.3s ease' }}
+                              className="hover:stroke-opacity-80"
+                            />
+                          );
+                        }}
+                        node={(props: any) => {
+                          const { x, y, width, height, index, payload } = props;
+                          const colors = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#10b981'];
+                          const fill = colors[index] || (isDarkMode ? '#475569' : '#64748b');
+
+                          return (
+                            <Rectangle
+                              x={x}
+                              y={y}
+                              width={width}
+                              height={height}
+                              fill={fill}
+                              fillOpacity={0.9}
+                            />
+                          );
+                        }}
+                      >
+                        <RTooltip
+                          formatter={(value: number) => fmt(value)}
+                          contentStyle={{
+                            backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                            borderRadius: "8px",
+                            border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                            color: isDarkMode ? '#f3f4f6' : '#1f2937'
+                          }}
+                        />
+                      </Sankey>
+                    </ResponsiveContainer>
+
+                    {/* Probability of Running Out */}
+                    {res.probRuin !== undefined && (
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">
+                          Probability of Running Out: <span className="font-semibold text-foreground">{(res.probRuin * 100).toFixed(0)}%</span>
+                          {res.probRuin === 0 && <span className="ml-2 text-green-600 dark:text-green-400">✓ All 1,000 scenarios succeeded!</span>}
                         </p>
                       </div>
-                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-red-300 to-transparent"></div>
-                    </div>
-                  </div>
-                )}
+                    )}
 
-                {/* Net to Heirs */}
-                {res.netEstate !== undefined && res.netEstate > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-medium text-foreground">Net Estate to Heirs</p>
-                      <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{fmt(res.netEstate)}</p>
-                    </div>
-                    {/* Net to Heirs Bar */}
-                    <div className="w-full h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 flex items-center justify-center text-white font-semibold shadow-sm">
-                      {fmt(res.netEstate)} after estate tax
-                    </div>
-                  </div>
-                )}
-
-                {/* Probability of Running Out */}
-                {res.probRuin !== undefined && (
-                  <div className="pt-4 border-t border-border">
-                    <p className="text-sm text-muted-foreground text-center">
-                      Probability of Running Out: <span className="font-semibold text-foreground">{(res.probRuin * 100).toFixed(0)}%</span>
-                      {res.probRuin === 0 && <span className="ml-2 text-green-600 dark:text-green-400">✓ All 1,000 scenarios succeeded!</span>}
-                    </p>
-                  </div>
-                )}
-
-                {/* Total RMDs if applicable */}
-                {res.totalRMDs > 0 && (
-                  <div className="pt-4 border-t border-border">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Total RMDs (Age 73+)</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Cumulative Required Minimum Distributions
-                        </p>
+                    {/* Total RMDs if applicable */}
+                    {res.totalRMDs > 0 && (
+                      <div className="pt-4 border-t border-border">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">Total RMDs (Age 73+)</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Cumulative Required Minimum Distributions
+                            </p>
+                          </div>
+                          <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{fmt(res.totalRMDs)}</p>
+                        </div>
                       </div>
-                      <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{fmt(res.totalRMDs)}</p>
-                    </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="text-sm">No end-of-life wealth data available.</p>
                   </div>
                 )}
               </CardContent>
