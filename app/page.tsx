@@ -3085,7 +3085,7 @@ export default function App() {
                         height={350}
                         nodeWidth={15}
                         nodePadding={15}
-                        margin={{ top: 30, right: 70, bottom: 30, left: 90 }}
+                        margin={{ top: 30, right: 70, bottom: 30, left: 120 }}
                         link={(props: any) => {
                           const { sourceX, targetX, sourceY, targetY, sourceControlX, targetControlX, linkWidth, index, payload } = props;
 
