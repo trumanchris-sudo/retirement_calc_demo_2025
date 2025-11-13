@@ -82,6 +82,13 @@ import {
 
 import { computeWithdrawalTaxes } from "@/lib/calculations/withdrawalTax";
 
+// Import retirement engine
+import {
+  runSingleSimulation,
+  type SimulationInputs,
+  type SimulationResult,
+} from "@/lib/calculations/retirementEngine";
+
 // Import simulation modules
 import {
   getBearReturns,
@@ -736,305 +743,12 @@ function simulateRealPerBeneficiaryPayout(
  * ================================ */
 
 /** All inputs needed to run a single simulation */
-export type Inputs = {
-  marital: FilingStatus;
-  age1: number;
-  age2: number;
-  retAge: number;
-  sTax: number;
-  sPre: number;
-  sPost: number;
-  cTax1: number;
-  cPre1: number;
-  cPost1: number;
-  cMatch1: number;
-  cTax2: number;
-  cPre2: number;
-  cPost2: number;
-  cMatch2: number;
-  retRate: number;
-  infRate: number;
-  stateRate: number;
-  incContrib: boolean;
-  incRate: number;
-  wdRate: number;
-  retMode: ReturnMode;
-  walkSeries: WalkSeries;
-  includeSS: boolean;
-  ssIncome: number;
-  ssClaimAge: number;
-  ssIncome2: number;
-  ssClaimAge2: number;
-  historicalYear?: number; // Start year for historical sequential playback
-  inflationShockRate?: number | null; // Elevated inflation rate during shock (%)
-  inflationShockDuration?: number; // Duration of inflation shock in years
-};
+export type Inputs = SimulationInputs;
 
 /** Result from a single simulation run */
-export type SimResult = {
-  balancesReal: number[];      // real balance per year
-  eolReal: number;            // end-of-life wealth (real)
-  y1AfterTaxReal: number;     // year-1 after-tax withdrawal (real)
-  ruined: boolean;            // true if ran out of money before age 95
-};
+export type SimResult = SimulationResult;
 
-/**
- * Run a single simulation with the given inputs and seed.
- * Returns only the essential data needed for batch summaries.
- */
-function runSingleSimulation(params: Inputs, seed: number): SimResult {
-  const {
-    marital, age1, age2, retAge, sTax, sPre, sPost,
-    cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-    retRate, infRate, stateRate, incContrib, incRate, wdRate,
-    retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
-    historicalYear,
-    inflationShockRate,
-    inflationShockDuration = 5,
-  } = params;
-
-  const isMar = marital === "married";
-  const younger = Math.min(age1, isMar ? age2 : age1);
-  const older = Math.max(age1, isMar ? age2 : age1);
-
-  if (retAge <= younger) {
-    throw new Error("Retirement age must be greater than current age");
-  }
-
-  const yrsToRet = retAge - younger;
-  const g_fixed = 1 + retRate / 100;
-  const infl = infRate / 100;
-  const infl_factor = 1 + infl;
-
-  // Track cumulative inflation for variable inflation scenarios
-  let cumulativeInflation = 1.0;
-
-  const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
-
-  const accGen = buildReturnGenerator({
-    mode: retMode,
-    years: yrsToRet + 1,
-    nominalPct: retRate,
-    infPct: infRate,
-    walkSeries,
-    seed: seed,
-  })();
-
-  const drawGen = buildReturnGenerator({
-    mode: retMode,
-    years: yrsToSim,
-    nominalPct: retRate,
-    infPct: infRate,
-    walkSeries,
-    seed: seed + 1,
-    // Bear market returns are injected directly in drawdown loop, not via generator
-  })();
-
-  let bTax = sTax;
-  let bPre = sPre;
-  let bPost = sPost;
-  let basisTax = sTax;
-
-  const balancesReal: number[] = [];
-  let c = {
-    p: { tax: cTax1, pre: cPre1, post: cPost1, match: cMatch1 },
-    s: { tax: cTax2, pre: cPre2, post: cPost2, match: cMatch2 },
-  };
-
-  // Get bear market returns if applicable
-  const bearReturns = historicalYear ? getBearReturns(historicalYear) : null;
-
-  // Accumulation phase
-  for (let y = 0; y <= yrsToRet; y++) {
-    let g: number;
-
-    // Apply FIRST bear return in the retirement year itself (y == yrsToRet)
-    if (bearReturns && y === yrsToRet) {
-      const pct = bearReturns[0]; // First bear year
-      if (walkSeries === "real") {
-        const realRate = (1 + pct / 100) / (1 + infl) - 1;
-        g = 1 + realRate;
-      } else {
-        g = 1 + pct / 100;
-      }
-    } else {
-      g = retMode === "fixed" ? g_fixed : (accGen.next().value as number);
-    }
-
-    const a1 = age1 + y;
-    const a2 = isMar ? age2 + y : null;
-
-    if (y > 0) {
-      bTax *= g;
-      bPre *= g;
-      bPost *= g;
-    }
-
-    if (y > 0 && incContrib) {
-      const f = 1 + incRate / 100;
-      (Object.keys(c.p) as (keyof typeof c.p)[]).forEach((k) => (c.p[k] *= f));
-      if (isMar)
-        (Object.keys(c.s) as (keyof typeof c.s)[]).forEach((k) => (c.s[k] *= f));
-    }
-
-    const addMidYear = (amt: number) => amt * (1 + (g - 1) * 0.5);
-
-    if (a1 < retAge) {
-      bTax += addMidYear(c.p.tax);
-      bPre += addMidYear(c.p.pre + c.p.match);
-      bPost += addMidYear(c.p.post);
-      basisTax += c.p.tax;
-    }
-    if (isMar && a2! < retAge) {
-      bTax += addMidYear(c.s.tax);
-      bPre += addMidYear(c.s.pre + c.s.match);
-      bPost += addMidYear(c.s.post);
-      basisTax += c.s.tax;
-    }
-
-    const bal = bTax + bPre + bPost;
-
-    // Apply year-specific inflation (handles inflation shocks)
-    const yearInflation = getEffectiveInflation(y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
-    cumulativeInflation *= (1 + yearInflation / 100);
-    balancesReal.push(bal / cumulativeInflation);
-  }
-
-  const finNom = bTax + bPre + bPost;
-  const infAdj = Math.pow(1 + infl, yrsToRet);
-  const wdGrossY1 = finNom * (wdRate / 100);
-
-  // Use imported tax calculation function
-  const y1 = computeWithdrawalTaxes(
-    wdGrossY1,
-    marital,
-    bTax,
-    bPre,
-    bPost,
-    basisTax,
-    stateRate
-  );
-
-  const wdAfterY1 = wdGrossY1 - y1.tax;
-  const wdRealY1 = wdAfterY1 / infAdj;
-
-  let retBalTax = bTax;
-  let retBalPre = bPre;
-  let retBalRoth = bPost;
-  let currBasis = basisTax;
-  let currWdGross = wdGrossY1;
-  let survYrs = 0;
-  let ruined = false;
-
-  // Bear market returns already applied: bearReturns[0] was used in retirement year
-  // Now apply bearReturns[1] and bearReturns[2] in years 1-2 of drawdown
-
-  // Drawdown phase
-  for (let y = 1; y <= yrsToSim; y++) {
-    let g_retire: number;
-
-    // Inject remaining bear market returns in years 1-2 after retirement
-    if (bearReturns && y >= 1 && y <= 2) {
-      const pct = bearReturns[y]; // y=1 uses bearReturns[1], y=2 uses bearReturns[2]
-      if (walkSeries === "real") {
-        const realRate = (1 + pct / 100) / (1 + infl) - 1;
-        g_retire = 1 + realRate;
-      } else {
-        g_retire = 1 + pct / 100;
-      }
-    } else {
-      g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
-    }
-
-    retBalTax *= g_retire;
-    retBalPre *= g_retire;
-    retBalRoth *= g_retire;
-
-    const currentAge = age1 + yrsToRet + y;
-    const currentAge2 = isMar ? age2 + yrsToRet + y : 0;
-    const requiredRMD = calcRMD(retBalPre, currentAge);
-
-    let ssAnnualBenefit = 0;
-    if (includeSS) {
-      // Primary spouse
-      if (currentAge >= ssClaimAge) {
-        ssAnnualBenefit += calcSocialSecurity(ssIncome, ssClaimAge);
-      }
-      // Spouse (if married)
-      if (isMar && currentAge2 >= ssClaimAge2) {
-        ssAnnualBenefit += calcSocialSecurity(ssIncome2, ssClaimAge2);
-      }
-    }
-
-    let netSpendingNeed = Math.max(0, currWdGross - ssAnnualBenefit);
-    let actualWithdrawal = netSpendingNeed;
-    let rmdExcess = 0;
-
-    if (requiredRMD > 0) {
-      if (requiredRMD > netSpendingNeed) {
-        actualWithdrawal = requiredRMD;
-        rmdExcess = requiredRMD - netSpendingNeed;
-      }
-    }
-
-    const taxes = computeWithdrawalTaxes(
-      actualWithdrawal,
-      marital,
-      retBalTax,
-      retBalPre,
-      retBalRoth,
-      currBasis,
-      stateRate
-    );
-
-    retBalTax -= taxes.draw.t;
-    retBalPre -= taxes.draw.p;
-    retBalRoth -= taxes.draw.r;
-    currBasis = taxes.newBasis;
-
-    if (rmdExcess > 0) {
-      const excessTax = calcOrdinaryTax(rmdExcess, marital);
-      const excessAfterTax = rmdExcess - excessTax;
-      retBalTax += excessAfterTax;
-      currBasis += excessAfterTax;
-    }
-
-    if (retBalTax < 0) retBalTax = 0;
-    if (retBalPre < 0) retBalPre = 0;
-    if (retBalRoth < 0) retBalRoth = 0;
-
-    const totalNow = retBalTax + retBalPre + retBalRoth;
-
-    // Apply year-specific inflation (handles inflation shocks)
-    const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
-    cumulativeInflation *= (1 + yearInflation / 100);
-    balancesReal.push(totalNow / cumulativeInflation);
-
-    if (totalNow <= 0) {
-      if (!ruined) {
-        survYrs = y - 1;
-        ruined = true;
-      }
-      retBalTax = retBalPre = retBalRoth = 0;
-      // Continue loop to maintain chart data through age 95
-    } else {
-      survYrs = y;
-    }
-
-    currWdGross *= infl_factor;
-  }
-
-  const eolWealth = Math.max(0, retBalTax + retBalPre + retBalRoth);
-  const yearsFrom2025 = yrsToRet + yrsToSim;
-  const eolReal = eolWealth / Math.pow(1 + infl, yearsFrom2025);
-
-  return {
-    balancesReal,
-    eolReal,
-    y1AfterTaxReal: wdRealY1,
-    ruined,
-  };
-}
+// runSingleSimulation is now imported from @/lib/calculations/retirementEngine
 
 /**
  * DEPRECATED: This function is no longer used. Monte Carlo simulations now run via web worker.
@@ -1402,6 +1116,7 @@ export default function App() {
       wdAfter: fmt(res.wdAfter),
       wdReal: fmt(res.wdReal),
       eol: fmt(res.eol),
+      eolReal: fmt(res.eolReal),  // Real (inflation-adjusted) EOL
       estateTax: fmt(res.estateTax),
       netEstate: fmt(res.netEstate),
       totalRMDs: fmt(res.totalRMDs),
@@ -2048,6 +1763,7 @@ export default function App() {
           survYrs,
           yrsToSim,
           eol: eolWealth,
+          eolReal,  // Real (inflation-adjusted) EOL wealth for comparisons
           estateTax,
           netEstate,
           eolAccounts: {
@@ -2339,14 +2055,16 @@ export default function App() {
       const estateTax = calcEstateTax(eolWealth, marital);
       const netEstate = eolWealth - estateTax;
 
+      // Calculate real (inflation-adjusted) EOL wealth for comparisons
+      const yearsFrom2025 = yrsToRet + yrsToSim;
+      const eolReal = eolWealth / Math.pow(1 + infl, yearsFrom2025);
+
       // Track account balances at end of life
       const eolAccounts = {
         taxable: retBalTax,
         pretax: retBalPre,
         roth: retBalRoth,
       };
-
-      const yearsFrom2025 = yrsToRet + yrsToSim;
       let genPayout: null | {
         perBenReal: number;
         years: number;
@@ -2403,6 +2121,7 @@ export default function App() {
         survYrs,
         yrsToSim,
         eol: eolWealth,
+        eolReal,  // Real (inflation-adjusted) EOL wealth for comparisons
         estateTax,
         netEstate,
         eolAccounts,
@@ -2579,6 +2298,7 @@ export default function App() {
         wd: res.wd,
         wdReal: res.wdReal,
         eol: res.eol,
+        eolReal: res.eolReal,  // Include inflation-adjusted EOL for comparisons
         estateTax: res.estateTax,
         netEstate: res.netEstate,
         probRuin: res.probRuin,
@@ -3695,17 +3415,17 @@ export default function App() {
                             <div className="space-y-4">
                               {/* EOL Wealth Comparison */}
                               <div>
-                                <div className="text-xs font-medium mb-2 text-muted-foreground">End-of-Life Wealth</div>
+                                <div className="text-xs font-medium mb-2 text-muted-foreground">End-of-Life Wealth (Real, Inflation-Adjusted)</div>
                                 {Array.from(selectedScenarios).map((id) => {
                                   const scenario = savedScenarios.find(s => s.id === id);
                                   if (!scenario) return null;
-                                  const maxEOL = Math.max(...Array.from(selectedScenarios).map(sid => savedScenarios.find(s => s.id === sid)?.results.eol || 0));
-                                  const pct = (scenario.results.eol / maxEOL) * 100;
+                                  const maxEOL = Math.max(...Array.from(selectedScenarios).map(sid => savedScenarios.find(s => s.id === sid)?.results.eolReal || 0));
+                                  const pct = (scenario.results.eolReal / maxEOL) * 100;
                                   return (
                                     <div key={id} className="mb-2">
                                       <div className="flex items-center justify-between text-xs mb-1">
                                         <span className="font-medium">{scenario.name}</span>
-                                        <span className="text-muted-foreground">{fmt(scenario.results.eol)}</span>
+                                        <span className="text-muted-foreground">{fmt(scenario.results.eolReal)}</span>
                                       </div>
                                       <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6">
                                         <div
@@ -3724,7 +3444,7 @@ export default function App() {
 
                               {/* Annual Income Comparison */}
                               <div>
-                                <div className="text-xs font-medium mb-2 text-muted-foreground">Annual Retirement Income</div>
+                                <div className="text-xs font-medium mb-2 text-muted-foreground">Annual Retirement Income (Real, Inflation-Adjusted)</div>
                                 {Array.from(selectedScenarios).map((id) => {
                                   const scenario = savedScenarios.find(s => s.id === id);
                                   if (!scenario) return null;
@@ -3753,7 +3473,7 @@ export default function App() {
 
                               {/* Retirement Balance Comparison */}
                               <div>
-                                <div className="text-xs font-medium mb-2 text-muted-foreground">Balance at Retirement</div>
+                                <div className="text-xs font-medium mb-2 text-muted-foreground">Balance at Retirement (Real, Inflation-Adjusted)</div>
                                 {Array.from(selectedScenarios).map((id) => {
                                   const scenario = savedScenarios.find(s => s.id === id);
                                   if (!scenario) return null;
@@ -3897,8 +3617,8 @@ export default function App() {
                             <h4 className="text-sm font-semibold mb-2">Quick Comparison</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                               {(() => {
-                                const allScenarios = res ? [{ name: "Current", results: { eol: res.eol, wdReal: res.wdReal, finReal: res.finReal } }, ...savedScenarios] : savedScenarios;
-                                const bestEOL = allScenarios.reduce((max, s) => s.results.eol > max.results.eol ? s : max);
+                                const allScenarios = res ? [{ name: "Current", results: { eolReal: res.eolReal, wdReal: res.wdReal, finReal: res.finReal } }, ...savedScenarios] : savedScenarios;
+                                const bestEOL = allScenarios.reduce((max, s) => s.results.eolReal > max.results.eolReal ? s : max);
                                 const bestIncome = allScenarios.reduce((max, s) => s.results.wdReal > max.results.wdReal ? s : max);
                                 return (
                                   <>
@@ -4206,7 +3926,7 @@ export default function App() {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle>Scenario Comparison</CardTitle>
-                      <CardDescription>Compare baseline vs bear market vs inflation shock side-by-side</CardDescription>
+                      <CardDescription>Compare baseline vs bear market vs inflation shock side-by-side (showing real, inflation-adjusted values)</CardDescription>
                     </div>
                     <Button
                       variant={comparisonMode ? "default" : "outline"}
@@ -4233,7 +3953,7 @@ export default function App() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
-                          <strong>Comparison Mode Active:</strong> The chart below now shows multiple scenarios overlaid.
+                          <strong>Comparison Mode Active:</strong> The chart below shows multiple scenarios overlaid using <strong>real (inflation-adjusted) values</strong> for accurate comparison across different inflation rates.
                           Select a bear market and/or inflation shock above, then click "Refresh Comparison" to update the chart.
                         </div>
                       </div>
@@ -4327,7 +4047,7 @@ export default function App() {
                     </TabsList>
 
                     <TabsContent value="accumulation" className="space-y-4">
-                      {walkSeries === 'trulyRandom' && (
+                      {walkSeries === 'trulyRandom' && !comparisonMode && (
                         <div className="flex gap-6 items-center print-hide">
                           <div className="flex items-center space-x-2">
                             <Checkbox
