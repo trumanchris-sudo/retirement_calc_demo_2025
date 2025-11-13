@@ -697,6 +697,41 @@ html {
     margin-bottom: 32px !important;
   }
 
+  /* Human-readable summary styles */
+  .print-human-summary {
+    page-break-before: always !important;
+  }
+
+  .print-human-summary h1 {
+    font-size: 24pt !important;
+    font-weight: bold !important;
+  }
+
+  .print-human-summary h2 {
+    font-size: 18pt !important;
+    font-weight: bold !important;
+    margin-top: 24px !important;
+  }
+
+  .print-human-summary h3 {
+    font-size: 14pt !important;
+    font-weight: 600 !important;
+  }
+
+  /* Left-align all text in print summary */
+  .print-human-summary * {
+    text-align: left !important;
+  }
+
+  /* Page breaks */
+  .print-page-break-before {
+    page-break-before: always !important;
+  }
+
+  .print-page-break-after {
+    page-break-after: always !important;
+  }
+
   /* Ensure charts don't overflow */
   .chart-container,
   .sankey-container,
