@@ -1206,6 +1206,7 @@ export default function App() {
   const [savedScenarios, setSavedScenarios] = useState<any[]>([]);
   const [showSensitivity, setShowSensitivity] = useState(false);
   const [showScenarios, setShowScenarios] = useState(false);
+  const [showBearMarket, setShowBearMarket] = useState(false);
   const [historicalYear, setHistoricalYear] = useState<number | null>(null);
   const [scenarioName, setScenarioName] = useState<string>("");
   const [selectedScenarios, setSelectedScenarios] = useState<Set<string>>(new Set());
@@ -2773,6 +2774,7 @@ export default function App() {
               <CardContent className="space-y-4">
                 {res.eolAccounts && res.eol > 0 ? (
                   <>
+                    <div className="wealth-flow-responsive">
                     <ResponsiveContainer width="100%" height={350}>
                       <Sankey
                         data={{
@@ -2965,6 +2967,7 @@ export default function App() {
                         />
                       </Sankey>
                     </ResponsiveContainer>
+                    </div>
 
                     {/* Disclaimer */}
                     <div className="pt-4 mt-2 border-t border-border">
@@ -3007,17 +3010,19 @@ export default function App() {
               </CardHeader>
               <CardContent>
                 {res && !aiInsight && !isLoadingAi && (
-                  <div className="text-center py-6">
-                    <Button
-                      onClick={async () => {
-                        if (res && olderAgeForAnalysis > 0) {
-                          await fetchAiInsight(res, olderAgeForAnalysis, "Please analyze my retirement plan and provide key insights and recommendations.");
-                        }
-                      }}
-                      className="whitespace-nowrap"
-                    >
-                      Generate AI Plan Analysis
-                    </Button>
+                  <div className="plan-analysis-container">
+                    <div className="text-center py-6">
+                      <Button
+                        onClick={async () => {
+                          if (res && olderAgeForAnalysis > 0) {
+                            await fetchAiInsight(res, olderAgeForAnalysis, "Please analyze my retirement plan and provide key insights and recommendations.");
+                          }
+                        }}
+                        className="whitespace-nowrap"
+                      >
+                        Generate AI Plan Analysis
+                      </Button>
+                    </div>
                   </div>
                 )}
                 {(aiInsight || isLoadingAi) && (
@@ -3038,7 +3043,7 @@ export default function App() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>Which variables matter most?</CardTitle>
+                      <CardTitle>Which Variables Matter Most?</CardTitle>
                       <CardDescription>Impact ranking - highest to lowest</CardDescription>
                     </div>
                     <Button
@@ -3459,9 +3464,22 @@ export default function App() {
               <div className="print-section">
               <Card>
                 <CardHeader>
-                  <CardTitle>Bear Market Retirement Scenarios</CardTitle>
-                  <CardDescription>Click to re-calculate with actual historical returns starting from major market crashes</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Bear Market Retirement Scenarios</CardTitle>
+                      <CardDescription>Click to re-calculate with actual historical returns starting from major market crashes</CardDescription>
+                    </div>
+                    <Button
+                      variant={showBearMarket ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setShowBearMarket(!showBearMarket)}
+                      className="no-print"
+                    >
+                      {showBearMarket ? "Hide" : "Show"}
+                    </Button>
+                  </div>
                 </CardHeader>
+                {showBearMarket && (
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
                     Test your plan against the worst bear markets in history. Each scenario uses <strong>actual sequential S&P 500 returns</strong> from that year forward.
@@ -3563,6 +3581,7 @@ export default function App() {
                     </div>
                   </div>
                 </CardContent>
+                )}
               </Card>
               </div>
             </AnimatedSection>
@@ -4180,6 +4199,7 @@ export default function App() {
         </AnimatedSection>
 
         {/* The Math Section */}
+        <div className="math-print-section print-section">
         <Card>
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="math" className="border-none">
@@ -4481,6 +4501,7 @@ export default function App() {
             </AccordionItem>
           </Accordion>
         </Card>
+        </div>
       </div>
       </div>
     </>

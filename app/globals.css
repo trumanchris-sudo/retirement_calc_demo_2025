@@ -617,6 +617,53 @@ html {
     background: #e7e7e7 !important;
     color: black !important;
   }
+
+  /* Math section prints fully expanded */
+  .math-print-section {
+    display: block !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Ensure all details/accordion elements are forced open */
+  details,
+  details[open] {
+    display: block !important;
+  }
+
+  details > summary {
+    display: none !important;
+  }
+
+  /* Force accordion content to show */
+  [data-state="closed"] {
+    display: block !important;
+  }
+
+  .accordion-trigger {
+    display: none !important;
+  }
+}
+
+/* Plan Analysis Container Styling */
+.plan-analysis-container {
+  border-radius: 16px;
+  padding: 24px;
+  background: white;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 640px) {
+  .wealth-flow-responsive svg,
+  .wealth-flow-responsive canvas {
+    min-width: 600px !important; /* prevents squishing */
+  }
+
+  .wealth-flow-responsive {
+    overflow-x: auto !important;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 @media screen {
