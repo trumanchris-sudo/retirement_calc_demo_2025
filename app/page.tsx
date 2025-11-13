@@ -2674,7 +2674,7 @@ export default function App() {
               <FlippingStatCard
                 title="After-Tax Income"
                 value={fmt(res.wdReal)}
-                sub={`Year 1 real spending · Duration: ${res.survYrs === res.yrsToSim ? `${res.yrsToSim} yrs (to age ${LIFE_EXP})` : `${res.survYrs} yrs (to age ${retAge + res.survYrs})`}`}
+                sub="Year 1 real spending"
                 color="emerald"
                 backContent={
                   <>
@@ -2737,7 +2737,14 @@ export default function App() {
                     Explain This
                   </Button>
                 </CardTitle>
-                <CardDescription>From end-of-life wealth to net inheritance</CardDescription>
+                <CardDescription className="flex items-center justify-between">
+                  <span>From end-of-life wealth to net inheritance</span>
+                  {res.probRuin !== undefined && (
+                    <span className="text-xs text-muted-foreground">
+                      Probability of Running Out: <span className="font-semibold">{(res.probRuin * 100).toFixed(0)}%</span>
+                    </span>
+                  )}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {res.eolAccounts && res.eol > 0 ? (
@@ -2746,11 +2753,11 @@ export default function App() {
                       <Sankey
                         data={{
                           nodes: [
-                            { name: `Taxable\n${fmt(res.eolAccounts.taxable)}` },
-                            { name: `Pre-Tax\n${fmt(res.eolAccounts.pretax)}` },
-                            { name: `Roth\n${fmt(res.eolAccounts.roth)}` },
-                            { name: `Estate Tax\n${fmt(res.estateTax || 0)}\n(${((res.estateTax || 0) / res.eol * 100).toFixed(1)}% lost)` },
-                            { name: `Net to Heirs\n${fmt(res.netEstate || res.eol)}` },
+                            { name: `Taxable — ${fmt(res.eolAccounts.taxable)}` },
+                            { name: `Pre-Tax — ${fmt(res.eolAccounts.pretax)}` },
+                            { name: `Roth — ${fmt(res.eolAccounts.roth)}` },
+                            { name: `Estate Tax — ${fmt(res.estateTax || 0)}` },
+                            { name: `Net to Heirs — ${fmt(res.netEstate || res.eol)}` },
                           ],
                           links: (() => {
                             const taxRatio = (res.estateTax || 0) / res.eol;
@@ -2758,28 +2765,70 @@ export default function App() {
 
                             const links = [];
 
-                            // Taxable flows (blue #3b82f6)
+                            // Taxable flows (soft orange)
                             if (res.estateTax > 0 && res.eolAccounts.taxable > 0) {
-                              links.push({ source: 0, target: 3, value: res.eolAccounts.taxable * taxRatio, color: '#3b82f6' });
+                              links.push({
+                                source: 0,
+                                target: 3,
+                                value: res.eolAccounts.taxable * taxRatio,
+                                color: '#fb923c',
+                                sourceName: 'Taxable',
+                                targetName: 'Estate Tax'
+                              });
                             }
                             if (res.eolAccounts.taxable > 0) {
-                              links.push({ source: 0, target: 4, value: res.eolAccounts.taxable * heirRatio, color: '#3b82f6' });
+                              links.push({
+                                source: 0,
+                                target: 4,
+                                value: res.eolAccounts.taxable * heirRatio,
+                                color: '#fb923c',
+                                sourceName: 'Taxable',
+                                targetName: 'Net to Heirs'
+                              });
                             }
 
-                            // Pre-tax flows (amber #f59e0b)
+                            // Pre-tax flows (soft blue)
                             if (res.estateTax > 0 && res.eolAccounts.pretax > 0) {
-                              links.push({ source: 1, target: 3, value: res.eolAccounts.pretax * taxRatio, color: '#f59e0b' });
+                              links.push({
+                                source: 1,
+                                target: 3,
+                                value: res.eolAccounts.pretax * taxRatio,
+                                color: '#60a5fa',
+                                sourceName: 'Pre-Tax',
+                                targetName: 'Estate Tax'
+                              });
                             }
                             if (res.eolAccounts.pretax > 0) {
-                              links.push({ source: 1, target: 4, value: res.eolAccounts.pretax * heirRatio, color: '#f59e0b' });
+                              links.push({
+                                source: 1,
+                                target: 4,
+                                value: res.eolAccounts.pretax * heirRatio,
+                                color: '#60a5fa',
+                                sourceName: 'Pre-Tax',
+                                targetName: 'Net to Heirs'
+                              });
                             }
 
-                            // Roth flows (green #10b981)
+                            // Roth flows (soft green)
                             if (res.estateTax > 0 && res.eolAccounts.roth > 0) {
-                              links.push({ source: 2, target: 3, value: res.eolAccounts.roth * taxRatio, color: '#10b981' });
+                              links.push({
+                                source: 2,
+                                target: 3,
+                                value: res.eolAccounts.roth * taxRatio,
+                                color: '#4ade80',
+                                sourceName: 'Roth',
+                                targetName: 'Estate Tax'
+                              });
                             }
                             if (res.eolAccounts.roth > 0) {
-                              links.push({ source: 2, target: 4, value: res.eolAccounts.roth * heirRatio, color: '#10b981' });
+                              links.push({
+                                source: 2,
+                                target: 4,
+                                value: res.eolAccounts.roth * heirRatio,
+                                color: '#4ade80',
+                                sourceName: 'Roth',
+                                targetName: 'Net to Heirs'
+                              });
                             }
 
                             return links;
@@ -2788,29 +2837,41 @@ export default function App() {
                         width={800}
                         height={350}
                         nodeWidth={15}
-                        nodePadding={50}
+                        nodePadding={15}
                         margin={{ top: 30, right: 150, bottom: 30, left: 150 }}
                         link={(props: any) => {
                           const { sourceX, targetX, sourceY, targetY, sourceControlX, targetControlX, linkWidth, index, payload } = props;
 
                           return (
-                            <path
-                              d={`
-                                M${sourceX},${sourceY}
-                                C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}
-                              `}
-                              fill="none"
-                              stroke={payload?.color || (isDarkMode ? '#64748b' : '#94a3b8')}
-                              strokeWidth={linkWidth}
-                              strokeOpacity={0.5}
-                              style={{ transition: 'all 0.3s ease' }}
-                              className="hover:stroke-opacity-80"
-                            />
+                            <g>
+                              <path
+                                d={`
+                                  M${sourceX},${sourceY}
+                                  C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}
+                                `}
+                                fill="none"
+                                stroke={payload?.color || (isDarkMode ? '#64748b' : '#94a3b8')}
+                                strokeWidth={linkWidth}
+                                strokeOpacity={0.6}
+                                style={{ transition: 'all 0.3s ease' }}
+                                className="hover:stroke-opacity-90"
+                              />
+                              <title>
+                                {`${payload?.sourceName} → ${payload?.targetName}\n${fmt(payload?.value || 0)} (${((payload?.value || 0) / res.eol * 100).toFixed(1)}% of total)`}
+                              </title>
+                            </g>
                           );
                         }}
                         node={(props: any) => {
                           const { x, y, width, height, index, payload } = props;
-                          const colors = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#10b981'];
+                          // Muted color palette
+                          const colors = [
+                            '#fb923c', // soft orange (Taxable)
+                            '#60a5fa', // soft blue (Pre-Tax)
+                            '#4ade80', // soft green (Roth)
+                            '#ef4444', // muted red (Estate Tax)
+                            '#10b981'  // blended green (Net to Heirs)
+                          ];
                           const fill = colors[index] || (isDarkMode ? '#475569' : '#64748b');
 
                           return (
@@ -2820,33 +2881,32 @@ export default function App() {
                               width={width}
                               height={height}
                               fill={fill}
-                              fillOpacity={0.9}
+                              fillOpacity={0.85}
                             />
                           );
                         }}
                       >
                         <RTooltip
-                          formatter={(value: number) => fmt(value)}
-                          contentStyle={{
-                            backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                            borderRadius: "8px",
-                            border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                            color: isDarkMode ? '#f3f4f6' : '#1f2937'
+                          content={({ payload }: any) => {
+                            if (!payload || !payload.length) return null;
+                            const data = payload[0];
+                            return (
+                              <div style={{
+                                backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                                borderRadius: "8px",
+                                border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+                                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                                color: isDarkMode ? '#f3f4f6' : '#1f2937',
+                                padding: '8px 12px'
+                              }}>
+                                <p className="font-semibold">{data.payload?.name}</p>
+                                <p className="text-sm">{fmt(data.value)}</p>
+                              </div>
+                            );
                           }}
                         />
                       </Sankey>
                     </ResponsiveContainer>
-
-                    {/* Probability of Running Out */}
-                    {res.probRuin !== undefined && (
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground">
-                          Probability of Running Out: <span className="font-semibold text-foreground">{(res.probRuin * 100).toFixed(0)}%</span>
-                          {res.probRuin === 0 && <span className="ml-2 text-green-600 dark:text-green-400">✓ All 1,000 scenarios succeeded!</span>}
-                        </p>
-                      </div>
-                    )}
 
                     {/* Total RMDs if applicable */}
                     {res.totalRMDs > 0 && (
@@ -2858,7 +2918,7 @@ export default function App() {
                               Cumulative Required Minimum Distributions
                             </p>
                           </div>
-                          <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{fmt(res.totalRMDs)}</p>
+                          <p className="text-lg font-bold text-foreground">{fmt(res.totalRMDs)}</p>
                         </div>
                       </div>
                     )}
@@ -2882,14 +2942,9 @@ export default function App() {
                 {res && !aiInsight && !isLoadingAi && (
                   <div className="text-center py-6">
                     <Button
-                      onClick={() => {
+                      onClick={async () => {
                         if (res && olderAgeForAnalysis > 0) {
-                          setIsLoadingAi(true);
-                          setTimeout(() => {
-                            const localInsight = generateLocalInsight(res, olderAgeForAnalysis);
-                            setAiInsight(localInsight);
-                            setIsLoadingAi(false);
-                          }, 100);
+                          await fetchAiInsight(res, olderAgeForAnalysis, "Please analyze my retirement plan and provide key insights and recommendations.");
                         }
                       }}
                       className="whitespace-nowrap"
