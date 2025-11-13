@@ -307,7 +307,27 @@ html {
 
 /* Print Styles */
 @media print {
-  .no-print {
+  /* Force light mode for print */
+  * {
+    color-scheme: light !important;
+  }
+
+  body {
+    background: white !important;
+    color: #000 !important;
+  }
+
+  /* Hide all interactive elements */
+  .no-print,
+  button:not(.print-only),
+  input[type="checkbox"],
+  input[type="range"],
+  select,
+  header,
+  nav,
+  .dark-mode-toggle,
+  [role="tablist"],
+  .accordion-trigger {
     display: none !important;
   }
 
@@ -315,70 +335,141 @@ html {
     display: inline !important;
   }
 
-  /* Hide interactive elements */
-  input[type="checkbox"],
-  input[type="text"],
-  input[type="number"],
-  select,
-  button {
-    pointer-events: none;
+  /* Flatten all cards - remove shadows and 3D effects */
+  * {
+    box-shadow: none !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
   }
 
-  /* Show form values clearly */
-  input[type="text"],
-  input[type="number"],
-  select {
-    border: 1px solid #e5e7eb;
-    background: white;
+  /* High contrast borders */
+  .border,
+  [class*="border-"] {
+    border-color: #000 !important;
   }
 
-  /* Force show all data sections for print */
-  [data-print-section] {
-    display: block !important;
-    page-break-inside: avoid;
+  /* Force all text to dark color */
+  * {
+    color: #000 !important;
   }
 
-  /* Force show sensitivity analysis if exists */
-  [data-sensitivity-section] {
-    display: block !important;
+  /* Page break rules - prevent breaking inside elements */
+  .flip-card-container,
+  .card,
+  [data-print-section],
+  [data-sensitivity-section],
+  [data-scenarios-section],
+  table,
+  .chart-container,
+  .sankey-container,
+  h2, h3, h4 {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
-  /* Force show scenario comparison table and charts */
+  /* Flatten flip cards - show front only */
+  .flip-card-container {
+    perspective: none !important;
+    height: auto !important;
+  }
+
+  .flip-card-inner {
+    transform: none !important;
+    position: relative !important;
+  }
+
+  .flip-card-back {
+    display: none !important;
+  }
+
+  .flip-card-front {
+    position: relative !important;
+    transform: none !important;
+    backface-visibility: visible !important;
+  }
+
+  /* Force show all sections */
+  [data-print-section],
+  [data-sensitivity-section],
   [data-scenarios-section] {
     display: block !important;
   }
 
-  /* Scenario comparison headers */
-  .print-scenario-header {
-    font-size: 18px;
-    font-weight: bold;
-    margin-top: 30px;
-    margin-bottom: 15px;
-    border-bottom: 2px solid #1f2937;
-    padding-bottom: 8px;
-    page-break-after: avoid;
-  }
-
-  /* Ensure scenario tables print well */
-  table {
-    page-break-inside: avoid;
-  }
-
-  /* Better page breaks */
-  h2, h3, h4 {
-    page-break-after: avoid;
-  }
-
-  /* Show comparison charts in print */
-  .comparison-chart {
-    display: block !important;
-    page-break-inside: avoid;
-    margin-bottom: 20px;
-  }
-
-  /* AI Snapshot specific */
+  /* AI Snapshot on first page */
   .hidden.print\\:block {
     display: block !important;
+  }
+
+  .print-page-break-after {
+    page-break-after: always !important;
+  }
+
+  /* Expand accordions for print */
+  [data-state="closed"] {
+    display: block !important;
+  }
+
+  .accordion-content {
+    display: block !important;
+    height: auto !important;
+  }
+
+  /* Show all tab content */
+  [role="tabpanel"][data-state="inactive"] {
+    display: block !important;
+    margin-top: 20px !important;
+  }
+
+  [role="tabpanel"]::before {
+    content: attr(aria-label) !important;
+    display: block !important;
+    font-weight: bold !important;
+    font-size: 18px !important;
+    margin-bottom: 10px !important;
+    border-bottom: 2px solid #000 !important;
+    padding-bottom: 5px !important;
+  }
+
+  /* Ensure charts render at high resolution */
+  svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Better table formatting */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    border: 1px solid #000 !important;
+    padding: 8px !important;
+  }
+
+  /* Page headers avoid breaks */
+  h2, h3, h4 {
+    page-break-after: avoid !important;
+    margin-top: 20px !important;
+  }
+
+  /* Section spacing */
+  .card,
+  section {
+    margin-bottom: 30px !important;
+  }
+
+  /* Footer on last page */
+  .print-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10px;
+    padding: 10px;
+    border-top: 1px solid #000;
   }
 }
 

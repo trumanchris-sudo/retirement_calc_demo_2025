@@ -29,8 +29,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
           <div
             id="logoSlot"
-            className="w-8 h-8 flex-shrink-0 rounded-lg bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center"
-            style={{ overflow: 'visible' }}
+            className="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center"
+            style={{
+              overflow: 'visible',
+              backgroundColor: cubeAppended ? 'transparent' : '#6b4cd6'
+            }}
           >
             {/* Logo will be inserted here by BrandLoader, or show fallback */}
             {!cubeAppended && (

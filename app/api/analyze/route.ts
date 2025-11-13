@@ -91,6 +91,11 @@ Social Security Benefits:
     // Calculate replacement rate
     const replacementRate = ((afterTaxIncome / (currentBalance * 0.05)) * 100).toFixed(0); // rough estimate
 
+    // Build return model description
+    const returnModelDesc = returnModel === 'fixed'
+      ? `- Return Model: Fixed\n- Assumed Return: ${returnRate}%`
+      : `- Return Model: Historical S&P 500 total-return bootstrap (1928–2024)`;
+
     // Build the context about the retirement plan
     const planContext = `Retirement Profile:
 - Current Age: ${age}
@@ -102,8 +107,7 @@ Social Security Benefits:
 Withdrawal Strategy:
 - Annual Withdrawal: $${annualWithdrawal.toLocaleString()} (${withdrawalRate}% initial rate)
 - After-Tax Income: $${afterTaxIncome.toLocaleString()}
-- Return Model: ${returnModel}
-- Assumed Return: ${returnRate}%
+${returnModelDesc}
 - Inflation Rate: ${inflationRate}%
 
 Results:
@@ -150,8 +154,7 @@ WITHDRAWAL STRATEGY:
   "annual_withdrawal": ${annualWithdrawal},
   "withdrawal_rate": ${withdrawalRate}%,
   "after_tax_income": ${afterTaxIncome},
-  "return_model": "${returnModel}",
-  "assumed_return": ${returnRate}%,
+  "return_model": "${returnModel === 'fixed' ? `Fixed at ${returnRate}%` : 'Historical S&P 500 total-return bootstrap (1928–2024)'}",
   "inflation_rate": ${inflationRate}%
 }
 

@@ -2585,7 +2585,7 @@ export default function App() {
                       </ul>
                       <p className="flip-card-details-text">
                         Includes current savings plus all contributions and growth from now until retirement,
-                        accounting for mid-year contributions and compounding returns at {retRate}% annual return.
+                        accounting for mid-year contributions and {retMode === 'fixed' ? `compounding returns at ${retRate}% annual return` : 'historical S&P 500 total-return bootstrap (1928–2024)'}.
                       </p>
                     </div>
                   </>
