@@ -4323,21 +4323,32 @@ export default function App() {
                       )}
                       <div className="chart-block">
                       {/* Debug info - temporary */}
-                      {!comparisonMode && res?.data && (
-                        <div className="text-xs text-muted-foreground mb-2 print-hide space-y-1">
-                          <div>Standard mode data keys: {res.data[0] ? Object.keys(res.data[0]).join(', ') : 'No data'}</div>
-                          <div>Data length: {res.data.length}</div>
-                          <div>First row bal: {res.data[0]?.bal}, real: {res.data[0]?.real}</div>
-                          <div>Area conditional: {(!comparisonMode && res?.data && res.data.length > 0) ? 'TRUE' : 'FALSE'}</div>
-                        </div>
-                      )}
-                      {comparisonMode && comparisonData.baseline?.data?.length > 0 && (
-                        <div className="text-xs text-muted-foreground mb-2 print-hide">
-                          Comparison mode data keys: {Object.keys(comparisonData.baseline.data[0]).join(', ')}
-                        </div>
-                      )}
+                      {/* Debug: Check what data the chart is actually receiving */}
+                      {(() => {
+                        const chartData = comparisonMode && comparisonData.baseline
+                          ? comparisonData.baseline.data
+                          : (res?.data || []);
+
+                        if (chartData && chartData.length > 0) {
+                          console.log("Wealth chart sample point", chartData[0]);
+                          return (
+                            <div className="text-xs text-muted-foreground mb-2 print-hide space-y-1">
+                              <div>Mode: {comparisonMode ? 'COMPARISON' : 'STANDARD'}</div>
+                              <div>Chart data keys: {Object.keys(chartData[0] as any).join(', ')}</div>
+                              <div>Data length: {chartData.length}</div>
+                              <div>First row bal: {(chartData[0] as any)?.bal}, real: {(chartData[0] as any)?.real}</div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                       <ResponsiveContainer width="100%" height={400}>
-                        <ComposedChart data={comparisonMode && comparisonData.baseline ? comparisonData.baseline.data : (res?.data || [])}>
+                        <ComposedChart data={(() => {
+                          const chartData = comparisonMode && comparisonData.baseline
+                            ? comparisonData.baseline.data
+                            : (res?.data || []);
+                          return chartData;
+                        })()}>
                           <defs>
                             <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -4368,54 +4379,52 @@ export default function App() {
                           />
                           <Legend />
 
-                          {/* Wealth accumulation areas - standard mode */}
+                          {/* Wealth accumulation - standard mode (using Line for debugging) */}
                           {!comparisonMode && res?.data && res.data.length > 0 && (
                             <>
-                              <Area
+                              <Line
                                 type="monotone"
                                 dataKey="bal"
                                 stroke="#3b82f6"
                                 strokeWidth={3}
-                                fillOpacity={0.3}
-                                fill="#3b82f6"
+                                dot={false}
                                 name="Nominal (50th Percentile)"
                                 isAnimationActive={false}
                               />
-                              <Area
+                              <Line
                                 type="monotone"
                                 dataKey="real"
                                 stroke="#10b981"
                                 strokeWidth={2}
                                 strokeDasharray="5 5"
-                                fillOpacity={0.3}
-                                fill="#10b981"
+                                dot={false}
                                 name="Real (50th Percentile)"
                                 isAnimationActive={false}
                               />
                             </>
                           )}
 
-                          {/* Wealth accumulation areas - comparison mode */}
+                          {/* Wealth accumulation - comparison mode (using Line for debugging) */}
                           {comparisonMode && comparisonData.baseline?.data && comparisonData.baseline.data.length > 0 && (
                             <>
-                              <Area
+                              <Line
                                 type="monotone"
                                 dataKey="bal"
                                 stroke="#3b82f6"
-                                strokeWidth={3}
-                                fillOpacity={0.2}
-                                fill="#3b82f6"
+                                strokeWidth={2}
+                                strokeOpacity={0.5}
+                                dot={false}
                                 name="Nominal (50th Percentile)"
                                 isAnimationActive={false}
                               />
-                              <Area
+                              <Line
                                 type="monotone"
                                 dataKey="real"
                                 stroke="#10b981"
                                 strokeWidth={2}
                                 strokeDasharray="5 5"
-                                fillOpacity={0.2}
-                                fill="#10b981"
+                                strokeOpacity={0.5}
+                                dot={false}
                                 name="Real (50th Percentile)"
                                 isAnimationActive={false}
                               />
