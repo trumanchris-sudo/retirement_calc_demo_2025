@@ -101,6 +101,35 @@ function getBearReturns(year: number): number[] {
 }
 
 /**
+ * Calculate effective inflation rate for a given year, accounting for inflation shocks.
+ * @param yearInSimulation - Year index in the simulation (0 = start of accumulation)
+ * @param yrsToRet - Years until retirement
+ * @param baseInflation - Base inflation rate (%)
+ * @param shockRate - Elevated inflation rate during shock (%)
+ * @param shockDuration - Duration of shock in years
+ * @returns Effective inflation rate (%) for that year
+ */
+function getEffectiveInflation(
+  yearInSimulation: number,
+  yrsToRet: number,
+  baseInflation: number,
+  shockRate: number | null,
+  shockDuration: number
+): number {
+  if (!shockRate) return baseInflation;
+
+  // Shock starts at retirement year (yrsToRet) and lasts for shockDuration years
+  const shockStartYear = yrsToRet;
+  const shockEndYear = yrsToRet + shockDuration;
+
+  if (yearInSimulation >= shockStartYear && yearInSimulation < shockEndYear) {
+    return shockRate;
+  }
+
+  return baseInflation;
+}
+
+/**
  * Build a generator that yields **annual** gross return factors for N years:
  * - mode=fixed -> constant nominal return (e.g., 9.8% -> 1.098)
  * - mode=randomWalk -> bootstrap from YoY array (with replacement)
@@ -828,6 +857,8 @@ export type Inputs = {
   ssIncome2: number;
   ssClaimAge2: number;
   historicalYear?: number; // Start year for historical sequential playback
+  inflationShockRate?: number | null; // Elevated inflation rate during shock (%)
+  inflationShockDuration?: number; // Duration of inflation shock in years
 };
 
 /** Result from a single simulation run */
@@ -849,6 +880,8 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     retRate, infRate, stateRate, incContrib, incRate, wdRate,
     retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
     historicalYear,
+    inflationShockRate,
+    inflationShockDuration = 5,
   } = params;
 
   const isMar = marital === "married";
@@ -863,6 +896,9 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
   const g_fixed = 1 + retRate / 100;
   const infl = infRate / 100;
   const infl_factor = 1 + infl;
+
+  // Track cumulative inflation for variable inflation scenarios
+  let cumulativeInflation = 1.0;
 
   const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
 
@@ -948,7 +984,11 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     }
 
     const bal = bTax + bPre + bPost;
-    balancesReal.push(bal / Math.pow(1 + infl, y));
+
+    // Apply year-specific inflation (handles inflation shocks)
+    const yearInflation = getEffectiveInflation(y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
+    cumulativeInflation *= (1 + yearInflation / 100);
+    balancesReal.push(bal / cumulativeInflation);
   }
 
   const finNom = bTax + bPre + bPost;
@@ -1117,7 +1157,11 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     if (retBalRoth < 0) retBalRoth = 0;
 
     const totalNow = retBalTax + retBalPre + retBalRoth;
-    balancesReal.push(totalNow / Math.pow(1 + infl, yrsToRet + y));
+
+    // Apply year-specific inflation (handles inflation shocks)
+    const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
+    cumulativeInflation *= (1 + yearInflation / 100);
+    balancesReal.push(totalNow / cumulativeInflation);
 
     if (totalNow <= 0) {
       if (!ruined) {
@@ -1278,6 +1322,11 @@ export default function App() {
   const [scenarioName, setScenarioName] = useState<string>("");
   const [selectedScenarios, setSelectedScenarios] = useState<Set<string>>(new Set());
   const [showComparison, setShowComparison] = useState(false);
+
+  // Inflation shock scenarios
+  const [showInflationShock, setShowInflationShock] = useState(false);
+  const [inflationShockRate, setInflationShockRate] = useState<number>(8); // elevated inflation %
+  const [inflationShockDuration, setInflationShockDuration] = useState<number>(5); // years
 
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
@@ -1612,6 +1661,8 @@ export default function App() {
           retRate, infRate, stateRate, incContrib, incRate, wdRate,
           retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
           historicalYear: historicalYear || undefined,
+          inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
+          inflationShockDuration,
         };
 
         const batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, 1000);
@@ -2311,6 +2362,7 @@ export default function App() {
     showGen, total, marital,
     hypPerBen, hypStartBens, hypBirthMultiple, hypBirthInterval, hypDeathAge, hypMinDistAge,
     retMode, seed, walkSeries, historicalYear,
+    inflationShockRate, inflationShockDuration,
     includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2, hypBenAgesStr,
   ]);
 
