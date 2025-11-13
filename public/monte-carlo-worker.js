@@ -100,9 +100,18 @@ const SP500_YOY_NOMINAL = [
 /**
  * Extract 3 years of returns starting from a historical year
  * for bear market scenario injection
+ *
+ * NOTE: The SP500_YOY_NOMINAL array has 4 extra values in the 1941-1960 section,
+ * so we need to add an offset of 4 for years after 1940.
  */
 function getBearReturns(year) {
-  const startIndex = year - 1928; // SP500_YOY_NOMINAL starts at 1928
+  let startIndex = year - 1928; // SP500_YOY_NOMINAL starts at 1928
+
+  // Account for 4 extra values in the array after 1940
+  if (year > 1940) {
+    startIndex += 4;
+  }
+
   if (startIndex < 0 || startIndex + 2 >= SP500_YOY_NOMINAL.length) {
     // Fallback if year is out of range
     return [0, 0, 0];
@@ -360,9 +369,25 @@ function runSingleSimulation(params, seed) {
     s: { tax: cTax2, pre: cPre2, post: cPost2, match: cMatch2 },
   };
 
+  // Get bear market returns if applicable
+  const bearReturns = historicalYear ? getBearReturns(historicalYear) : null;
+
   // Accumulation phase
   for (let y = 0; y <= yrsToRet; y++) {
-    const g = retMode === "fixed" ? g_fixed : accGen.next().value;
+    let g;
+
+    // Apply FIRST bear return in the retirement year itself (y == yrsToRet)
+    if (bearReturns && y === yrsToRet) {
+      const pct = bearReturns[0]; // First bear year
+      if (walkSeries === "real") {
+        const realRate = (1 + pct / 100) / (1 + infl) - 1;
+        g = 1 + realRate;
+      } else {
+        g = 1 + pct / 100;
+      }
+    } else {
+      g = retMode === "fixed" ? g_fixed : accGen.next().value;
+    }
 
     const a1 = age1 + y;
     const a2 = isMar ? age2 + y : null;
@@ -487,16 +512,16 @@ function runSingleSimulation(params, seed) {
   let survYrs = 0;
   let ruined = false;
 
-  // Get bear market returns if applicable
-  const bearReturns = historicalYear ? getBearReturns(historicalYear) : null;
+  // Bear market returns already applied: bearReturns[0] was used in retirement year
+  // Now apply bearReturns[1] and bearReturns[2] in years 1-2 of drawdown
 
   // Drawdown phase
   for (let y = 1; y <= yrsToSim; y++) {
     let g_retire;
 
-    // Inject bear market returns in first 3 years of retirement if scenario is active
-    if (bearReturns && y >= 1 && y <= 3) {
-      const pct = bearReturns[y - 1]; // y=1 uses bearReturns[0], etc.
+    // Inject remaining bear market returns in years 1-2 after retirement
+    if (bearReturns && y >= 1 && y <= 2) {
+      const pct = bearReturns[y]; // y=1 uses bearReturns[1], y=2 uses bearReturns[2]
       if (walkSeries === "real") {
         const realRate = (1 + pct / 100) / (1 + infl) - 1;
         g_retire = 1 + realRate;
@@ -566,12 +591,15 @@ function runSingleSimulation(params, seed) {
     balancesReal.push(totalNow / Math.pow(1 + infl, yrsToRet + y));
 
     if (totalNow <= 0) {
-      survYrs = y - 1;
-      ruined = true;
+      if (!ruined) {
+        survYrs = y - 1;
+        ruined = true;
+      }
       retBalTax = retBalPre = retBalRoth = 0;
-      break;
+      // Continue loop to maintain chart data through age 95
+    } else {
+      survYrs = y;
     }
-    survYrs = y;
 
     currWdGross *= infl_factor;
   }
