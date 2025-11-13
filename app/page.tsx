@@ -72,6 +72,16 @@ import {
 
 import type { ReturnMode, WalkSeries, BatchSummary } from "@/types/planner";
 
+// Import calculation modules
+import {
+  calcOrdinaryTax,
+  calcLTCGTax,
+  calcNIIT,
+  type FilingStatus,
+} from "@/lib/calculations/taxCalculations";
+
+import { computeWithdrawalTaxes } from "@/lib/calculations/withdrawalTax";
+
 // Import simulation modules
 import {
   getBearReturns,
@@ -164,66 +174,6 @@ export function buildReturnGenerator(options: {
 /** ===============================
  * Helpers
  * ================================ */
-
-type FilingStatus = "single" | "married";
-
-const calcOrdinaryTax = (income: number, status: FilingStatus) => {
-  if (income <= 0) return 0;
-  const { rates, deduction } = TAX_BRACKETS[status];
-  let adj = Math.max(0, income - deduction);
-  let tax = 0;
-  let prev = 0;
-  for (const b of rates) {
-    const amount = Math.min(adj, b.limit - prev);
-    tax += amount * b.rate;
-    adj -= amount;
-    prev = b.limit;
-    if (adj <= 0) break;
-  }
-  return tax;
-};
-
-const calcLTCGTax = (
-  capGain: number,
-  status: FilingStatus,
-  ordinaryIncome: number
-) => {
-  if (capGain <= 0) return 0;
-  const brackets = LTCG_BRACKETS[status];
-  let remainingGain = capGain;
-  let tax = 0;
-  let used = 0;
-
-  for (const b of brackets) {
-    const bracketRoom = Math.max(0, b.limit - used - ordinaryIncome);
-    const taxedHere = Math.min(remainingGain, bracketRoom);
-    if (taxedHere > 0) {
-      tax += taxedHere * b.rate;
-      remainingGain -= taxedHere;
-    }
-    used = b.limit - ordinaryIncome;
-    if (remainingGain <= 0) break;
-  }
-
-  if (remainingGain > 0) {
-    const topRate = brackets[brackets.length - 1].rate;
-    tax += remainingGain * topRate;
-  }
-  return tax;
-};
-
-const calcNIIT = (
-  investmentIncome: number,
-  status: FilingStatus,
-  modifiedAGI: number
-) => {
-  if (investmentIncome <= 0) return 0;
-  const threshold = NIIT_THRESHOLD[status];
-  const excess = Math.max(0, modifiedAGI - threshold);
-  if (excess <= 0) return 0;
-  const base = Math.min(investmentIncome, excess);
-  return base * 0.038;
-};
 
 /**
  * Calculate Social Security monthly benefit
@@ -954,69 +904,7 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
   const infAdj = Math.pow(1 + infl, yrsToRet);
   const wdGrossY1 = finNom * (wdRate / 100);
 
-  const computeWithdrawalTaxes = (
-    gross: number,
-    status: FilingStatus,
-    taxableBal: number,
-    pretaxBal: number,
-    rothBal: number,
-    taxableBasis: number,
-    statePct: number
-  ) => {
-    const totalBal = taxableBal + pretaxBal + rothBal;
-    if (totalBal <= 0 || gross <= 0)
-      return { tax: 0, ordinary: 0, capgain: 0, niit: 0, state: 0, draw: { t: 0, p: 0, r: 0 }, newBasis: taxableBasis };
-
-    const shareT = totalBal > 0 ? taxableBal / totalBal : 0;
-    const shareP = totalBal > 0 ? pretaxBal / totalBal : 0;
-    const shareR = totalBal > 0 ? rothBal / totalBal : 0;
-
-    let drawT = gross * shareT;
-    let drawP = gross * shareP;
-    let drawR = gross * shareR;
-
-    const fixShortfall = (want: number, have: number) => Math.min(want, have);
-
-    const usedT = fixShortfall(drawT, taxableBal);
-    let shortT = drawT - usedT;
-
-    const usedP = fixShortfall(drawP + shortT, pretaxBal);
-    let shortP = drawP + shortT - usedP;
-
-    const usedR = fixShortfall(drawR + shortP, rothBal);
-
-    drawT = usedT;
-    drawP = usedP;
-    drawR = usedR;
-
-    const unrealizedGain = Math.max(0, taxableBal - taxableBasis);
-    const gainRatio = taxableBal > 0 ? unrealizedGain / taxableBal : 0;
-    const drawT_Gain = drawT * gainRatio;
-    const drawT_Basis = drawT - drawT_Gain;
-
-    const ordinaryIncome = drawP;
-    const capGains = drawT_Gain;
-
-    const fedOrd = calcOrdinaryTax(ordinaryIncome, status);
-    const fedCap = calcLTCGTax(capGains, status, ordinaryIncome);
-    const magi = ordinaryIncome + capGains;
-    const niit = calcNIIT(capGains, status, magi);
-    const stateTax = (ordinaryIncome + capGains) * (statePct / 100);
-
-    const totalTax = fedOrd + fedCap + niit + stateTax;
-    const newBasis = Math.max(0, taxableBasis - drawT_Basis);
-
-    return {
-      tax: totalTax,
-      ordinary: fedOrd,
-      capgain: fedCap,
-      niit,
-      state: stateTax,
-      draw: { t: drawT, p: drawP, r: drawR },
-      newBasis,
-    };
-  };
-
+  // Use imported tax calculation function
   const y1 = computeWithdrawalTaxes(
     wdGrossY1,
     marital,
@@ -1212,6 +1100,164 @@ async function runTenSeedsAndSummarize(params: Inputs, baseSeed: number): Promis
 }
 
 /** ===============================
+ * Memoized Chart Components
+ * ================================ */
+
+interface WealthChartProps {
+  data: any[];
+  showP10: boolean;
+  showP90: boolean;
+  isDarkMode: boolean;
+  fmt: (n: number) => string;
+}
+
+// Memoized wealth accumulation chart for default mode
+const WealthAccumulationChart = React.memo<WealthChartProps>(({ data, showP10, showP90, isDarkMode, fmt }) => (
+  <ResponsiveContainer width="100%" height={400}>
+    <ComposedChart data={data}>
+      <defs>
+        <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+        </linearGradient>
+        <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+        </linearGradient>
+      </defs>
+      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+      <XAxis dataKey="year" className="text-sm" />
+      <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
+      <RTooltip
+        formatter={(v) => fmt(v as number)}
+        labelFormatter={(l) => `Year ${l}`}
+        contentStyle={{
+          backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+          borderRadius: "8px",
+          border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+          color: isDarkMode ? '#f3f4f6' : '#1f2937'
+        }}
+        labelStyle={{
+          color: isDarkMode ? '#f3f4f6' : '#1f2937',
+          fontWeight: 'bold'
+        }}
+      />
+      <Legend />
+      <Line
+        type="monotone"
+        dataKey="bal"
+        stroke="#3b82f6"
+        strokeWidth={3}
+        dot={false}
+        name="Nominal (50th Percentile)"
+        isAnimationActive={false}
+      />
+      <Line
+        type="monotone"
+        dataKey="real"
+        stroke="#10b981"
+        strokeWidth={2}
+        strokeDasharray="5 5"
+        dot={false}
+        name="Real (50th Percentile)"
+        isAnimationActive={false}
+      />
+      {showP10 && (
+        <Line
+          type="monotone"
+          dataKey="p10"
+          stroke="#ef4444"
+          strokeWidth={2}
+          strokeDasharray="3 3"
+          dot={false}
+          name="10th Percentile (Nominal)"
+        />
+      )}
+      {showP90 && (
+        <Line
+          type="monotone"
+          dataKey="p90"
+          stroke="#f59e0b"
+          strokeWidth={2}
+          strokeDasharray="3 3"
+          dot={false}
+          name="90th Percentile (Nominal)"
+        />
+      )}
+    </ComposedChart>
+  </ResponsiveContainer>
+));
+
+WealthAccumulationChart.displayName = 'WealthAccumulationChart';
+
+interface ComparisonChartProps {
+  data: any[];
+  comparisonData: any;
+  isDarkMode: boolean;
+  fmt: (n: number) => string;
+}
+
+// Memoized comparison chart for scenario analysis
+const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data, comparisonData, isDarkMode, fmt }) => (
+  <ResponsiveContainer width="100%" height={400}>
+    <ComposedChart data={data}>
+      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+      <XAxis dataKey="year" className="text-sm" />
+      <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
+      <RTooltip
+        formatter={(v) => fmt(v as number)}
+        labelFormatter={(l) => `Year ${l}`}
+        contentStyle={{
+          backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+          borderRadius: "8px",
+          border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
+          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+          color: isDarkMode ? '#f3f4f6' : '#1f2937'
+        }}
+        labelStyle={{
+          color: isDarkMode ? '#f3f4f6' : '#1f2937',
+          fontWeight: 'bold'
+        }}
+      />
+      <Legend />
+      {comparisonData.baseline?.visible && (
+        <Line
+          type="monotone"
+          dataKey="baseline"
+          stroke="#3b82f6"
+          strokeWidth={3}
+          dot={false}
+          name="Baseline"
+        />
+      )}
+      {comparisonData.bearMarket?.visible && (
+        <Line
+          type="monotone"
+          dataKey="bearMarket"
+          stroke="#ef4444"
+          strokeWidth={3}
+          dot={false}
+          name={comparisonData.bearMarket.label}
+        />
+      )}
+      {comparisonData.inflation?.visible && (
+        <Line
+          type="monotone"
+          dataKey="inflation"
+          stroke="#f59e0b"
+          strokeWidth={3}
+          dot={false}
+          name={comparisonData.inflation.label}
+        />
+      )}
+    </ComposedChart>
+  </ResponsiveContainer>
+));
+
+ScenarioComparisonChart.displayName = 'ScenarioComparisonChart';
+
+/** ===============================
  * App
  * ================================ */
 
@@ -1337,6 +1383,58 @@ export default function App() {
 
   const isMar = useMemo(() => marital === "married", [marital]);
   const total = useMemo(() => sTax + sPre + sPost, [sTax, sPre, sPost]);
+
+  // Memoize formatters to avoid recreating on every render
+  const formatters = useMemo(() => ({
+    currency: (val: number) => val.toLocaleString('en-US'),
+    percentage: (val: number) => val.toFixed(1),
+    whole: (val: number) => Math.round(val),
+    decimal: (val: number, places: number) => val.toFixed(places),
+  }), []);
+
+  // Memoize formatted results to avoid expensive toLocaleString calls
+  const formattedResults = useMemo(() => {
+    if (!res) return null;
+    return {
+      finNom: fmt(res.finNom),
+      finReal: fmt(res.finReal),
+      wd: fmt(res.wd),
+      wdAfter: fmt(res.wdAfter),
+      wdReal: fmt(res.wdReal),
+      eol: fmt(res.eol),
+      estateTax: fmt(res.estateTax),
+      netEstate: fmt(res.netEstate),
+      totalRMDs: fmt(res.totalRMDs),
+      fedOrd: fmt(res.tax.fedOrd),
+      fedCap: fmt(res.tax.fedCap),
+      niit: fmt(res.tax.niit),
+      state: fmt(res.tax.state),
+      tot: fmt(res.tax.tot),
+    };
+  }, [res]);
+
+  // Memoize chart data splits for accumulation and drawdown phases
+  const chartData = useMemo(() => {
+    if (!res?.data || res.data.length === 0) return null;
+    return {
+      accumulation: res.data.slice(0, res.yrsToRet + 1),
+      drawdown: res.data.slice(res.yrsToRet),
+      full: res.data,
+    };
+  }, [res?.data, res?.yrsToRet]);
+
+  // Memoize net worth comparison calculation
+  const netWorthComparison = useMemo(() => {
+    if (!res || !age1) return null;
+    const bracket = getNetWorthBracket(age1);
+    const multiple = res.finReal / bracket.median;
+    return {
+      bracket,
+      percentile: res.finReal > bracket.median ? "above" : "below",
+      multiple: multiple.toFixed(1),
+      difference: fmt(Math.abs(res.finReal - bracket.median)),
+    };
+  }, [res?.finReal, age1]);
 
   // Simple cache for AI Q&A responses (24 hour TTL)
   const aiCache = useRef<Map<string, { response: string; timestamp: number }>>(new Map());
@@ -2089,69 +2187,7 @@ export default function App() {
 
       const wdGrossY1 = finNom * (wdRate / 100);
 
-      const computeWithdrawalTaxes = (
-        gross: number,
-        status: FilingStatus,
-        taxableBal: number,
-        pretaxBal: number,
-        rothBal: number,
-        taxableBasis: number,
-        statePct: number
-      ) => {
-        const totalBal = taxableBal + pretaxBal + rothBal;
-        if (totalBal <= 0 || gross <= 0)
-          return { tax: 0, ordinary: 0, capgain: 0, niit: 0, state: 0, draw: { t: 0, p: 0, r: 0 }, newBasis: taxableBasis };
-
-        const shareT = totalBal > 0 ? taxableBal / totalBal : 0;
-        const shareP = totalBal > 0 ? pretaxBal / totalBal : 0;
-        const shareR = totalBal > 0 ? rothBal / totalBal : 0;
-
-        let drawT = gross * shareT;
-        let drawP = gross * shareP;
-        let drawR = gross * shareR;
-
-        const fixShortfall = (want: number, have: number) => Math.min(want, have);
-
-        const usedT = fixShortfall(drawT, taxableBal);
-        let shortT = drawT - usedT;
-
-        const usedP = fixShortfall(drawP + shortT, pretaxBal);
-        let shortP = drawP + shortT - usedP;
-
-        const usedR = fixShortfall(drawR + shortP, rothBal);
-
-        drawT = usedT;
-        drawP = usedP;
-        drawR = usedR;
-
-        const unrealizedGain = Math.max(0, taxableBal - taxableBasis);
-        const gainRatio = taxableBal > 0 ? unrealizedGain / taxableBal : 0;
-        const drawT_Gain = drawT * gainRatio;
-        const drawT_Basis = drawT - drawT_Gain;
-
-        const ordinaryIncome = drawP;
-        const capGains = drawT_Gain;
-
-        const fedOrd = calcOrdinaryTax(ordinaryIncome, status);
-        const fedCap = calcLTCGTax(capGains, status, ordinaryIncome);
-        const magi = ordinaryIncome + capGains;
-        const niit = calcNIIT(capGains, status, magi);
-        const stateTax = (ordinaryIncome + capGains) * (statePct / 100);
-
-        const totalTax = fedOrd + fedCap + niit + stateTax;
-        const newBasis = Math.max(0, taxableBasis - drawT_Basis);
-
-        return {
-          tax: totalTax,
-          ordinary: fedOrd,
-          capgain: fedCap,
-          niit,
-          state: stateTax,
-          draw: { t: drawT, p: drawP, r: drawR },
-          newBasis,
-        };
-      };
-
+      // Use imported tax calculation function
       const y1 = computeWithdrawalTaxes(
         wdGrossY1,
         marital,
@@ -4321,148 +4357,28 @@ export default function App() {
                           </div>
                         </div>
                       )}
-                      {/* Default Wealth Accumulation Chart - Always shows when not in comparison mode */}
+                      {/* Default Wealth Accumulation Chart - Uses memoized component */}
                       {!comparisonMode && res?.data && res.data.length > 0 && (
                         <div className="chart-block">
-                          <ResponsiveContainer width="100%" height={400}>
-                            <ComposedChart data={res.data}>
-                              <defs>
-                                <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                                </linearGradient>
-                                <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                              <XAxis dataKey="year" className="text-sm" />
-                              <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
-                              <RTooltip
-                                formatter={(v) => fmt(v as number)}
-                                labelFormatter={(l) => `Year ${l}`}
-                                contentStyle={{
-                                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                                  borderRadius: "8px",
-                                  border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-                                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                                  color: isDarkMode ? '#f3f4f6' : '#1f2937'
-                                }}
-                                labelStyle={{
-                                  color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                                  fontWeight: 'bold'
-                                }}
-                              />
-                              <Legend />
-
-                              {/* Main 50th percentile lines */}
-                              <Line
-                                type="monotone"
-                                dataKey="bal"
-                                stroke="#3b82f6"
-                                strokeWidth={3}
-                                dot={false}
-                                name="Nominal (50th Percentile)"
-                                isAnimationActive={false}
-                              />
-                              <Line
-                                type="monotone"
-                                dataKey="real"
-                                stroke="#10b981"
-                                strokeWidth={2}
-                                strokeDasharray="5 5"
-                                dot={false}
-                                name="Real (50th Percentile)"
-                                isAnimationActive={false}
-                              />
-
-                              {/* Percentile lines (only in standard mode) */}
-                              {showP10 && (
-                                <Line
-                                  type="monotone"
-                                  dataKey="p10"
-                                  stroke="#ef4444"
-                                  strokeWidth={2}
-                                  strokeDasharray="3 3"
-                                  dot={false}
-                                  name="10th Percentile (Nominal)"
-                                />
-                              )}
-                              {showP90 && (
-                                <Line
-                                  type="monotone"
-                                  dataKey="p90"
-                                  stroke="#f59e0b"
-                                  strokeWidth={2}
-                                  strokeDasharray="3 3"
-                                  dot={false}
-                                  name="90th Percentile (Nominal)"
-                                />
-                              )}
-                            </ComposedChart>
-                          </ResponsiveContainer>
+                          <WealthAccumulationChart
+                            data={res.data}
+                            showP10={showP10}
+                            showP90={showP90}
+                            isDarkMode={isDarkMode}
+                            fmt={fmt}
+                          />
                         </div>
                       )}
 
-                      {/* Comparison Chart - Only shows when in comparison mode */}
+                      {/* Comparison Chart - Uses memoized component */}
                       {comparisonMode && comparisonData.baseline?.data && comparisonData.baseline.data.length > 0 && (
                         <div className="chart-block">
-                          <ResponsiveContainer width="100%" height={400}>
-                            <ComposedChart data={comparisonData.baseline.data}>
-                              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                              <XAxis dataKey="year" className="text-sm" />
-                              <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
-                              <RTooltip
-                                formatter={(v) => fmt(v as number)}
-                                labelFormatter={(l) => `Year ${l}`}
-                                contentStyle={{
-                                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                                  borderRadius: "8px",
-                                  border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-                                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                                  color: isDarkMode ? '#f3f4f6' : '#1f2937'
-                                }}
-                                labelStyle={{
-                                  color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                                  fontWeight: 'bold'
-                                }}
-                              />
-                              <Legend />
-
-                              {/* Comparison scenario lines */}
-                              {comparisonData.baseline?.visible && (
-                                <Line
-                                  type="monotone"
-                                  dataKey="baseline"
-                                  stroke="#3b82f6"
-                                  strokeWidth={3}
-                                  dot={false}
-                                  name="Baseline"
-                                />
-                              )}
-                              {comparisonData.bearMarket?.visible && (
-                                <Line
-                                  type="monotone"
-                                  dataKey="bearMarket"
-                                  stroke="#ef4444"
-                                  strokeWidth={3}
-                                  dot={false}
-                                  name={comparisonData.bearMarket.label}
-                                />
-                              )}
-                              {comparisonData.inflation?.visible && (
-                                <Line
-                                  type="monotone"
-                                  dataKey="inflation"
-                                  stroke="#f59e0b"
-                                  strokeWidth={3}
-                                  dot={false}
-                                  name={comparisonData.inflation.label}
-                                />
-                              )}
-                            </ComposedChart>
-                          </ResponsiveContainer>
+                          <ScenarioComparisonChart
+                            data={comparisonData.baseline.data}
+                            comparisonData={comparisonData}
+                            isDarkMode={isDarkMode}
+                            fmt={fmt}
+                          />
                         </div>
                       )}
                     </TabsContent>
