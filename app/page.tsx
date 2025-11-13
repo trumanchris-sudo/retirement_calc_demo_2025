@@ -55,6 +55,7 @@ import {
   NET_WORTH_DATA,
   getNetWorthBracket,
   SP500_YOY_NOMINAL,
+  SP500_START_YEAR,
   COLOR,
   type ColorKey,
 } from "@/lib/constants";
@@ -71,63 +72,21 @@ import {
 
 import type { ReturnMode, WalkSeries, BatchSummary } from "@/types/planner";
 
+// Import simulation modules
+import {
+  getBearReturns,
+  BEAR_MARKET_SCENARIOS,
+  type BearMarketScenario,
+} from "@/lib/simulation/bearMarkets";
+
+import {
+  getEffectiveInflation,
+  INFLATION_SHOCK_SCENARIOS,
+  type InflationShockScenario,
+} from "@/lib/simulation/inflationShocks";
+
 // Re-export types for compatibility
 export type { ReturnMode, WalkSeries, BatchSummary };
-
-/**
- * Extract 3 years of returns starting from a historical year
- * for bear market scenario injection
- *
- * NOTE: The SP500_YOY_NOMINAL array has 4 extra values in the 1941-1960 section,
- * so we need to add an offset of 4 for years after 1940.
- */
-function getBearReturns(year: number): number[] {
-  let startIndex = year - 1928; // SP500_YOY_NOMINAL starts at 1928
-
-  // Account for 4 extra values in the array after 1940
-  if (year > 1940) {
-    startIndex += 4;
-  }
-
-  if (startIndex < 0 || startIndex + 2 >= SP500_YOY_NOMINAL.length) {
-    // Fallback if year is out of range
-    return [0, 0, 0];
-  }
-  return [
-    SP500_YOY_NOMINAL[startIndex],
-    SP500_YOY_NOMINAL[startIndex + 1],
-    SP500_YOY_NOMINAL[startIndex + 2],
-  ];
-}
-
-/**
- * Calculate effective inflation rate for a given year, accounting for inflation shocks.
- * @param yearInSimulation - Year index in the simulation (0 = start of accumulation)
- * @param yrsToRet - Years until retirement
- * @param baseInflation - Base inflation rate (%)
- * @param shockRate - Elevated inflation rate during shock (%)
- * @param shockDuration - Duration of shock in years
- * @returns Effective inflation rate (%) for that year
- */
-function getEffectiveInflation(
-  yearInSimulation: number,
-  yrsToRet: number,
-  baseInflation: number,
-  shockRate: number | null,
-  shockDuration: number
-): number {
-  if (!shockRate) return baseInflation;
-
-  // Shock starts at retirement year (yrsToRet) and lasts for shockDuration years
-  const shockStartYear = yrsToRet;
-  const shockEndYear = yrsToRet + shockDuration;
-
-  if (yearInSimulation >= shockStartYear && yearInSimulation < shockEndYear) {
-    return shockRate;
-  }
-
-  return baseInflation;
-}
 
 /**
  * Build a generator that yields **annual** gross return factors for N years:
@@ -3868,15 +3827,7 @@ export default function App() {
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {[
-                      { year: 1929, label: "Great Depression", description: "-43.8% → -8.3% → -25.1%", risk: "extreme", firstYear: "-43.8%" },
-                      { year: 1973, label: "Oil Crisis", description: "-14.3% → -25.9% bear market", risk: "high", firstYear: "-14.3%" },
-                      { year: 1987, label: "Black Monday", description: "Single-day crash, quick recovery", risk: "medium", firstYear: "+5.8%" },
-                      { year: 2000, label: "Dot-com Crash", description: "-9.0% → -11.9% → -22.0%", risk: "high", firstYear: "-9.0%" },
-                      { year: 2001, label: "9/11 Recession", description: "Tech bust continues", risk: "high", firstYear: "-11.9%" },
-                      { year: 2008, label: "Financial Crisis", description: "-36.6% worst year since 1931", risk: "extreme", firstYear: "-36.6%" },
-                      { year: 2022, label: "Inflation Shock", description: "-18.0% stocks + bonds down", risk: "medium", firstYear: "-18.0%" },
-                    ].map((scenario) => (
+                    {BEAR_MARKET_SCENARIOS.map((scenario) => (
                       <button
                         key={scenario.year}
                         onClick={() => {
@@ -3995,13 +3946,7 @@ export default function App() {
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-                    {[
-                      { rate: 8, duration: 5, label: "1970s Stagflation", description: "8% for 5 years (1973-1977)", risk: "high" },
-                      { rate: 6, duration: 4, label: "1940s WWII Inflation", description: "6% for 4 years (1946-1949)", risk: "medium" },
-                      { rate: 5, duration: 3, label: "Early 1990s Spike", description: "5% for 3 years", risk: "medium" },
-                      { rate: 10, duration: 5, label: "Severe Stagflation", description: "10% for 5 years (stress test)", risk: "extreme" },
-                      { rate: 12, duration: 3, label: "Hyperinflation Start", description: "12% for 3 years (worst case)", risk: "extreme" },
-                    ].map((scenario) => (
+                    {INFLATION_SHOCK_SCENARIOS.map((scenario) => (
                       <button
                         key={`${scenario.rate}-${scenario.duration}`}
                         onClick={() => {
