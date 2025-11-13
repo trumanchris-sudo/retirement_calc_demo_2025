@@ -685,7 +685,7 @@ const GenerationalWealthVisual: React.FC<{ genPayout: any }> = ({ genPayout }) =
  * Hypothetical per-beneficiary payout model (real terms)
  * ================================ */
 
-type Cohort = { size: number; age: number };
+type Cohort = { size: number; age: number; canReproduce: boolean; hasReproduced: boolean };
 
 /**
  * Simulate constant real-dollar payout per beneficiary with births/deaths.
@@ -693,7 +693,8 @@ type Cohort = { size: number; age: number };
  * - fund starts as EOL deflated to 2025 dollars.
  * - Real growth at r = realReturn(nominal, inflation).
  * - Each year, pay (perBenReal * eligible), where eligible = beneficiaries >= minDistAge.
- * - Births every birthInterval years: each living ben creates birthMultiple new age-0 bens.
+ * - Each beneficiary reproduces ONCE when they reach birthInterval age (e.g., 30).
+ * - Only beneficiaries who were under birthInterval at death (and their descendants) can reproduce.
  * - Death at deathAge.
  */
 function simulateRealPerBeneficiaryPayout(
@@ -714,10 +715,11 @@ function simulateRealPerBeneficiaryPayout(
   const r = realReturn(nominalRet, inflPct);
 
   // Initialize cohorts with specified ages
+  // Only beneficiaries under birthInterval at death can reproduce
   let cohorts: Cohort[] = initialBenAges.length > 0
-    ? initialBenAges.map(age => ({ size: 1, age }))
+    ? initialBenAges.map(age => ({ size: 1, age, canReproduce: age < birthInterval, hasReproduced: false }))
     : startBens > 0
-    ? [{ size: startBens, age: 0 }]
+    ? [{ size: startBens, age: 0, canReproduce: true, hasReproduced: false }]
     : [];
 
   let years = 0;
@@ -745,15 +747,20 @@ function simulateRealPerBeneficiaryPayout(
 
     years += 1;
 
+    // Age all cohorts
     cohorts.forEach((c) => (c.age += 1));
 
-    if (years % birthInterval === 0) {
-      // Only fertile beneficiaries (ages 20-40) can have children
-      const fertile = cohorts.filter(c => c.age >= 20 && c.age <= 40);
-      const fertileCount = fertile.reduce((acc, c) => acc + c.size, 0);
-      const births = fertileCount * birthMultiple;
-      if (births > 0) cohorts.push({ size: births, age: 0 });
-    }
+    // Check each cohort for births when they reach birthInterval age (e.g., 30)
+    // Each beneficiary reproduces only once in their lifetime
+    cohorts.forEach((cohort) => {
+      if (cohort.canReproduce && !cohort.hasReproduced && cohort.age === birthInterval) {
+        const births = cohort.size * birthMultiple;
+        if (births > 0) {
+          cohorts.push({ size: births, age: 0, canReproduce: true, hasReproduced: false });
+        }
+        cohort.hasReproduced = true;
+      }
+    });
   }
 
   const lastLiving = cohorts.reduce((acc, c) => acc + c.size, 0);
@@ -840,7 +847,7 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     infPct: infRate,
     walkSeries,
     seed: seed,
-    startYear: historicalYear,
+    startYear: undefined, // Don't apply historical returns during accumulation
   })();
 
   const drawGen = buildReturnGenerator({
@@ -850,7 +857,7 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     infPct: infRate,
     walkSeries,
     seed: seed + 1,
-    startYear: historicalYear ? historicalYear + yrsToRet : undefined,
+    startYear: historicalYear, // Apply historical returns starting at retirement
   })();
 
   let bTax = sTax;
@@ -1821,7 +1828,7 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed,
-        startYear: historicalYear || undefined,
+        startYear: undefined, // Don't apply historical returns during accumulation
       })();
 
       const drawGen = buildReturnGenerator({
@@ -1831,7 +1838,7 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed + 1,
-        startYear: historicalYear ? historicalYear + yrsToRet : undefined,
+        startYear: historicalYear || undefined, // Apply historical returns starting at retirement
       })();
 
       let bTax = sTax;
@@ -3770,14 +3777,14 @@ export default function App() {
                           size="sm"
                           className="bg-blue-600 hover:bg-blue-700"
                         >
-                          Recalculate With This Scenario
+                          Recalculate
                         </Button>
                         <Button
                           onClick={() => setHistoricalYear(null)}
                           variant="outline"
                           size="sm"
                         >
-                          Clear & Return to Normal Mode
+                          Clear Scenario
                         </Button>
                       </>
                     )}
@@ -4280,13 +4287,13 @@ export default function App() {
                       step={50000}
                     />
                     <Input
-                      label={<>Births per Fertile Ben.<br />(ages 20-40)</>}
+                      label={<>Births per Beneficiary<br />(at age {hypBirthInterval})</>}
                       value={hypBirthMultiple}
                       setter={setHypBirthMultiple}
                       min={0}
                       step={0.1}
                       isRate
-                      tip="Every birth interval years, each fertile beneficiary (ages 20-40) spawns this many new beneficiaries."
+                      tip="Beneficiaries under this age at death (and their descendants) have this many children once when they reach the birth interval age."
                     />
                     <Input
                       label={<>Birth Interval<br />(yrs)</>}
@@ -4294,6 +4301,7 @@ export default function App() {
                       setter={setHypBirthInterval}
                       min={1}
                       step={1}
+                      tip="Beneficiaries reproduce once in their lifetime when they reach this age. Their children will also reproduce at this age, creating generational waves."
                     />
                   </div>
                   <div className="grid grid-cols-1 gap-4">
