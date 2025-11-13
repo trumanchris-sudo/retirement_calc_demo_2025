@@ -1402,6 +1402,7 @@ export default function App() {
       wdAfter: fmt(res.wdAfter),
       wdReal: fmt(res.wdReal),
       eol: fmt(res.eol),
+      eolReal: fmt(res.eolReal),  // Real (inflation-adjusted) EOL
       estateTax: fmt(res.estateTax),
       netEstate: fmt(res.netEstate),
       totalRMDs: fmt(res.totalRMDs),
@@ -2048,6 +2049,7 @@ export default function App() {
           survYrs,
           yrsToSim,
           eol: eolWealth,
+          eolReal,  // Real (inflation-adjusted) EOL wealth for comparisons
           estateTax,
           netEstate,
           eolAccounts: {
@@ -2339,14 +2341,16 @@ export default function App() {
       const estateTax = calcEstateTax(eolWealth, marital);
       const netEstate = eolWealth - estateTax;
 
+      // Calculate real (inflation-adjusted) EOL wealth for comparisons
+      const yearsFrom2025 = yrsToRet + yrsToSim;
+      const eolReal = eolWealth / Math.pow(1 + infl, yearsFrom2025);
+
       // Track account balances at end of life
       const eolAccounts = {
         taxable: retBalTax,
         pretax: retBalPre,
         roth: retBalRoth,
       };
-
-      const yearsFrom2025 = yrsToRet + yrsToSim;
       let genPayout: null | {
         perBenReal: number;
         years: number;
@@ -2403,6 +2407,7 @@ export default function App() {
         survYrs,
         yrsToSim,
         eol: eolWealth,
+        eolReal,  // Real (inflation-adjusted) EOL wealth for comparisons
         estateTax,
         netEstate,
         eolAccounts,
@@ -3695,17 +3700,17 @@ export default function App() {
                             <div className="space-y-4">
                               {/* EOL Wealth Comparison */}
                               <div>
-                                <div className="text-xs font-medium mb-2 text-muted-foreground">End-of-Life Wealth</div>
+                                <div className="text-xs font-medium mb-2 text-muted-foreground">End-of-Life Wealth (Real, Inflation-Adjusted)</div>
                                 {Array.from(selectedScenarios).map((id) => {
                                   const scenario = savedScenarios.find(s => s.id === id);
                                   if (!scenario) return null;
-                                  const maxEOL = Math.max(...Array.from(selectedScenarios).map(sid => savedScenarios.find(s => s.id === sid)?.results.eol || 0));
-                                  const pct = (scenario.results.eol / maxEOL) * 100;
+                                  const maxEOL = Math.max(...Array.from(selectedScenarios).map(sid => savedScenarios.find(s => s.id === sid)?.results.eolReal || 0));
+                                  const pct = (scenario.results.eolReal / maxEOL) * 100;
                                   return (
                                     <div key={id} className="mb-2">
                                       <div className="flex items-center justify-between text-xs mb-1">
                                         <span className="font-medium">{scenario.name}</span>
-                                        <span className="text-muted-foreground">{fmt(scenario.results.eol)}</span>
+                                        <span className="text-muted-foreground">{fmt(scenario.results.eolReal)}</span>
                                       </div>
                                       <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6">
                                         <div
@@ -3724,7 +3729,7 @@ export default function App() {
 
                               {/* Annual Income Comparison */}
                               <div>
-                                <div className="text-xs font-medium mb-2 text-muted-foreground">Annual Retirement Income</div>
+                                <div className="text-xs font-medium mb-2 text-muted-foreground">Annual Retirement Income (Real, Inflation-Adjusted)</div>
                                 {Array.from(selectedScenarios).map((id) => {
                                   const scenario = savedScenarios.find(s => s.id === id);
                                   if (!scenario) return null;
@@ -3753,7 +3758,7 @@ export default function App() {
 
                               {/* Retirement Balance Comparison */}
                               <div>
-                                <div className="text-xs font-medium mb-2 text-muted-foreground">Balance at Retirement</div>
+                                <div className="text-xs font-medium mb-2 text-muted-foreground">Balance at Retirement (Real, Inflation-Adjusted)</div>
                                 {Array.from(selectedScenarios).map((id) => {
                                   const scenario = savedScenarios.find(s => s.id === id);
                                   if (!scenario) return null;
@@ -3897,8 +3902,8 @@ export default function App() {
                             <h4 className="text-sm font-semibold mb-2">Quick Comparison</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                               {(() => {
-                                const allScenarios = res ? [{ name: "Current", results: { eol: res.eol, wdReal: res.wdReal, finReal: res.finReal } }, ...savedScenarios] : savedScenarios;
-                                const bestEOL = allScenarios.reduce((max, s) => s.results.eol > max.results.eol ? s : max);
+                                const allScenarios = res ? [{ name: "Current", results: { eolReal: res.eolReal, wdReal: res.wdReal, finReal: res.finReal } }, ...savedScenarios] : savedScenarios;
+                                const bestEOL = allScenarios.reduce((max, s) => s.results.eolReal > max.results.eolReal ? s : max);
                                 const bestIncome = allScenarios.reduce((max, s) => s.results.wdReal > max.results.wdReal ? s : max);
                                 return (
                                   <>
@@ -4206,7 +4211,7 @@ export default function App() {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle>Scenario Comparison</CardTitle>
-                      <CardDescription>Compare baseline vs bear market vs inflation shock side-by-side</CardDescription>
+                      <CardDescription>Compare baseline vs bear market vs inflation shock side-by-side (showing real, inflation-adjusted values)</CardDescription>
                     </div>
                     <Button
                       variant={comparisonMode ? "default" : "outline"}
@@ -4233,7 +4238,7 @@ export default function App() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
-                          <strong>Comparison Mode Active:</strong> The chart below now shows multiple scenarios overlaid.
+                          <strong>Comparison Mode Active:</strong> The chart below shows multiple scenarios overlaid using <strong>real (inflation-adjusted) values</strong> for accurate comparison across different inflation rates.
                           Select a bear market and/or inflation shock above, then click "Refresh Comparison" to update the chart.
                         </div>
                       </div>
