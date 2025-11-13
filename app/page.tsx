@@ -30,6 +30,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FlippingCard } from "@/components/FlippingCard";
 import { GenerationalResultCard } from "@/components/GenerationalResultCard";
+import UserInputsPrintSummary from "@/components/UserInputsPrintSummary";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
@@ -2764,6 +2765,25 @@ export default function App() {
             {/* Human Dashboard - Interactive (Screen Only) */}
             <AnimatedSection animation="slide-up" duration={700}>
             <div ref={resRef} className="space-y-6 scroll-mt-4">
+
+            {/* User Input Summary - Print Only (Hidden - replaced by new print summary) */}
+            <div className="hidden">
+            <UserInputsPrintSummary
+              age={age1}
+              retirementAge={retAge}
+              maritalStatus={marital}
+              taxable={fmt(sTax)}
+              pretax={fmt(sPre)}
+              roth={fmt(sPost)}
+              taxableContrib={fmt(cTax1)}
+              pretaxContrib={fmt(cPre1)}
+              rothContrib={fmt(cPost1)}
+              inflation={infRate}
+              withdrawalRate={wdRate}
+              monteCarloRuns={1000}
+              returnModel={retMode === 'fixed' ? `Fixed at ${retRate}%` : 'Historical 1928–2024 bootstrap'}
+            />
+            </div>
 
             <div className="print-section grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print-tile-grid">
               <FlippingStatCard
