@@ -685,7 +685,7 @@ const GenerationalWealthVisual: React.FC<{ genPayout: any }> = ({ genPayout }) =
  * Hypothetical per-beneficiary payout model (real terms)
  * ================================ */
 
-type Cohort = { size: number; age: number; canReproduce: boolean };
+type Cohort = { size: number; age: number; canReproduce: boolean; hasReproduced: boolean };
 
 /**
  * Simulate constant real-dollar payout per beneficiary with births/deaths.
@@ -693,7 +693,7 @@ type Cohort = { size: number; age: number; canReproduce: boolean };
  * - fund starts as EOL deflated to 2025 dollars.
  * - Real growth at r = realReturn(nominal, inflation).
  * - Each year, pay (perBenReal * eligible), where eligible = beneficiaries >= minDistAge.
- * - Births occur when beneficiaries reach ages that are multiples of birthInterval (e.g., 30, 60, 90).
+ * - Each beneficiary reproduces ONCE when they reach birthInterval age (e.g., 30).
  * - Only beneficiaries who were under birthInterval at death (and their descendants) can reproduce.
  * - Death at deathAge.
  */
@@ -717,9 +717,9 @@ function simulateRealPerBeneficiaryPayout(
   // Initialize cohorts with specified ages
   // Only beneficiaries under birthInterval at death can reproduce
   let cohorts: Cohort[] = initialBenAges.length > 0
-    ? initialBenAges.map(age => ({ size: 1, age, canReproduce: age < birthInterval }))
+    ? initialBenAges.map(age => ({ size: 1, age, canReproduce: age < birthInterval, hasReproduced: false }))
     : startBens > 0
-    ? [{ size: startBens, age: 0, canReproduce: true }]
+    ? [{ size: startBens, age: 0, canReproduce: true, hasReproduced: false }]
     : [];
 
   let years = 0;
@@ -750,14 +750,15 @@ function simulateRealPerBeneficiaryPayout(
     // Age all cohorts
     cohorts.forEach((c) => (c.age += 1));
 
-    // Check each cohort for births at milestone ages (birthInterval, 2*birthInterval, 3*birthInterval)
-    // Only cohorts that were under birthInterval at death (and their descendants) can reproduce
+    // Check each cohort for births when they reach birthInterval age (e.g., 30)
+    // Each beneficiary reproduces only once in their lifetime
     cohorts.forEach((cohort) => {
-      if (cohort.canReproduce && cohort.age > 0 && cohort.age % birthInterval === 0) {
+      if (cohort.canReproduce && !cohort.hasReproduced && cohort.age === birthInterval) {
         const births = cohort.size * birthMultiple;
         if (births > 0) {
-          cohorts.push({ size: births, age: 0, canReproduce: true });
+          cohorts.push({ size: births, age: 0, canReproduce: true, hasReproduced: false });
         }
+        cohort.hasReproduced = true;
       }
     });
   }
@@ -4286,13 +4287,13 @@ export default function App() {
                       step={50000}
                     />
                     <Input
-                      label={<>Births per Beneficiary<br />(at milestone ages)</>}
+                      label={<>Births per Beneficiary<br />(at age {hypBirthInterval})</>}
                       value={hypBirthMultiple}
                       setter={setHypBirthMultiple}
                       min={0}
                       step={0.1}
                       isRate
-                      tip="Beneficiaries under the birth interval age at death (and their descendants) have this many children each time they reach a milestone age (multiples of birth interval)."
+                      tip="Beneficiaries under this age at death (and their descendants) have this many children once when they reach the birth interval age."
                     />
                     <Input
                       label={<>Birth Interval<br />(yrs)</>}
@@ -4300,7 +4301,7 @@ export default function App() {
                       setter={setHypBirthInterval}
                       min={1}
                       step={1}
-                      tip="Beneficiaries have children when they reach ages that are multiples of this interval (e.g., 30, 60, 90 for a 30-year interval)."
+                      tip="Beneficiaries reproduce once in their lifetime when they reach this age. Their children will also reproduce at this age, creating generational waves."
                     />
                   </div>
                   <div className="grid grid-cols-1 gap-4">
