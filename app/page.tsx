@@ -685,7 +685,7 @@ const GenerationalWealthVisual: React.FC<{ genPayout: any }> = ({ genPayout }) =
  * Hypothetical per-beneficiary payout model (real terms)
  * ================================ */
 
-type Cohort = { size: number; age: number };
+type Cohort = { size: number; age: number; canReproduce: boolean };
 
 /**
  * Simulate constant real-dollar payout per beneficiary with births/deaths.
@@ -693,7 +693,8 @@ type Cohort = { size: number; age: number };
  * - fund starts as EOL deflated to 2025 dollars.
  * - Real growth at r = realReturn(nominal, inflation).
  * - Each year, pay (perBenReal * eligible), where eligible = beneficiaries >= minDistAge.
- * - Births every birthInterval years: each living ben creates birthMultiple new age-0 bens.
+ * - Births occur when beneficiaries reach ages that are multiples of birthInterval (e.g., 30, 60, 90).
+ * - Only beneficiaries who were under birthInterval at death (and their descendants) can reproduce.
  * - Death at deathAge.
  */
 function simulateRealPerBeneficiaryPayout(
@@ -714,10 +715,11 @@ function simulateRealPerBeneficiaryPayout(
   const r = realReturn(nominalRet, inflPct);
 
   // Initialize cohorts with specified ages
+  // Only beneficiaries under birthInterval at death can reproduce
   let cohorts: Cohort[] = initialBenAges.length > 0
-    ? initialBenAges.map(age => ({ size: 1, age }))
+    ? initialBenAges.map(age => ({ size: 1, age, canReproduce: age < birthInterval }))
     : startBens > 0
-    ? [{ size: startBens, age: 0 }]
+    ? [{ size: startBens, age: 0, canReproduce: true }]
     : [];
 
   let years = 0;
@@ -743,18 +745,21 @@ function simulateRealPerBeneficiaryPayout(
       return { years, fundLeftReal: 0, lastLivingCount: living };
     }
 
-    // Check for births BEFORE aging, at years 0, 30, 60, etc.
-    if (years % birthInterval === 0) {
-      // Only fertile beneficiaries (ages 20-40) can have children
-      const fertile = cohorts.filter(c => c.age >= 20 && c.age <= 40);
-      const fertileCount = fertile.reduce((acc, c) => acc + c.size, 0);
-      const births = fertileCount * birthMultiple;
-      if (births > 0) cohorts.push({ size: births, age: 0 });
-    }
-
     years += 1;
 
+    // Age all cohorts
     cohorts.forEach((c) => (c.age += 1));
+
+    // Check each cohort for births at milestone ages (birthInterval, 2*birthInterval, 3*birthInterval)
+    // Only cohorts that were under birthInterval at death (and their descendants) can reproduce
+    cohorts.forEach((cohort) => {
+      if (cohort.canReproduce && cohort.age > 0 && cohort.age % birthInterval === 0) {
+        const births = cohort.size * birthMultiple;
+        if (births > 0) {
+          cohorts.push({ size: births, age: 0, canReproduce: true });
+        }
+      }
+    });
   }
 
   const lastLiving = cohorts.reduce((acc, c) => acc + c.size, 0);
@@ -4281,13 +4286,13 @@ export default function App() {
                       step={50000}
                     />
                     <Input
-                      label={<>Births per Fertile Ben.<br />(ages 20-40)</>}
+                      label={<>Births per Beneficiary<br />(at milestone ages)</>}
                       value={hypBirthMultiple}
                       setter={setHypBirthMultiple}
                       min={0}
                       step={0.1}
                       isRate
-                      tip="Every birth interval years, each fertile beneficiary (ages 20-40) spawns this many new beneficiaries."
+                      tip="Beneficiaries under the birth interval age at death (and their descendants) have this many children each time they reach a milestone age (multiples of birth interval)."
                     />
                     <Input
                       label={<>Birth Interval<br />(yrs)</>}
@@ -4295,6 +4300,7 @@ export default function App() {
                       setter={setHypBirthInterval}
                       min={1}
                       step={1}
+                      tip="Beneficiaries have children when they reach ages that are multiples of this interval (e.g., 30, 60, 90 for a 30-year interval)."
                     />
                   </div>
                   <div className="grid grid-cols-1 gap-4">
