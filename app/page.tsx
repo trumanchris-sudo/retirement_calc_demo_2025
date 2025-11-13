@@ -29,7 +29,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FlippingCard } from "@/components/FlippingCard";
-import { LegacyResultCard } from "@/components/LegacyResultCard";
+import { GenerationalResultCard } from "@/components/GenerationalResultCard";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
@@ -4123,65 +4123,43 @@ export default function App() {
                   </div>
 
                   {res?.genPayout && (
-                    <div ref={genRef} className="mt-6 space-y-4">
-                      {/* Median Result Card */}
-                      <LegacyResultCard
-                        payout={res.genPayout.perBenReal}
-                        duration={res.genPayout.years}
-                        isPerpetual={res.genPayout.fundLeftReal > 0}
-                      />
+                    <div ref={genRef} className="mt-6">
+                      {(() => {
+                        // Determine if perpetual based on all three percentiles
+                        const isPerpetual =
+                          res.genPayout.p10?.isPerpetual === true &&
+                          res.genPayout.p50?.isPerpetual === true &&
+                          res.genPayout.p90?.isPerpetual === true;
 
-                      {/* Percentile Outcomes */}
-                      {res.genPayout.p10 && res.genPayout.p50 && res.genPayout.p90 && (
-                        <div className="p-5 bg-card rounded-xl border border-border">
-                          <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                            Percentile Outcomes
-                          </h4>
-                          <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li>• 10th Percentile: {res.genPayout.p10.isPerpetual ? '∞ years (Perpetual)' : `${res.genPayout.p10.years} years`}</li>
-                            <li>• 50th Percentile: {res.genPayout.p50.isPerpetual ? '∞ years (Perpetual)' : `${res.genPayout.p50.years} years`}</li>
-                            <li>• 90th Percentile: {res.genPayout.p90.isPerpetual ? '∞ years (Perpetual)' : `${res.genPayout.p90.years} years`}</li>
-                          </ul>
-                        </div>
-                      )}
+                        const variant = isPerpetual ? "perpetual" : "finite";
 
-                      {/* Estimated Probability */}
-                      {res.genPayout.probPerpetual !== undefined && res.genPayout.probPerpetual > 0 && (
-                        <div className="p-5 bg-card rounded-xl border border-border">
-                          <p className="text-sm text-muted-foreground mb-2">Estimated Probability of Perpetual Wealth</p>
-                          <p className="text-2xl font-bold text-center text-foreground">
-                            ~{Math.round(res.genPayout.probPerpetual * 100)}%
-                          </p>
-                        </div>
-                      )}
+                        const p10Value = res.genPayout.p10?.isPerpetual
+                          ? "Infinity"
+                          : res.genPayout.p10?.years || 0;
+                        const p50Value = res.genPayout.p50?.isPerpetual
+                          ? "Infinity"
+                          : res.genPayout.p50?.years || 0;
+                        const p90Value = res.genPayout.p90?.isPerpetual
+                          ? "Infinity"
+                          : res.genPayout.p90?.years || 0;
 
-                      {/* What This Means - Accordion */}
-                      {res.genPayout.fundLeftReal > 0 && (
-                        <Accordion type="single" collapsible className="w-full">
-                          <AccordionItem value="what-this-means" className="border border-border rounded-xl px-4">
-                            <AccordionTrigger className="hover:no-underline py-4">
-                              <h4 className="text-sm font-medium text-foreground">What This Means</h4>
-                            </AccordionTrigger>
-                            <AccordionContent className="pb-4">
-                              <p className="text-sm text-muted-foreground leading-relaxed">
-                                Each beneficiary receives <strong className="text-foreground">{fmt(res.genPayout.perBenReal)}/year</strong> (inflation-adjusted) from age {hypMinDistAge} to {hypDeathAge}—equivalent to a <strong className="text-foreground">{fmt(res.genPayout.perBenReal * 25)}</strong> trust fund. This provides lifelong financial security and freedom to pursue any career path.
-                              </p>
-                            </AccordionContent>
-                          </AccordionItem>
-                        </Accordion>
-                      )}
+                        const explanationText = isPerpetual
+                          ? `Each beneficiary receives ${fmt(res.genPayout.perBenReal)}/year (inflation-adjusted) from age ${hypMinDistAge} to ${hypDeathAge}—equivalent to a ${fmt(res.genPayout.perBenReal * 25)} trust fund. This provides lifelong financial security and freedom to pursue any career path.`
+                          : `Each beneficiary receives ${fmt(res.genPayout.perBenReal)}/year (inflation-adjusted) for ${res.genPayout.years} years, providing substantial financial support during their lifetime.`;
 
-                      {/* Methodology Note */}
-                      <div className="p-4 bg-muted/50 rounded-lg border border-border">
-                        <div className="flex items-start gap-2">
-                          <svg className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <div className="text-xs text-muted-foreground leading-relaxed">
-                            <strong className="text-foreground">Why we don't simulate 1,000 years × 1,000 runs:</strong> Running full Monte Carlo simulations (N=1,000) for each potential generational wealth timeline would require simulating hundreds of thousands of years of market returns and family dynamics—computationally impractical in a browser. Instead, we use the three key end-of-life wealth percentiles (P10, P50, P90) from your retirement Monte Carlo to show the range of possible generational outcomes. This provides a realistic view of how market uncertainty affects your legacy without running a million-year simulation.
-                          </div>
-                        </div>
-                      </div>
+                        return (
+                          <GenerationalResultCard
+                            variant={variant}
+                            amountPerBeneficiary={res.genPayout.perBenReal}
+                            yearsOfSupport={isPerpetual ? "Infinity" : res.genPayout.years}
+                            percentile10={p10Value}
+                            percentile50={p50Value}
+                            percentile90={p90Value}
+                            probability={res.genPayout.probPerpetual || 0}
+                            explanationText={explanationText}
+                          />
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
