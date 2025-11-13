@@ -123,6 +123,29 @@ function getBearReturns(year) {
   ];
 }
 
+/**
+ * Calculate effective inflation rate for a given year in the simulation
+ * Returns shock rate during shock period, base rate otherwise
+ */
+function getEffectiveInflation(
+  yearInSimulation,
+  yrsToRet,
+  baseInflation,
+  shockRate,
+  shockDuration
+) {
+  if (!shockRate) return baseInflation;
+
+  const shockStartYear = yrsToRet;
+  const shockEndYear = yrsToRet + shockDuration;
+
+  if (yearInSimulation >= shockStartYear && yearInSimulation < shockEndYear) {
+    return shockRate;
+  }
+
+  return baseInflation;
+}
+
 function mulberry32(seed) {
   let t = seed >>> 0;
   return function rand() {
@@ -322,6 +345,8 @@ function runSingleSimulation(params, seed) {
     retRate, infRate, stateRate, incContrib, incRate, wdRate,
     retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
     historicalYear,
+    inflationShockRate,
+    inflationShockDuration = 5,
   } = params;
 
   const isMar = marital === "married";
@@ -364,6 +389,7 @@ function runSingleSimulation(params, seed) {
   let basisTax = sTax;
 
   const balancesReal = [];
+  let cumulativeInflation = 1.0;
   let c = {
     p: { tax: cTax1, pre: cPre1, post: cPost1, match: cMatch1 },
     s: { tax: cTax2, pre: cPre2, post: cPost2, match: cMatch2 },
@@ -421,7 +447,9 @@ function runSingleSimulation(params, seed) {
     }
 
     const bal = bTax + bPre + bPost;
-    balancesReal.push(bal / Math.pow(1 + infl, y));
+    const yearInflation = getEffectiveInflation(y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
+    cumulativeInflation *= (1 + yearInflation / 100);
+    balancesReal.push(bal / cumulativeInflation);
   }
 
   const finNom = bTax + bPre + bPost;
@@ -588,7 +616,9 @@ function runSingleSimulation(params, seed) {
     if (retBalRoth < 0) retBalRoth = 0;
 
     const totalNow = retBalTax + retBalPre + retBalRoth;
-    balancesReal.push(totalNow / Math.pow(1 + infl, yrsToRet + y));
+    const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
+    cumulativeInflation *= (1 + yearInflation / 100);
+    balancesReal.push(totalNow / cumulativeInflation);
 
     if (totalNow <= 0) {
       if (!ruined) {

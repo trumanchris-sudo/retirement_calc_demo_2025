@@ -101,6 +101,35 @@ function getBearReturns(year: number): number[] {
 }
 
 /**
+ * Calculate effective inflation rate for a given year, accounting for inflation shocks.
+ * @param yearInSimulation - Year index in the simulation (0 = start of accumulation)
+ * @param yrsToRet - Years until retirement
+ * @param baseInflation - Base inflation rate (%)
+ * @param shockRate - Elevated inflation rate during shock (%)
+ * @param shockDuration - Duration of shock in years
+ * @returns Effective inflation rate (%) for that year
+ */
+function getEffectiveInflation(
+  yearInSimulation: number,
+  yrsToRet: number,
+  baseInflation: number,
+  shockRate: number | null,
+  shockDuration: number
+): number {
+  if (!shockRate) return baseInflation;
+
+  // Shock starts at retirement year (yrsToRet) and lasts for shockDuration years
+  const shockStartYear = yrsToRet;
+  const shockEndYear = yrsToRet + shockDuration;
+
+  if (yearInSimulation >= shockStartYear && yearInSimulation < shockEndYear) {
+    return shockRate;
+  }
+
+  return baseInflation;
+}
+
+/**
  * Build a generator that yields **annual** gross return factors for N years:
  * - mode=fixed -> constant nominal return (e.g., 9.8% -> 1.098)
  * - mode=randomWalk -> bootstrap from YoY array (with replacement)
@@ -828,6 +857,8 @@ export type Inputs = {
   ssIncome2: number;
   ssClaimAge2: number;
   historicalYear?: number; // Start year for historical sequential playback
+  inflationShockRate?: number | null; // Elevated inflation rate during shock (%)
+  inflationShockDuration?: number; // Duration of inflation shock in years
 };
 
 /** Result from a single simulation run */
@@ -849,6 +880,8 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     retRate, infRate, stateRate, incContrib, incRate, wdRate,
     retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
     historicalYear,
+    inflationShockRate,
+    inflationShockDuration = 5,
   } = params;
 
   const isMar = marital === "married";
@@ -863,6 +896,9 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
   const g_fixed = 1 + retRate / 100;
   const infl = infRate / 100;
   const infl_factor = 1 + infl;
+
+  // Track cumulative inflation for variable inflation scenarios
+  let cumulativeInflation = 1.0;
 
   const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
 
@@ -948,7 +984,11 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     }
 
     const bal = bTax + bPre + bPost;
-    balancesReal.push(bal / Math.pow(1 + infl, y));
+
+    // Apply year-specific inflation (handles inflation shocks)
+    const yearInflation = getEffectiveInflation(y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
+    cumulativeInflation *= (1 + yearInflation / 100);
+    balancesReal.push(bal / cumulativeInflation);
   }
 
   const finNom = bTax + bPre + bPost;
@@ -1117,7 +1157,11 @@ function runSingleSimulation(params: Inputs, seed: number): SimResult {
     if (retBalRoth < 0) retBalRoth = 0;
 
     const totalNow = retBalTax + retBalPre + retBalRoth;
-    balancesReal.push(totalNow / Math.pow(1 + infl, yrsToRet + y));
+
+    // Apply year-specific inflation (handles inflation shocks)
+    const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
+    cumulativeInflation *= (1 + yearInflation / 100);
+    balancesReal.push(totalNow / cumulativeInflation);
 
     if (totalNow <= 0) {
       if (!ruined) {
@@ -1278,6 +1322,11 @@ export default function App() {
   const [scenarioName, setScenarioName] = useState<string>("");
   const [selectedScenarios, setSelectedScenarios] = useState<Set<string>>(new Set());
   const [showComparison, setShowComparison] = useState(false);
+
+  // Inflation shock scenarios
+  const [showInflationShock, setShowInflationShock] = useState(false);
+  const [inflationShockRate, setInflationShockRate] = useState<number>(0); // elevated inflation % - default 0 means no shock
+  const [inflationShockDuration, setInflationShockDuration] = useState<number>(5); // years
 
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
@@ -1612,6 +1661,8 @@ export default function App() {
           retRate, infRate, stateRate, incContrib, incRate, wdRate,
           retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
           historicalYear: historicalYear || undefined,
+          inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
+          inflationShockDuration,
         };
 
         const batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, 1000);
@@ -2311,6 +2362,7 @@ export default function App() {
     showGen, total, marital,
     hypPerBen, hypStartBens, hypBirthMultiple, hypBirthInterval, hypDeathAge, hypMinDistAge,
     retMode, seed, walkSeries, historicalYear,
+    inflationShockRate, inflationShockDuration,
     includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2, hypBenAgesStr,
   ]);
 
@@ -3902,6 +3954,163 @@ export default function App() {
                       <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
                         <strong>Your Monte Carlo simulation already accounts for this!</strong> By running 1,000 scenarios with different return sequences,
                         it includes outcomes similar to these historical periods. Your probability of success reflects this sequence-of-returns risk.
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+                )}
+              </Card>
+              </div>
+            </AnimatedSection>
+
+            {/* Inflation Shock Scenarios */}
+            <AnimatedSection animation="slide-up" delay={287}>
+              <div className="print-section">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Inflation Shock Scenarios</CardTitle>
+                      <CardDescription>Test your plan against periods of elevated inflation starting at retirement</CardDescription>
+                    </div>
+                    <Button
+                      variant={showInflationShock ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setShowInflationShock(!showInflationShock)}
+                      className="no-print"
+                    >
+                      {showInflationShock ? "Hide" : "Show"}
+                    </Button>
+                  </div>
+                </CardHeader>
+                {showInflationShock && (
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Model the impact of sustained high inflation on your real purchasing power. Inflation shocks start in your retirement year and last for the specified duration.
+                    {inflationShockRate > 0 && (
+                      <span className="ml-2 px-2 py-1 bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100 rounded text-xs font-semibold">
+                        {inflationShockRate}% inflation for {inflationShockDuration} years active
+                      </span>
+                    )}
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                    {[
+                      { rate: 8, duration: 5, label: "1970s Stagflation", description: "8% for 5 years (1973-1977)", risk: "high" },
+                      { rate: 6, duration: 4, label: "1940s WWII Inflation", description: "6% for 4 years (1946-1949)", risk: "medium" },
+                      { rate: 5, duration: 3, label: "Early 1990s Spike", description: "5% for 3 years", risk: "medium" },
+                      { rate: 10, duration: 5, label: "Severe Stagflation", description: "10% for 5 years (stress test)", risk: "extreme" },
+                      { rate: 12, duration: 3, label: "Hyperinflation Start", description: "12% for 3 years (worst case)", risk: "extreme" },
+                    ].map((scenario) => (
+                      <button
+                        key={`${scenario.rate}-${scenario.duration}`}
+                        onClick={() => {
+                          setInflationShockRate(scenario.rate);
+                          setInflationShockDuration(scenario.duration);
+                        }}
+                        className={`p-3 rounded-lg border-2 transition-all text-left hover:shadow-lg hover:scale-[1.02] ${
+                          inflationShockRate === scenario.rate && inflationShockDuration === scenario.duration
+                            ? 'border-orange-500 dark:border-orange-400 bg-orange-100 dark:bg-orange-950 ring-2 ring-orange-400'
+                            : scenario.risk === 'extreme'
+                            ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/20 hover:border-red-400'
+                            : scenario.risk === 'high'
+                            ? 'border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 hover:border-orange-400'
+                            : 'border-yellow-300 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20 hover:border-yellow-400'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h4 className="font-semibold text-sm">{scenario.label}</h4>
+                            <p className="text-xs text-muted-foreground mt-1">{scenario.description}</p>
+                          </div>
+                          <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
+                            scenario.risk === 'extreme'
+                              ? 'bg-red-200 dark:bg-red-900 text-red-900 dark:text-red-100'
+                              : scenario.risk === 'high'
+                              ? 'bg-orange-200 dark:bg-orange-900 text-orange-900 dark:text-orange-100'
+                              : 'bg-yellow-200 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100'
+                          }`}>
+                            {scenario.rate}%
+                          </span>
+                        </div>
+                        {inflationShockRate === scenario.rate && inflationShockDuration === scenario.duration && (
+                          <div className="mt-2 pt-2 border-t border-orange-300 dark:border-orange-700">
+                            <span className="text-xs font-semibold text-orange-700 dark:text-orange-300">✓ Active scenario</span>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mb-4 p-4 bg-muted rounded-lg">
+                    <h4 className="text-sm font-semibold mb-3">Custom Inflation Scenario</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">Inflation Rate (%)</label>
+                        <input
+                          type="number"
+                          value={inflationShockRate}
+                          onChange={(e) => setInflationShockRate(Number(e.target.value))}
+                          min="0"
+                          max="20"
+                          step="0.5"
+                          className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">Duration (years)</label>
+                        <input
+                          type="number"
+                          value={inflationShockDuration}
+                          onChange={(e) => setInflationShockDuration(Number(e.target.value))}
+                          min="1"
+                          max="10"
+                          step="1"
+                          className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {inflationShockRate > 0 && (
+                      <>
+                        <Button
+                          onClick={calc}
+                          variant="default"
+                          size="sm"
+                          className="bg-orange-600 hover:bg-orange-700"
+                        >
+                          Recalculate
+                        </Button>
+                        <Button
+                          onClick={() => setInflationShockRate(0)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Clear Scenario
+                        </Button>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="mt-6 p-4 bg-muted rounded-lg">
+                    <h4 className="text-sm font-semibold mb-2">Understanding Inflation Risk</h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      High inflation early in retirement can be devastating to your purchasing power. Even if your portfolio grows nominally,
+                      <strong> real wealth</strong> (what you can actually buy) may decline significantly. These scenarios help you stress-test
+                      your withdrawal strategy against sustained inflation shocks.
+                    </p>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div className="text-xs text-orange-800 dark:text-orange-200 leading-relaxed">
+                        <strong>Can be combined with bear markets!</strong> You can activate both an inflation shock and a bear market scenario
+                        simultaneously to model compound stress (e.g., 1970s stagflation with stock market decline).
                       </div>
                     </div>
                   </div>
