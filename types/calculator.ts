@@ -291,6 +291,167 @@ export interface ComparisonChartProps {
   fmt: (n: number) => string;
 }
 
+/**
+ * Props for InputForm component
+ */
+export interface InputFormProps {
+  // Personal Information
+  marital: FilingStatus;
+  setMarital: (value: FilingStatus) => void;
+  age1: number;
+  setAge1: (value: number) => void;
+  age2: number;
+  setAge2: (value: number) => void;
+  retAge: number;
+  setRetAge: (value: number) => void;
+
+  // Starting Balances
+  sTax: number;
+  setSTax: (value: number) => void;
+  sPre: number;
+  setSPre: (value: number) => void;
+  sPost: number;
+  setSPost: (value: number) => void;
+
+  // Person 1 Contributions
+  cTax1: number;
+  setCTax1: (value: number) => void;
+  cPre1: number;
+  setCPre1: (value: number) => void;
+  cPost1: number;
+  setCPost1: (value: number) => void;
+  cMatch1: number;
+  setCMatch1: (value: number) => void;
+
+  // Person 2 Contributions
+  cTax2: number;
+  setCTax2: (value: number) => void;
+  cPre2: number;
+  setCPre2: (value: number) => void;
+  cPost2: number;
+  setCPost2: (value: number) => void;
+  cMatch2: number;
+  setCMatch2: (value: number) => void;
+
+  // Rates
+  retRate: number;
+  setRetRate: (value: number) => void;
+  infRate: number;
+  setInfRate: (value: number) => void;
+  stateRate: number;
+  setStateRate: (value: number) => void;
+  incContrib: boolean;
+  setIncContrib: (value: boolean) => void;
+  incRate: number;
+  setIncRate: (value: number) => void;
+  wdRate: number;
+  setWdRate: (value: number) => void;
+
+  // Simulation Settings
+  retMode: ReturnMode;
+  setRetMode: (value: ReturnMode) => void;
+  walkSeries: WalkSeries;
+  setWalkSeries: (value: WalkSeries) => void;
+  seed: number;
+  setSeed: (value: number) => void;
+
+  // Social Security
+  includeSS: boolean;
+  setIncludeSS: (value: boolean) => void;
+  ssIncome: number;
+  setSSIncome: (value: number) => void;
+  ssClaimAge: number;
+  setSSClaimAge: (value: number) => void;
+  ssIncome2: number;
+  setSSIncome2: (value: number) => void;
+  ssClaimAge2: number;
+  setSSClaimAge2: (value: number) => void;
+
+  // Scenario Testing
+  historicalYear: number | null;
+  setHistoricalYear: (value: number | null) => void;
+  inflationShockRate: number;
+  setInflationShockRate: (value: number) => void;
+  inflationShockDuration: number;
+  setInflationShockDuration: (value: number) => void;
+
+  // Generational Wealth
+  showGen: boolean;
+  setShowGen: (value: boolean) => void;
+  hypPerBen: number;
+  setHypPerBen: (value: number) => void;
+  hypStartBens: number;
+  setHypStartBens: (value: number) => void;
+  hypBirthMultiple: number;
+  setHypBirthMultiple: (value: number) => void;
+  hypBirthInterval: number;
+  setHypBirthInterval: (value: number) => void;
+  hypDeathAge: number;
+  setHypDeathAge: (value: number) => void;
+  hypMinDistAge: number;
+  setHypMinDistAge: (value: number) => void;
+  hypBenAgesStr: string;
+  setHypBenAgesStr: (value: string) => void;
+
+  // Calculation
+  calc: () => void;
+  isLoading: boolean;
+  err: string | null;
+  simProgress: { completed: number; total: number } | null;
+  tabGroupRef: React.RefObject<any>;
+}
+
+/**
+ * Props for ResultsDisplay component
+ */
+export interface ResultsDisplayProps {
+  // Results
+  res: CalculationResult | null;
+  formattedResults: FormattedResults | null;
+
+  // Display Preferences
+  isDarkMode: boolean;
+  showP10: boolean;
+  setShowP10: (value: boolean) => void;
+  showP90: boolean;
+  setShowP90: (value: boolean) => void;
+
+  // Comparison State
+  comparisonMode: boolean;
+  setComparisonMode: (value: boolean) => void;
+  comparisonData: ComparisonData;
+
+  // Scenario Management
+  savedScenarios: SavedScenario[];
+  setSavedScenarios: (scenarios: SavedScenario[]) => void;
+  selectedScenarios: Set<string>;
+  setSelectedScenarios: (scenarios: Set<string>) => void;
+  showComparison: boolean;
+  setShowComparison: (value: boolean) => void;
+
+  // Scenario Testing
+  historicalYear: number | null;
+  inflationShockRate: number;
+  inflationShockDuration: number;
+
+  // Form Values (for display/reference)
+  marital: FilingStatus;
+  age1: number;
+  age2: number;
+  retAge: number;
+  wdRate: number;
+  walkSeries: WalkSeries;
+  includeSS: boolean;
+  showGen: boolean;
+
+  // Refs
+  resRef: React.RefObject<HTMLDivElement>;
+  genRef: React.RefObject<HTMLDivElement>;
+
+  // Formatters
+  fmt: (n: number) => string;
+}
+
 // ==================== Utility Types ====================
 
 /**

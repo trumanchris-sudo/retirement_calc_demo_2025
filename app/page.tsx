@@ -37,6 +37,10 @@ import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { SliderInput } from "@/components/form/SliderInput";
 import { BrandLoader } from "@/components/BrandLoader";
 import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
+import { Input, Spinner, Tip, TrendingUpIcon } from "@/components/calculator/InputHelpers";
+
+// Import types
+import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout } from "@/types/calculator";
 
 // Import from new modules
 import {
@@ -267,13 +271,6 @@ const InfoIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
   </svg>
 );
 
-const TrendingUpIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-    <polyline points="17 6 23 6 23 12" />
-  </svg>
-);
-
 const DollarSignIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <line x1="12" y1="1" x2="12" y2="23" />
@@ -329,29 +326,6 @@ const SparkleIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
   </svg>
 );
 
-const Spinner: React.FC = () => (
-  <svg
-    className="animate-spin h-5 w-5 text-white"
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-  >
-    <circle
-      className="opacity-25"
-      cx="12"
-      cy="12"
-      r="10"
-      stroke="currentColor"
-      strokeWidth="4"
-    ></circle>
-    <path
-      className="opacity-75"
-      fill="currentColor"
-      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-    ></path>
-  </svg>
-);
-
 const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading: boolean }> = ({ insight, error, isLoading }) => {
   if (isLoading) {
      return (
@@ -394,95 +368,6 @@ const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading
   return (
     <div className="p-6 rounded-xl bg-card border shadow-sm">
       <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{insight}</p>
-    </div>
-  );
-};
-
-
-const Tip: React.FC<{ text: string }> = ({ text }) => (
-  <div className="inline-block ml-1 group relative">
-    <InfoIcon className="w-4 h-4 text-blue-500 cursor-help inline" />
-    <div className="invisible group-hover:visible absolute z-10 w-64 p-2 text-xs bg-gray-900 text-white rounded shadow-lg left-1/2 -translate-x-1/2 bottom-full mb-2">
-      {text}
-    </div>
-  </div>
-);
-
-type InputProps = {
-  label: string;
-  value: number;
-  setter: (n: number) => void;
-  step?: number;
-  min?: number;
-  max?: number;
-  tip?: string;
-  isRate?: boolean;
-  disabled?: boolean;
-};
-
-const Input: React.FC<InputProps> = ({
-  label,
-  value,
-  setter,
-  step = 1,
-  min = 0,
-  max,
-  tip,
-  isRate = false,
-  disabled = false,
-}) => {
-  const [local, setLocal] = useState<string>(String(value ?? 0));
-  const [isFocused, setIsFocused] = useState(false);
-
-  useEffect(() => {
-    if (!isFocused) {
-      // When not focused, show formatted number with commas
-      if (isRate) {
-        setLocal(String(value ?? 0));
-      } else {
-        setLocal((value ?? 0).toLocaleString('en-US'));
-      }
-    }
-  }, [value, isFocused, isRate]);
-
-  const onFocus = () => {
-    setIsFocused(true);
-    // Remove commas for editing
-    setLocal(String(value ?? 0));
-  };
-
-  const onBlur = () => {
-    setIsFocused(false);
-    // Remove commas and parse
-    const cleanValue = local.replace(/,/g, '');
-    const num = toNumber(cleanValue, value ?? 0);
-    let val = isRate ? parseFloat(String(num)) : Math.round(num);
-    val = clampNum(val, min, max);
-    setter(val);
-    // Format with commas for display
-    if (isRate) {
-      setLocal(String(val));
-    } else {
-      setLocal(val.toLocaleString('en-US'));
-    }
-  };
-
-  return (
-    <div className="space-y-2">
-      <Label className="flex items-center gap-1.5">
-        {label}
-        {tip && <Tip text={tip} />}
-      </Label>
-      <UIInput
-        type="text"
-        value={local}
-        onChange={(e) => setLocal(e.target.value)}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        disabled={disabled}
-        inputMode={isRate ? "decimal" : "numeric"}
-        className="transition-all"
-      />
     </div>
   );
 };
@@ -624,7 +509,7 @@ const CollapsibleSection: React.FC<{
 /** ===============================
  * Generational Wealth Visual
  * ================================ */
-const GenerationalWealthVisual: React.FC<{ genPayout: any }> = ({ genPayout }) => {
+const GenerationalWealthVisual: React.FC<{ genPayout: GenerationalPayout }> = ({ genPayout }) => {
   if (!genPayout) return null;
 
   const isSurviving = genPayout.fundLeftReal > 0;
@@ -818,7 +703,7 @@ async function runTenSeedsAndSummarize(params: Inputs, baseSeed: number): Promis
  * ================================ */
 
 interface WealthChartProps {
-  data: any[];
+  data: ChartDataPoint[];
   showP10: boolean;
   showP90: boolean;
   isDarkMode: boolean;
@@ -906,8 +791,8 @@ const WealthAccumulationChart = React.memo<WealthChartProps>(({ data, showP10, s
 WealthAccumulationChart.displayName = 'WealthAccumulationChart';
 
 interface ComparisonChartProps {
-  data: any[];
-  comparisonData: any;
+  data: ChartDataPoint[];
+  comparisonData: ComparisonData;
   isDarkMode: boolean;
   fmt: (n: number) => string;
 }
@@ -1022,7 +907,7 @@ export default function App() {
   const [seed, setSeed] = useState(42);
   const [walkSeries, setWalkSeries] = useState<"nominal" | "real" | "trulyRandom">("trulyRandom");
 
-  const [res, setRes] = useState<any>(null);
+  const [res, setRes] = useState<CalculationResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const [aiInsight, setAiInsight] = useState<string>("");
@@ -1033,7 +918,7 @@ export default function App() {
 
   // Sensitivity analysis and scenario comparison
   const [sensitivityData, setSensitivityData] = useState<any>(null);
-  const [savedScenarios, setSavedScenarios] = useState<any[]>([]);
+  const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>([]);
   const [showSensitivity, setShowSensitivity] = useState(false);
   const [showScenarios, setShowScenarios] = useState(false);
   const [showBearMarket, setShowBearMarket] = useState(false);
@@ -1049,11 +934,7 @@ export default function App() {
 
   // Scenario comparison mode
   const [comparisonMode, setComparisonMode] = useState(false);
-  const [comparisonData, setComparisonData] = useState<{
-    baseline: { data: any[]; visible: boolean; label: string } | null;
-    bearMarket: { data: any[]; visible: boolean; label: string; year: number } | null;
-    inflation: { data: any[]; visible: boolean; label: string; rate: number; duration: number } | null;
-  }>({
+  const [comparisonData, setComparisonData] = useState<ComparisonData>({
     baseline: null,
     bearMarket: null,
     inflation: null,
@@ -1155,7 +1036,7 @@ export default function App() {
   const aiCache = useRef<Map<string, { response: string; timestamp: number }>>(new Map());
   const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-  const getCacheKey = (question: string, calcResult: any): string => {
+  const getCacheKey = (question: string, calcResult: CalculationResult): string => {
     // Create a hash from key parameters + question
     const keyData = {
       q: question.toLowerCase().trim(),
@@ -1188,7 +1069,7 @@ export default function App() {
   };
 
   // Generate local insights using templates (no API call needed)
-  const generateLocalInsight = (calcResult: any, olderAge: number): string => {
+  const generateLocalInsight = (calcResult: CalculationResult, olderAge: number): string => {
     if (!calcResult) return "";
 
     const probability = calcResult.probRuin !== undefined ? Math.round((1 - calcResult.probRuin) * 100) : 100;
@@ -1258,7 +1139,7 @@ export default function App() {
     return analysis.trim();
   };
 
-  const fetchAiInsight = async (calcResult: any, olderAge: number, customQuestion?: string) => {
+  const fetchAiInsight = async (calcResult: CalculationResult, olderAge: number, customQuestion?: string) => {
     if (!calcResult) return;
 
     // Only use API for custom questions (Q&A feature)
@@ -1337,7 +1218,7 @@ export default function App() {
         // Cache the successful response
         setCachedResponse(cacheKey, data.insight);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch AI insight:', error);
       setAiError('Network error');
       setAiInsight('Unable to connect to AI analysis service. Please check your internet connection.');
@@ -1477,8 +1358,8 @@ export default function App() {
         } : null,
       });
 
-    } catch (error: any) {
-      setErr(error.message);
+    } catch (error: unknown) {
+      setErr(error instanceof Error ? error.message : 'An unknown error occurred');
     }
   }, [comparisonMode, res, age1, age2, retAge, marital, sTax, sPre, sPost, cTax1, cPre1, cPost1, cMatch1,
       cTax2, cPre2, cPost2, cMatch2, retRate, infRate, stateRate, incContrib, incRate, wdRate,
@@ -2161,8 +2042,8 @@ export default function App() {
         setIsLoadingAi(false);
       }, 100);
 
-    } catch (e: any) {
-      setErr(e.message ?? String(e));
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : String(e));
       setRes(null);
       setIsLoadingAi(false);
     }
@@ -2319,7 +2200,7 @@ export default function App() {
   }, [savedScenarios]);
 
   // Load a scenario (restore inputs)
-  const loadScenario = useCallback((scenario: any) => {
+  const loadScenario = useCallback((scenario: SavedScenario) => {
     const inp = scenario.inputs;
     setAge1(inp.age1);
     setAge2(inp.age2);
