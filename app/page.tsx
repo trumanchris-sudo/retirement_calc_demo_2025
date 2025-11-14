@@ -1004,6 +1004,11 @@ export default function App() {
   const [loaderHandoff, setLoaderHandoff] = useState(false); // Track when handoff starts
   const [cubeAppended, setCubeAppended] = useState(false); // Track when cube animation completes
 
+  // Tabbed interface state - foundation for future reorganization
+  const [activeMainTab, setActiveMainTab] = useState<'all' | 'configure' | 'results' | 'stress' | 'legacy'>('all');
+  const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
+  const [inputsModified, setInputsModified] = useState(false);
+
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -2208,6 +2213,10 @@ export default function App() {
       };
 
       setRes(newRes);
+
+      // Track calculation for future tab interface
+      setLastCalculated(new Date());
+      setInputsModified(false);
 
       setTimeout(() => {
         if (showGen && genPayout) {
