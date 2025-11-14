@@ -806,7 +806,11 @@ const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data, compar
     <ComposedChart data={data}>
       <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
       <XAxis dataKey="year" className="text-sm" />
-      <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
+      <YAxis
+        tickFormatter={(v) => fmt(v as number)}
+        className="text-sm"
+        label={{ value: 'Portfolio Value (Real)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+      />
       <RTooltip
         formatter={(v) => fmt(v as number)}
         labelFormatter={(l) => `Year ${l}`}
