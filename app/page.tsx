@@ -546,7 +546,7 @@ const GenerationalWealthVisual: React.FC<{ genPayout: GenerationalPayout }> = ({
  * Hypothetical per-beneficiary payout model (real terms)
  * ================================ */
 
-type Cohort = { size: number; age: number; canReproduce: boolean; hasReproduced: boolean };
+type Cohort = { size: number; age: number; canReproduce: boolean; cumulativeBirths: number };
 
 /**
  * Simulate constant real-dollar payout per beneficiary with births/deaths.
@@ -554,8 +554,9 @@ type Cohort = { size: number; age: number; canReproduce: boolean; hasReproduced:
  * - fund starts as EOL deflated to 2025 dollars.
  * - Real growth at r = realReturn(nominal, inflation).
  * - Each year, pay (perBenReal * eligible), where eligible = beneficiaries >= minDistAge.
- * - Each beneficiary reproduces ONCE when they reach birthInterval age (e.g., 30).
- * - Only beneficiaries who were under birthInterval at death (and their descendants) can reproduce.
+ * - Beneficiaries reproduce gradually across fertility window (e.g., ages 25-35).
+ * - Total fertility rate (e.g., 2.1) distributed evenly across fertile years.
+ * - Only beneficiaries within fertility window at death (and their descendants) can reproduce.
  * - Death at deathAge.
  */
 function simulateRealPerBeneficiaryPayout(
@@ -565,22 +566,33 @@ function simulateRealPerBeneficiaryPayout(
   inflPct: number,
   perBenReal: number,
   startBens: number,
-  birthMultiple: number,
-  birthInterval = 30,
+  totalFertilityRate: number,
+  generationLength = 30,
   deathAge = 90,
   minDistAge = 21,
   capYears = 10000,
-  initialBenAges: number[] = [0]
+  initialBenAges: number[] = [0],
+  fertilityWindowStart = 25,
+  fertilityWindowEnd = 35
 ) {
   let fundReal = eolNominal / Math.pow(1 + inflPct / 100, yearsFrom2025);
   const r = realReturn(nominalRet, inflPct);
 
+  // Calculate births per year during fertility window
+  const fertilityWindowYears = fertilityWindowEnd - fertilityWindowStart;
+  const birthsPerYear = fertilityWindowYears > 0 ? totalFertilityRate / fertilityWindowYears : 0;
+
   // Initialize cohorts with specified ages
-  // Only beneficiaries under birthInterval at death can reproduce
+  // Only beneficiaries within fertility window at death can reproduce
   let cohorts: Cohort[] = initialBenAges.length > 0
-    ? initialBenAges.map(age => ({ size: 1, age, canReproduce: age < birthInterval, hasReproduced: false }))
+    ? initialBenAges.map(age => ({
+        size: 1,
+        age,
+        canReproduce: age >= fertilityWindowStart && age <= fertilityWindowEnd,
+        cumulativeBirths: 0
+      }))
     : startBens > 0
-    ? [{ size: startBens, age: 0, canReproduce: true, hasReproduced: false }]
+    ? [{ size: startBens, age: 0, canReproduce: true, cumulativeBirths: 0 }]
     : [];
 
   let years = 0;
@@ -611,15 +623,24 @@ function simulateRealPerBeneficiaryPayout(
     // Age all cohorts
     cohorts.forEach((c) => (c.age += 1));
 
-    // Check each cohort for births when they reach birthInterval age (e.g., 30)
-    // Each beneficiary reproduces only once in their lifetime
+    // Gradual reproduction across fertility window
+    // Each year in the window, cohorts produce birthsPerYear children
     cohorts.forEach((cohort) => {
-      if (cohort.canReproduce && !cohort.hasReproduced && cohort.age === birthInterval) {
-        const births = cohort.size * birthMultiple;
+      if (cohort.canReproduce &&
+          cohort.age >= fertilityWindowStart &&
+          cohort.age <= fertilityWindowEnd &&
+          cohort.cumulativeBirths < totalFertilityRate) {
+
+        // Calculate births for this year, capped at remaining fertility
+        const remainingFertility = totalFertilityRate - cohort.cumulativeBirths;
+        const birthsThisYear = Math.min(birthsPerYear, remainingFertility);
+        const births = cohort.size * birthsThisYear;
+
         if (births > 0) {
-          cohorts.push({ size: births, age: 0, canReproduce: true, hasReproduced: false });
+          cohorts.push({ size: births, age: 0, canReproduce: true, cumulativeBirths: 0 });
         }
-        cohort.hasReproduced = true;
+
+        cohort.cumulativeBirths += birthsThisYear;
       }
     });
   }
@@ -920,13 +941,20 @@ export default function App() {
 
   const [showGen, setShowGen] = useState(false);
 
+  // Generational wealth parameters (improved demographic model)
   const [hypPerBen, setHypPerBen] = useState(100_000);
   const [hypStartBens, setHypStartBens] = useState(2);
-  const [hypBirthMultiple, setHypBirthMultiple] = useState(1);
-  const [hypBirthInterval, setHypBirthInterval] = useState(30);
+  const [totalFertilityRate, setTotalFertilityRate] = useState(2.1); // Children per person (lifetime)
+  const [generationLength, setGenerationLength] = useState(30); // Average age when having children
+  const [fertilityWindowStart, setFertilityWindowStart] = useState(25);
+  const [fertilityWindowEnd, setFertilityWindowEnd] = useState(35);
   const [hypDeathAge, setHypDeathAge] = useState(90);
   const [hypBenAgesStr, setHypBenAgesStr] = useState("35, 40");
   const [hypMinDistAge, setHypMinDistAge] = useState(21); // Minimum age to receive distributions
+
+  // Legacy state variables for backward compatibility with old simulation
+  const [hypBirthMultiple, setHypBirthMultiple] = useState(1);
+  const [hypBirthInterval, setHypBirthInterval] = useState(30);
 
   const [retMode, setRetMode] = useState<"fixed" | "randomWalk">("randomWalk");
   const [seed, setSeed] = useState(42);
@@ -1399,6 +1427,45 @@ export default function App() {
       retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
       historicalYear, inflationShockRate, inflationShockDuration, seed, isMar]);
 
+  // Generational wealth preset configurations
+  const applyGenerationalPreset = useCallback((preset: 'conservative' | 'moderate' | 'aggressive') => {
+    switch (preset) {
+      case 'conservative':
+        setHypPerBen(75_000);
+        setHypStartBens(2);
+        setTotalFertilityRate(1.5); // Slow growth
+        setGenerationLength(32);
+        setFertilityWindowStart(27);
+        setFertilityWindowEnd(37);
+        // Update legacy values for backward compatibility
+        setHypBirthMultiple(1.5);
+        setHypBirthInterval(32);
+        break;
+      case 'moderate':
+        setHypPerBen(100_000);
+        setHypStartBens(2);
+        setTotalFertilityRate(2.1); // Replacement rate
+        setGenerationLength(30);
+        setFertilityWindowStart(25);
+        setFertilityWindowEnd(35);
+        // Update legacy values for backward compatibility
+        setHypBirthMultiple(2.1);
+        setHypBirthInterval(30);
+        break;
+      case 'aggressive':
+        setHypPerBen(150_000);
+        setHypStartBens(3);
+        setTotalFertilityRate(2.5); // Fast growth
+        setGenerationLength(28);
+        setFertilityWindowStart(23);
+        setFertilityWindowEnd(33);
+        // Update legacy values for backward compatibility
+        setHypBirthMultiple(2.5);
+        setHypBirthInterval(28);
+        break;
+    }
+  }, []);
+
   const calc = useCallback(async () => {
     setErr(null);
     setAiInsight("");
@@ -1611,12 +1678,14 @@ export default function App() {
             infRate,
             hypPerBen,
             Math.max(1, hypStartBens),
-            Math.max(0, hypBirthMultiple),
-            Math.max(1, hypBirthInterval),
+            totalFertilityRate,
+            generationLength,
             Math.max(1, hypDeathAge),
             Math.max(0, hypMinDistAge),
             10000,
-            benAges.length > 0 ? benAges : [0]
+            benAges.length > 0 ? benAges : [0],
+            fertilityWindowStart,
+            fertilityWindowEnd
           );
 
           const simP50 = simulateRealPerBeneficiaryPayout(
@@ -1626,12 +1695,14 @@ export default function App() {
             infRate,
             hypPerBen,
             Math.max(1, hypStartBens),
-            Math.max(0, hypBirthMultiple),
-            Math.max(1, hypBirthInterval),
+            totalFertilityRate,
+            generationLength,
             Math.max(1, hypDeathAge),
             Math.max(0, hypMinDistAge),
             10000,
-            benAges.length > 0 ? benAges : [0]
+            benAges.length > 0 ? benAges : [0],
+            fertilityWindowStart,
+            fertilityWindowEnd
           );
 
           const simP90 = simulateRealPerBeneficiaryPayout(
@@ -1641,12 +1712,14 @@ export default function App() {
             infRate,
             hypPerBen,
             Math.max(1, hypStartBens),
-            Math.max(0, hypBirthMultiple),
-            Math.max(1, hypBirthInterval),
+            totalFertilityRate,
+            generationLength,
             Math.max(1, hypDeathAge),
             Math.max(0, hypMinDistAge),
             10000,
-            benAges.length > 0 ? benAges : [0]
+            benAges.length > 0 ? benAges : [0],
+            fertilityWindowStart,
+            fertilityWindowEnd
           );
 
           // Count how many percentiles resulted in perpetual wealth
@@ -1673,8 +1746,8 @@ export default function App() {
             fundLeftReal: simP50.fundLeftReal,
             startBeneficiaries: Math.max(1, hypStartBens),
             lastLivingCount: simP50.lastLivingCount,
-            birthMultiple: Math.max(0, hypBirthMultiple),
-            birthInterval: Math.max(1, hypBirthInterval),
+            totalFertilityRate,
+            generationLength,
             deathAge: Math.max(1, hypDeathAge),
             // Monte Carlo fields
             p10: {
@@ -2064,12 +2137,14 @@ export default function App() {
           infRate,
           hypPerBen,
           Math.max(1, hypStartBens),
-          Math.max(0, hypBirthMultiple),
-          Math.max(1, hypBirthInterval),
+          totalFertilityRate,
+          generationLength,
           Math.max(1, hypDeathAge),
           Math.max(0, hypMinDistAge),
           10000,
-          benAges.length > 0 ? benAges : [0]
+          benAges.length > 0 ? benAges : [0],
+          fertilityWindowStart,
+          fertilityWindowEnd
         );
         genPayout = {
           perBenReal: hypPerBen,
@@ -2077,8 +2152,8 @@ export default function App() {
           fundLeftReal: sim.fundLeftReal,
           startBeneficiaries: Math.max(1, hypStartBens),
           lastLivingCount: sim.lastLivingCount,
-          birthMultiple: Math.max(0, hypBirthMultiple),
-          birthInterval: Math.max(1, hypBirthInterval),
+          totalFertilityRate,
+          generationLength,
           deathAge: Math.max(1, hypDeathAge),
         };
       }
@@ -5520,39 +5595,211 @@ export default function App() {
 
               {showGen && (
                 <div className="p-6 bg-card rounded-xl border border-border shadow-sm gen-card">
-                  <h4 className="text-xl font-semibold text-foreground mb-6">
-                    Hypothetical Per-Beneficiary Payout
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <Input
-                      label={<>Annual Per-Beneficiary<br />($, 2025)</>}
-                      value={hypPerBen}
-                      setter={setHypPerBen}
-                      step={50000}
-                    />
-                    <Input
-                      label={<>Births per Beneficiary<br />(at age {hypBirthInterval})</>}
-                      value={hypBirthMultiple}
-                      setter={setHypBirthMultiple}
-                      min={0}
-                      step={0.1}
-                      isRate
-                      tip="Beneficiaries under this age at death (and their descendants) have this many children once when they reach the birth interval age."
-                    />
-                    <Input
-                      label={<>Birth Interval<br />(yrs)</>}
-                      value={hypBirthInterval}
-                      setter={setHypBirthInterval}
-                      min={1}
-                      step={1}
-                      tip="Beneficiaries reproduce once in their lifetime when they reach this age. Their children will also reproduce at this age, creating generational waves."
-                    />
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-xl font-semibold text-foreground">
+                      Generational Wealth Configuration
+                    </h4>
                   </div>
+
+                  {/* Preset Buttons */}
+                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm font-semibold mb-3 text-foreground">Quick Presets:</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <Button
+                        onClick={() => applyGenerationalPreset('conservative')}
+                        variant="outline"
+                        className="w-full text-left justify-start hover:bg-blue-100 dark:hover:bg-blue-900"
+                      >
+                        <div>
+                          <div className="font-semibold">Conservative</div>
+                          <div className="text-xs text-muted-foreground">$75k/person, 1.5 children</div>
+                        </div>
+                      </Button>
+                      <Button
+                        onClick={() => applyGenerationalPreset('moderate')}
+                        variant="outline"
+                        className="w-full text-left justify-start hover:bg-purple-100 dark:hover:bg-purple-900"
+                      >
+                        <div>
+                          <div className="font-semibold">Moderate</div>
+                          <div className="text-xs text-muted-foreground">$100k/person, 2.1 children</div>
+                        </div>
+                      </Button>
+                      <Button
+                        onClick={() => applyGenerationalPreset('aggressive')}
+                        variant="outline"
+                        className="w-full text-left justify-start hover:bg-indigo-100 dark:hover:bg-indigo-900"
+                      >
+                        <div>
+                          <div className="font-semibold">Aggressive</div>
+                          <div className="text-xs text-muted-foreground">$150k/person, 2.5 children</div>
+                        </div>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Core Configuration */}
+                  <div className="space-y-4 mb-6">
+                    <h5 className="font-semibold text-foreground">Core Settings</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input
+                        label="Annual Per Beneficiary (real $)"
+                        value={hypPerBen}
+                        setter={setHypPerBen}
+                        step={10000}
+                        tip="How much each person receives per year, adjusted for inflation"
+                      />
+                      <Input
+                        label="Initial Beneficiaries"
+                        value={hypStartBens}
+                        setter={setHypStartBens}
+                        min={1}
+                        step={1}
+                        tip="Number of beneficiaries at the start (e.g., your children)"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input
+                        label="Children Per Person (Lifetime)"
+                        value={totalFertilityRate}
+                        setter={setTotalFertilityRate}
+                        min={0}
+                        max={5}
+                        step={0.1}
+                        isRate
+                        tip="Average children per person. 2.1 = replacement rate, 2.5 = growing dynasty, 1.5 = slow decline"
+                      />
+                      <Input
+                        label="Generation Length (years)"
+                        value={generationLength}
+                        setter={setGenerationLength}
+                        min={20}
+                        max={40}
+                        step={1}
+                        tip="Average age when people have children. Typical: 28-32. Shorter = faster generational turnover"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Perpetual Threshold Calculator */}
+                  {res && res.eol > 0 && (
+                    <div className="mb-6 p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                      <h5 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <span className="text-green-600 dark:text-green-400">♾️</span>
+                        Perpetual Legacy Threshold
+                      </h5>
+                      {(() => {
+                        const realReturn = ((1 + retRate / 100) / (1 + infRate / 100) - 1) * 100;
+                        const popGrowthRate = ((Math.pow(totalFertilityRate / 2, 1 / generationLength) - 1) * 100);
+                        const maxSustainableRate = realReturn - popGrowthRate;
+                        const currentRate = (hypPerBen * hypStartBens / res.netEstate) * 100;
+                        const isPerpetual = currentRate < maxSustainableRate;
+                        const doublingTime = 72 / maxSustainableRate;
+
+                        return (
+                          <div className="space-y-2 text-sm">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <span className="text-muted-foreground">Real Return:</span>
+                                <span className="ml-2 font-semibold">{realReturn.toFixed(2)}%</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Population Growth:</span>
+                                <span className="ml-2 font-semibold">{popGrowthRate.toFixed(2)}%/yr</span>
+                              </div>
+                            </div>
+                            <div className="pt-2 border-t border-green-300 dark:border-green-700">
+                              <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Maximum Sustainable Rate:</span>
+                                <span className="font-bold text-green-600 dark:text-green-400">{maxSustainableRate.toFixed(2)}%</span>
+                              </div>
+                              <div className="flex justify-between items-center mt-1">
+                                <span className="text-muted-foreground">Your Distribution Rate:</span>
+                                <span className={`font-bold ${isPerpetual ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                  {currentRate.toFixed(2)}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="pt-2 mt-2 border-t border-green-300 dark:border-green-700">
+                              {isPerpetual ? (
+                                <>
+                                  <p className="font-semibold text-green-700 dark:text-green-300">
+                                    ✓ Perpetual! Your wealth grows faster than distributions.
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    At {maxSustainableRate.toFixed(1)}% net growth, wealth doubles every {doublingTime.toFixed(1)} years.
+                                    In 100 years: {Math.pow(2, 100 / doublingTime).toFixed(0)}× larger!
+                                  </p>
+                                </>
+                              ) : (
+                                <p className="font-semibold text-amber-700 dark:text-amber-300">
+                                  ⚠ Not perpetual. Reduce distribution or increase children per person.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Advanced Demographics */}
+                  <Accordion type="single" collapsible className="mb-4">
+                    <AccordionItem value="advanced">
+                      <AccordionTrigger className="text-sm font-semibold">
+                        Advanced Demographics
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-4 pt-2">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Input
+                              label="Fertility Window Start"
+                              value={fertilityWindowStart}
+                              setter={setFertilityWindowStart}
+                              min={18}
+                              max={35}
+                              step={1}
+                              tip="Earliest age when people have children (typical: 25)"
+                            />
+                            <Input
+                              label="Fertility Window End"
+                              value={fertilityWindowEnd}
+                              setter={setFertilityWindowEnd}
+                              min={25}
+                              max={45}
+                              step={1}
+                              tip="Latest age when people have children (typical: 35)"
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Input
+                              label="Maximum Lifespan"
+                              value={hypDeathAge}
+                              setter={setHypDeathAge}
+                              min={70}
+                              max={100}
+                              step={1}
+                              tip="Maximum age for all beneficiaries"
+                            />
+                            <Input
+                              label="Minimum Distribution Age"
+                              value={hypMinDistAge}
+                              setter={setHypMinDistAge}
+                              min={0}
+                              max={30}
+                              step={1}
+                              tip="Minimum age before beneficiaries can receive distributions (e.g., 21 for legal adulthood)"
+                            />
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-2">
                       <Label className="flex items-center gap-1.5 text-foreground">
                         Initial Beneficiary Ages at Death
-                        <Tip text="Enter ages of living beneficiaries at your time of death, separated by commas (e.g., '35, 40, 45'). Only fertile beneficiaries (ages 20-40) will produce children." />
+                        <Tip text={`Enter ages of living beneficiaries at your time of death, separated by commas (e.g., '35, 40, 45'). Only beneficiaries within the fertility window (${fertilityWindowStart}-${fertilityWindowEnd}) will produce children.`} />
                       </Label>
                       <UIInput
                         type="text"
@@ -5568,24 +5815,6 @@ export default function App() {
                         }).length} beneficiaries specified
                       </p>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <Input
-                      label="Max Lifespan (yrs)"
-                      value={hypDeathAge}
-                      setter={setHypDeathAge}
-                      min={1}
-                      step={1}
-                      tip="Maximum age for all beneficiaries"
-                    />
-                    <Input
-                      label="Min Distribution Age"
-                      value={hypMinDistAge}
-                      setter={setHypMinDistAge}
-                      min={0}
-                      step={1}
-                      tip="Minimum age before beneficiaries can receive distributions (e.g., 21 for legal adulthood, 25 for financial maturity)"
-                    />
                   </div>
 
                   {res?.genPayout && (

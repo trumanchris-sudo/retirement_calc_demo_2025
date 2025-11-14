@@ -35,10 +35,12 @@ export type PlanState = {
   showGen: boolean;
   hypPerBen: number;
   hypStartBens: number;
-  hypBirthMultiple: number;
-  hypBirthInterval: number;
+  totalFertilityRate: number;
+  generationLength: number;
   hypDeathAge: number;
   hypBenAgesStr: string;
+  fertilityWindowStart: number;
+  fertilityWindowEnd: number;
   retMode: ReturnMode;
   seed: number;
   walkSeries: WalkSeries;
@@ -123,10 +125,26 @@ export type GenerationalPayout = {
   fundLeftReal: number;
   startBeneficiaries: number;
   lastLivingCount: number;
-  birthMultiple: number;
-  birthInterval: number;
+  totalFertilityRate: number;
+  generationLength: number;
   deathAge: number;
-  benAges: number[];
+  benAges?: number[];
+  p10?: {
+    years: number;
+    fundLeftReal: number;
+    isPerpetual: boolean;
+  };
+  p50?: {
+    years: number;
+    fundLeftReal: number;
+    isPerpetual: boolean;
+  };
+  p90?: {
+    years: number;
+    fundLeftReal: number;
+    isPerpetual: boolean;
+  };
+  probPerpetual?: number;
 };
 
 // The final result object displayed to user
