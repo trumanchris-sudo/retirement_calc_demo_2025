@@ -43,6 +43,7 @@ import { Input, Spinner, Tip, TrendingUpIcon } from "@/components/calculator/Inp
 import { TabNavigation, type MainTabId } from "@/components/calculator/TabNavigation";
 import { TabPanel } from "@/components/calculator/TabPanel";
 import { LastCalculatedBadge } from "@/components/calculator/LastCalculatedBadge";
+import { RecalculateButton } from "@/components/calculator/RecalculateButton";
 
 // Import types
 import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress } from "@/types/calculator";
@@ -3816,6 +3817,7 @@ export default function App() {
             />
             </div>
 
+            <TabPanel id="results" activeTab={activeMainTab}>
             <div className="print:hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <FlippingStatCard
                 title="Future Balance"
@@ -4001,29 +4003,37 @@ export default function App() {
 
             {/* Lifetime Wealth Flow - Sankey Diagram (Screen only - hidden from print) */}
             <div className="print:hidden wealth-flow-block">
-            <Card className="border-2 border-slate-200 dark:border-slate-700">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Lifetime Wealth Flow</span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 px-2 text-xs print-hide"
-                    onClick={() => askExplainQuestion("How can I optimize my end-of-life wealth and estate planning?")}
-                  >
-                    Explain This
-                  </Button>
-                </CardTitle>
-                <CardDescription className="flex items-center justify-between">
-                  <span>From end-of-life wealth to net inheritance</span>
-                  {res.probRuin !== undefined && (
-                    <span className="text-xs text-muted-foreground">
-                      Probability of Running Out: <span className="font-semibold">{(res.probRuin * 100).toFixed(0)}%</span>
-                    </span>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="wealth-flow" className="border-none">
+                <Card className="border-2 border-slate-200 dark:border-slate-700">
+                  <AccordionTrigger className="px-6 hover:no-underline [&[data-state=open]>div>svg]:rotate-180">
+                    <CardHeader className="p-0 flex-1">
+                      <CardTitle className="flex items-center justify-between">
+                        <span>Lifetime Wealth Flow</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs print-hide"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            askExplainQuestion("How can I optimize my end-of-life wealth and estate planning?");
+                          }}
+                        >
+                          Explain This
+                        </Button>
+                      </CardTitle>
+                      <CardDescription className="flex items-center justify-between">
+                        <span>From end-of-life wealth to net inheritance</span>
+                        {res.probRuin !== undefined && (
+                          <span className="text-xs text-muted-foreground">
+                            Probability of Running Out: <span className="font-semibold">{(res.probRuin * 100).toFixed(0)}%</span>
+                          </span>
+                        )}
+                      </CardDescription>
+                    </CardHeader>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <CardContent className="space-y-4 pt-4">
                 {res.eolAccounts && res.eol > 0 ? (
                   <>
                     <div className="wealth-flow-responsive">
@@ -4248,8 +4258,11 @@ export default function App() {
                     <p className="text-sm">No end-of-life wealth data available.</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                    </CardContent>
+                  </AccordionContent>
+                </Card>
+              </AccordionItem>
+            </Accordion>
             </div>
 
             <div className="print:hidden analysis-block">
@@ -4377,32 +4390,40 @@ export default function App() {
             {/* Save/Compare Scenarios - Hide interactive UI from print */}
             <AnimatedSection animation="slide-up" delay={250}>
               <div className="print:hidden">
-              <Card data-scenarios-section>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Save & Compare Scenarios</CardTitle>
-                      <CardDescription>Save different retirement strategies and compare them side-by-side</CardDescription>
-                    </div>
-                    <Button
-                      variant={showScenarios ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setShowScenarios(!showScenarios)}
-                      className="no-print"
-                    >
-                      {showScenarios ? "Hide" : `Show (${savedScenarios.length})`}
-                    </Button>
-                  </div>
-                  {!showScenarios && savedScenarios.length > 0 && (
-                    <div className="print-only mt-4">
-                      <p className="text-sm text-muted-foreground">
-                        {savedScenarios.length} saved scenario{savedScenarios.length === 1 ? '' : 's'}
-                      </p>
-                    </div>
-                  )}
-                </CardHeader>
-                {(showScenarios || savedScenarios.length > 0) && (
-                  <CardContent className="print:block">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="scenarios" className="border-none">
+                  <Card data-scenarios-section>
+                    <AccordionTrigger className="px-6 hover:no-underline [&[data-state=open]>div>svg]:rotate-180">
+                      <CardHeader className="p-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle>Save & Compare Scenarios</CardTitle>
+                            <CardDescription>Save different retirement strategies and compare them side-by-side</CardDescription>
+                          </div>
+                          <Button
+                            variant={showScenarios ? "default" : "outline"}
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowScenarios(!showScenarios);
+                            }}
+                            className="no-print"
+                          >
+                            {showScenarios ? "Hide" : `Show (${savedScenarios.length})`}
+                          </Button>
+                        </div>
+                      </CardHeader>
+                    </AccordionTrigger>
+                    {!showScenarios && savedScenarios.length > 0 && (
+                      <div className="print-only mt-4">
+                        <p className="text-sm text-muted-foreground">
+                          {savedScenarios.length} saved scenario{savedScenarios.length === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                    )}
+                  <AccordionContent>
+                    {(showScenarios || savedScenarios.length > 0) && (
+                      <CardContent className="print:block pt-4">
                     {/* Save Current Scenario */}
                     {res && (
                       <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg">
@@ -4706,13 +4727,18 @@ export default function App() {
                         )}
                       </>
                     )}
-                  </CardContent>
-                )}
-              </Card>
+                      </CardContent>
+                    )}
+                  </AccordionContent>
+                </Card>
+              </AccordionItem>
+            </Accordion>
               </div>
             </AnimatedSection>
+            </TabPanel>
 
             {/* Portfolio Stress Tests - Consolidates Bear Market, Inflation Shock, and Scenario Comparison */}
+            <TabPanel id="stress" activeTab={activeMainTab}>
             <AnimatedSection animation="slide-up" delay={275}>
               <div className="print:hidden">
               <Card>
@@ -5065,7 +5091,14 @@ export default function App() {
               </div>
             </AnimatedSection>
 
+            {/* Recalculate Button for Stress Tab */}
+            <div className="flex justify-center mt-6">
+              <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
+            </div>
+            </TabPanel>
+
             {/* Tabbed Chart Container */}
+            <TabPanel id="results" activeTab={activeMainTab}>
             <AnimatedSection animation="slide-up" delay={300}>
               <div className="print-section print-block chart-container">
               <Card>
@@ -5200,12 +5233,14 @@ export default function App() {
               </Card>
               </div>
             </AnimatedSection>
+            </TabPanel>
           </div>
           </AnimatedSection>
           </>
         )}
 
         {/* Input Form - Hide from print */}
+        <TabPanel id="configure" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           <Card className="print:hidden">
           <CardHeader>
@@ -5626,7 +5661,54 @@ export default function App() {
 
             <Separator />
 
-            <div className={`print-section print-block gen-card space-y-6 ${!showGen ? 'no-print' : ''}`}>
+            <div className="flex flex-col items-center pt-6 pb-2 no-print">
+              <Button
+                onClick={calc}
+                disabled={isLoadingAi}
+                size="lg"
+                className="w-full md:w-auto text-lg px-16 py-7 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
+              >
+                {isLoadingAi ? (
+                  <span className="flex items-center gap-3">
+                    <Spinner />
+                    <span>
+                      {calcProgress
+                        ? `${calcProgress.message} (${calcProgress.percent}%)`
+                        : 'Calculating...'}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-3">
+                    <TrendingUpIcon className="w-6 h-6" />
+                    Calculate Retirement Plan
+                  </span>
+                )}
+              </Button>
+              {err && (
+                <div className="mt-6 p-5 bg-red-50 border-2 border-red-300 rounded-xl shadow-md max-w-2xl">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-red-800 font-medium text-base">{err}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        </AnimatedSection>
+        </TabPanel>
+
+        {/* Generational Wealth Modeling - Legacy Tab */}
+        <TabPanel id="legacy" activeTab={activeMainTab}>
+        <AnimatedSection animation="fade-in" delay={100}>
+          <Card className="print:hidden">
+            <CardHeader>
+              <CardTitle>Generational Wealth Modeling</CardTitle>
+              <CardDescription>Model multi-generational wealth transfer and dynasty trusts</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
               <div className="flex items-center space-x-3">
                 <input
                   type="checkbox"
@@ -5636,7 +5718,7 @@ export default function App() {
                   className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 no-print print-hide"
                 />
                 <Label htmlFor="show-gen" className="text-lg font-semibold text-foreground cursor-pointer">
-                  Generational Wealth Modeling {showGen && <span className="print-only">✓</span>}
+                  Enable Generational Wealth Modeling {showGen && <span className="print-only">✓</span>}
                 </Label>
               </div>
 
@@ -5859,47 +5941,15 @@ export default function App() {
                   )}
                 </div>
               )}
-            </div>
 
-            <Separator />
-
-            <div className="flex flex-col items-center pt-6 pb-2 no-print">
-              <Button
-                onClick={calc}
-                disabled={isLoadingAi}
-                size="lg"
-                className="w-full md:w-auto text-lg px-16 py-7 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
-              >
-                {isLoadingAi ? (
-                  <span className="flex items-center gap-3">
-                    <Spinner />
-                    <span>
-                      {calcProgress
-                        ? `${calcProgress.message} (${calcProgress.percent}%)`
-                        : 'Calculating...'}
-                    </span>
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-3">
-                    <TrendingUpIcon className="w-6 h-6" />
-                    Calculate Retirement Plan
-                  </span>
-                )}
-              </Button>
-              {err && (
-                <div className="mt-6 p-5 bg-red-50 border-2 border-red-300 rounded-xl shadow-md max-w-2xl">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-red-800 font-medium text-base">{err}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              {/* Recalculate Button for Legacy Tab */}
+              <div className="flex justify-center mt-6">
+                <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
+              </div>
+            </CardContent>
+          </Card>
         </AnimatedSection>
+        </TabPanel>
 
         {/* The Math Section - Always included in print */}
         <div className="math-print-section print-section print-page-break-before">
