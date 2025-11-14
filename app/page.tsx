@@ -40,6 +40,9 @@ import { SliderInput } from "@/components/form/SliderInput";
 import { BrandLoader } from "@/components/BrandLoader";
 import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
 import { Input, Spinner, Tip, TrendingUpIcon } from "@/components/calculator/InputHelpers";
+import { TabNavigation, type MainTabId } from "@/components/calculator/TabNavigation";
+import { TabPanel } from "@/components/calculator/TabPanel";
+import { LastCalculatedBadge } from "@/components/calculator/LastCalculatedBadge";
 
 // Import types
 import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress } from "@/types/calculator";
@@ -1005,7 +1008,7 @@ export default function App() {
   const [cubeAppended, setCubeAppended] = useState(false); // Track when cube animation completes
 
   // Tabbed interface state - foundation for future reorganization
-  const [activeMainTab, setActiveMainTab] = useState<'all' | 'configure' | 'results' | 'stress' | 'legacy'>('all');
+  const [activeMainTab, setActiveMainTab] = useState<MainTabId>('all');
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [inputsModified, setInputsModified] = useState(false);
 
@@ -2214,9 +2217,14 @@ export default function App() {
 
       setRes(newRes);
 
-      // Track calculation for future tab interface
+      // Track calculation for tab interface and auto-switch to results
       setLastCalculated(new Date());
       setInputsModified(false);
+
+      // Auto-switch from Configure tab to Results tab
+      if (activeMainTab === 'configure') {
+        setActiveMainTab('results');
+      }
 
       setTimeout(() => {
         if (showGen && genPayout) {
@@ -2243,6 +2251,7 @@ export default function App() {
     retMode, seed, walkSeries, historicalYear,
     inflationShockRate, inflationShockDuration,
     includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2, hypBenAgesStr,
+    activeMainTab, setActiveMainTab,
   ]);
 
   // Calculate sensitivity analysis using mathematical approximations
@@ -2451,6 +2460,25 @@ export default function App() {
           }
         }}
       />
+
+      {/* Tab Navigation */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
+        <div className="space-y-4">
+          <TabNavigation
+            activeTab={activeMainTab}
+            onTabChange={setActiveMainTab}
+            hasResults={!!res}
+          />
+          {res && (
+            <div className="flex justify-end">
+              <LastCalculatedBadge
+                lastCalculated={lastCalculated}
+                inputsModified={inputsModified}
+              />
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
