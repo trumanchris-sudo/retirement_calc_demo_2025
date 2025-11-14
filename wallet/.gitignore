@@ -1,0 +1,9 @@
+# Certificates and private keys - NEVER commit these
+certs/
+*.pem
+*.p12
+*.cer
+*.key
+
+# Temporary pass generation directories
+../tmp/

@@ -1,0 +1,57 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.example.legacy",
+  "teamIdentifier": "TEAMIDPLACEHOLDER",
+  "organizationName": "Work Die Retire",
+  "description": "Legacy Wealth Projection Card",
+  "serialNumber": "{{serialNumber}}",
+  "logoText": "Legacy Plan",
+  "barcode": {
+    "format": "PKBarcodeFormatQR",
+    "message": "{{barcodeMessage}}",
+    "messageEncoding": "iso-8859-1"
+  },
+  "storeCard": {
+    "primaryFields": [
+      {
+        "key": "legacyAmount",
+        "label": "Generational Wealth",
+        "value": "{{legacyAmountDisplay}}"
+      }
+    ],
+    "secondaryFields": [
+      {
+        "key": "legacyType",
+        "label": "LEGACY STATUS",
+        "value": "{{legacyType}}"
+      }
+    ],
+    "auxiliaryFields": [
+      {
+        "key": "withdrawalRate",
+        "label": "WITHDRAWAL RATE",
+        "value": "{{withdrawalRateDisplay}}"
+      },
+      {
+        "key": "successProbability",
+        "label": "SUCCESS RATE",
+        "value": "{{successProbabilityDisplay}}"
+      }
+    ],
+    "backFields": [
+      {
+        "key": "explanation",
+        "label": "About Your Legacy",
+        "value": "{{explanationText}}"
+      },
+      {
+        "key": "disclaimer",
+        "label": "Disclaimer",
+        "value": "This projection is based on Monte Carlo simulations and should not be considered financial advice. Consult a qualified financial advisor for personalized planning."
+      }
+    ]
+  },
+  "backgroundColor": "rgb(34, 77, 159)",
+  "foregroundColor": "rgb(255, 255, 255)",
+  "labelColor": "rgb(207, 225, 255)"
+}
