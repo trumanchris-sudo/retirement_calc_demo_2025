@@ -115,6 +115,9 @@ openssl.on("close", (code) => {
 
 
 
+  });
+} // <-- closes signManifest
+// END signManifest
 
 /**
  * Create a .pkpass archive (ZIP format) from a directory
