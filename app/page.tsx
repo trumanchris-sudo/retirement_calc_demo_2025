@@ -2297,346 +2297,820 @@ export default function App() {
 
         {res && (
           <>
-            {/* AI SNAPSHOT - Print Only (Page 1) */}
-            <div className="hidden print:block print-page-break-after print-section">
-              <div className="border-4 border-gray-900 rounded-lg p-6 mb-8 snapshot-block">
-                <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-gray-900">
-                  <h1 className="text-2xl font-bold">Tax-Aware Retirement Calculator</h1>
-                  <div className="flex gap-4 text-sm">
-                    <span>☑ {walkSeries === 'trulyRandom' ? 'Monte Carlo (N=1000)' : 'Optimized Path'}</span>
-                    <span className="text-gray-600">Page 1 - AI Snapshot</span>
-                  </div>
-                </div>
+            {/* ============================================
+                PRINT REPORT WRAPPER - Professional PDF Output
+                ============================================ */}
+            <div className="hidden print:block print:bg-white print:text-black print:p-8 print:font-sans print:text-sm">
 
-                {/* Core Metrics Grid */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="border-2 border-gray-800 p-4">
-                    <div className="text-xs text-gray-600 mb-1">Future Balance</div>
-                    <div className="text-xl font-bold">{fmt(res.finNom)}</div>
-                    <div className="text-xs text-gray-600">nominal @{retAge}</div>
-                  </div>
-                  <div className="border-2 border-gray-800 p-4">
-                    <div className="text-xs text-gray-600 mb-1">Today's Dollars</div>
-                    <div className="text-xl font-bold">{fmt(res.finReal)}</div>
-                    <div className="text-xs text-gray-600">real @{retAge}</div>
-                  </div>
-                  <div className="border-2 border-gray-800 p-4">
-                    <div className="text-xs text-gray-600 mb-1">Annual Withdrawal</div>
-                    <div className="text-xl font-bold">{fmt(res.wd)}</div>
-                    <div className="text-xs text-gray-600">{wdRate}% → {fmt(res.wdReal)} after-tax</div>
-                  </div>
-                </div>
+              {/* PAGE 1: COVER & KEY METRICS */}
+              <section className="print-section print-page-break-after">
+                <header className="mb-6 border-b-2 border-gray-900 pb-4">
+                  <h1 className="text-2xl font-bold tracking-tight text-black">
+                    Tax-Aware Retirement Plan Report
+                  </h1>
+                  <p className="text-xs text-gray-700 mt-1">
+                    Generated on {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} •
+                    {scenarioName ? ` Scenario: ${scenarioName}` : ' Base Case Analysis'} •
+                    {walkSeries === 'trulyRandom' ? ' Monte Carlo Simulation (1,000 runs)' : ' Single Path Projection'}
+                  </p>
+                </header>
 
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="border-2 border-gray-800 p-4">
-                    <div className="text-xs text-gray-600 mb-1">EOL Wealth</div>
-                    <div className="text-xl font-bold">{fmt(res.eol)}</div>
-                    <div className="text-xs text-gray-600">nominal</div>
+                {/* Key Metrics Grid - 2x3 layout */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {/* Future Balance at Retirement */}
+                  <div className="border-2 border-gray-300 p-4 bg-white">
+                    <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Future Balance at Retirement</div>
+                    <div className="text-2xl font-bold text-black mb-1">{fmt(res.finNom)}</div>
+                    <div className="text-sm text-gray-700">Nominal dollars at age {retAge}</div>
+                    <div className="text-xs text-gray-600 mt-1">Equivalent to {fmt(res.finReal)} in today's dollars</div>
                   </div>
-                  <div className="border-2 border-gray-800 p-4">
-                    <div className="text-xs text-gray-600 mb-1">Net to Heirs</div>
-                    <div className="text-xl font-bold">{fmt(res.netEstate)}</div>
-                    <div className="text-xs text-gray-600">after ${fmt(res.estateTax)} estate tax</div>
+
+                  {/* Year 1 Withdrawal */}
+                  <div className="border-2 border-gray-300 p-4 bg-white">
+                    <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Year 1 Gross Withdrawal</div>
+                    <div className="text-2xl font-bold text-black mb-1">{fmt(res.wd)}</div>
+                    <div className="text-sm text-gray-700">{wdRate}% withdrawal rate</div>
+                    <div className="text-xs text-gray-600 mt-1">After-tax income: {fmt(res.wdReal)}</div>
                   </div>
-                  <div className="border-2 border-gray-800 p-4">
-                    <div className="text-xs text-gray-600 mb-1">Failure Probability</div>
-                    <div className="text-xl font-bold">
-                      {res.probRuin !== undefined ? `${(res.probRuin * 100).toFixed(1)}%` : 'N/A'}
+
+                  {/* Success Rate */}
+                  <div className="border-2 border-gray-300 p-4 bg-white">
+                    <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Plan Success Rate</div>
+                    <div className="text-2xl font-bold text-black mb-1">
+                      {res.probRuin !== undefined ? `${((1 - res.probRuin) * 100).toFixed(1)}%` : '100%'}
                     </div>
-                    <div className="text-xs text-gray-600">
-                      {res.probRuin !== undefined ? `${Math.round(res.probRuin * 1000)}/1000 runs` : 'Single path'}
+                    <div className="text-sm text-gray-700">
+                      {res.probRuin !== undefined
+                        ? `${1000 - Math.round(res.probRuin * 1000)} out of 1,000 simulations`
+                        : 'Single deterministic path'}
+                    </div>
+                    <div className="text-xs text-gray-600 mt-1">
+                      {res.probRuin !== undefined && res.probRuin < 0.05
+                        ? 'High confidence'
+                        : res.probRuin && res.probRuin < 0.15
+                        ? 'Moderate risk'
+                        : res.probRuin
+                        ? 'Elevated risk'
+                        : 'Deterministic'}
+                    </div>
+                  </div>
+
+                  {/* End-of-Life Wealth */}
+                  <div className="border-2 border-gray-300 p-4 bg-white">
+                    <div className="text-xs uppercase text-gray-600 font-semibold mb-1">End-of-Life Wealth</div>
+                    <div className="text-2xl font-bold text-black mb-1">{fmt(res.eol)}</div>
+                    <div className="text-sm text-gray-700">Estate value at age {LIFE_EXP}</div>
+                    <div className="text-xs text-gray-600 mt-1">Real value: {fmt(res.eolReal || 0)}</div>
+                  </div>
+
+                  {/* Net to Heirs */}
+                  <div className="border-2 border-gray-300 p-4 bg-white">
+                    <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Net to Heirs</div>
+                    <div className="text-2xl font-bold text-black mb-1">{fmt(res.netEstate || res.eol)}</div>
+                    <div className="text-sm text-gray-700">After estate taxes</div>
+                    <div className="text-xs text-gray-600 mt-1">Estate tax: {fmt(res.estateTax || 0)}</div>
+                  </div>
+
+                  {/* Tax Burden */}
+                  <div className="border-2 border-gray-300 p-4 bg-white">
+                    <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Effective Tax Rate on Withdrawals</div>
+                    <div className="text-2xl font-bold text-black mb-1">
+                      {((((res.finReal * (wdRate / 100)) - res.wdReal) / (res.finReal * (wdRate / 100))) * 100).toFixed(1)}%
+                    </div>
+                    <div className="text-sm text-gray-700">Year 1 effective rate</div>
+                    <div className="text-xs text-gray-600 mt-1">
+                      Gross: {fmt(res.finReal * (wdRate / 100))} → Net: {fmt(res.wdReal)}
                     </div>
                   </div>
                 </div>
 
-                {/* AI Quick-Check Block */}
-                <div className="border-4 border-blue-600 bg-blue-50 p-4 font-mono text-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="font-bold">⚡ AI QUICK-CHECK (copy-paste this block):</div>
-                    <button
-                      onClick={() => {
-                        const content = document.getElementById('ai-quick-check-content')?.innerText || '';
-                        navigator.clipboard.writeText(content).then(() => {
-                          const btn = document.getElementById('copy-btn');
-                          if (btn) {
-                            btn.innerText = '✓ Copied!';
-                            setTimeout(() => { btn.innerText = '📋 Copy Block'; }, 2000);
-                          }
-                        });
-                      }}
-                      id="copy-btn"
-                      className="no-print px-3 py-1 text-xs font-semibold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                    >
-                      📋 Copy Block
-                    </button>
+                {/* Summary Section */}
+                <div className="mt-6 p-4 border-2 border-gray-300 bg-gray-50">
+                  <h3 className="text-base font-semibold mb-2 text-black">Plan Summary</h3>
+                  <div className="space-y-1 text-sm text-gray-800">
+                    <p>
+                      <strong>Retirement Timeline:</strong> Age {age1} to {retAge} (accumulation), then {retAge} to {LIFE_EXP} (retirement)
+                    </p>
+                    <p>
+                      <strong>Starting Balance:</strong> {fmt(sTax + sPre + sPost)} across all accounts
+                    </p>
+                    <p>
+                      <strong>Annual Contributions:</strong> {fmt(cTax1 + cPre1 + cPost1 + cMatch1)}{isMar ? ` (Primary) + ${fmt(cTax2 + cPre2 + cPost2 + cMatch2)} (Spouse)` : ''} until retirement
+                    </p>
+                    <p>
+                      <strong>Withdrawal Strategy:</strong> {wdRate}% initial withdrawal rate, inflation-adjusted annually
+                    </p>
+                    <p>
+                      <strong>Return Assumptions:</strong> {retMode === 'fixed' ? `${retRate}% nominal (${(retRate - infRate).toFixed(1)}% real)` : 'Historical S&P 500 bootstrap (1928-2024)'} with {infRate}% inflation
+                    </p>
                   </div>
-                  <div id="ai-quick-check-content" className="space-y-1">
-                    <div>Age {age1}→{retAge}: {fmt(res.finReal)} real at {retAge} (equiv. {fmt(res.finNom)} nom) → {wdRate}% SWR Gross: {fmt(res.finReal * (wdRate / 100))} real Yr1 ({fmt(res.wd)} nom) → After-tax: {fmt(res.wdReal)} real ({((((res.finReal * (wdRate / 100)) - res.wdReal) / (res.finReal * (wdRate / 100))) * 100).toFixed(0)}% eff. tax)</div>
-                    {res.rmdData && res.rmdData.length > 0 && (() => {
+                </div>
+              </section>
+
+              {/* PAGE 2: USER INPUTS & CORE ASSUMPTIONS */}
+              <section className="print-section print-page-break-after">
+                <header className="mb-4 border-b-2 border-gray-900 pb-3">
+                  <h2 className="text-xl font-bold text-black">Inputs & Assumptions</h2>
+                  <p className="text-xs text-gray-700 mt-1">All user-provided inputs and calculator defaults used in this analysis</p>
+                </header>
+
+                {/* Profile & Timeline */}
+                <div className="mb-6">
+                  <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Profile & Timeline</h3>
+                  <table className="w-full text-xs border border-gray-200">
+                    <tbody>
+                      <tr className="bg-gray-50">
+                        <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Current Age (Primary)</th>
+                        <td className="px-3 py-2 text-right text-black">{age1}</td>
+                      </tr>
+                      {isMar && (
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-black">Current Age (Spouse)</th>
+                          <td className="px-3 py-2 text-right text-black">{age2}</td>
+                        </tr>
+                      )}
+                      <tr className="bg-gray-50">
+                        <th className="px-3 py-2 text-left font-semibold text-black">Retirement Age</th>
+                        <td className="px-3 py-2 text-right text-black">{retAge}</td>
+                      </tr>
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-black">Life Expectancy Assumption</th>
+                        <td className="px-3 py-2 text-right text-black">Age {LIFE_EXP}</td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <th className="px-3 py-2 text-left font-semibold text-black">Filing Status</th>
+                        <td className="px-3 py-2 text-right text-black capitalize">{marital}</td>
+                      </tr>
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-black">Years to Retirement</th>
+                        <td className="px-3 py-2 text-right text-black">{retAge - age1}</td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <th className="px-3 py-2 text-left font-semibold text-black">Retirement Duration</th>
+                        <td className="px-3 py-2 text-right text-black">{LIFE_EXP - retAge} years</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Account Balances */}
+                <div className="mb-6">
+                  <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Current Account Balances</h3>
+                  <table className="w-full text-xs border border-gray-200">
+                    <tbody>
+                      <tr className="bg-gray-50">
+                        <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Taxable (Brokerage)</th>
+                        <td className="px-3 py-2 text-right text-black">{fmt(sTax)}</td>
+                      </tr>
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-black">Pre-Tax (Traditional 401k/IRA)</th>
+                        <td className="px-3 py-2 text-right text-black">{fmt(sPre)}</td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <th className="px-3 py-2 text-left font-semibold text-black">Roth (Tax-Free)</th>
+                        <td className="px-3 py-2 text-right text-black">{fmt(sPost)}</td>
+                      </tr>
+                      <tr className="border-t-2 border-gray-900">
+                        <th className="px-3 py-2 text-left font-bold text-black">Total Starting Balance</th>
+                        <td className="px-3 py-2 text-right font-bold text-black">{fmt(sTax + sPre + sPost)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Annual Contributions */}
+                <div className="mb-6">
+                  <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Annual Contributions (Until Retirement)</h3>
+                  <table className="w-full text-xs border border-gray-200">
+                    <tbody>
+                      <tr className="bg-gray-50">
+                        <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Taxable Account (Primary)</th>
+                        <td className="px-3 py-2 text-right text-black">{fmt(cTax1)}</td>
+                      </tr>
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-black">Pre-Tax 401k/IRA (Primary)</th>
+                        <td className="px-3 py-2 text-right text-black">{fmt(cPre1)}</td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <th className="px-3 py-2 text-left font-semibold text-black">Roth (Primary)</th>
+                        <td className="px-3 py-2 text-right text-black">{fmt(cPost1)}</td>
+                      </tr>
+                      {cMatch1 > 0 && (
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-black">Employer Match (Primary)</th>
+                          <td className="px-3 py-2 text-right text-black">{fmt(cMatch1)}</td>
+                        </tr>
+                      )}
+                      {isMar && (
+                        <>
+                          <tr className="bg-gray-50">
+                            <th className="px-3 py-2 text-left font-semibold text-black">Taxable Account (Spouse)</th>
+                            <td className="px-3 py-2 text-right text-black">{fmt(cTax2)}</td>
+                          </tr>
+                          <tr>
+                            <th className="px-3 py-2 text-left font-semibold text-black">Pre-Tax 401k/IRA (Spouse)</th>
+                            <td className="px-3 py-2 text-right text-black">{fmt(cPre2)}</td>
+                          </tr>
+                          <tr className="bg-gray-50">
+                            <th className="px-3 py-2 text-left font-semibold text-black">Roth (Spouse)</th>
+                            <td className="px-3 py-2 text-right text-black">{fmt(cPost2)}</td>
+                          </tr>
+                          {cMatch2 > 0 && (
+                            <tr>
+                              <th className="px-3 py-2 text-left font-semibold text-black">Employer Match (Spouse)</th>
+                              <td className="px-3 py-2 text-right text-black">{fmt(cMatch2)}</td>
+                            </tr>
+                          )}
+                        </>
+                      )}
+                      <tr className="border-t-2 border-gray-900">
+                        <th className="px-3 py-2 text-left font-bold text-black">Total Annual Contributions</th>
+                        <td className="px-3 py-2 text-right font-bold text-black">
+                          {fmt(cTax1 + cPre1 + cPost1 + cMatch1 + (isMar ? cTax2 + cPre2 + cPost2 + cMatch2 : 0))}
+                        </td>
+                      </tr>
+                      {incContrib && (
+                        <tr className="bg-gray-50">
+                          <th className="px-3 py-2 text-left font-semibold text-black">Contribution Growth Rate</th>
+                          <td className="px-3 py-2 text-right text-black">{incRate}% annually</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Withdrawal & Spending */}
+                <div className="mb-6">
+                  <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Withdrawal & Spending Policy</h3>
+                  <table className="w-full text-xs border border-gray-200">
+                    <tbody>
+                      <tr className="bg-gray-50">
+                        <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Initial Withdrawal Rate</th>
+                        <td className="px-3 py-2 text-right text-black">{wdRate}%</td>
+                      </tr>
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-black">Withdrawal Adjustment</th>
+                        <td className="px-3 py-2 text-right text-black">Inflation-adjusted annually</td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <th className="px-3 py-2 text-left font-semibold text-black">Spending Target (Year 1 Real)</th>
+                        <td className="px-3 py-2 text-right text-black">{fmt(res.finReal * (wdRate / 100))}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Return & Risk Assumptions */}
+                <div className="mb-6">
+                  <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Return & Risk Assumptions</h3>
+                  <table className="w-full text-xs border border-gray-200">
+                    <tbody>
+                      {retMode === 'fixed' ? (
+                        <>
+                          <tr className="bg-gray-50">
+                            <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Return Model</th>
+                            <td className="px-3 py-2 text-right text-black">Fixed Annual Return</td>
+                          </tr>
+                          <tr>
+                            <th className="px-3 py-2 text-left font-semibold text-black">Nominal Expected Return</th>
+                            <td className="px-3 py-2 text-right text-black">{retRate}%</td>
+                          </tr>
+                          <tr className="bg-gray-50">
+                            <th className="px-3 py-2 text-left font-semibold text-black">Real Expected Return</th>
+                            <td className="px-3 py-2 text-right text-black">{(retRate - infRate).toFixed(2)}%</td>
+                          </tr>
+                        </>
+                      ) : (
+                        <>
+                          <tr className="bg-gray-50">
+                            <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Return Model</th>
+                            <td className="px-3 py-2 text-right text-black">Historical S&P 500 Bootstrap</td>
+                          </tr>
+                          <tr>
+                            <th className="px-3 py-2 text-left font-semibold text-black">Historical Data Period</th>
+                            <td className="px-3 py-2 text-right text-black">1928-2024 Total Returns</td>
+                          </tr>
+                          <tr className="bg-gray-50">
+                            <th className="px-3 py-2 text-left font-semibold text-black">Sampling Method</th>
+                            <td className="px-3 py-2 text-right text-black">
+                              {walkSeries === 'trulyRandom' ? 'Random with replacement' : 'Sequential from seed'}
+                            </td>
+                          </tr>
+                        </>
+                      )}
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-black">Monte Carlo Runs</th>
+                        <td className="px-3 py-2 text-right text-black">
+                          {walkSeries === 'trulyRandom' ? '1,000' : '1 (deterministic)'}
+                        </td>
+                      </tr>
+                      {retMode === 'randomWalk' && (
+                        <tr className="bg-gray-50">
+                          <th className="px-3 py-2 text-left font-semibold text-black">Sequence-of-Returns Risk</th>
+                          <td className="px-3 py-2 text-right text-black">Modeled (historical variability)</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Tax Assumptions */}
+                <div className="mb-6">
+                  <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Tax Assumptions</h3>
+                  <table className="w-full text-xs border border-gray-200">
+                    <tbody>
+                      <tr className="bg-gray-50">
+                        <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Tax Treatment</th>
+                        <td className="px-3 py-2 text-right text-black">Account-type aware (Taxable/Pre-tax/Roth)</td>
+                      </tr>
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-black">RMD Start Age</th>
+                        <td className="px-3 py-2 text-right text-black">Age {RMD_START_AGE} (IRS default)</td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <th className="px-3 py-2 text-left font-semibold text-black">Estate Tax Exemption</th>
+                        <td className="px-3 py-2 text-right text-black">{fmt(ESTATE_TAX_EXEMPTION)} (2025 threshold)</td>
+                      </tr>
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-black">Estate Tax Rate</th>
+                        <td className="px-3 py-2 text-right text-black">{(ESTATE_TAX_RATE * 100).toFixed(0)}% (federal)</td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <th className="px-3 py-2 text-left font-semibold text-black">State Tax Rate</th>
+                        <td className="px-3 py-2 text-right text-black">{stateRate}%</td>
+                      </tr>
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-black">Tax Calculation Method</th>
+                        <td className="px-3 py-2 text-right text-black">Federal brackets + LTCG + NIIT</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Inflation & Scenario Assumptions */}
+                <div className="mb-6">
+                  <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Inflation & Scenario Modeling</h3>
+                  <table className="w-full text-xs border border-gray-200">
+                    <tbody>
+                      <tr className="bg-gray-50">
+                        <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Baseline Inflation Rate</th>
+                        <td className="px-3 py-2 text-right text-black">{infRate}% annually</td>
+                      </tr>
+                      {showInflationShock && inflationShockRate > 0 && (
+                        <>
+                          <tr>
+                            <th className="px-3 py-2 text-left font-semibold text-black">Inflation Shock Rate</th>
+                            <td className="px-3 py-2 text-right text-black">{inflationShockRate}%</td>
+                          </tr>
+                          <tr className="bg-gray-50">
+                            <th className="px-3 py-2 text-left font-semibold text-black">Shock Duration</th>
+                            <td className="px-3 py-2 text-right text-black">{inflationShockDuration} years</td>
+                          </tr>
+                        </>
+                      )}
+                      {showBearMarket && historicalYear && (
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-black">Bear Market Scenario</th>
+                          <td className="px-3 py-2 text-right text-black">Starting year {historicalYear}</td>
+                        </tr>
+                      )}
+                      <tr className={showInflationShock || showBearMarket ? '' : 'bg-gray-50'}>
+                        <th className="px-3 py-2 text-left font-semibold text-black">Scenario Comparison Mode</th>
+                        <td className="px-3 py-2 text-right text-black">{comparisonMode ? 'Enabled' : 'Disabled'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Social Security (if applicable) */}
+                {includeSS && (
+                  <div className="mb-6">
+                    <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Social Security Assumptions</h3>
+                    <table className="w-full text-xs border border-gray-200">
+                      <tbody>
+                        <tr className="bg-gray-50">
+                          <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Primary Avg Career Earnings</th>
+                          <td className="px-3 py-2 text-right text-black">{fmt(ssIncome)}</td>
+                        </tr>
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-black">Primary Claim Age</th>
+                          <td className="px-3 py-2 text-right text-black">{ssClaimAge}</td>
+                        </tr>
+                        {isMar && (
+                          <>
+                            <tr className="bg-gray-50">
+                              <th className="px-3 py-2 text-left font-semibold text-black">Spouse Avg Career Earnings</th>
+                              <td className="px-3 py-2 text-right text-black">{fmt(ssIncome2)}</td>
+                            </tr>
+                            <tr>
+                              <th className="px-3 py-2 text-left font-semibold text-black">Spouse Claim Age</th>
+                              <td className="px-3 py-2 text-right text-black">{ssClaimAge2}</td>
+                            </tr>
+                          </>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+
+              {/* PAGE 3: WEALTH ACCUMULATION CHART & PROJECTIONS */}
+              <section className="print-section print-page-break-after">
+                <header className="mb-4 border-b-2 border-gray-900 pb-3">
+                  <h2 className="text-xl font-bold text-black">Wealth Accumulation Projection</h2>
+                  <p className="text-xs text-gray-700 mt-1">
+                    {walkSeries === 'trulyRandom'
+                      ? 'Median (50th percentile) projection with percentile bands'
+                      : 'Deterministic projection based on assumptions'}
+                  </p>
+                </header>
+
+                {/* Chart will be rendered here by existing screen charts */}
+                <div className="mb-6 p-4 border-2 border-gray-300 bg-gray-50">
+                  <p className="text-xs text-gray-700 italic">
+                    The wealth accumulation chart from the interactive view will appear here when printed.
+                    It shows your projected portfolio balance over time, from age {age1} through age {LIFE_EXP}.
+                  </p>
+                </div>
+
+                {/* Key Milestones Table */}
+                <div className="mb-6">
+                  <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Key Milestones</h3>
+                  <table className="w-full text-xs border border-gray-200">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="px-3 py-2 text-left font-semibold text-black">Age / Year</th>
+                        <th className="px-3 py-2 text-right font-semibold text-black">Nominal Balance</th>
+                        <th className="px-3 py-2 text-right font-semibold text-black">Real Balance (Today's $)</th>
+                        <th className="px-3 py-2 text-left font-semibold text-black">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="px-3 py-2 text-left text-black">Age {age1} (Today)</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(sTax + sPre + sPost)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(sTax + sPre + sPost)}</td>
+                        <td className="px-3 py-2 text-left text-black text-xs">Current balance</td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <td className="px-3 py-2 text-left text-black">Age {retAge} (Retirement)</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(res.finNom)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(res.finReal)}</td>
+                        <td className="px-3 py-2 text-left text-black text-xs">Retirement begins, withdrawals start</td>
+                      </tr>
+                      {RMD_START_AGE >= retAge && RMD_START_AGE < LIFE_EXP && (
+                        <tr>
+                          <td className="px-3 py-2 text-left text-black">Age {RMD_START_AGE} (RMD Start)</td>
+                          <td className="px-3 py-2 text-right text-black">—</td>
+                          <td className="px-3 py-2 text-right text-black">—</td>
+                          <td className="px-3 py-2 text-left text-black text-xs">Required Minimum Distributions begin</td>
+                        </tr>
+                      )}
+                      <tr className={RMD_START_AGE >= retAge ? '' : 'bg-gray-50'}>
+                        <td className="px-3 py-2 text-left text-black">Age {Math.floor((retAge + LIFE_EXP) / 2)}</td>
+                        <td className="px-3 py-2 text-right text-black">—</td>
+                        <td className="px-3 py-2 text-right text-black">—</td>
+                        <td className="px-3 py-2 text-left text-black text-xs">Mid-retirement checkpoint</td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <td className="px-3 py-2 text-left text-black">Age {LIFE_EXP} (End of Plan)</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(res.eol)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(res.eolReal || 0)}</td>
+                        <td className="px-3 py-2 text-left text-black text-xs">End of life expectancy</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Account Composition Over Time */}
+                <div className="mb-6">
+                  <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Account Composition Breakdown</h3>
+                  <table className="w-full text-xs border border-gray-200">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="px-3 py-2 text-left font-semibold text-black">Milestone</th>
+                        <th className="px-3 py-2 text-right font-semibold text-black">Taxable</th>
+                        <th className="px-3 py-2 text-right font-semibold text-black">Pre-Tax</th>
+                        <th className="px-3 py-2 text-right font-semibold text-black">Roth</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="px-3 py-2 text-left text-black">Today (Age {age1})</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(sTax)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(sPre)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(sPost)}</td>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <td className="px-3 py-2 text-left text-black">Retirement (Age {retAge})</td>
+                        <td className="px-3 py-2 text-right text-black">—</td>
+                        <td className="px-3 py-2 text-right text-black">—</td>
+                        <td className="px-3 py-2 text-right text-black">—</td>
+                      </tr>
+                      <tr>
+                        <td className="px-3 py-2 text-left text-black">End of Life (Age {LIFE_EXP})</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(res.eolAccounts.taxable)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(res.eolAccounts.pretax)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(res.eolAccounts.roth)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <p className="text-xs text-gray-600 mt-2 italic">
+                    Note: Retirement account composition data is calculated but not stored at all timepoints.
+                    Consult the chart for visual representation of the accumulation trajectory.
+                  </p>
+                </div>
+
+                {/* Success Rate & Risk Metrics */}
+                {res.probRuin !== undefined && (
+                  <div className="p-4 border-2 border-gray-300 bg-blue-50">
+                    <h3 className="text-base font-semibold mb-2 text-black">Monte Carlo Analysis Summary</h3>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <div className="text-gray-700">Success Rate:</div>
+                        <div className="text-lg font-bold text-black">{((1 - res.probRuin) * 100).toFixed(1)}%</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-700">Failure Risk:</div>
+                        <div className="text-lg font-bold text-black">{(res.probRuin * 100).toFixed(1)}%</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-700">Successful Runs:</div>
+                        <div className="text-base font-semibold text-black">{1000 - Math.round(res.probRuin * 1000)} out of 1,000</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-700">Interpretation:</div>
+                        <div className="text-base font-semibold text-black">
+                          {res.probRuin < 0.05 ? 'Very High Confidence' :
+                           res.probRuin < 0.10 ? 'High Confidence' :
+                           res.probRuin < 0.20 ? 'Moderate Confidence' :
+                           'Low Confidence'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              {/* PAGE 4: RMD & TAX PROJECTIONS */}
+              {res.rmdData && res.rmdData.length > 0 && (
+                <section className="print-section print-page-break-after">
+                  <header className="mb-4 border-b-2 border-gray-900 pb-3">
+                    <h2 className="text-xl font-bold text-black">RMD & Tax Projections</h2>
+                    <p className="text-xs text-gray-700 mt-1">Required Minimum Distributions and tax impact analysis</p>
+                  </header>
+
+                  {/* RMD Chart Note */}
+                  <div className="mb-6 p-4 border-2 border-gray-300 bg-gray-50">
+                    <p className="text-xs text-gray-700 italic">
+                      The RMD vs. Spending chart from the interactive view will appear here when printed.
+                      It shows required withdrawals compared to your actual spending needs.
+                    </p>
+                  </div>
+
+                  {/* RMD Summary Table */}
+                  <div className="mb-6">
+                    <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">RMD Summary</h3>
+                    {(() => {
                       const peakRMD = res.rmdData.reduce((max: any, curr: any) => curr.rmd > max.rmd ? curr : max, res.rmdData[0]);
-                      const excessRMD = Math.max(0, peakRMD.rmd - peakRMD.spending);
-                      return excessRMD > 100000 ? (
-                        <div>RMD peak during life @{peakRMD.age}: {fmt(peakRMD.rmd)} vs {fmt(peakRMD.spending)} need → {fmt(excessRMD)} excess taxed</div>
-                      ) : null;
+                      const firstRMD = res.rmdData.find((d: any) => d.rmd > 0);
+                      const totalRMDs = res.rmdData.reduce((sum: number, d: any) => sum + d.rmd, 0);
+                      const avgExcess = res.rmdData.reduce((sum: number, d: any) => sum + Math.max(0, d.rmd - d.spending), 0) / res.rmdData.length;
+
+                      return (
+                        <table className="w-full text-xs border border-gray-200">
+                          <tbody>
+                            <tr className="bg-gray-50">
+                              <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">RMD Start Age</th>
+                              <td className="px-3 py-2 text-right text-black">Age {RMD_START_AGE}</td>
+                            </tr>
+                            {firstRMD && (
+                              <tr>
+                                <th className="px-3 py-2 text-left font-semibold text-black">First Year RMD Amount</th>
+                                <td className="px-3 py-2 text-right text-black">{fmt(firstRMD.rmd)}</td>
+                              </tr>
+                            )}
+                            <tr className="bg-gray-50">
+                              <th className="px-3 py-2 text-left font-semibold text-black">Peak RMD Year</th>
+                              <td className="px-3 py-2 text-right text-black">Age {peakRMD.age}</td>
+                            </tr>
+                            <tr>
+                              <th className="px-3 py-2 text-left font-semibold text-black">Peak RMD Amount</th>
+                              <td className="px-3 py-2 text-right text-black">{fmt(peakRMD.rmd)}</td>
+                            </tr>
+                            <tr className="bg-gray-50">
+                              <th className="px-3 py-2 text-left font-semibold text-black">Peak Year Spending Need</th>
+                              <td className="px-3 py-2 text-right text-black">{fmt(peakRMD.spending)}</td>
+                            </tr>
+                            <tr>
+                              <th className="px-3 py-2 text-left font-semibold text-black">Peak Year Excess (Taxed)</th>
+                              <td className="px-3 py-2 text-right text-black">{fmt(Math.max(0, peakRMD.rmd - peakRMD.spending))}</td>
+                            </tr>
+                            <tr className="bg-gray-50">
+                              <th className="px-3 py-2 text-left font-semibold text-black">Total Lifetime RMDs</th>
+                              <td className="px-3 py-2 text-right text-black">{fmt(res.totalRMDs || totalRMDs)}</td>
+                            </tr>
+                            <tr>
+                              <th className="px-3 py-2 text-left font-semibold text-black">Avg Annual Excess</th>
+                              <td className="px-3 py-2 text-right text-black">{fmt(avgExcess)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      );
                     })()}
-                    {res.genPayout && (
-                      <div>Generational: {res.genPayout.startBeneficiaries} heirs @ {fmt(res.genPayout.perBenReal)}/yr real → {res.genPayout.years} yrs median{res.genPayout.probPerpetual ? `, ${Math.round(res.genPayout.probPerpetual * 100)}% perpetual (P90 historical)` : ''}</div>
-                    )}
-                    <div>
-                      {retMode === 'fixed'
-                        ? `Return assumption: ${retRate}% nominal, ${infRate}% inflation = ${(retRate - infRate).toFixed(1)}% real (Fixed return mode)`
-                        : `Return model: Historical S&P 500 total-return bootstrap (1928–2024) with ${infRate}% inflation`}
-                    </div>
-                    <div>Starting balance: {fmt(sTax + sPre + sPost)} ({fmt(sTax)} taxable, {fmt(sPre)} pre-tax, {fmt(sPost)} Roth)</div>
-                    <div>Annual contributions: {fmt(cTax1 + cPre1 + cPost1 + cMatch1)}{isMar ? ` + ${fmt(cTax2 + cPre2 + cPost2 + cMatch2)}` : ''}</div>
-                    {res.probRuin !== undefined && (
-                      <div>Success rate: {((1 - res.probRuin) * 100).toFixed(1)}% ({1000 - Math.round(res.probRuin * 1000)}/1000 Monte Carlo runs)</div>
-                    )}
-                    <div>EOL buckets: Taxable {fmt(res.eolAccounts.taxable)} ({((res.eolAccounts.taxable / res.eol) * 100).toFixed(0)}%), Pre-tax {fmt(res.eolAccounts.pretax)} ({((res.eolAccounts.pretax / res.eol) * 100).toFixed(0)}%), Roth {fmt(res.eolAccounts.roth)} ({((res.eolAccounts.roth / res.eol) * 100).toFixed(0)}%)</div>
-                  </div>
-                </div>
-
-                {/* Quick Analysis */}
-                <div className="mt-6 p-4 bg-gray-100 border-2 border-gray-700">
-                  <div className="font-bold mb-2">⚠️ PLAN ANALYSIS:</div>
-                  <div className="space-y-1 text-sm">
-                    <div>✓ Success: {res.probRuin !== undefined ? `${((1 - res.probRuin) * 100).toFixed(0)}%` : 'Deterministic'} | Withdrawal: {wdRate}% {wdRate <= 4 ? '(safe)' : '(aggressive)'}</div>
-                    {res.rmdData && res.rmdData.some((d: any) => d.rmd > d.spending * 2) && (
-                      <div>⚡ RMD bomb detected → Consider Roth conversions now</div>
-                    )}
-                    {res.genPayout && res.genPayout.fundLeftReal > 0 && (
-                      <div>💰 Legacy: {res.genPayout.fundLeftReal > 0 ? 'Perpetual trust achievable' : `${res.genPayout.years} years`}</div>
-                    )}
-                    {res.estateTax > 1000000 && (
-                      <div>🏛️ Estate tax: {fmt(res.estateTax)} ({((res.estateTax / res.eol) * 100).toFixed(0)}% of estate)</div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-6 text-xs text-gray-600 text-center">
-                  Paste the "AI QUICK-CHECK" block into Claude/GPT/Grok for instant validation
-                </div>
-              </div>
-            </div>
-
-            {/* Human-Readable Financial Summary - Pages 2+ (Print Only) */}
-            <div className="hidden print:block print-human-summary">
-              {/* Page 2 Header */}
-              <div className="print-section">
-                <div className="border-b-2 border-gray-900 pb-4 mb-6">
-                  <h1 className="text-2xl font-bold">Your Retirement Financial Summary</h1>
-                  <p className="text-sm text-gray-600 mt-1">Generated {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                </div>
-
-                {/* 1. Executive Summary - 6 Key Metrics in 2x3 Grid */}
-                <div className="mb-8">
-                  <h2 className="text-xl font-bold mb-4">Executive Summary</h2>
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Future Balance */}
-                    <div className="border-2 border-gray-300 p-4">
-                      <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Future Balance at Retirement</div>
-                      <div className="text-2xl font-bold mb-1">{fmt(res.finNom)}</div>
-                      <div className="text-sm text-gray-600">Nominal dollars at age {retAge}</div>
-                    </div>
-
-                    {/* Today's Dollars */}
-                    <div className="border-2 border-gray-300 p-4">
-                      <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Purchasing Power (Today's Dollars)</div>
-                      <div className="text-2xl font-bold mb-1">{fmt(res.finReal)}</div>
-                      <div className="text-sm text-gray-600">Inflation-adjusted value at age {retAge}</div>
-                    </div>
-
-                    {/* Annual Withdrawal */}
-                    <div className="border-2 border-gray-300 p-4">
-                      <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Annual Withdrawal (Gross)</div>
-                      <div className="text-2xl font-bold mb-1">{fmt(res.wd)}</div>
-                      <div className="text-sm text-gray-600">{wdRate}% withdrawal rate in year 1</div>
-                    </div>
-
-                    {/* After-Tax Income */}
-                    <div className="border-2 border-gray-300 p-4">
-                      <div className="text-xs uppercase text-gray-600 font-semibold mb-1">After-Tax Annual Income</div>
-                      <div className="text-2xl font-bold mb-1">{fmt(res.wdReal)}</div>
-                      <div className="text-sm text-gray-600">Spendable income after all taxes</div>
-                    </div>
-
-                    {/* EOL Wealth */}
-                    <div className="border-2 border-gray-300 p-4">
-                      <div className="text-xs uppercase text-gray-600 font-semibold mb-1">End-of-Life Wealth</div>
-                      <div className="text-2xl font-bold mb-1">{fmt(res.eol)}</div>
-                      <div className="text-sm text-gray-600">Estate value at age {LIFE_EXP}</div>
-                    </div>
-
-                    {/* Net to Heirs */}
-                    <div className="border-2 border-gray-300 p-4">
-                      <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Net to Heirs</div>
-                      <div className="text-2xl font-bold mb-1">{fmt(res.netEstate || res.eol)}</div>
-                      <div className="text-sm text-gray-600">After {fmt(res.estateTax || 0)} estate tax</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. Your Inputs - Two Columns */}
-                <div className="mb-8">
-                  <h2 className="text-xl font-bold mb-4">Your Inputs</h2>
-                  <div className="grid grid-cols-2 gap-6">
-                    {/* Left Column */}
-                    <div>
-                      <h3 className="text-base font-semibold mb-3 border-b border-gray-300 pb-1">Personal Information</h3>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between"><span>Current Age:</span><span className="font-semibold text-right">{age1}</span></div>
-                        <div className="flex justify-between"><span>Retirement Age:</span><span className="font-semibold text-right">{retAge}</span></div>
-                        <div className="flex justify-between"><span>Marital Status:</span><span className="font-semibold text-right">{marital}</span></div>
-                        <div className="flex justify-between"><span>Planning Horizon:</span><span className="font-semibold text-right">To age {LIFE_EXP}</span></div>
-                      </div>
-
-                      <h3 className="text-base font-semibold mb-3 mt-6 border-b border-gray-300 pb-1">Starting Balances</h3>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between"><span>Taxable (Brokerage):</span><span className="font-semibold text-right">{fmt(sTax)}</span></div>
-                        <div className="flex justify-between"><span>Pre-Tax (401k/IRA):</span><span className="font-semibold text-right">{fmt(sPre)}</span></div>
-                        <div className="flex justify-between"><span>Roth (Tax-Free):</span><span className="font-semibold text-right">{fmt(sPost)}</span></div>
-                        <div className="flex justify-between border-t border-gray-300 pt-2 mt-2"><span className="font-semibold">Total:</span><span className="font-bold text-right">{fmt(sTax + sPre + sPost)}</span></div>
-                      </div>
-                    </div>
-
-                    {/* Right Column */}
-                    <div>
-                      <h3 className="text-base font-semibold mb-3 border-b border-gray-300 pb-1">Annual Contributions</h3>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between"><span>Taxable:</span><span className="font-semibold text-right">{fmt(cTax1)}</span></div>
-                        <div className="flex justify-between"><span>Pre-Tax:</span><span className="font-semibold text-right">{fmt(cPre1)}</span></div>
-                        <div className="flex justify-between"><span>Roth:</span><span className="font-semibold text-right">{fmt(cPost1)}</span></div>
-                        <div className="flex justify-between border-t border-gray-300 pt-2 mt-2"><span className="font-semibold">Total:</span><span className="font-bold text-right">{fmt(cTax1 + cPre1 + cPost1)}</span></div>
-                      </div>
-
-                      <h3 className="text-base font-semibold mb-3 mt-6 border-b border-gray-300 pb-1">Key Assumptions</h3>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between"><span>Inflation Rate:</span><span className="font-semibold text-right">{infRate}%</span></div>
-                        <div className="flex justify-between"><span>Withdrawal Rate:</span><span className="font-semibold text-right">{wdRate}%</span></div>
-                        <div className="flex justify-between"><span>Return Model:</span><span className="font-semibold text-right">{retMode === 'fixed' ? `${retRate}% Fixed` : 'Historical'}</span></div>
-                        <div className="flex justify-between"><span>Monte Carlo Runs:</span><span className="font-semibold text-right">{walkSeries === 'trulyRandom' ? '1,000' : 'Single'}</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Retirement Analysis */}
-                <div className="mb-8">
-                  <h2 className="text-xl font-bold mb-4">Retirement Analysis</h2>
-
-                  {/* Success Probability */}
-                  <div className="border-2 border-blue-300 bg-blue-50 p-4 mb-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-semibold text-gray-700">Plan Success Rate</div>
-                        <div className="text-3xl font-bold text-blue-900 mt-1">
-                          {res.probRuin !== undefined ? `${((1 - res.probRuin) * 100).toFixed(1)}%` : '100%'}
-                        </div>
-                        <div className="text-xs text-gray-600 mt-1">
-                          {res.probRuin !== undefined ? `Based on ${1000 - Math.round(res.probRuin * 1000)} out of 1,000 simulations` : 'Single deterministic path'}
-                        </div>
-                      </div>
-                      <div className="text-6xl">
-                        {res.probRuin !== undefined && res.probRuin < 0.05 ? '✓' : res.probRuin < 0.15 ? '⚠️' : '❌'}
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Key Risks & Opportunities */}
-                  <div className="space-y-2 text-sm">
-                    <h3 className="text-base font-semibold mb-2">Key Risks & Opportunities:</h3>
-
-                    {/* RMD Warning */}
-                    {res.rmdData && res.rmdData.some((d: any) => d.rmd > d.spending * 1.5) && (
-                      <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-300 rounded">
-                        <span className="text-xl">⚡</span>
-                        <div>
-                          <div className="font-semibold">RMD Tax Bomb Detected</div>
-                          <div className="text-xs text-gray-700 mt-1">Your Required Minimum Distributions exceed your spending needs significantly after age 73. Consider Roth conversions now to reduce future tax burden.</div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Estate Tax Impact */}
-                    {res.estateTax && res.estateTax > 1000000 && (
-                      <div className="flex items-start gap-2 p-3 bg-orange-50 border border-orange-300 rounded">
-                        <span className="text-xl">🏛️</span>
-                        <div>
-                          <div className="font-semibold">Significant Estate Tax Impact</div>
-                          <div className="text-xs text-gray-700 mt-1">Your estate will owe approximately {fmt(res.estateTax)} ({((res.estateTax / res.eol) * 100).toFixed(0)}% of total wealth). Consider gifting strategies or trusts to reduce exposure.</div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Withdrawal Sustainability */}
-                    <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-300 rounded">
-                      <span className="text-xl">{wdRate <= 4 ? '✓' : '⚠️'}</span>
-                      <div>
-                        <div className="font-semibold">Withdrawal Rate: {wdRate}%</div>
-                        <div className="text-xs text-gray-700 mt-1">
-                          {wdRate <= 3.5 ? 'Very conservative - high confidence in sustainability' :
-                           wdRate <= 4.0 ? 'Classic 4% rule - historically safe' :
-                           wdRate <= 5.0 ? 'Aggressive - higher risk of depletion' :
-                           'Very aggressive - significant risk of running out'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Generational Legacy */}
-                    {res.genPayout && res.genPayout.fundLeftReal > 0 && (
-                      <div className="flex items-start gap-2 p-3 bg-purple-50 border border-purple-300 rounded">
-                        <span className="text-xl">💰</span>
-                        <div>
-                          <div className="font-semibold">Generational Wealth Potential</div>
-                          <div className="text-xs text-gray-700 mt-1">Your estate could support {res.genPayout.startBeneficiaries} beneficiaries at {fmt(res.genPayout.perBenReal)}/year for {res.genPayout.years === 10000 ? 'perpetuity' : `${res.genPayout.years} years`}.</div>
-                        </div>
-                      </div>
-                    )}
+                  {/* Tax Impact Analysis */}
+                  <div className="mb-6">
+                    <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Tax Impact</h3>
+                    <table className="w-full text-xs border border-gray-200">
+                      <tbody>
+                        <tr className="bg-gray-50">
+                          <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Year 1 Federal Ordinary Tax</th>
+                          <td className="px-3 py-2 text-right text-black">{fmt(res.tax?.fedOrd || 0)}</td>
+                        </tr>
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-black">Year 1 Capital Gains Tax</th>
+                          <td className="px-3 py-2 text-right text-black">{fmt(res.tax?.fedCap || 0)}</td>
+                        </tr>
+                        <tr className="bg-gray-50">
+                          <th className="px-3 py-2 text-left font-semibold text-black">Year 1 NIIT (3.8%)</th>
+                          <td className="px-3 py-2 text-right text-black">{fmt(res.tax?.niit || 0)}</td>
+                        </tr>
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-black">Year 1 State Tax</th>
+                          <td className="px-3 py-2 text-right text-black">{fmt(res.tax?.state || 0)}</td>
+                        </tr>
+                        <tr className="bg-gray-50 border-t-2 border-gray-900">
+                          <th className="px-3 py-2 text-left font-bold text-black">Year 1 Total Tax</th>
+                          <td className="px-3 py-2 text-right font-bold text-black">{fmt(res.tax?.tot || 0)}</td>
+                        </tr>
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-black">Effective Tax Rate (Year 1)</th>
+                          <td className="px-3 py-2 text-right text-black">
+                            {((((res.finReal * (wdRate / 100)) - res.wdReal) / (res.finReal * (wdRate / 100))) * 100).toFixed(1)}%
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
-                </div>
-              </div>
 
-              {/* Note: Charts appear on subsequent pages via normal flow */}
+                  {/* Planning Recommendations */}
+                  {(() => {
+                    const peakRMD = res.rmdData.reduce((max: any, curr: any) => curr.rmd > max.rmd ? curr : max, res.rmdData[0]);
+                    const excessRMD = Math.max(0, peakRMD.rmd - peakRMD.spending);
+                    const hasRMDBomb = excessRMD > 100000;
 
-              {/* Detailed Breakdown */}
-              <div className="print-section mt-8">
-                <h2 className="text-xl font-bold mb-4">Detailed Account Breakdown</h2>
+                    return hasRMDBomb ? (
+                      <div className="p-4 border-2 border-yellow-500 bg-yellow-50">
+                        <h3 className="text-base font-semibold mb-2 text-black">⚡ RMD Tax Bomb Detected</h3>
+                        <p className="text-xs text-gray-800 mb-2">
+                          At age {peakRMD.age}, your Required Minimum Distribution ({fmt(peakRMD.rmd)}) will significantly exceed
+                          your spending need ({fmt(peakRMD.spending)}), resulting in {fmt(excessRMD)} of unwanted taxable income.
+                        </p>
+                        <p className="text-xs font-semibold text-gray-900">
+                          Consider: Roth conversions during lower-income years, Qualified Charitable Distributions (QCDs) if eligible,
+                          or strategic withdrawal timing to minimize tax impact.
+                        </p>
+                      </div>
+                    ) : null;
+                  })()}
+                </section>
+              )}
 
-                <div className="grid grid-cols-2 gap-6 mb-6">
-                  {/* At Retirement */}
+              {/* PAGE 5: SCENARIO COMPARISON (if applicable) */}
+              {comparisonMode && comparisonData && (comparisonData.showBearMarket || comparisonData.showInflation) && (
+                <section className="print-section print-page-break-after">
+                  <header className="mb-4 border-b-2 border-gray-900 pb-3">
+                    <h2 className="text-xl font-bold text-black">Scenario Comparison</h2>
+                    <p className="text-xs text-gray-700 mt-1">Baseline vs. stress test scenarios</p>
+                  </header>
+
+                  {/* Scenario Comparison Chart Note */}
+                  <div className="mb-6 p-4 border-2 border-gray-300 bg-gray-50">
+                    <p className="text-xs text-gray-700 italic">
+                      The scenario comparison chart from the interactive view will appear here when printed,
+                      showing baseline vs. bear market vs. inflation shock scenarios.
+                    </p>
+                  </div>
+
+                  {/* Scenario Descriptions */}
+                  <div className="mb-6">
+                    <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Scenario Definitions</h3>
+                    <table className="w-full text-xs border border-gray-200">
+                      <tbody>
+                        <tr className="bg-gray-50">
+                          <th className="w-1/3 px-3 py-2 text-left font-semibold text-black">Baseline</th>
+                          <td className="px-3 py-2 text-left text-black">
+                            {retMode === 'fixed' ? `${retRate}% nominal return` : 'Historical S&P 500 returns'} with {infRate}% inflation
+                          </td>
+                        </tr>
+                        {comparisonData.showBearMarket && (
+                          <tr>
+                            <th className="px-3 py-2 text-left font-semibold text-black">Bear Market</th>
+                            <td className="px-3 py-2 text-left text-black">
+                              Severe early retirement market downturn{historicalYear ? ` (${historicalYear} scenario)` : ''}
+                            </td>
+                          </tr>
+                        )}
+                        {comparisonData.showInflation && (
+                          <tr className={comparisonData.showBearMarket ? 'bg-gray-50' : ''}>
+                            <th className="px-3 py-2 text-left font-semibold text-black">Inflation Shock</th>
+                            <td className="px-3 py-2 text-left text-black">
+                              Elevated {inflationShockRate}% inflation for {inflationShockDuration} years starting at retirement
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Scenario Outcomes Table (Placeholder) */}
+                  <div className="mb-6">
+                    <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Scenario Outcomes</h3>
+                    <p className="text-xs text-gray-600 italic">
+                      Refer to the comparison chart for visual analysis of how each scenario impacts wealth over time.
+                      Key differences will be most pronounced during early retirement years.
+                    </p>
+                  </div>
+                </section>
+              )}
+
+              {/* FINAL PAGE: DISCLAIMERS & LIMITATIONS */}
+              <section className="print-section">
+                <header className="mb-4 border-b-2 border-gray-900 pb-3">
+                  <h2 className="text-xl font-bold text-black">Limitations & Disclaimers</h2>
+                </header>
+
+                <div className="space-y-4 text-xs text-gray-800">
                   <div>
-                    <h3 className="text-base font-semibold mb-3 border-b border-gray-300 pb-1">Account Composition at Retirement (Age {retAge})</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between"><span>Taxable:</span><span className="font-semibold text-right">{fmt(res.finNom * 0.33)} (33%)</span></div>
-                      <div className="flex justify-between"><span>Pre-Tax:</span><span className="font-semibold text-right">{fmt(res.finNom * 0.45)} (45%)</span></div>
-                      <div className="flex justify-between"><span>Roth:</span><span className="font-semibold text-right">{fmt(res.finNom * 0.22)} (22%)</span></div>
-                      <div className="flex justify-between border-t border-gray-300 pt-2 mt-2"><span className="font-semibold">Total:</span><span className="font-bold text-right">{fmt(res.finNom)}</span></div>
-                    </div>
+                    <h3 className="text-sm font-semibold mb-2 text-black">Educational Purpose Only</h3>
+                    <p>
+                      This report is generated by a retirement planning calculator for educational and illustrative purposes only.
+                      It does NOT constitute personalized financial, investment, tax, or legal advice. You should consult with
+                      qualified financial, tax, and legal professionals before making any financial decisions.
+                    </p>
                   </div>
 
-                  {/* At End of Life */}
                   <div>
-                    <h3 className="text-base font-semibold mb-3 border-b border-gray-300 pb-1">Account Composition at End of Life (Age {LIFE_EXP})</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between"><span>Taxable:</span><span className="font-semibold text-right">{fmt(res.eolAccounts.taxable)} ({((res.eolAccounts.taxable / res.eol) * 100).toFixed(0)}%)</span></div>
-                      <div className="flex justify-between"><span>Pre-Tax:</span><span className="font-semibold text-right">{fmt(res.eolAccounts.pretax)} ({((res.eolAccounts.pretax / res.eol) * 100).toFixed(0)}%)</span></div>
-                      <div className="flex justify-between"><span>Roth:</span><span className="font-semibold text-right">{fmt(res.eolAccounts.roth)} ({((res.eolAccounts.roth / res.eol) * 100).toFixed(0)}%)</span></div>
-                      <div className="flex justify-between border-t border-gray-300 pt-2 mt-2"><span className="font-semibold">Total:</span><span className="font-bold text-right">{fmt(res.eol)}</span></div>
-                    </div>
+                    <h3 className="text-sm font-semibold mb-2 text-black">Assumptions & Limitations</h3>
+                    <ul className="list-disc list-inside space-y-1 ml-2">
+                      <li>All projections are based on the assumptions and inputs you provided, which may not reflect actual future conditions.</li>
+                      <li>
+                        {retMode === 'fixed'
+                          ? `Fixed return assumptions (${retRate}% nominal) do not account for market volatility or sequence-of-returns risk.`
+                          : 'Historical return data (1928-2024) may not predict future market performance. Past performance does not guarantee future results.'}
+                      </li>
+                      <li>Tax laws, brackets, and exemptions are subject to change and may differ significantly in the future.</li>
+                      <li>Inflation assumptions ({infRate}% baseline) are estimates and actual inflation may vary substantially.</li>
+                      <li>The model assumes consistent contribution and withdrawal patterns, which may not reflect real-world behavior.</li>
+                      <li>Healthcare costs, long-term care, and other major expenses are not explicitly modeled unless incorporated into withdrawal rates.</li>
+                      <li>Estate tax exemptions and rates reflect current law ({fmt(ESTATE_TAX_EXEMPTION)} exemption, {(ESTATE_TAX_RATE * 100).toFixed(0)}% rate) and may change.</li>
+                    </ul>
                   </div>
-                </div>
 
-                {/* Tax Efficiency Metrics */}
-                <div>
-                  <h3 className="text-base font-semibold mb-3 border-b border-gray-300 pb-1">Tax Efficiency Metrics</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span>Effective Tax Rate on Withdrawals:</span><span className="font-semibold text-right">{((((res.finReal * (wdRate / 100)) - res.wdReal) / (res.finReal * (wdRate / 100))) * 100).toFixed(1)}%</span></div>
-                    <div className="flex justify-between"><span>Total RMDs Over Lifetime:</span><span className="font-semibold text-right">{fmt(res.totalRMDs || 0)}</span></div>
-                    <div className="flex justify-between"><span>Estate Tax Rate:</span><span className="font-semibold text-right">{res.estateTax > 0 ? `${((res.estateTax / res.eol) * 100).toFixed(1)}%` : '0%'}</span></div>
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2 text-black">Monte Carlo Limitations</h3>
+                    <p>
+                      {walkSeries === 'trulyRandom'
+                        ? 'While Monte Carlo simulation (1,000 runs) provides probabilistic outcomes, it is only as good as its underlying assumptions. Real-world outcomes may differ due to factors not captured in the model.'
+                        : 'This report uses a deterministic (single-path) projection, which does not account for sequence-of-returns risk or stochastic variability. Actual outcomes may vary significantly.'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2 text-black">No Guarantees</h3>
+                    <p>
+                      There are no guarantees that any retirement plan will succeed. Market conditions, personal circumstances,
+                      health events, tax law changes, and many other factors can dramatically impact outcomes. This calculator
+                      provides estimates only and should not be relied upon as a sole basis for retirement planning decisions.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2 text-black">Consult Professionals</h3>
+                    <p>
+                      For personalized advice, please consult:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 ml-2">
+                      <li>A Certified Financial Planner (CFP) or Registered Investment Advisor (RIA) for investment strategy</li>
+                      <li>A Certified Public Accountant (CPA) or tax attorney for tax planning</li>
+                      <li>An estate planning attorney for estate, trust, and legacy planning</li>
+                    </ul>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-gray-300">
+                    <p className="text-xs text-gray-600 italic">
+                      Report generated on {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      {' '}by Tax-Aware Retirement Calculator.
+                      This is a snapshot based on current inputs and may become outdated as circumstances change.
+                    </p>
                   </div>
                 </div>
-              </div>
+              </section>
+
             </div>
+            {/* END PRINT REPORT WRAPPER */}
 
             {/* Human Dashboard - Interactive (Screen Only) */}
             <AnimatedSection animation="slide-up" duration={700}>
