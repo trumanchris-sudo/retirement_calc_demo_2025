@@ -6103,6 +6103,40 @@ export default function App() {
                     your money keeps working for you throughout retirement.
                   </p>
                 </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-blue-800">Healthcare Costs</h4>
+                  <p className="text-gray-700 mb-2">
+                    If enabled, the calculator models age-based healthcare expenses in addition to your regular
+                    retirement withdrawals:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                    <li>
+                      <strong>Medicare Premiums:</strong> Starting at age 65, monthly Medicare Part B and Part D
+                      premiums (default $400/month) are added to annual expenses. These premiums inflate at the
+                      medical inflation rate (typically 5.5%, higher than general inflation) to reflect rising
+                      healthcare costs.
+                    </li>
+                    <li>
+                      <strong>IRMAA Surcharges:</strong> Income-Related Monthly Adjustment Amounts apply when your
+                      total income (Social Security + RMDs + other withdrawals) exceeds thresholds (default ${irmaaThresholdSingle.toLocaleString()}
+                      {marital === "married" && `/${irmaaThresholdMarried.toLocaleString()}`}). An additional surcharge
+                      (default $350/month) is added to Medicare premiums, also inflating at the medical rate.
+                    </li>
+                    <li>
+                      <strong>Long-Term Care:</strong> Models the risk of needing expensive care (nursing home,
+                      assisted living, home health). Based on probability (default {ltcProbability}%), duration
+                      (default {ltcDuration} years), and annual cost (default ${(ltcAnnualCost / 1000).toFixed(0)}K/year).
+                      In Monte Carlo mode, each simulation randomly determines if/when LTC is needed. Costs inflate
+                      at the medical rate.
+                    </li>
+                  </ul>
+                  <p className="text-gray-700 mt-2">
+                    These healthcare costs are withdrawn from your portfolio just like regular expenses and can
+                    significantly impact longevity, especially if multiple expensive healthcare events occur or
+                    if IRMAA surcharges apply for many years.
+                  </p>
+                </div>
               </div>
             </section>
 
@@ -6134,20 +6168,33 @@ export default function App() {
                   <h4 className="text-lg font-semibold mb-2 text-blue-800">Generational Wealth Model</h4>
                   <p className="text-gray-700 mb-2">
                     If enabled, the generational model simulates how long your estate could support future
-                    beneficiaries (children, grandchildren, etc.) with annual payouts in today's dollars:
+                    beneficiaries (children, grandchildren, etc.) with annual payouts in constant 2025 dollars:
                   </p>
                   <ul className="list-disc pl-6 space-y-1 text-gray-700">
                     <li>The net estate (after estate tax) is deflated to 2025 purchasing power</li>
                     <li>Each year, the fund grows at a real rate (nominal return minus inflation)</li>
                     <li>Only beneficiaries at or above the minimum distribution age receive payouts in constant 2025 dollars</li>
                     <li>Beneficiaries age each year; those reaching max lifespan exit the model</li>
-                    <li>Every N years (birth interval), fertile beneficiaries (ages 20-40) produce offspring</li>
+                    <li>
+                      <strong>Fertility Window Model:</strong> Beneficiaries within the fertility window (default ages
+                      25-35) gradually produce children over those years. The total fertility rate (default 2.1 children
+                      per person) is distributed evenly across the fertile years. For example, with a 10-year window and
+                      2.1 total fertility, each person produces 0.21 children per year while fertile. This creates realistic,
+                      gradual population growth rather than sudden generational "waves."
+                    </li>
+                    <li>
+                      <strong>Population Growth:</strong> At replacement level (2.1 children per person), the population
+                      stays constant. Above 2.1, it grows exponentially; below 2.1, it declines. The calculator shows
+                      the perpetual threshold: the maximum annual distribution rate equals real return minus population
+                      growth rate (e.g., 7.2% real return - 2.7% population growth = 4.5% sustainable).
+                    </li>
                     <li>Simulation continues until funds are exhausted or 10,000 years (effectively perpetual)</li>
                   </ul>
                   <p className="text-gray-700 mt-2">
-                    This models a "perpetual trust" scenario and helps you understand whether your legacy could
-                    support multiple generations indefinitely or for how many years it would last under various
-                    payout scenarios.
+                    In Monte Carlo mode, the model runs simulations at the P10, P50, and P90 estate values and reports
+                    perpetual success probability. This models a "dynasty trust" or "perpetual legacy" scenario and helps
+                    you understand whether your wealth could support generations indefinitely. Quick presets
+                    (Conservative/Moderate/Aggressive) provide starting points for different legacy goals.
                   </p>
                 </div>
               </div>
@@ -6161,33 +6208,45 @@ export default function App() {
               <ul className="list-disc pl-6 space-y-2 text-gray-700">
                 <li>
                   <strong>Tax Law Stability:</strong> Assumes current (2025) tax brackets, standard deductions,
-                  RMD rules, and estate tax exemptions remain constant. Tax laws frequently change.
+                  RMD rules, and estate tax exemptions remain constant. Tax laws frequently change, especially
+                  estate tax provisions which are set to sunset in 2026.
                 </li>
                 <li>
-                  <strong>No Sequence Risk Detail:</strong> While random walk mode samples from historical returns,
-                  it doesn't specifically model sequence-of-returns risk (getting bad returns early in retirement).
-                  Multiple simulations with different seeds can help explore this.
+                  <strong>Sequence-of-Returns Risk:</strong> In Truly Random (Monte Carlo) mode with 1,000 simulations,
+                  sequence risk is fully captured—bad early returns can deplete portfolios even if average returns are
+                  good. Fixed and Random Walk modes don't model this risk as thoroughly. The P10/P50/P90 percentile
+                  bands show the range of outcomes from sequence variation.
                 </li>
                 <li>
                   <strong>Simplified Withdrawal Strategy:</strong> Uses proportional withdrawals from all accounts.
                   More sophisticated strategies (like draining taxable first, then pre-tax, then Roth) may be more
-                  tax-efficient but are not modeled here.
+                  tax-efficient but are not modeled here. The proportional approach provides automatic rebalancing.
                 </li>
                 <li>
-                  <strong>No Healthcare Costs:</strong> Doesn't separately model Medicare, long-term care insurance,
-                  or extraordinary medical expenses. These should be built into your withdrawal rate or annual spending needs.
+                  <strong>Healthcare Cost Estimates:</strong> Medicare premiums, IRMAA surcharges, and long-term care
+                  costs use national averages. Actual costs vary significantly by location, health status, and
+                  insurance coverage. The model assumes continuous Medicare coverage and doesn't account for gaps
+                  before age 65 or supplemental insurance (Medigap) costs.
                 </li>
                 <li>
-                  <strong>Fixed Withdrawal Rate:</strong> Uses inflation-adjusted constant dollar withdrawals.
-                  Real retirees often adjust spending based on portfolio performance.
+                  <strong>Fixed Withdrawal Rate:</strong> Uses inflation-adjusted constant dollar withdrawals plus
+                  healthcare costs. Real retirees often adjust spending based on portfolio performance, market
+                  conditions, and changing life circumstances (travel, healthcare events, gifts to family).
                 </li>
                 <li>
                   <strong>Single Life Expectancy:</strong> Projects to age {LIFE_EXP} for the older spouse.
-                  Some households may need to plan for longer lifespans.
+                  Some households may need to plan for longer lifespans. The generational wealth model allows
+                  customization of maximum lifespan (up to age 100).
                 </li>
                 <li>
                   <strong>No Pension Income:</strong> Doesn't model traditional pensions, annuities, or rental income.
-                  These could be approximated by adjusting your withdrawal needs downward.
+                  These could be approximated by adjusting your withdrawal needs downward or using the Social Security
+                  field for other guaranteed income sources.
+                </li>
+                <li>
+                  <strong>Generational Model Simplifications:</strong> The dynasty trust model assumes constant real
+                  returns, uniform fertility patterns, and no external income for beneficiaries. It doesn't model
+                  legal trust structures, trustee fees, or different payout strategies for different generations.
                 </li>
               </ul>
             </section>
@@ -6202,8 +6261,12 @@ export default function App() {
                 <li><strong>LTCG Brackets:</strong> 2025 long-term capital gains tax rates (IRS)</li>
                 <li><strong>RMD Table:</strong> IRS Uniform Lifetime Table (Publication 590-B)</li>
                 <li><strong>Social Security:</strong> 2025 bend points and claiming adjustment factors (SSA)</li>
-                <li><strong>Estate Tax:</strong> 2025 federal exemption and rate (IRS)</li>
+                <li><strong>Estate Tax:</strong> 2025 federal exemption ($13.99M) and rate (IRS)</li>
+                <li><strong>Medicare &amp; IRMAA:</strong> 2025 Part B/D premiums and income thresholds (CMS)</li>
+                <li><strong>Long-Term Care:</strong> National average costs based on Genworth 2024 Cost of Care Survey</li>
+                <li><strong>Medical Inflation:</strong> Historical healthcare cost growth trends (Kaiser Family Foundation, CMS)</li>
                 <li><strong>Net Worth Data:</strong> Federal Reserve 2022 Survey of Consumer Finances (released Oct 2023)</li>
+                <li><strong>Fertility Rates:</strong> U.S. replacement-level fertility (2.1) and demographic modeling standards (CDC, Census Bureau)</li>
               </ul>
             </section>
 
