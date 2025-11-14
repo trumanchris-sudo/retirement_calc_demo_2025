@@ -4862,7 +4862,10 @@ export default function App() {
 
                     <div className="flex justify-center">
                       <Button
-                        onClick={runComparison}
+                        onClick={() => {
+                          setComparisonMode(true);
+                          runComparison();
+                        }}
                         variant="default"
                         size="sm"
                         className="bg-blue-600 hover:bg-blue-700"
