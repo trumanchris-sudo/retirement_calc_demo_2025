@@ -937,6 +937,9 @@ export default function App() {
 
   // Scenario comparison mode
   const [comparisonMode, setComparisonMode] = useState(false);
+
+  // Portfolio Stress Tests master card
+  const [showStressTests, setShowStressTests] = useState(false);
   const [comparisonData, setComparisonData] = useState<ComparisonData>({
     baseline: null,
     bearMarket: null,
@@ -4530,9 +4533,22 @@ export default function App() {
               <div className="print:hidden">
               <Card>
                 <CardHeader>
-                  <CardTitle>Portfolio Stress Tests</CardTitle>
-                  <CardDescription>Test your retirement plan against adverse market conditions, inflation shocks, and compare scenarios</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Portfolio Stress Tests</CardTitle>
+                      <CardDescription>Test your retirement plan against adverse market conditions, inflation shocks, and compare scenarios</CardDescription>
+                    </div>
+                    <Button
+                      variant={showStressTests ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setShowStressTests(!showStressTests)}
+                      className="no-print"
+                    >
+                      {showStressTests ? "Hide" : "Show"}
+                    </Button>
+                  </div>
                 </CardHeader>
+                {showStressTests && (
                 <CardContent>
                   <Tabs defaultValue="bear" className="w-full">
                     <TabsList className="grid w-full grid-cols-3 mb-6">
@@ -4543,22 +4559,10 @@ export default function App() {
 
                     {/* Bear Market Tab */}
                     <TabsContent value="bear" className="space-y-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h3 className="text-base font-semibold">Bear Market Retirement Scenarios</h3>
-                          <p className="text-sm text-muted-foreground">Test your plan with actual historical returns from major market crashes</p>
-                        </div>
-                        <Button
-                          variant={showBearMarket ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setShowBearMarket(!showBearMarket)}
-                          className="no-print"
-                        >
-                          {showBearMarket ? "Hide" : "Show"}
-                        </Button>
+                      <div className="mb-4">
+                        <h3 className="text-base font-semibold">Bear Market Retirement Scenarios</h3>
+                        <p className="text-sm text-muted-foreground">Test your plan with actual historical returns from major market crashes</p>
                       </div>
-                      {showBearMarket && (
-                        <div className="space-y-4">
                   <p className="text-sm text-muted-foreground mb-4">
                     Test your plan against the worst bear markets in history. Each scenario uses <strong>actual sequential S&P 500 returns</strong> from that year forward.
                     {historicalYear && (
@@ -4650,28 +4654,14 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                        </div>
-                      )}
                     </TabsContent>
 
                     {/* Inflation Shock Tab */}
                     <TabsContent value="inflation" className="space-y-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h3 className="text-base font-semibold">Inflation Shock Scenarios</h3>
-                          <p className="text-sm text-muted-foreground">Test your plan against periods of elevated inflation</p>
-                        </div>
-                        <Button
-                          variant={showInflationShock ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setShowInflationShock(!showInflationShock)}
-                          className="no-print"
-                        >
-                          {showInflationShock ? "Hide" : "Show"}
-                        </Button>
+                      <div className="mb-4">
+                        <h3 className="text-base font-semibold">Inflation Shock Scenarios</h3>
+                        <p className="text-sm text-muted-foreground">Test your plan against periods of elevated inflation</p>
                       </div>
-                      {showInflationShock && (
-                        <div className="space-y-4">
                   <p className="text-sm text-muted-foreground mb-4">
                     Model the impact of sustained high inflation on your real purchasing power. Inflation shocks start in your retirement year and last for the specified duration.
                     {inflationShockRate > 0 && (
@@ -4795,34 +4785,14 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                        </div>
-                      )}
                     </TabsContent>
 
                     {/* Scenario Comparison Tab */}
                     <TabsContent value="comparison" className="space-y-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h3 className="text-base font-semibold">Scenario Comparison</h3>
-                          <p className="text-sm text-muted-foreground">Compare baseline vs bear market vs inflation shock side-by-side</p>
-                        </div>
-                        <Button
-                          variant={comparisonMode ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => {
-                            const newMode = !comparisonMode;
-                            setComparisonMode(newMode);
-                            if (newMode) {
-                              runComparison();
-                            }
-                          }}
-                          className="no-print"
-                        >
-                          {comparisonMode ? "Exit Comparison" : "Compare Scenarios"}
-                        </Button>
+                      <div className="mb-4">
+                        <h3 className="text-base font-semibold">Scenario Comparison</h3>
+                        <p className="text-sm text-muted-foreground">Compare baseline vs bear market vs inflation shock side-by-side</p>
                       </div>
-                      {comparisonMode && (
-                        <div className="space-y-4">
                     <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                       <div className="flex items-start gap-2">
                         <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4900,11 +4870,10 @@ export default function App() {
                         Refresh Comparison
                       </Button>
                     </div>
-                        </div>
-                      )}
                     </TabsContent>
                   </Tabs>
                 </CardContent>
+                )}
               </Card>
               </div>
             </AnimatedSection>
