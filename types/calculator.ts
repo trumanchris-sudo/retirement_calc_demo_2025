@@ -5,6 +5,35 @@
 import type { FilingStatus } from "@/lib/calculations/taxCalculations";
 import type { ReturnMode, WalkSeries } from "./planner";
 
+// ==================== Progress Types ====================
+
+/**
+ * Calculation progress tracking for long-running simulations
+ */
+export interface CalculationProgress {
+  phase: 'accumulation' | 'drawdown' | 'monteCarlo' | 'complete';
+  percent: number;
+  message: string;
+}
+
+/**
+ * Validation result with specific error messages
+ */
+export interface ValidationResult {
+  isValid: boolean;
+  error?: string;
+}
+
+/**
+ * Input field validation rules
+ */
+export interface ValidationRule {
+  min?: number;
+  max?: number;
+  required?: boolean;
+  custom?: (value: number) => ValidationResult;
+}
+
 // ==================== Input Types ====================
 
 /**
