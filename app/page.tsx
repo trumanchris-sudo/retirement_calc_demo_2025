@@ -30,6 +30,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FlippingCard } from "@/components/FlippingCard";
 import { GenerationalResultCard } from "@/components/GenerationalResultCard";
+import AddToWalletButton from "@/components/AddToWalletButton";
+import { LegacyResult } from "@/lib/walletPass";
 import UserInputsPrintSummary from "@/components/UserInputsPrintSummary";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -5387,17 +5389,32 @@ export default function App() {
                           ? `Each beneficiary receives ${fmt(res.genPayout.perBenReal)}/year (inflation-adjusted) from age ${hypMinDistAge} to ${hypDeathAge}—equivalent to a ${fmt(res.genPayout.perBenReal * 25)} trust fund. This provides lifelong financial security and freedom to pursue any career path.`
                           : `Each beneficiary receives ${fmt(res.genPayout.perBenReal)}/year (inflation-adjusted) for ${res.genPayout.years} years, providing substantial financial support during their lifetime.`;
 
+                        // Prepare data for Apple Wallet pass
+                        const legacyResult: LegacyResult = {
+                          legacyAmount: res.genPayout.perBenReal,
+                          legacyAmountDisplay: fmt(res.genPayout.perBenReal),
+                          legacyType: isPerpetual ? "Perpetual Legacy" : "Finite Legacy",
+                          withdrawalRate: 0.035, // Default withdrawal rate
+                          successProbability: res.genPayout.probPerpetual || 0,
+                          explanationText,
+                        };
+
                         return (
-                          <GenerationalResultCard
-                            variant={variant}
-                            amountPerBeneficiary={res.genPayout.perBenReal}
-                            yearsOfSupport={isPerpetual ? "Infinity" : res.genPayout.years}
-                            percentile10={p10Value}
-                            percentile50={p50Value}
-                            percentile90={p90Value}
-                            probability={res.genPayout.probPerpetual || 0}
-                            explanationText={explanationText}
-                          />
+                          <>
+                            <GenerationalResultCard
+                              variant={variant}
+                              amountPerBeneficiary={res.genPayout.perBenReal}
+                              yearsOfSupport={isPerpetual ? "Infinity" : res.genPayout.years}
+                              percentile10={p10Value}
+                              percentile50={p50Value}
+                              percentile90={p90Value}
+                              probability={res.genPayout.probPerpetual || 0}
+                              explanationText={explanationText}
+                            />
+                            <div className="mt-6 flex justify-center">
+                              <AddToWalletButton result={legacyResult} />
+                            </div>
+                          </>
                         );
                       })()}
                     </div>
