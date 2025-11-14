@@ -2315,72 +2315,64 @@ export default function App() {
                   </p>
                 </header>
 
-                {/* Key Metrics Grid - 2x3 layout */}
+                {/* 4 Key Metric Cards - Prominent placement on Page 1 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  {/* Future Balance at Retirement */}
-                  <div className="border-2 border-gray-300 p-4 bg-white">
-                    <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Future Balance at Retirement</div>
-                    <div className="text-2xl font-bold text-black mb-1">{fmt(res.finNom)}</div>
-                    <div className="text-sm text-gray-700">Nominal dollars at age {retAge}</div>
-                    <div className="text-xs text-gray-600 mt-1">Equivalent to {fmt(res.finReal)} in today's dollars</div>
+                  {/* Future Balance */}
+                  <div className="border-2 border-blue-300 bg-blue-50 p-4">
+                    <div className="text-xs uppercase text-blue-800 font-semibold mb-1">Future Balance</div>
+                    <div className="text-3xl font-bold text-blue-900 mb-1">{fmt(res.finNom)}</div>
+                    <div className="text-sm text-blue-700">At age {retAge} (nominal)</div>
                   </div>
 
-                  {/* Year 1 Withdrawal */}
-                  <div className="border-2 border-gray-300 p-4 bg-white">
-                    <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Year 1 Gross Withdrawal</div>
-                    <div className="text-2xl font-bold text-black mb-1">{fmt(res.wd)}</div>
-                    <div className="text-sm text-gray-700">{wdRate}% withdrawal rate</div>
-                    <div className="text-xs text-gray-600 mt-1">After-tax income: {fmt(res.wdReal)}</div>
+                  {/* Today's Dollars */}
+                  <div className="border-2 border-green-300 bg-green-50 p-4">
+                    <div className="text-xs uppercase text-green-800 font-semibold mb-1">Today's Dollars</div>
+                    <div className="text-3xl font-bold text-green-900 mb-1">{fmt(res.finReal)}</div>
+                    <div className="text-sm text-green-700">At age {retAge} (inflation-adjusted)</div>
                   </div>
 
+                  {/* Annual Withdrawal */}
+                  <div className="border-2 border-purple-300 bg-purple-50 p-4">
+                    <div className="text-xs uppercase text-purple-800 font-semibold mb-1">Annual Withdrawal</div>
+                    <div className="text-3xl font-bold text-purple-900 mb-1">{fmt(res.wd)}</div>
+                    <div className="text-sm text-purple-700">{wdRate}% of balance (Year 1)</div>
+                  </div>
+
+                  {/* After-Tax Income */}
+                  <div className="border-2 border-orange-300 bg-orange-50 p-4">
+                    <div className="text-xs uppercase text-orange-800 font-semibold mb-1">After-Tax Income</div>
+                    <div className="text-3xl font-bold text-orange-900 mb-1">{fmt(res.wdReal)}</div>
+                    <div className="text-sm text-orange-700">Spendable (after all taxes)</div>
+                  </div>
+                </div>
+
+                {/* Additional Metrics - Smaller cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
                   {/* Success Rate */}
-                  <div className="border-2 border-gray-300 p-4 bg-white">
-                    <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Plan Success Rate</div>
-                    <div className="text-2xl font-bold text-black mb-1">
+                  <div className="border border-gray-300 p-3 bg-white">
+                    <div className="text-xs font-semibold text-gray-600 mb-1">Plan Success Rate</div>
+                    <div className="text-lg font-bold text-black">
                       {res.probRuin !== undefined ? `${((1 - res.probRuin) * 100).toFixed(1)}%` : '100%'}
                     </div>
-                    <div className="text-sm text-gray-700">
+                    <div className="text-xs text-gray-600">
                       {res.probRuin !== undefined
-                        ? `${1000 - Math.round(res.probRuin * 1000)} out of 1,000 simulations`
-                        : 'Single deterministic path'}
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      {res.probRuin !== undefined && res.probRuin < 0.05
-                        ? 'High confidence'
-                        : res.probRuin && res.probRuin < 0.15
-                        ? 'Moderate risk'
-                        : res.probRuin
-                        ? 'Elevated risk'
+                        ? `${1000 - Math.round(res.probRuin * 1000)}/1,000 runs`
                         : 'Deterministic'}
                     </div>
                   </div>
 
                   {/* End-of-Life Wealth */}
-                  <div className="border-2 border-gray-300 p-4 bg-white">
-                    <div className="text-xs uppercase text-gray-600 font-semibold mb-1">End-of-Life Wealth</div>
-                    <div className="text-2xl font-bold text-black mb-1">{fmt(res.eol)}</div>
-                    <div className="text-sm text-gray-700">Estate value at age {LIFE_EXP}</div>
-                    <div className="text-xs text-gray-600 mt-1">Real value: {fmt(res.eolReal || 0)}</div>
+                  <div className="border border-gray-300 p-3 bg-white">
+                    <div className="text-xs font-semibold text-gray-600 mb-1">End-of-Life Wealth</div>
+                    <div className="text-lg font-bold text-black">{fmt(res.eol)}</div>
+                    <div className="text-xs text-gray-600">At age {LIFE_EXP}</div>
                   </div>
 
                   {/* Net to Heirs */}
-                  <div className="border-2 border-gray-300 p-4 bg-white">
-                    <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Net to Heirs</div>
-                    <div className="text-2xl font-bold text-black mb-1">{fmt(res.netEstate || res.eol)}</div>
-                    <div className="text-sm text-gray-700">After estate taxes</div>
-                    <div className="text-xs text-gray-600 mt-1">Estate tax: {fmt(res.estateTax || 0)}</div>
-                  </div>
-
-                  {/* Tax Burden */}
-                  <div className="border-2 border-gray-300 p-4 bg-white">
-                    <div className="text-xs uppercase text-gray-600 font-semibold mb-1">Effective Tax Rate on Withdrawals</div>
-                    <div className="text-2xl font-bold text-black mb-1">
-                      {((((res.finReal * (wdRate / 100)) - res.wdReal) / (res.finReal * (wdRate / 100))) * 100).toFixed(1)}%
-                    </div>
-                    <div className="text-sm text-gray-700">Year 1 effective rate</div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      Gross: {fmt(res.finReal * (wdRate / 100))} → Net: {fmt(res.wdReal)}
-                    </div>
+                  <div className="border border-gray-300 p-3 bg-white">
+                    <div className="text-xs font-semibold text-gray-600 mb-1">Net to Heirs</div>
+                    <div className="text-lg font-bold text-black">{fmt(res.netEstate || res.eol)}</div>
+                    <div className="text-xs text-gray-600">After {fmt(res.estateTax || 0)} tax</div>
                   </div>
                 </div>
 
@@ -2725,13 +2717,128 @@ export default function App() {
                   </p>
                 </header>
 
-                {/* Chart will be rendered here by existing screen charts */}
-                <div className="mb-6 p-4 border-2 border-gray-300 bg-gray-50">
-                  <p className="text-xs text-gray-700 italic">
-                    The wealth accumulation chart from the interactive view will appear here when printed.
-                    It shows your projected portfolio balance over time, from age {age1} through age {LIFE_EXP}.
-                  </p>
-                </div>
+                {/* Actual Wealth Accumulation Chart */}
+                {!comparisonMode && res?.data && res.data.length > 0 && (
+                  <div className="mb-6">
+                    <ResponsiveContainer width="100%" height={350}>
+                      <ComposedChart data={res.data}>
+                        <defs>
+                          <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <XAxis dataKey="year" className="text-xs" />
+                        <YAxis tickFormatter={(v) => fmt(v as number)} className="text-xs" />
+                        <RTooltip
+                          formatter={(v) => fmt(v as number)}
+                          contentStyle={{
+                            backgroundColor: '#ffffff',
+                            borderRadius: "8px",
+                            border: "1px solid #e5e7eb",
+                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                          }}
+                        />
+                        <Legend />
+                        <Area
+                          type="monotone"
+                          dataKey="bal"
+                          fill="url(#colorBal)"
+                          stroke="#3b82f6"
+                          strokeWidth={2}
+                          name="Nominal Balance"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="real"
+                          stroke="#10b981"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Real Balance (Today's $)"
+                        />
+                        {showP10 && (
+                          <Line
+                            type="monotone"
+                            dataKey="p10"
+                            stroke="#ef4444"
+                            strokeWidth={2}
+                            strokeDasharray="3 3"
+                            dot={false}
+                            name="10th Percentile (Nominal)"
+                          />
+                        )}
+                        {showP90 && (
+                          <Line
+                            type="monotone"
+                            dataKey="p90"
+                            stroke="#8b5cf6"
+                            strokeWidth={2}
+                            strokeDasharray="3 3"
+                            dot={false}
+                            name="90th Percentile (Nominal)"
+                          />
+                        )}
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Comparison Chart (if in comparison mode) */}
+                {comparisonMode && comparisonData.baseline?.data && comparisonData.baseline.data.length > 0 && (
+                  <div className="mb-6">
+                    <ResponsiveContainer width="100%" height={350}>
+                      <ComposedChart data={comparisonData.baseline.data}>
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <XAxis dataKey="year" className="text-xs" />
+                        <YAxis tickFormatter={(v) => fmt(v as number)} className="text-xs" />
+                        <RTooltip
+                          formatter={(v) => fmt(v as number)}
+                          contentStyle={{
+                            backgroundColor: '#ffffff',
+                            borderRadius: "8px",
+                            border: "1px solid #e5e7eb",
+                          }}
+                        />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="real"
+                          stroke="#3b82f6"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Baseline (Real)"
+                        />
+                        {comparisonData.showBearMarket && comparisonData.bearMarket?.data && (
+                          <Line
+                            type="monotone"
+                            dataKey="bearMarket"
+                            stroke="#ef4444"
+                            strokeWidth={2}
+                            strokeDasharray="5 5"
+                            dot={false}
+                            name="Bear Market (Real)"
+                          />
+                        )}
+                        {comparisonData.showInflation && comparisonData.inflation?.data && (
+                          <Line
+                            type="monotone"
+                            dataKey="inflation"
+                            stroke="#f59e0b"
+                            strokeWidth={2}
+                            strokeDasharray="3 3"
+                            dot={false}
+                            name="Inflation Shock (Real)"
+                          />
+                        )}
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
 
                 {/* Key Milestones Table */}
                 <div className="mb-6">
@@ -2860,11 +2967,50 @@ export default function App() {
                     <p className="text-xs text-gray-700 mt-1">Required Minimum Distributions and tax impact analysis</p>
                   </header>
 
-                  {/* RMD Chart Note */}
-                  <div className="mb-6 p-4 border-2 border-gray-300 bg-gray-50">
-                    <p className="text-xs text-gray-700 italic">
-                      The RMD vs. Spending chart from the interactive view will appear here when printed.
-                      It shows required withdrawals compared to your actual spending needs.
+                  {/* Actual RMD Chart */}
+                  <div className="mb-6">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={res.rmdData}>
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <XAxis dataKey="age" className="text-xs" />
+                        <YAxis tickFormatter={(v) => fmt(v as number)} className="text-xs" />
+                        <RTooltip
+                          formatter={(v) => fmt(v as number)}
+                          contentStyle={{
+                            backgroundColor: '#ffffff',
+                            borderRadius: "8px",
+                            border: "1px solid #e5e7eb",
+                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                          }}
+                        />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="spending"
+                          stroke="#10b981"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Spending Need (after SS)"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="rmd"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          strokeDasharray="5 5"
+                          dot={false}
+                          name="Required RMD"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Tax Planning Tip */}
+                  <div className="mb-6 p-3 bg-amber-50 border border-amber-300 rounded">
+                    <p className="text-xs text-amber-900">
+                      <strong>Tax Planning Tip:</strong> When the red dashed line (RMD) crosses above the green line (Spending),
+                      you're forced to withdraw more than you need. This excess gets taxed and reinvested in taxable accounts.
+                      Consider Roth conversions before age {RMD_START_AGE} to reduce future RMDs.
                     </p>
                   </div>
 
@@ -2986,11 +3132,11 @@ export default function App() {
                     <p className="text-xs text-gray-700 mt-1">Baseline vs. stress test scenarios</p>
                   </header>
 
-                  {/* Scenario Comparison Chart Note */}
-                  <div className="mb-6 p-4 border-2 border-gray-300 bg-gray-50">
-                    <p className="text-xs text-gray-700 italic">
-                      The scenario comparison chart from the interactive view will appear here when printed,
-                      showing baseline vs. bear market vs. inflation shock scenarios.
+                  {/* Note: Comparison chart is already shown in Page 3 Wealth Accumulation section */}
+                  <div className="mb-6 p-3 bg-blue-50 border border-blue-300 rounded">
+                    <p className="text-xs text-blue-900">
+                      <strong>Note:</strong> The scenario comparison chart is displayed in the Wealth Accumulation Projection section (Page 3).
+                      Below is a summary of the scenario definitions and key differences.
                     </p>
                   </div>
 
@@ -3036,7 +3182,7 @@ export default function App() {
                 </section>
               )}
 
-              {/* FINAL PAGE: DISCLAIMERS & LIMITATIONS */}
+              {/* FINAL PAGE: DISCLAIMERS & LIMITATIONS (No page-break-after to avoid blank page) */}
               <section className="print-section">
                 <header className="mb-4 border-b-2 border-gray-900 pb-3">
                   <h2 className="text-xl font-bold text-black">Limitations & Disclaimers</h2>
@@ -3135,7 +3281,7 @@ export default function App() {
             />
             </div>
 
-            <div className="print-section grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print-tile-grid">
+            <div className="print:hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <FlippingStatCard
                 title="Future Balance"
                 value={fmt(res.finNom)}
@@ -3608,9 +3754,9 @@ export default function App() {
             </Card>
             </div>
 
-            {/* Sensitivity Analysis */}
+            {/* Sensitivity Analysis - Hide interactive UI from print */}
             <AnimatedSection animation="slide-up" delay={200}>
-              <div className="print-section print-block">
+              <div className="print:hidden">
               <Card data-sensitivity-section>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -3693,9 +3839,9 @@ export default function App() {
               </div>
             </AnimatedSection>
 
-            {/* Save/Compare Scenarios */}
+            {/* Save/Compare Scenarios - Hide interactive UI from print */}
             <AnimatedSection animation="slide-up" delay={250}>
-              <div className="print-section">
+              <div className="print:hidden">
               <Card data-scenarios-section>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -4031,9 +4177,9 @@ export default function App() {
               </div>
             </AnimatedSection>
 
-            {/* Historical Scenario Playback */}
+            {/* Historical Scenario Playback - Hide interactive UI from print */}
             <AnimatedSection animation="slide-up" delay={275}>
-              <div className="print-section">
+              <div className="print:hidden">
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -4150,9 +4296,9 @@ export default function App() {
               </div>
             </AnimatedSection>
 
-            {/* Inflation Shock Scenarios */}
+            {/* Inflation Shock Scenarios - Hide interactive UI from print */}
             <AnimatedSection animation="slide-up" delay={287}>
-              <div className="print-section">
+              <div className="print:hidden">
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -4554,9 +4700,9 @@ export default function App() {
           </>
         )}
 
-        {/* Input Form */}
+        {/* Input Form - Hide from print */}
         <AnimatedSection animation="fade-in" delay={100}>
-          <Card>
+          <Card className="print:hidden">
           <CardHeader>
             <CardTitle>Plan Your Retirement</CardTitle>
             <CardDescription>Enter your information to calculate your retirement projections</CardDescription>

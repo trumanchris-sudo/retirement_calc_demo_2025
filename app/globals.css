@@ -326,41 +326,52 @@ html {
 
 /* Print Styles */
 @media print {
+  /* Preserve colors for charts and cards in print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   /* Force light mode for print - override dark mode completely */
-  *,
-  *::before,
-  *::after {
+  body,
+  html {
     color-scheme: light !important;
     background-color: white !important;
     color: black !important;
-    border-color: #ccc !important;
   }
 
-  html,
-  body {
-    background: white !important;
-    color: #000 !important;
+  /* Keep backgrounds for visual hierarchy - don't strip colors */
+  .bg-blue-50 {
+    background-color: #eff6ff !important;
   }
 
-  /* Re-apply necessary backgrounds for visual hierarchy */
-  .bg-blue-50,
-  .bg-indigo-50,
-  .bg-green-50,
+  .bg-indigo-50 {
+    background-color: #eef2ff !important;
+  }
+
+  .bg-green-50 {
+    background-color: #f0fdf4 !important;
+  }
+
   .bg-red-50,
-  .bg-yellow-50,
-  .bg-orange-50,
-  .bg-gray-50,
-  .bg-muted {
-    background-color: #f5f5f5 !important;
+  .bg-orange-50 {
+    background-color: #fef2f2 !important;
+  }
+
+  .bg-yellow-50 {
+    background-color: #fefce8 !important;
+  }
+
+  .bg-gray-50 {
+    background-color: #f9fafb !important;
   }
 
   .bg-gray-100 {
-    background-color: #e5e5e5 !important;
+    background-color: #f3f4f6 !important;
   }
 
-  .border-gray-900,
-  .border-gray-800 {
-    border-color: #333 !important;
+  .bg-purple-50 {
+    background-color: #faf5ff !important;
   }
 
   /* Hide all interactive elements */
