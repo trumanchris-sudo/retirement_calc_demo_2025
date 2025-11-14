@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import archiver from "archiver";
+import os from "os";
 
 // Type definitions
 interface WalletPassRequest {
@@ -183,12 +184,9 @@ export async function POST(request: NextRequest) {
       barcodeMessage: requestData.barcodeMessage,
     });
 
-    // 4. Create temporary working directory
-    const tempDir = path.join(
-      process.cwd(),
-      "tmp",
-      `pass-${requestData.serialNumber}`
-    );
+    // 4. Create temporary working directory (serverless-safe)
+    const tempRoot = os.tmpdir(); // typically /tmp on Vercel/AWS Lambda
+    const tempDir = path.join(tempRoot, `pass-${requestData.serialNumber}`);
     await fs.promises.mkdir(tempDir, { recursive: true });
 
     try {
