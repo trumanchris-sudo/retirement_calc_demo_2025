@@ -40,7 +40,7 @@ import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
 import { Input, Spinner, Tip, TrendingUpIcon } from "@/components/calculator/InputHelpers";
 
 // Import types
-import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout } from "@/types/calculator";
+import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress } from "@/types/calculator";
 
 // Import from new modules
 import {
@@ -105,6 +105,9 @@ import {
   INFLATION_SHOCK_SCENARIOS,
   type InflationShockScenario,
 } from "@/lib/simulation/inflationShocks";
+
+// Import validation utilities
+import { validateCalculatorInputs } from "@/lib/validation";
 
 // Re-export types for compatibility
 export type { ReturnMode, WalkSeries, BatchSummary };
@@ -954,7 +957,7 @@ export default function App() {
   const tabGroupRef = useRef<TabGroupRef>(null);
 
   // State for tracking simulation progress
-  const [simProgress, setSimProgress] = useState<{ completed: number; total: number } | null>(null);
+  const [calcProgress, setCalcProgress] = useState<CalculationProgress | null>(null);
 
   // Initialize web worker
   useEffect(() => {
@@ -1264,13 +1267,18 @@ export default function App() {
         const { type, result, completed, total, error } = e.data;
 
         if (type === 'progress') {
-          setSimProgress({ completed, total });
+          const percent = Math.round((completed / total) * 100);
+          setCalcProgress({
+            phase: 'monteCarlo',
+            percent,
+            message: `Running Monte Carlo simulation... ${completed} / ${total}`
+          });
         } else if (type === 'complete') {
-          setSimProgress(null);
+          setCalcProgress(null);
           worker.removeEventListener('message', handleMessage);
           resolve(result);
         } else if (type === 'error') {
-          setSimProgress(null);
+          setCalcProgress(null);
           worker.removeEventListener('message', handleMessage);
           reject(new Error(error));
         }
@@ -1375,7 +1383,7 @@ export default function App() {
     // Close all form tabs when calculation starts
     tabGroupRef.current?.closeAll();
 
-    let newRes: any = null;
+    let newRes: CalculationResult | null = null;
     let olderAgeForAI: number = 0;
 
     let currentSeed = seed;
@@ -1385,16 +1393,36 @@ export default function App() {
     }
 
     try {
-      if (!age1 || age1 <= 0) throw new Error("Enter valid age");
-      if (isMar && (!age2 || age2 <= 0)) throw new Error("Enter valid spouse age");
-      if (!retAge || retAge <= 0) throw new Error("Enter valid retirement age");
+      // Comprehensive input validation with specific error messages
+      const validationResult = validateCalculatorInputs({
+        age1,
+        age2: isMar ? age2 : undefined,
+        retAge,
+        sTax,
+        sPre,
+        sPost,
+        cTax1,
+        cPre1,
+        cPost1,
+        cMatch1,
+        cTax2: isMar ? cTax2 : undefined,
+        cPre2: isMar ? cPre2 : undefined,
+        cPost2: isMar ? cPost2 : undefined,
+        cMatch2: isMar ? cMatch2 : undefined,
+        wdRate,
+        retRate,
+        infRate,
+        stateRate,
+        marital
+      });
+
+      if (!validationResult.isValid) {
+        throw new Error(validationResult.error);
+      }
 
       const younger = Math.min(age1, isMar ? age2 : age1);
       const older = Math.max(age1, isMar ? age2 : age1);
       olderAgeForAI = older;
-
-      if (retAge <= younger)
-        throw new Error("Retirement age must be greater than current age");
 
       const yrsToRet = retAge - younger;
       const g_fixed = 1 + retRate / 100;
@@ -4446,8 +4474,8 @@ export default function App() {
                   <span className="flex items-center gap-3">
                     <Spinner />
                     <span>
-                      {simProgress
-                        ? `Simulating... ${simProgress.completed} / ${simProgress.total}`
+                      {calcProgress
+                        ? `${calcProgress.message} (${calcProgress.percent}%)`
                         : 'Calculating...'}
                     </span>
                   </span>
