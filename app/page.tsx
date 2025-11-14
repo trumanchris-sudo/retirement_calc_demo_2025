@@ -4018,11 +4018,8 @@ export default function App() {
 
             {/* Lifetime Wealth Flow - Sankey Diagram (Screen only - hidden from print) */}
             <div className="print:hidden wealth-flow-block">
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="wealth-flow" className="border-none">
                 <Card className="border-2 border-slate-200 dark:border-slate-700">
-                  <AccordionTrigger className="px-6 hover:no-underline [&[data-state=open]>div>svg]:rotate-180">
-                    <CardHeader className="p-0 flex-1">
+                    <CardHeader>
                       <CardTitle className="flex items-center justify-between">
                         <span>Lifetime Wealth Flow</span>
                         <Button
@@ -4046,8 +4043,6 @@ export default function App() {
                         )}
                       </CardDescription>
                     </CardHeader>
-                  </AccordionTrigger>
-                  <AccordionContent>
                     <CardContent className="space-y-4 pt-4">
                 {res.eolAccounts && res.eol > 0 ? (
                   <>
@@ -4274,10 +4269,7 @@ export default function App() {
                   </div>
                 )}
                     </CardContent>
-                  </AccordionContent>
                 </Card>
-              </AccordionItem>
-            </Accordion>
             </div>
 
             <div className="print:hidden analysis-block">
@@ -5168,7 +5160,7 @@ export default function App() {
                     </TabsList>
 
                     <TabsContent value="accumulation" className="space-y-4">
-                      {walkSeries === 'trulyRandom' && !comparisonMode && (
+                      {walkSeries === 'trulyRandom' && (
                         <div className="flex gap-6 items-center print-hide">
                           <div className="flex items-center space-x-2">
                             <Checkbox
@@ -5198,25 +5190,13 @@ export default function App() {
                           </div>
                         </div>
                       )}
-                      {/* Default Wealth Accumulation Chart - Uses memoized component */}
-                      {!comparisonMode && res?.data && res.data.length > 0 && (
+                      {/* Default Wealth Accumulation Chart - Always show in Results tab */}
+                      {res?.data && res.data.length > 0 && (
                         <div className="chart-block">
                           <WealthAccumulationChart
                             data={res.data}
                             showP10={showP10}
                             showP90={showP90}
-                            isDarkMode={isDarkMode}
-                            fmt={fmt}
-                          />
-                        </div>
-                      )}
-
-                      {/* Comparison Chart - Uses memoized component */}
-                      {comparisonMode && comparisonData.baseline?.data && comparisonData.baseline.data.length > 0 && (
-                        <div className="chart-block">
-                          <ScenarioComparisonChart
-                            data={comparisonData.baseline.data}
-                            comparisonData={comparisonData}
                             isDarkMode={isDarkMode}
                             fmt={fmt}
                           />
@@ -5781,21 +5761,7 @@ export default function App() {
               <CardDescription>Model multi-generational wealth transfer and dynasty trusts</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  id="show-gen"
-                  checked={showGen}
-                  onChange={(e) => { setShowGen(e.target.checked); setInputsModified(true); }}
-                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 no-print print-hide"
-                />
-                <Label htmlFor="show-gen" className="text-lg font-semibold text-foreground cursor-pointer">
-                  Enable Generational Wealth Modeling {showGen && <span className="print-only">✓</span>}
-                </Label>
-              </div>
-
-              {showGen && (
-                <div className="p-6 bg-card rounded-xl border border-border shadow-sm gen-card">
+              <div className="p-6 bg-card rounded-xl border border-border shadow-sm gen-card">
                   <div className="flex items-center justify-between mb-6">
                     <h4 className="text-xl font-semibold text-foreground">
                       Generational Wealth Configuration
@@ -6016,7 +5982,6 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              )}
 
               {/* Recalculate Button for Legacy Tab */}
               <div className="flex justify-center mt-6">
