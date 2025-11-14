@@ -902,6 +902,22 @@ export default function App() {
   const [ssIncome2, setSSIncome2] = useState(75000); // Spouse - Avg career earnings for SS calc
   const [ssClaimAge2, setSSClaimAge2] = useState(67); // Spouse - Full retirement age
 
+  // Healthcare costs (post-retirement)
+  const [includeMedicare, setIncludeMedicare] = useState(true);
+  const [medicarePremium, setMedicarePremium] = useState(400); // Monthly premium (Part B + D + Supplemental)
+  const [medicalInflation, setMedicalInflation] = useState(5.5); // Medical inflation rate %
+  const [irmaaThresholdSingle, setIrmaaThresholdSingle] = useState(103000); // IRMAA income threshold
+  const [irmaaThresholdMarried, setIrmaaThresholdMarried] = useState(206000);
+  const [irmaaSurcharge, setIrmaaSurcharge] = useState(350); // Monthly surcharge if over threshold
+
+  const [includeLTC, setIncludeLTC] = useState(true);
+  const [ltcAnnualCost, setLtcAnnualCost] = useState(80000); // Annual long-term care cost
+  const [ltcProbability, setLtcProbability] = useState(70); // Probability of needing LTC (%)
+  const [ltcDuration, setLtcDuration] = useState(3.5); // Expected duration in years
+  const [ltcOnsetAge, setLtcOnsetAge] = useState(82); // Typical age when LTC begins
+  const [ltcAgeRangeStart, setLtcAgeRangeStart] = useState(75); // Earliest possible LTC onset
+  const [ltcAgeRangeEnd, setLtcAgeRangeEnd] = useState(90); // Latest possible LTC onset
+
   const [showGen, setShowGen] = useState(false);
 
   const [hypPerBen, setHypPerBen] = useState(100_000);
@@ -1450,6 +1466,20 @@ export default function App() {
           historicalYear: historicalYear || undefined,
           inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
           inflationShockDuration,
+          // Healthcare costs
+          includeMedicare,
+          medicarePremium,
+          medicalInflation,
+          irmaaThresholdSingle,
+          irmaaThresholdMarried,
+          irmaaSurcharge,
+          includeLTC,
+          ltcAnnualCost,
+          ltcProbability,
+          ltcDuration,
+          ltcOnsetAge,
+          ltcAgeRangeStart,
+          ltcAgeRangeEnd,
         };
 
         const batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, 1000);
@@ -1886,9 +1916,35 @@ export default function App() {
           }
         }
 
+        // Calculate healthcare costs
+        let healthcareCosts = 0;
+
+        // Medicare premiums (age 65+)
+        if (includeMedicare && currentAge >= 65) {
+          const medInflationFactor = Math.pow(1 + medicalInflation / 100, y);
+          healthcareCosts += medicarePremium * 12 * medInflationFactor;
+
+          // IRMAA surcharge if high income
+          const totalIncome = ssAnnualBenefit + requiredRMD;
+          const irmaaThreshold = marital === "married" ? irmaaThresholdMarried : irmaaThresholdSingle;
+          if (totalIncome > irmaaThreshold) {
+            healthcareCosts += irmaaSurcharge * 12 * medInflationFactor;
+          }
+        }
+
+        // Long-term care costs (deterministic mode: averaged over probability and duration)
+        if (includeLTC && currentAge >= ltcAgeRangeStart && currentAge <= ltcAgeRangeEnd) {
+          // Average annual LTC cost = (total cost) × (probability) × (fraction of years in range)
+          const yearsInRange = ltcAgeRangeEnd - ltcAgeRangeStart + 1;
+          const avgAnnualLTC = (ltcAnnualCost * (ltcProbability / 100) * ltcDuration) / yearsInRange;
+          const medInflationFactor = Math.pow(1 + medicalInflation / 100, y);
+          healthcareCosts += avgAnnualLTC * medInflationFactor;
+        }
+
         // Determine actual withdrawal amount needed from portfolio
         // SS reduces the amount we need to withdraw (but can't go below RMD)
-        let netSpendingNeed = Math.max(0, currWdGross - ssAnnualBenefit);
+        // Healthcare costs increase the amount we need to withdraw
+        let netSpendingNeed = Math.max(0, currWdGross + healthcareCosts - ssAnnualBenefit);
         let actualWithdrawal = netSpendingNeed;
         let rmdExcess = 0;
 
@@ -5272,6 +5328,174 @@ export default function App() {
                             )}
                           </div>
                         )}
+                      </div>
+                    ),
+                  },
+                  {
+                    id: "healthcare",
+                    label: "Healthcare Costs",
+                    defaultOpen: false,
+                    content: (
+                      <div className="space-y-6">
+                        {/* Medicare Section */}
+                        <div className="space-y-4">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="include-medicare"
+                              checked={includeMedicare}
+                              onChange={(e) => setIncludeMedicare(e.target.checked)}
+                              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
+                            />
+                            <Label htmlFor="include-medicare" className="text-base font-semibold cursor-pointer">
+                              Include Medicare Premiums (Age 65+) {includeMedicare && <span className="print-only">✓</span>}
+                            </Label>
+                          </div>
+
+                          {includeMedicare && (
+                            <div className="space-y-4 pl-7">
+                              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  Medicare premiums start at age 65. IRMAA (Income-Related Monthly Adjustment Amount) surcharges apply when income exceeds thresholds.
+                                </p>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                  label="Base Monthly Premium ($)"
+                                  value={medicarePremium}
+                                  setter={setMedicarePremium}
+                                  step={10}
+                                  tip="Typical combined cost for Part B, Part D, and Medigap supplement (~$400/month)"
+                                />
+                                <Input
+                                  label="Medical Inflation Rate (%)"
+                                  value={medicalInflation}
+                                  setter={setMedicalInflation}
+                                  step={0.1}
+                                  isRate
+                                  tip="Healthcare costs typically inflate faster than general inflation (5-6% vs 2-3%)"
+                                />
+                              </div>
+
+                              <div className="mt-4">
+                                <h4 className="text-sm font-semibold mb-2">IRMAA Surcharge Settings</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <Input
+                                    label="Single Threshold ($)"
+                                    value={irmaaThresholdSingle}
+                                    setter={setIrmaaThresholdSingle}
+                                    step={1000}
+                                    tip="MAGI threshold for IRMAA surcharge (single filers, 2025: $103,000)"
+                                  />
+                                  <Input
+                                    label="Married Threshold ($)"
+                                    value={irmaaThresholdMarried}
+                                    setter={setIrmaaThresholdMarried}
+                                    step={1000}
+                                    tip="MAGI threshold for IRMAA surcharge (married filing jointly, 2025: $206,000)"
+                                  />
+                                  <Input
+                                    label="Monthly Surcharge ($)"
+                                    value={irmaaSurcharge}
+                                    setter={setIrmaaSurcharge}
+                                    step={10}
+                                    tip="Additional monthly premium when income exceeds threshold (~$350/month for first bracket)"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <Separator />
+
+                        {/* Long-Term Care Section */}
+                        <div className="space-y-4">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="include-ltc"
+                              checked={includeLTC}
+                              onChange={(e) => setIncludeLTC(e.target.checked)}
+                              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
+                            />
+                            <Label htmlFor="include-ltc" className="text-base font-semibold cursor-pointer">
+                              Include Long-Term Care Planning {includeLTC && <span className="print-only">✓</span>}
+                            </Label>
+                          </div>
+
+                          {includeLTC && (
+                            <div className="space-y-4 pl-7">
+                              <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  <strong>~70% of Americans need long-term care at some point.</strong> In deterministic mode, costs are averaged. In Monte Carlo mode, LTC events occur randomly based on probability.
+                                </p>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                  label="Annual LTC Cost ($)"
+                                  value={ltcAnnualCost}
+                                  setter={setLtcAnnualCost}
+                                  step={5000}
+                                  tip="Typical cost: $80,000/year for nursing home or home health aide"
+                                />
+                                <Input
+                                  label="Probability of Need (%)"
+                                  value={ltcProbability}
+                                  setter={setLtcProbability}
+                                  step={5}
+                                  min={0}
+                                  max={100}
+                                  isRate
+                                  tip="Percentage chance you'll need long-term care (national average: 70%)"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                  label="Expected Duration (years)"
+                                  value={ltcDuration}
+                                  setter={setLtcDuration}
+                                  step={0.5}
+                                  isRate
+                                  tip="Average duration of long-term care need (typical: 3-4 years)"
+                                />
+                                <Input
+                                  label="Typical Onset Age"
+                                  value={ltcOnsetAge}
+                                  setter={setLtcOnsetAge}
+                                  step={1}
+                                  min={65}
+                                  max={95}
+                                  tip="Average age when LTC begins (median: 82)"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                  label="Age Range Start"
+                                  value={ltcAgeRangeStart}
+                                  setter={setLtcAgeRangeStart}
+                                  step={1}
+                                  min={65}
+                                  max={90}
+                                  tip="Earliest age LTC might begin (for Monte Carlo distribution)"
+                                />
+                                <Input
+                                  label="Age Range End"
+                                  value={ltcAgeRangeEnd}
+                                  setter={setLtcAgeRangeEnd}
+                                  step={1}
+                                  min={75}
+                                  max={95}
+                                  tip="Latest age LTC might begin (for Monte Carlo distribution)"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ),
                   },

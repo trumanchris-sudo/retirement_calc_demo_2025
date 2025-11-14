@@ -47,6 +47,20 @@ export type SimulationInputs = {
   historicalYear?: number;
   inflationShockRate?: number | null;
   inflationShockDuration?: number;
+  // Healthcare costs
+  includeMedicare?: boolean;
+  medicarePremium?: number;
+  medicalInflation?: number;
+  irmaaThresholdSingle?: number;
+  irmaaThresholdMarried?: number;
+  irmaaSurcharge?: number;
+  includeLTC?: boolean;
+  ltcAnnualCost?: number;
+  ltcProbability?: number;
+  ltcDuration?: number;
+  ltcOnsetAge?: number;
+  ltcAgeRangeStart?: number;
+  ltcAgeRangeEnd?: number;
 };
 
 /**
