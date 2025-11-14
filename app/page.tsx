@@ -922,7 +922,7 @@ export default function App() {
   const [incRate, setIncRate] = useState(4.5);
   const [wdRate, setWdRate] = useState(3.5);
 
-  const [includeSS, setIncludeSS] = useState(false);
+  const [includeSS, setIncludeSS] = useState(true);
   const [ssIncome, setSSIncome] = useState(75000); // Primary - Avg career earnings for SS calc
   const [ssClaimAge, setSSClaimAge] = useState(67); // Primary - Full retirement age
   const [ssIncome2, setSSIncome2] = useState(75000); // Spouse - Avg career earnings for SS calc
@@ -944,7 +944,7 @@ export default function App() {
   const [ltcAgeRangeStart, setLtcAgeRangeStart] = useState(75); // Earliest possible LTC onset
   const [ltcAgeRangeEnd, setLtcAgeRangeEnd] = useState(90); // Latest possible LTC onset
 
-  const [showGen, setShowGen] = useState(false);
+  const [showGen, setShowGen] = useState(true);
 
   // Generational wealth parameters (improved demographic model)
   const [hypPerBen, setHypPerBen] = useState(100_000);
@@ -994,7 +994,7 @@ export default function App() {
   const [comparisonMode, setComparisonMode] = useState(false);
 
   // Portfolio Stress Tests master card
-  const [showStressTests, setShowStressTests] = useState(false);
+  const [showStressTests, setShowStressTests] = useState(true);
   const [comparisonData, setComparisonData] = useState<ComparisonData>({
     baseline: null,
     bearMarket: null,
@@ -1831,6 +1831,15 @@ export default function App() {
         };
 
         setRes(newRes);
+
+        // Track calculation for tab interface and auto-switch to results
+        setLastCalculated(new Date());
+        setInputsModified(false);
+
+        // Auto-switch from Configure tab to Results tab
+        if (activeMainTab === 'configure') {
+          setActiveMainTab('results');
+        }
 
         setTimeout(() => {
           if (showGen && genPayout) {
@@ -5114,6 +5123,28 @@ export default function App() {
               </div>
             </AnimatedSection>
 
+            {/* Comparison Chart for Stress Tests Tab */}
+            {comparisonMode && comparisonData.baseline?.data && comparisonData.baseline.data.length > 0 && (
+              <AnimatedSection animation="slide-up" delay={300}>
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle>Scenario Comparison Chart</CardTitle>
+                    <CardDescription>Compare baseline, bear market, and inflation shock scenarios</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="chart-block">
+                      <ScenarioComparisonChart
+                        data={comparisonData.baseline.data}
+                        comparisonData={comparisonData}
+                        isDarkMode={isDarkMode}
+                        fmt={fmt}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+            )}
+
             {/* Recalculate Button for Stress Tab */}
             <div className="flex justify-center mt-6">
               <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
@@ -5448,85 +5479,82 @@ export default function App() {
                     ),
                   },
                   {
-                    id: "social-security",
-                    label: "Social Security",
+                    id: "advanced-settings",
+                    label: "Advanced Settings",
                     defaultOpen: false,
                     content: (
                       <div className="space-y-6">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="include-ss"
-                            checked={includeSS}
-                            onChange={(e) => { setIncludeSS(e.target.checked); setInputsModified(true); }}
-                            className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
-                          />
-                          <Label htmlFor="include-ss" className="text-base font-semibold cursor-pointer">
-                            Include Social Security Benefits {includeSS && <span className="print-only">✓</span>}
-                          </Label>
-                        </div>
+                        {/* Social Security Section */}
+                        <div className="space-y-4">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="include-ss"
+                              checked={includeSS}
+                              onChange={(e) => { setIncludeSS(e.target.checked); setInputsModified(true); }}
+                              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
+                            />
+                            <Label htmlFor="include-ss" className="text-base font-semibold cursor-pointer">
+                              Include Social Security Benefits {includeSS && <span className="print-only">✓</span>}
+                            </Label>
+                          </div>
 
-                        {includeSS && (
-                          <div className="space-y-6">
-                            <div>
-                              <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 mb-2">Primary</Badge>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
-                                  label="Avg Career Earnings ($/yr)"
-                                  value={ssIncome}
-                                  setter={setSSIncome}
-                                  step={1000}
-                                  tip="Your average indexed earnings for SS calculation (AIME)"
-                                  onInputChange={handleInputChange}
-                                />
-                                <Input
-                                  label="Claim Age"
-                                  value={ssClaimAge}
-                                  setter={setSSClaimAge}
-                                  step={1}
-                                  min={62}
-                                  max={70}
-                                  tip="Age when you start claiming SS (62-70). FRA is typically 67."
-                                  onInputChange={handleInputChange}
-                                />
-                              </div>
-                            </div>
-                            {isMar && (
+                          {includeSS && (
+                            <div className="space-y-6 pl-7">
                               <div>
-                                <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 mb-2">Spouse</Badge>
+                                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 mb-2">Primary</Badge>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <Input
                                     label="Avg Career Earnings ($/yr)"
-                                    value={ssIncome2}
-                                    setter={setSSIncome2}
+                                    value={ssIncome}
+                                    setter={setSSIncome}
                                     step={1000}
-                                    tip="Spouse's average indexed earnings for SS calculation (AIME)"
+                                    tip="Your average indexed earnings for SS calculation (AIME)"
                                     onInputChange={handleInputChange}
                                   />
                                   <Input
                                     label="Claim Age"
-                                    value={ssClaimAge2}
-                                    setter={setSSClaimAge2}
+                                    value={ssClaimAge}
+                                    setter={setSSClaimAge}
                                     step={1}
                                     min={62}
                                     max={70}
-                                    tip="Age when spouse starts claiming SS (62-70). FRA is typically 67."
+                                    tip="Age when you start claiming SS (62-70). FRA is typically 67."
                                     onInputChange={handleInputChange}
                                   />
                                 </div>
                               </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ),
-                  },
-                  {
-                    id: "healthcare",
-                    label: "Healthcare Costs",
-                    defaultOpen: false,
-                    content: (
-                      <div className="space-y-6">
+                              {isMar && (
+                                <div>
+                                  <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 mb-2">Spouse</Badge>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Input
+                                      label="Avg Career Earnings ($/yr)"
+                                      value={ssIncome2}
+                                      setter={setSSIncome2}
+                                      step={1000}
+                                      tip="Spouse's average indexed earnings for SS calculation (AIME)"
+                                      onInputChange={handleInputChange}
+                                    />
+                                    <Input
+                                      label="Claim Age"
+                                      value={ssClaimAge2}
+                                      setter={setSSClaimAge2}
+                                      step={1}
+                                      min={62}
+                                      max={70}
+                                      tip="Age when spouse starts claiming SS (62-70). FRA is typically 67."
+                                      onInputChange={handleInputChange}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <Separator />
+
                         {/* Medicare Section */}
                         <div className="space-y-4">
                           <div className="flex items-center space-x-2">
@@ -5999,18 +6027,15 @@ export default function App() {
         </AnimatedSection>
         </TabPanel>
 
-        {/* The Math Section - Always included in print */}
-        <div className="math-print-section print-section print-page-break-before">
-        <Card>
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="math" className="border-none">
-              <AccordionTrigger className="px-6 pt-6 pb-2 hover:no-underline">
-                <div className="text-left">
-                  <h2 className="text-3xl font-bold">The Math</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Understanding the calculations behind your retirement projections</p>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-6 pb-6">
+        {/* The Math Tab */}
+        <TabPanel id="math" activeTab={activeMainTab}>
+        <AnimatedSection animation="fade-in" delay={100}>
+          <Card className="math-print-section print-section print-page-break-before">
+            <CardHeader>
+              <CardTitle>The Math</CardTitle>
+              <CardDescription>Understanding the calculations behind your retirement projections</CardDescription>
+            </CardHeader>
+            <CardContent>
                 <div className="space-y-6 text-sm leading-relaxed pt-4">
             <section>
               <h3 className="text-xl font-semibold mb-3 text-blue-900">Overview</h3>
@@ -6361,11 +6386,10 @@ export default function App() {
               </p>
             </div>
                 </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </Card>
-        </div>
+            </CardContent>
+          </Card>
+        </AnimatedSection>
+        </TabPanel>
       </div>
       </div>
     </>
