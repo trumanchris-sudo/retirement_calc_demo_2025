@@ -44,6 +44,7 @@ import { TabNavigation, type MainTabId } from "@/components/calculator/TabNaviga
 import { TabPanel } from "@/components/calculator/TabPanel";
 import { LastCalculatedBadge } from "@/components/calculator/LastCalculatedBadge";
 import { RecalculateButton } from "@/components/calculator/RecalculateButton";
+import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
 
 // Import types
 import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress } from "@/types/calculator";
@@ -1012,6 +1013,11 @@ export default function App() {
   const [activeMainTab, setActiveMainTab] = useState<MainTabId>('all');
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [inputsModified, setInputsModified] = useState(false);
+
+  // Callback for tracking input changes
+  const handleInputChange = useCallback(() => {
+    setInputsModified(true);
+  }, []);
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
@@ -4739,6 +4745,23 @@ export default function App() {
 
             {/* Portfolio Stress Tests - Consolidates Bear Market, Inflation Shock, and Scenario Comparison */}
             <TabPanel id="stress" activeTab={activeMainTab}>
+            {/* Risk Summary Card */}
+            <AnimatedSection animation="fade-in" delay={200}>
+              <RiskSummaryCard
+                baseSuccessRate={res.probRuin !== undefined ? (1 - res.probRuin) * 100 : undefined}
+                currentScenario={{
+                  name: retMode === 'fixed' ? 'Fixed Returns' : 'Historical Bootstrap',
+                  description: retMode === 'fixed'
+                    ? `Assumes constant ${retRate}% annual return`
+                    : 'Based on historical market data (1928-2024)',
+                  successRate: res.probRuin !== undefined ? (1 - res.probRuin) * 100 : 100,
+                  eolWealth: res.eol,
+                  withdrawalAmount: res.wdReal
+                }}
+                showComparison={false}
+              />
+            </AnimatedSection>
+
             <AnimatedSection animation="slide-up" delay={275}>
               <div className="print:hidden">
               <Card>
@@ -5262,17 +5285,17 @@ export default function App() {
                         <Label>Marital Status</Label>
                         <select
                           value={marital}
-                          onChange={(e) => setMarital(e.target.value as FilingStatus)}
+                          onChange={(e) => { setMarital(e.target.value as FilingStatus); setInputsModified(true); }}
                           className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
                         >
                           <option value="single">Single</option>
                           <option value="married">Married</option>
                         </select>
                       </div>
-                      <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} />
-                      <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
+                      <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} onInputChange={handleInputChange} />
+                      <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} onInputChange={handleInputChange} />
                       {isMar && (
-                        <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} />
+                        <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} onInputChange={handleInputChange} />
                       )}
                     </div>
                   ),
@@ -5284,9 +5307,9 @@ export default function App() {
                   content: (
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} />
-                        <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} />
-                        <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} />
+                        <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} onInputChange={handleInputChange} />
+                        <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} onInputChange={handleInputChange} />
+                        <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} onInputChange={handleInputChange} />
                       </div>
                     </div>
                   ),
@@ -5301,20 +5324,20 @@ export default function App() {
                   <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
                     {marital === 'single' ? 'Your Contributions' : 'Your Contributions'}
                   </Badge>
-                  <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} />
-                  <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} />
-                  <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} />
-                  <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} />
+                  <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} onInputChange={handleInputChange} />
+                  <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} onInputChange={handleInputChange} />
+                  <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} onInputChange={handleInputChange} />
+                  <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} onInputChange={handleInputChange} />
                 </div>
                 {isMar && (
                   <div className="space-y-4">
                     <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
                       Spouse's Contributions
                     </Badge>
-                    <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} />
-                    <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} />
-                    <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} />
-                    <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} />
+                    <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} onInputChange={handleInputChange} />
+                    <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} onInputChange={handleInputChange} />
+                    <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} onInputChange={handleInputChange} />
+                    <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} onInputChange={handleInputChange} />
                   </div>
                 )}
                       </div>
@@ -5337,6 +5360,7 @@ export default function App() {
                       step={0.1}
                       unit="%"
                       description={retMode === 'fixed' ? "Historical median ≈ 9.8% (context only)" : "Used for 'Fixed' mode only"}
+                      onInputChange={handleInputChange}
                     />
                   )}
                   <SliderInput
@@ -5348,6 +5372,7 @@ export default function App() {
                     step={0.1}
                     unit="%"
                     description="US avg ~2.6%"
+                    onInputChange={handleInputChange}
                   />
                   <SliderInput
                     label="State Tax"
@@ -5358,6 +5383,7 @@ export default function App() {
                     step={0.1}
                     unit="%"
                     description="Income tax rate"
+                    onInputChange={handleInputChange}
                   />
                 </div>
 
@@ -5372,6 +5398,7 @@ export default function App() {
                         if (newMode === "randomWalk") {
                           setWalkSeries("trulyRandom");
                         }
+                        setInputsModified(true);
                       }}
                       className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
                     >
@@ -5391,6 +5418,7 @@ export default function App() {
                     step={0.1}
                     unit="%"
                     description="Annual spending rate"
+                    onInputChange={handleInputChange}
                   />
                   <div className="space-y-4">
                     <Input
@@ -5400,13 +5428,14 @@ export default function App() {
                       step={0.1}
                       isRate
                       disabled={!incContrib}
+                      onInputChange={handleInputChange}
                     />
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
                         id="inc-contrib"
                         checked={incContrib}
-                        onChange={(e) => setIncContrib(e.target.checked)}
+                        onChange={(e) => { setIncContrib(e.target.checked); setInputsModified(true); }}
                         className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
                       />
                       <Label htmlFor="inc-contrib" className="cursor-pointer">
@@ -5429,7 +5458,7 @@ export default function App() {
                             type="checkbox"
                             id="include-ss"
                             checked={includeSS}
-                            onChange={(e) => setIncludeSS(e.target.checked)}
+                            onChange={(e) => { setIncludeSS(e.target.checked); setInputsModified(true); }}
                             className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
                           />
                           <Label htmlFor="include-ss" className="text-base font-semibold cursor-pointer">
@@ -5448,6 +5477,7 @@ export default function App() {
                                   setter={setSSIncome}
                                   step={1000}
                                   tip="Your average indexed earnings for SS calculation (AIME)"
+                                  onInputChange={handleInputChange}
                                 />
                                 <Input
                                   label="Claim Age"
@@ -5457,6 +5487,7 @@ export default function App() {
                                   min={62}
                                   max={70}
                                   tip="Age when you start claiming SS (62-70). FRA is typically 67."
+                                  onInputChange={handleInputChange}
                                 />
                               </div>
                             </div>
@@ -5470,6 +5501,7 @@ export default function App() {
                                     setter={setSSIncome2}
                                     step={1000}
                                     tip="Spouse's average indexed earnings for SS calculation (AIME)"
+                                    onInputChange={handleInputChange}
                                   />
                                   <Input
                                     label="Claim Age"
@@ -5479,6 +5511,7 @@ export default function App() {
                                     min={62}
                                     max={70}
                                     tip="Age when spouse starts claiming SS (62-70). FRA is typically 67."
+                                    onInputChange={handleInputChange}
                                   />
                                 </div>
                               </div>
@@ -5501,7 +5534,7 @@ export default function App() {
                               type="checkbox"
                               id="include-medicare"
                               checked={includeMedicare}
-                              onChange={(e) => setIncludeMedicare(e.target.checked)}
+                              onChange={(e) => { setIncludeMedicare(e.target.checked); setInputsModified(true); }}
                               className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
                             />
                             <Label htmlFor="include-medicare" className="text-base font-semibold cursor-pointer">
@@ -5524,6 +5557,7 @@ export default function App() {
                                   setter={setMedicarePremium}
                                   step={10}
                                   tip="Typical combined cost for Part B, Part D, and Medigap supplement (~$400/month)"
+                                  onInputChange={handleInputChange}
                                 />
                                 <Input
                                   label="Medical Inflation Rate (%)"
@@ -5532,6 +5566,7 @@ export default function App() {
                                   step={0.1}
                                   isRate
                                   tip="Healthcare costs typically inflate faster than general inflation (5-6% vs 2-3%)"
+                                  onInputChange={handleInputChange}
                                 />
                               </div>
 
@@ -5544,6 +5579,7 @@ export default function App() {
                                     setter={setIrmaaThresholdSingle}
                                     step={1000}
                                     tip="MAGI threshold for IRMAA surcharge (single filers, 2025: $103,000)"
+                                    onInputChange={handleInputChange}
                                   />
                                   <Input
                                     label="Married Threshold ($)"
@@ -5551,6 +5587,7 @@ export default function App() {
                                     setter={setIrmaaThresholdMarried}
                                     step={1000}
                                     tip="MAGI threshold for IRMAA surcharge (married filing jointly, 2025: $206,000)"
+                                    onInputChange={handleInputChange}
                                   />
                                   <Input
                                     label="Monthly Surcharge ($)"
@@ -5558,6 +5595,7 @@ export default function App() {
                                     setter={setIrmaaSurcharge}
                                     step={10}
                                     tip="Additional monthly premium when income exceeds threshold (~$350/month for first bracket)"
+                                    onInputChange={handleInputChange}
                                   />
                                 </div>
                               </div>
@@ -5574,7 +5612,7 @@ export default function App() {
                               type="checkbox"
                               id="include-ltc"
                               checked={includeLTC}
-                              onChange={(e) => setIncludeLTC(e.target.checked)}
+                              onChange={(e) => { setIncludeLTC(e.target.checked); setInputsModified(true); }}
                               className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
                             />
                             <Label htmlFor="include-ltc" className="text-base font-semibold cursor-pointer">
@@ -5597,6 +5635,7 @@ export default function App() {
                                   setter={setLtcAnnualCost}
                                   step={5000}
                                   tip="Typical cost: $80,000/year for nursing home or home health aide"
+                                  onInputChange={handleInputChange}
                                 />
                                 <Input
                                   label="Probability of Need (%)"
@@ -5607,6 +5646,7 @@ export default function App() {
                                   max={100}
                                   isRate
                                   tip="Percentage chance you'll need long-term care (national average: 70%)"
+                                  onInputChange={handleInputChange}
                                 />
                               </div>
 
@@ -5618,6 +5658,7 @@ export default function App() {
                                   step={0.5}
                                   isRate
                                   tip="Average duration of long-term care need (typical: 3-4 years)"
+                                  onInputChange={handleInputChange}
                                 />
                                 <Input
                                   label="Typical Onset Age"
@@ -5627,6 +5668,7 @@ export default function App() {
                                   min={65}
                                   max={95}
                                   tip="Average age when LTC begins (median: 82)"
+                                  onInputChange={handleInputChange}
                                 />
                               </div>
 
@@ -5639,6 +5681,7 @@ export default function App() {
                                   min={65}
                                   max={90}
                                   tip="Earliest age LTC might begin (for Monte Carlo distribution)"
+                                  onInputChange={handleInputChange}
                                 />
                                 <Input
                                   label="Age Range End"
@@ -5648,6 +5691,7 @@ export default function App() {
                                   min={75}
                                   max={95}
                                   tip="Latest age LTC might begin (for Monte Carlo distribution)"
+                                  onInputChange={handleInputChange}
                                 />
                               </div>
                             </div>
@@ -5714,7 +5758,7 @@ export default function App() {
                   type="checkbox"
                   id="show-gen"
                   checked={showGen}
-                  onChange={(e) => setShowGen(e.target.checked)}
+                  onChange={(e) => { setShowGen(e.target.checked); setInputsModified(true); }}
                   className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 no-print print-hide"
                 />
                 <Label htmlFor="show-gen" className="text-lg font-semibold text-foreground cursor-pointer">
@@ -5777,6 +5821,7 @@ export default function App() {
                         setter={setHypPerBen}
                         step={10000}
                         tip="How much each person receives per year, adjusted for inflation"
+                        onInputChange={handleInputChange}
                       />
                       <Input
                         label="Initial Beneficiaries"
@@ -5785,6 +5830,7 @@ export default function App() {
                         min={1}
                         step={1}
                         tip="Number of beneficiaries at the start (e.g., your children)"
+                        onInputChange={handleInputChange}
                       />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -5797,6 +5843,7 @@ export default function App() {
                         step={0.1}
                         isRate
                         tip="Average children per person. 2.1 = replacement rate, 2.5 = growing dynasty, 1.5 = slow decline"
+                        onInputChange={handleInputChange}
                       />
                       <Input
                         label="Generation Length (years)"
@@ -5804,6 +5851,7 @@ export default function App() {
                         setter={setGenerationLength}
                         min={20}
                         max={40}
+                        onInputChange={handleInputChange}
                         step={1}
                         tip="Average age when people have children. Typical: 28-32. Shorter = faster generational turnover"
                       />

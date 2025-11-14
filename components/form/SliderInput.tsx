@@ -16,6 +16,7 @@ interface SliderInputProps {
   formatValue?: (value: number) => string;
   description?: string;
   className?: string;
+  onInputChange?: () => void; // Called when input value changes
 }
 
 export const SliderInput: React.FC<SliderInputProps> = ({
@@ -28,7 +29,8 @@ export const SliderInput: React.FC<SliderInputProps> = ({
   onChange,
   formatValue,
   description,
-  className
+  className,
+  onInputChange
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -48,7 +50,12 @@ export const SliderInput: React.FC<SliderInputProps> = ({
       <div className="relative">
         <Slider
           value={[value]}
-          onValueChange={(vals) => onChange(vals[0])}
+          onValueChange={(vals) => {
+            if (vals[0] !== value) {
+              onChange(vals[0]);
+              onInputChange?.();
+            }
+          }}
           min={min}
           max={max}
           step={step}
