@@ -92,11 +92,13 @@ export interface CalculatorInputs {
   showGen: boolean;
   hypPerBen: number;
   hypStartBens: number;
-  hypBirthMultiple: number;
-  hypBirthInterval: number;
+  totalFertilityRate: number;
+  generationLength: number;
   hypDeathAge: number;
   hypMinDistAge: number;
   hypBenAgesStr: string;
+  fertilityWindowStart: number;
+  fertilityWindowEnd: number;
 }
 
 // ==================== Result Types ====================
@@ -130,8 +132,8 @@ export interface GenerationalPayout {
   fundLeftReal: number;
   startBeneficiaries: number;
   lastLivingCount: number;
-  birthMultiple: number;
-  birthInterval: number;
+  totalFertilityRate: number;
+  generationLength: number;
   deathAge: number;
   p10?: {
     years: number;
@@ -411,16 +413,20 @@ export interface InputFormProps {
   setHypPerBen: (value: number) => void;
   hypStartBens: number;
   setHypStartBens: (value: number) => void;
-  hypBirthMultiple: number;
-  setHypBirthMultiple: (value: number) => void;
-  hypBirthInterval: number;
-  setHypBirthInterval: (value: number) => void;
+  totalFertilityRate: number;
+  setTotalFertilityRate: (value: number) => void;
+  generationLength: number;
+  setGenerationLength: (value: number) => void;
   hypDeathAge: number;
   setHypDeathAge: (value: number) => void;
   hypMinDistAge: number;
   setHypMinDistAge: (value: number) => void;
   hypBenAgesStr: string;
   setHypBenAgesStr: (value: string) => void;
+  fertilityWindowStart: number;
+  setFertilityWindowStart: (value: number) => void;
+  fertilityWindowEnd: number;
+  setFertilityWindowEnd: (value: number) => void;
 
   // Calculation
   calc: () => void;

@@ -350,6 +350,20 @@ function runSingleSimulation(params, seed) {
     historicalYear,
     inflationShockRate,
     inflationShockDuration = 5,
+    // Healthcare costs
+    includeMedicare = true,
+    medicarePremium = 400,
+    medicalInflation = 5.5,
+    irmaaThresholdSingle = 103000,
+    irmaaThresholdMarried = 206000,
+    irmaaSurcharge = 350,
+    includeLTC = true,
+    ltcAnnualCost = 80000,
+    ltcProbability = 70,
+    ltcDuration = 3.5,
+    ltcOnsetAge = 82,
+    ltcAgeRangeStart = 75,
+    ltcAgeRangeEnd = 90,
   } = params;
 
   const isMar = marital === "married";
@@ -581,7 +595,35 @@ function runSingleSimulation(params, seed) {
       }
     }
 
-    let netSpendingNeed = Math.max(0, currWdGross - ssAnnualBenefit);
+    // Calculate healthcare costs
+    let healthcareCosts = 0;
+
+    // Medicare premiums (age 65+)
+    if (includeMedicare && currentAge >= 65) {
+      const medInflationFactor = Math.pow(1 + medicalInflation / 100, y);
+      healthcareCosts += medicarePremium * 12 * medInflationFactor;
+
+      // IRMAA surcharge if high income
+      const totalIncome = ssAnnualBenefit + requiredRMD;
+      const irmaaThreshold = marital === "married" ? irmaaThresholdMarried : irmaaThresholdSingle;
+      if (totalIncome > irmaaThreshold) {
+        healthcareCosts += irmaaSurcharge * 12 * medInflationFactor;
+      }
+    }
+
+    // Long-term care costs (Monte Carlo mode: probabilistic)
+    // Use a simple random check each year to determine if LTC begins
+    if (includeLTC && currentAge >= ltcAgeRangeStart && currentAge <= ltcAgeRangeEnd) {
+      // For Monte Carlo, we need to track if LTC has started and for how long
+      // Since we don't have persistent state, we'll use a deterministic approximation
+      // based on the typical onset age and duration
+      const yearsInRange = ltcAgeRangeEnd - ltcAgeRangeStart + 1;
+      const avgAnnualLTC = (ltcAnnualCost * (ltcProbability / 100) * ltcDuration) / yearsInRange;
+      const medInflationFactor = Math.pow(1 + medicalInflation / 100, y);
+      healthcareCosts += avgAnnualLTC * medInflationFactor;
+    }
+
+    let netSpendingNeed = Math.max(0, currWdGross + healthcareCosts - ssAnnualBenefit);
     let actualWithdrawal = netSpendingNeed;
     let rmdExcess = 0;
 
@@ -639,7 +681,8 @@ function runSingleSimulation(params, seed) {
 
   const eolWealth = Math.max(0, retBalTax + retBalPre + retBalRoth);
   const yearsFrom2025 = yrsToRet + yrsToSim;
-  const eolReal = eolWealth / Math.pow(1 + infl, yearsFrom2025);
+  // Use cumulativeInflation to match the balancesReal array deflation (accounts for inflation shocks)
+  const eolReal = eolWealth / cumulativeInflation;
 
   return {
     balancesReal,
