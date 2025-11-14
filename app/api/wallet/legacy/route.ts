@@ -1,6 +1,7 @@
 // app/api/wallet/legacy/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
@@ -81,28 +82,39 @@ async function buildManifest(dir: string): Promise<Record<string, string>> {
  *
  * For now, this creates an empty file so the zip structure is valid
  */
-async function signManifest(
-  manifestPath: string,
-  outputPath: string
-): Promise<void> {
-  // TODO: REPLACE THIS WITH REAL SIGNING LOGIC
-  // Example using Node crypto or openssl command:
-  //
-  // const { execSync } = require('child_process');
-  // execSync(`openssl smime -binary -sign \\
-  //   -certfile AppleWWDRCA.pem \\
-  //   -signer passcertificate.pem \\
-  //   -inkey passkey.pem \\
-  //   -in ${manifestPath} \\
-  //   -out ${outputPath} \\
-  //   -outform DER`);
-  //
-  // For debugging/development, write empty signature:
-  await fs.promises.writeFile(outputPath, Buffer.alloc(0));
-  console.warn(
-    "⚠️  WARNING: Using empty signature file. Real Apple certificate signing required for production."
-  );
-}
+// --------------------------------------------
+// REAL WALLET PASS SIGNING (PKCS7 Detached)
+// --------------------------------------------
+
+async function signManifest(manifestPath: string, signatureOutputPath: string) {
+  return new Promise((resolve, reject) => {
+    const openssl = spawn("openssl", [
+  "smime",
+  "-binary",
+  "-sign",
+  "-noattr", // ← REQUIRED FOR PASSKIT
+  "-signer", path.join(process.cwd(), "wallet/certs/passcertificate.pem"),
+  "-inkey", path.join(process.cwd(), "wallet/certs/passkey-unencrypted.pem"),
+  "-certfile", path.join(process.cwd(), "wallet/certs/Apple_Wallet_CA_Chain.pem"),
+  "-in", manifestPath,
+  "-out", signatureOutputPath,
+  "-outform", "DER",
+  "-nostream"
+]);
+
+openssl.on("error", reject);
+
+openssl.stderr.on("data", (data) => {
+  console.error("OpenSSL error:", data.toString());
+});
+
+openssl.on("close", (code) => {
+  if (code === 0) resolve(true);
+  else reject(new Error(`OpenSSL exited with code ${code}`));
+});
+
+
+
 
 /**
  * Create a .pkpass archive (ZIP format) from a directory
