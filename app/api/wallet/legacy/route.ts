@@ -1,12 +1,12 @@
 // app/api/wallet/legacy/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import archiver from "archiver";
 import os from "os";
+import forge from "node-forge";
 
 // Type definitions
 interface WalletPassRequest {
@@ -72,53 +72,89 @@ async function buildManifest(dir: string): Promise<Record<string, string>> {
 }
 
 /**
- * Placeholder signing function
- * TODO: IMPLEMENT SIGNING USING APPLE PASS TYPE CERTIFICATE
+ * Sign the manifest.json using PKCS#7 detached signature (node-forge implementation)
  *
- * Real implementation will:
- * 1. Load your Apple Pass Type certificate (.p12 or .pem + key)
- * 2. Load Apple WWDR certificate
- * 3. Sign the manifest.json using PKCS#7 detached signature
- * 4. Write the signature to the output path
- *
- * For now, this creates an empty file so the zip structure is valid
+ * This creates a PKCS#7 signature compatible with Apple Wallet PassKit:
+ * - Detached signature (manifest.json not included in signature file)
+ * - SHA-1 digest algorithm (required by Apple)
+ * - DER format output
+ * - No authenticated attributes (equivalent to OpenSSL -noattr flag)
+ * - Includes certificate chain (signer cert + Apple WWDR cert)
  */
-// --------------------------------------------
-// REAL WALLET PASS SIGNING (PKCS7 Detached)
-// --------------------------------------------
+async function signManifest(manifestPath: string, signatureOutputPath: string): Promise<void> {
+  try {
+    // 1. Read the manifest content
+    const manifestBuffer = await fs.promises.readFile(manifestPath);
 
-async function signManifest(manifestPath: string, signatureOutputPath: string) {
-  return new Promise((resolve, reject) => {
-    const openssl = spawn("openssl", [
-  "smime",
-  "-binary",
-  "-sign",
-  "-noattr", // ← REQUIRED FOR PASSKIT
-  "-signer", path.join(process.cwd(), "wallet/certs/passcertificate.pem"),
-  "-inkey", path.join(process.cwd(), "wallet/certs/passkey-unencrypted.pem"),
-  "-certfile", path.join(process.cwd(), "wallet/certs/Apple_Wallet_CA_Chain.pem"),
-  "-in", manifestPath,
-  "-out", signatureOutputPath,
-  "-outform", "DER",
-  "-nostream"
-]);
+    // 2. Load signing certificate and private key
+    const certPem = await fs.promises.readFile(
+      path.join(process.cwd(), "wallet/certs/passcertificate.pem"),
+      "utf8"
+    );
+    const keyPem = await fs.promises.readFile(
+      path.join(process.cwd(), "wallet/certs/passkey-unencrypted.pem"),
+      "utf8"
+    );
 
-openssl.on("error", reject);
+    // 3. Load Apple WWDR certificate chain
+    const wwdrPem = await fs.promises.readFile(
+      path.join(process.cwd(), "wallet/certs/Apple_Wallet_CA_Chain.pem"),
+      "utf8"
+    );
 
-openssl.stderr.on("data", (data) => {
-  console.error("OpenSSL error:", data.toString());
-});
+    // 4. Parse certificates and key
+    const certificate = forge.pki.certificateFromPem(certPem);
+    const privateKey = forge.pki.privateKeyFromPem(keyPem);
 
-openssl.on("close", (code) => {
-  if (code === 0) resolve(true);
-  else reject(new Error(`OpenSSL exited with code ${code}`));
-});
+    // Parse WWDR certificate(s) from the chain
+    const wwdrCerts: forge.pki.Certificate[] = [];
+    const wwdrPemBlocks = wwdrPem.match(/-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/g);
+    if (wwdrPemBlocks) {
+      wwdrPemBlocks.forEach(block => {
+        wwdrCerts.push(forge.pki.certificateFromPem(block));
+      });
+    }
 
+    // 5. Create PKCS#7 signed data
+    const p7 = forge.pkcs7.createSignedData();
 
+    // Set content to be signed (manifest.json)
+    p7.content = forge.util.createBuffer(manifestBuffer.toString("binary"));
 
-  });
-} // <-- closes signManifest
-// END signManifest
+    // 6. Add signer with certificate and private key
+    p7.addCertificate(certificate);
+
+    // Add WWDR certificates to the chain
+    wwdrCerts.forEach(cert => {
+      p7.addCertificate(cert);
+    });
+
+    // Add signer configuration
+    p7.addSigner({
+      key: privateKey,
+      certificate: certificate,
+      digestAlgorithm: forge.pki.oids.sha1, // Apple requires SHA-1
+      authenticatedAttributes: [] // No authenticated attributes (equivalent to -noattr)
+    });
+
+    // 7. Sign the data (detached mode)
+    p7.sign({ detached: true });
+
+    // 8. Convert to DER format
+    const derBuffer = Buffer.from(
+      forge.asn1.toDer(p7.toAsn1()).getBytes(),
+      "binary"
+    );
+
+    // 9. Write signature file
+    await fs.promises.writeFile(signatureOutputPath, derBuffer);
+
+    console.log("✓ Manifest signed successfully using node-forge");
+  } catch (error) {
+    console.error("Error signing manifest with node-forge:", error);
+    throw new Error(`Failed to sign manifest: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+}
 
 /**
  * Create a .pkpass archive (ZIP format) from a directory
