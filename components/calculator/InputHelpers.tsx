@@ -69,6 +69,7 @@ export type InputProps = {
   tip?: string;
   isRate?: boolean;
   disabled?: boolean;
+  onInputChange?: () => void; // Called when input value changes
 };
 
 export const Input: React.FC<InputProps> = ({
@@ -81,6 +82,7 @@ export const Input: React.FC<InputProps> = ({
   tip,
   isRate = false,
   disabled = false,
+  onInputChange,
 }) => {
   const [local, setLocal] = useState<string>(String(value ?? 0));
   const [isFocused, setIsFocused] = useState(false);
@@ -109,7 +111,13 @@ export const Input: React.FC<InputProps> = ({
     const num = toNumber(cleanValue, value ?? 0);
     let val = isRate ? parseFloat(String(num)) : Math.round(num);
     val = clampNum(val, min, max);
-    setter(val);
+
+    // Only trigger change if value actually changed
+    if (val !== value) {
+      setter(val);
+      onInputChange?.(); // Notify parent of input change
+    }
+
     // Format with commas for display
     if (isRate) {
       setLocal(String(val));

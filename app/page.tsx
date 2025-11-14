@@ -40,6 +40,11 @@ import { SliderInput } from "@/components/form/SliderInput";
 import { BrandLoader } from "@/components/BrandLoader";
 import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
 import { Input, Spinner, Tip, TrendingUpIcon } from "@/components/calculator/InputHelpers";
+import { TabNavigation, type MainTabId } from "@/components/calculator/TabNavigation";
+import { TabPanel } from "@/components/calculator/TabPanel";
+import { LastCalculatedBadge } from "@/components/calculator/LastCalculatedBadge";
+import { RecalculateButton } from "@/components/calculator/RecalculateButton";
+import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
 
 // Import types
 import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress } from "@/types/calculator";
@@ -1005,9 +1010,14 @@ export default function App() {
   const [cubeAppended, setCubeAppended] = useState(false); // Track when cube animation completes
 
   // Tabbed interface state - foundation for future reorganization
-  const [activeMainTab, setActiveMainTab] = useState<'all' | 'configure' | 'results' | 'stress' | 'legacy'>('all');
+  const [activeMainTab, setActiveMainTab] = useState<MainTabId>('all');
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [inputsModified, setInputsModified] = useState(false);
+
+  // Callback for tracking input changes
+  const handleInputChange = useCallback(() => {
+    setInputsModified(true);
+  }, []);
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
@@ -2214,9 +2224,14 @@ export default function App() {
 
       setRes(newRes);
 
-      // Track calculation for future tab interface
+      // Track calculation for tab interface and auto-switch to results
       setLastCalculated(new Date());
       setInputsModified(false);
+
+      // Auto-switch from Configure tab to Results tab
+      if (activeMainTab === 'configure') {
+        setActiveMainTab('results');
+      }
 
       setTimeout(() => {
         if (showGen && genPayout) {
@@ -2243,6 +2258,7 @@ export default function App() {
     retMode, seed, walkSeries, historicalYear,
     inflationShockRate, inflationShockDuration,
     includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2, hypBenAgesStr,
+    activeMainTab, setActiveMainTab,
   ]);
 
   // Calculate sensitivity analysis using mathematical approximations
@@ -2451,6 +2467,25 @@ export default function App() {
           }
         }}
       />
+
+      {/* Tab Navigation */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
+        <div className="space-y-4">
+          <TabNavigation
+            activeTab={activeMainTab}
+            onTabChange={setActiveMainTab}
+            hasResults={!!res}
+          />
+          {res && (
+            <div className="flex justify-end">
+              <LastCalculatedBadge
+                lastCalculated={lastCalculated}
+                inputsModified={inputsModified}
+              />
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
@@ -3788,6 +3823,7 @@ export default function App() {
             />
             </div>
 
+            <TabPanel id="results" activeTab={activeMainTab}>
             <div className="print:hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <FlippingStatCard
                 title="Future Balance"
@@ -3973,29 +4009,37 @@ export default function App() {
 
             {/* Lifetime Wealth Flow - Sankey Diagram (Screen only - hidden from print) */}
             <div className="print:hidden wealth-flow-block">
-            <Card className="border-2 border-slate-200 dark:border-slate-700">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Lifetime Wealth Flow</span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 px-2 text-xs print-hide"
-                    onClick={() => askExplainQuestion("How can I optimize my end-of-life wealth and estate planning?")}
-                  >
-                    Explain This
-                  </Button>
-                </CardTitle>
-                <CardDescription className="flex items-center justify-between">
-                  <span>From end-of-life wealth to net inheritance</span>
-                  {res.probRuin !== undefined && (
-                    <span className="text-xs text-muted-foreground">
-                      Probability of Running Out: <span className="font-semibold">{(res.probRuin * 100).toFixed(0)}%</span>
-                    </span>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="wealth-flow" className="border-none">
+                <Card className="border-2 border-slate-200 dark:border-slate-700">
+                  <AccordionTrigger className="px-6 hover:no-underline [&[data-state=open]>div>svg]:rotate-180">
+                    <CardHeader className="p-0 flex-1">
+                      <CardTitle className="flex items-center justify-between">
+                        <span>Lifetime Wealth Flow</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs print-hide"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            askExplainQuestion("How can I optimize my end-of-life wealth and estate planning?");
+                          }}
+                        >
+                          Explain This
+                        </Button>
+                      </CardTitle>
+                      <CardDescription className="flex items-center justify-between">
+                        <span>From end-of-life wealth to net inheritance</span>
+                        {res.probRuin !== undefined && (
+                          <span className="text-xs text-muted-foreground">
+                            Probability of Running Out: <span className="font-semibold">{(res.probRuin * 100).toFixed(0)}%</span>
+                          </span>
+                        )}
+                      </CardDescription>
+                    </CardHeader>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <CardContent className="space-y-4 pt-4">
                 {res.eolAccounts && res.eol > 0 ? (
                   <>
                     <div className="wealth-flow-responsive">
@@ -4220,8 +4264,11 @@ export default function App() {
                     <p className="text-sm">No end-of-life wealth data available.</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                    </CardContent>
+                  </AccordionContent>
+                </Card>
+              </AccordionItem>
+            </Accordion>
             </div>
 
             <div className="print:hidden analysis-block">
@@ -4349,32 +4396,40 @@ export default function App() {
             {/* Save/Compare Scenarios - Hide interactive UI from print */}
             <AnimatedSection animation="slide-up" delay={250}>
               <div className="print:hidden">
-              <Card data-scenarios-section>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Save & Compare Scenarios</CardTitle>
-                      <CardDescription>Save different retirement strategies and compare them side-by-side</CardDescription>
-                    </div>
-                    <Button
-                      variant={showScenarios ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setShowScenarios(!showScenarios)}
-                      className="no-print"
-                    >
-                      {showScenarios ? "Hide" : `Show (${savedScenarios.length})`}
-                    </Button>
-                  </div>
-                  {!showScenarios && savedScenarios.length > 0 && (
-                    <div className="print-only mt-4">
-                      <p className="text-sm text-muted-foreground">
-                        {savedScenarios.length} saved scenario{savedScenarios.length === 1 ? '' : 's'}
-                      </p>
-                    </div>
-                  )}
-                </CardHeader>
-                {(showScenarios || savedScenarios.length > 0) && (
-                  <CardContent className="print:block">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="scenarios" className="border-none">
+                  <Card data-scenarios-section>
+                    <AccordionTrigger className="px-6 hover:no-underline [&[data-state=open]>div>svg]:rotate-180">
+                      <CardHeader className="p-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle>Save & Compare Scenarios</CardTitle>
+                            <CardDescription>Save different retirement strategies and compare them side-by-side</CardDescription>
+                          </div>
+                          <Button
+                            variant={showScenarios ? "default" : "outline"}
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowScenarios(!showScenarios);
+                            }}
+                            className="no-print"
+                          >
+                            {showScenarios ? "Hide" : `Show (${savedScenarios.length})`}
+                          </Button>
+                        </div>
+                      </CardHeader>
+                    </AccordionTrigger>
+                    {!showScenarios && savedScenarios.length > 0 && (
+                      <div className="print-only mt-4">
+                        <p className="text-sm text-muted-foreground">
+                          {savedScenarios.length} saved scenario{savedScenarios.length === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                    )}
+                  <AccordionContent>
+                    {(showScenarios || savedScenarios.length > 0) && (
+                      <CardContent className="print:block pt-4">
                     {/* Save Current Scenario */}
                     {res && (
                       <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg">
@@ -4678,13 +4733,35 @@ export default function App() {
                         )}
                       </>
                     )}
-                  </CardContent>
-                )}
-              </Card>
+                      </CardContent>
+                    )}
+                  </AccordionContent>
+                </Card>
+              </AccordionItem>
+            </Accordion>
               </div>
             </AnimatedSection>
+            </TabPanel>
 
             {/* Portfolio Stress Tests - Consolidates Bear Market, Inflation Shock, and Scenario Comparison */}
+            <TabPanel id="stress" activeTab={activeMainTab}>
+            {/* Risk Summary Card */}
+            <AnimatedSection animation="fade-in" delay={200}>
+              <RiskSummaryCard
+                baseSuccessRate={res.probRuin !== undefined ? (1 - res.probRuin) * 100 : undefined}
+                currentScenario={{
+                  name: retMode === 'fixed' ? 'Fixed Returns' : 'Historical Bootstrap',
+                  description: retMode === 'fixed'
+                    ? `Assumes constant ${retRate}% annual return`
+                    : 'Based on historical market data (1928-2024)',
+                  successRate: res.probRuin !== undefined ? (1 - res.probRuin) * 100 : 100,
+                  eolWealth: res.eol,
+                  withdrawalAmount: res.wdReal
+                }}
+                showComparison={false}
+              />
+            </AnimatedSection>
+
             <AnimatedSection animation="slide-up" delay={275}>
               <div className="print:hidden">
               <Card>
@@ -5037,7 +5114,14 @@ export default function App() {
               </div>
             </AnimatedSection>
 
+            {/* Recalculate Button for Stress Tab */}
+            <div className="flex justify-center mt-6">
+              <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
+            </div>
+            </TabPanel>
+
             {/* Tabbed Chart Container */}
+            <TabPanel id="results" activeTab={activeMainTab}>
             <AnimatedSection animation="slide-up" delay={300}>
               <div className="print-section print-block chart-container">
               <Card>
@@ -5172,12 +5256,14 @@ export default function App() {
               </Card>
               </div>
             </AnimatedSection>
+            </TabPanel>
           </div>
           </AnimatedSection>
           </>
         )}
 
         {/* Input Form - Hide from print */}
+        <TabPanel id="configure" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           <Card className="print:hidden">
           <CardHeader>
@@ -5199,17 +5285,17 @@ export default function App() {
                         <Label>Marital Status</Label>
                         <select
                           value={marital}
-                          onChange={(e) => setMarital(e.target.value as FilingStatus)}
+                          onChange={(e) => { setMarital(e.target.value as FilingStatus); setInputsModified(true); }}
                           className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
                         >
                           <option value="single">Single</option>
                           <option value="married">Married</option>
                         </select>
                       </div>
-                      <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} />
-                      <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} />
+                      <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} onInputChange={handleInputChange} />
+                      <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} onInputChange={handleInputChange} />
                       {isMar && (
-                        <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} />
+                        <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} onInputChange={handleInputChange} />
                       )}
                     </div>
                   ),
@@ -5221,9 +5307,9 @@ export default function App() {
                   content: (
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} />
-                        <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} />
-                        <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} />
+                        <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} onInputChange={handleInputChange} />
+                        <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} onInputChange={handleInputChange} />
+                        <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} onInputChange={handleInputChange} />
                       </div>
                     </div>
                   ),
@@ -5238,20 +5324,20 @@ export default function App() {
                   <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
                     {marital === 'single' ? 'Your Contributions' : 'Your Contributions'}
                   </Badge>
-                  <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} />
-                  <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} />
-                  <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} />
-                  <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} />
+                  <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} onInputChange={handleInputChange} />
+                  <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} onInputChange={handleInputChange} />
+                  <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} onInputChange={handleInputChange} />
+                  <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} onInputChange={handleInputChange} />
                 </div>
                 {isMar && (
                   <div className="space-y-4">
                     <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
                       Spouse's Contributions
                     </Badge>
-                    <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} />
-                    <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} />
-                    <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} />
-                    <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} />
+                    <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} onInputChange={handleInputChange} />
+                    <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} onInputChange={handleInputChange} />
+                    <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} onInputChange={handleInputChange} />
+                    <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} onInputChange={handleInputChange} />
                   </div>
                 )}
                       </div>
@@ -5274,6 +5360,7 @@ export default function App() {
                       step={0.1}
                       unit="%"
                       description={retMode === 'fixed' ? "Historical median ≈ 9.8% (context only)" : "Used for 'Fixed' mode only"}
+                      onInputChange={handleInputChange}
                     />
                   )}
                   <SliderInput
@@ -5285,6 +5372,7 @@ export default function App() {
                     step={0.1}
                     unit="%"
                     description="US avg ~2.6%"
+                    onInputChange={handleInputChange}
                   />
                   <SliderInput
                     label="State Tax"
@@ -5295,6 +5383,7 @@ export default function App() {
                     step={0.1}
                     unit="%"
                     description="Income tax rate"
+                    onInputChange={handleInputChange}
                   />
                 </div>
 
@@ -5309,6 +5398,7 @@ export default function App() {
                         if (newMode === "randomWalk") {
                           setWalkSeries("trulyRandom");
                         }
+                        setInputsModified(true);
                       }}
                       className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
                     >
@@ -5328,6 +5418,7 @@ export default function App() {
                     step={0.1}
                     unit="%"
                     description="Annual spending rate"
+                    onInputChange={handleInputChange}
                   />
                   <div className="space-y-4">
                     <Input
@@ -5337,13 +5428,14 @@ export default function App() {
                       step={0.1}
                       isRate
                       disabled={!incContrib}
+                      onInputChange={handleInputChange}
                     />
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
                         id="inc-contrib"
                         checked={incContrib}
-                        onChange={(e) => setIncContrib(e.target.checked)}
+                        onChange={(e) => { setIncContrib(e.target.checked); setInputsModified(true); }}
                         className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
                       />
                       <Label htmlFor="inc-contrib" className="cursor-pointer">
@@ -5366,7 +5458,7 @@ export default function App() {
                             type="checkbox"
                             id="include-ss"
                             checked={includeSS}
-                            onChange={(e) => setIncludeSS(e.target.checked)}
+                            onChange={(e) => { setIncludeSS(e.target.checked); setInputsModified(true); }}
                             className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
                           />
                           <Label htmlFor="include-ss" className="text-base font-semibold cursor-pointer">
@@ -5385,6 +5477,7 @@ export default function App() {
                                   setter={setSSIncome}
                                   step={1000}
                                   tip="Your average indexed earnings for SS calculation (AIME)"
+                                  onInputChange={handleInputChange}
                                 />
                                 <Input
                                   label="Claim Age"
@@ -5394,6 +5487,7 @@ export default function App() {
                                   min={62}
                                   max={70}
                                   tip="Age when you start claiming SS (62-70). FRA is typically 67."
+                                  onInputChange={handleInputChange}
                                 />
                               </div>
                             </div>
@@ -5407,6 +5501,7 @@ export default function App() {
                                     setter={setSSIncome2}
                                     step={1000}
                                     tip="Spouse's average indexed earnings for SS calculation (AIME)"
+                                    onInputChange={handleInputChange}
                                   />
                                   <Input
                                     label="Claim Age"
@@ -5416,6 +5511,7 @@ export default function App() {
                                     min={62}
                                     max={70}
                                     tip="Age when spouse starts claiming SS (62-70). FRA is typically 67."
+                                    onInputChange={handleInputChange}
                                   />
                                 </div>
                               </div>
@@ -5438,7 +5534,7 @@ export default function App() {
                               type="checkbox"
                               id="include-medicare"
                               checked={includeMedicare}
-                              onChange={(e) => setIncludeMedicare(e.target.checked)}
+                              onChange={(e) => { setIncludeMedicare(e.target.checked); setInputsModified(true); }}
                               className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
                             />
                             <Label htmlFor="include-medicare" className="text-base font-semibold cursor-pointer">
@@ -5461,6 +5557,7 @@ export default function App() {
                                   setter={setMedicarePremium}
                                   step={10}
                                   tip="Typical combined cost for Part B, Part D, and Medigap supplement (~$400/month)"
+                                  onInputChange={handleInputChange}
                                 />
                                 <Input
                                   label="Medical Inflation Rate (%)"
@@ -5469,6 +5566,7 @@ export default function App() {
                                   step={0.1}
                                   isRate
                                   tip="Healthcare costs typically inflate faster than general inflation (5-6% vs 2-3%)"
+                                  onInputChange={handleInputChange}
                                 />
                               </div>
 
@@ -5481,6 +5579,7 @@ export default function App() {
                                     setter={setIrmaaThresholdSingle}
                                     step={1000}
                                     tip="MAGI threshold for IRMAA surcharge (single filers, 2025: $103,000)"
+                                    onInputChange={handleInputChange}
                                   />
                                   <Input
                                     label="Married Threshold ($)"
@@ -5488,6 +5587,7 @@ export default function App() {
                                     setter={setIrmaaThresholdMarried}
                                     step={1000}
                                     tip="MAGI threshold for IRMAA surcharge (married filing jointly, 2025: $206,000)"
+                                    onInputChange={handleInputChange}
                                   />
                                   <Input
                                     label="Monthly Surcharge ($)"
@@ -5495,6 +5595,7 @@ export default function App() {
                                     setter={setIrmaaSurcharge}
                                     step={10}
                                     tip="Additional monthly premium when income exceeds threshold (~$350/month for first bracket)"
+                                    onInputChange={handleInputChange}
                                   />
                                 </div>
                               </div>
@@ -5511,7 +5612,7 @@ export default function App() {
                               type="checkbox"
                               id="include-ltc"
                               checked={includeLTC}
-                              onChange={(e) => setIncludeLTC(e.target.checked)}
+                              onChange={(e) => { setIncludeLTC(e.target.checked); setInputsModified(true); }}
                               className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
                             />
                             <Label htmlFor="include-ltc" className="text-base font-semibold cursor-pointer">
@@ -5534,6 +5635,7 @@ export default function App() {
                                   setter={setLtcAnnualCost}
                                   step={5000}
                                   tip="Typical cost: $80,000/year for nursing home or home health aide"
+                                  onInputChange={handleInputChange}
                                 />
                                 <Input
                                   label="Probability of Need (%)"
@@ -5544,6 +5646,7 @@ export default function App() {
                                   max={100}
                                   isRate
                                   tip="Percentage chance you'll need long-term care (national average: 70%)"
+                                  onInputChange={handleInputChange}
                                 />
                               </div>
 
@@ -5555,6 +5658,7 @@ export default function App() {
                                   step={0.5}
                                   isRate
                                   tip="Average duration of long-term care need (typical: 3-4 years)"
+                                  onInputChange={handleInputChange}
                                 />
                                 <Input
                                   label="Typical Onset Age"
@@ -5564,6 +5668,7 @@ export default function App() {
                                   min={65}
                                   max={95}
                                   tip="Average age when LTC begins (median: 82)"
+                                  onInputChange={handleInputChange}
                                 />
                               </div>
 
@@ -5576,6 +5681,7 @@ export default function App() {
                                   min={65}
                                   max={90}
                                   tip="Earliest age LTC might begin (for Monte Carlo distribution)"
+                                  onInputChange={handleInputChange}
                                 />
                                 <Input
                                   label="Age Range End"
@@ -5585,6 +5691,7 @@ export default function App() {
                                   min={75}
                                   max={95}
                                   tip="Latest age LTC might begin (for Monte Carlo distribution)"
+                                  onInputChange={handleInputChange}
                                 />
                               </div>
                             </div>
@@ -5598,17 +5705,64 @@ export default function App() {
 
             <Separator />
 
-            <div className={`print-section print-block gen-card space-y-6 ${!showGen ? 'no-print' : ''}`}>
+            <div className="flex flex-col items-center pt-6 pb-2 no-print">
+              <Button
+                onClick={calc}
+                disabled={isLoadingAi}
+                size="lg"
+                className="w-full md:w-auto text-lg px-16 py-7 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
+              >
+                {isLoadingAi ? (
+                  <span className="flex items-center gap-3">
+                    <Spinner />
+                    <span>
+                      {calcProgress
+                        ? `${calcProgress.message} (${calcProgress.percent}%)`
+                        : 'Calculating...'}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-3">
+                    <TrendingUpIcon className="w-6 h-6" />
+                    Calculate Retirement Plan
+                  </span>
+                )}
+              </Button>
+              {err && (
+                <div className="mt-6 p-5 bg-red-50 border-2 border-red-300 rounded-xl shadow-md max-w-2xl">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-red-800 font-medium text-base">{err}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        </AnimatedSection>
+        </TabPanel>
+
+        {/* Generational Wealth Modeling - Legacy Tab */}
+        <TabPanel id="legacy" activeTab={activeMainTab}>
+        <AnimatedSection animation="fade-in" delay={100}>
+          <Card className="print:hidden">
+            <CardHeader>
+              <CardTitle>Generational Wealth Modeling</CardTitle>
+              <CardDescription>Model multi-generational wealth transfer and dynasty trusts</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
               <div className="flex items-center space-x-3">
                 <input
                   type="checkbox"
                   id="show-gen"
                   checked={showGen}
-                  onChange={(e) => setShowGen(e.target.checked)}
+                  onChange={(e) => { setShowGen(e.target.checked); setInputsModified(true); }}
                   className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 no-print print-hide"
                 />
                 <Label htmlFor="show-gen" className="text-lg font-semibold text-foreground cursor-pointer">
-                  Generational Wealth Modeling {showGen && <span className="print-only">✓</span>}
+                  Enable Generational Wealth Modeling {showGen && <span className="print-only">✓</span>}
                 </Label>
               </div>
 
@@ -5667,6 +5821,7 @@ export default function App() {
                         setter={setHypPerBen}
                         step={10000}
                         tip="How much each person receives per year, adjusted for inflation"
+                        onInputChange={handleInputChange}
                       />
                       <Input
                         label="Initial Beneficiaries"
@@ -5675,6 +5830,7 @@ export default function App() {
                         min={1}
                         step={1}
                         tip="Number of beneficiaries at the start (e.g., your children)"
+                        onInputChange={handleInputChange}
                       />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -5687,6 +5843,7 @@ export default function App() {
                         step={0.1}
                         isRate
                         tip="Average children per person. 2.1 = replacement rate, 2.5 = growing dynasty, 1.5 = slow decline"
+                        onInputChange={handleInputChange}
                       />
                       <Input
                         label="Generation Length (years)"
@@ -5694,6 +5851,7 @@ export default function App() {
                         setter={setGenerationLength}
                         min={20}
                         max={40}
+                        onInputChange={handleInputChange}
                         step={1}
                         tip="Average age when people have children. Typical: 28-32. Shorter = faster generational turnover"
                       />
@@ -5831,47 +5989,15 @@ export default function App() {
                   )}
                 </div>
               )}
-            </div>
 
-            <Separator />
-
-            <div className="flex flex-col items-center pt-6 pb-2 no-print">
-              <Button
-                onClick={calc}
-                disabled={isLoadingAi}
-                size="lg"
-                className="w-full md:w-auto text-lg px-16 py-7 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
-              >
-                {isLoadingAi ? (
-                  <span className="flex items-center gap-3">
-                    <Spinner />
-                    <span>
-                      {calcProgress
-                        ? `${calcProgress.message} (${calcProgress.percent}%)`
-                        : 'Calculating...'}
-                    </span>
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-3">
-                    <TrendingUpIcon className="w-6 h-6" />
-                    Calculate Retirement Plan
-                  </span>
-                )}
-              </Button>
-              {err && (
-                <div className="mt-6 p-5 bg-red-50 border-2 border-red-300 rounded-xl shadow-md max-w-2xl">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-red-800 font-medium text-base">{err}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              {/* Recalculate Button for Legacy Tab */}
+              <div className="flex justify-center mt-6">
+                <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
+              </div>
+            </CardContent>
+          </Card>
         </AnimatedSection>
+        </TabPanel>
 
         {/* The Math Section - Always included in print */}
         <div className="math-print-section print-section print-page-break-before">
