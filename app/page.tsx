@@ -1472,6 +1472,16 @@ export default function App() {
     setAiError(null);
     setIsLoadingAi(true);
 
+    // Clear any existing stress test comparison data
+    setComparisonData({
+      baseline: null,
+      bearMarket: null,
+      inflation: null,
+    });
+    setComparisonMode(false);
+    setShowBearMarket(false);
+    setShowInflationShock(false);
+
     // Close all form tabs when calculation starts
     tabGroupRef.current?.closeAll();
 
@@ -5680,68 +5690,6 @@ export default function App() {
                       />
                     </div>
                   </div>
-
-                  {/* Perpetual Threshold Calculator */}
-                  {res && res.eol > 0 && (
-                    <div className="mb-6 p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                      <h5 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                        <span className="text-green-600 dark:text-green-400">♾️</span>
-                        Perpetual Legacy Threshold
-                      </h5>
-                      {(() => {
-                        const realReturn = ((1 + retRate / 100) / (1 + infRate / 100) - 1) * 100;
-                        const popGrowthRate = ((Math.pow(totalFertilityRate / 2, 1 / generationLength) - 1) * 100);
-                        const maxSustainableRate = realReturn - popGrowthRate;
-                        const currentRate = (hypPerBen * hypStartBens / res.netEstate) * 100;
-                        const isPerpetual = currentRate < maxSustainableRate;
-                        const doublingTime = 72 / maxSustainableRate;
-
-                        return (
-                          <div className="space-y-2 text-sm">
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <span className="text-muted-foreground">Real Return:</span>
-                                <span className="ml-2 font-semibold">{realReturn.toFixed(2)}%</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Population Growth:</span>
-                                <span className="ml-2 font-semibold">{popGrowthRate.toFixed(2)}%/yr</span>
-                              </div>
-                            </div>
-                            <div className="pt-2 border-t border-green-300 dark:border-green-700">
-                              <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Maximum Sustainable Rate:</span>
-                                <span className="font-bold text-green-600 dark:text-green-400">{maxSustainableRate.toFixed(2)}%</span>
-                              </div>
-                              <div className="flex justify-between items-center mt-1">
-                                <span className="text-muted-foreground">Your Distribution Rate:</span>
-                                <span className={`font-bold ${isPerpetual ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                                  {currentRate.toFixed(2)}%
-                                </span>
-                              </div>
-                            </div>
-                            <div className="pt-2 mt-2 border-t border-green-300 dark:border-green-700">
-                              {isPerpetual ? (
-                                <>
-                                  <p className="font-semibold text-green-700 dark:text-green-300">
-                                    ✓ Perpetual! Your wealth grows faster than distributions.
-                                  </p>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    At {maxSustainableRate.toFixed(1)}% net growth, wealth doubles every {doublingTime.toFixed(1)} years.
-                                    In 100 years: {Math.pow(2, 100 / doublingTime).toFixed(0)}× larger!
-                                  </p>
-                                </>
-                              ) : (
-                                <p className="font-semibold text-amber-700 dark:text-amber-300">
-                                  ⚠ Not perpetual. Reduce distribution or increase children per person.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
 
                   {/* Advanced Demographics */}
                   <Accordion type="single" collapsible className="mb-4">
