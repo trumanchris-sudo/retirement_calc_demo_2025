@@ -3182,6 +3182,354 @@ export default function App() {
                 </section>
               )}
 
+              {/* PAGE 6: LIFETIME WEALTH FLOW */}
+              <section className="print-section print-page-break-after">
+                <header className="mb-4 border-b-2 border-gray-900 pb-3">
+                  <h2 className="text-xl font-bold text-black">Lifetime Wealth Flow</h2>
+                  <p className="text-xs text-gray-700 mt-1">From end-of-life wealth to net inheritance</p>
+                </header>
+
+                {res.eolAccounts && res.eol > 0 ? (
+                  <>
+                    {/* Sankey Diagram */}
+                    <div className="mb-6" style={{ marginLeft: '-1rem', marginRight: '0.5rem' }}>
+                      <ResponsiveContainer width="100%" height={350}>
+                        <Sankey
+                          data={{
+                            nodes: [
+                              { name: `Taxable — ${fmt(res.eolAccounts.taxable)}` },
+                              { name: `Pre-Tax — ${fmt(res.eolAccounts.pretax)}` },
+                              { name: `Roth — ${fmt(res.eolAccounts.roth)}` },
+                              { name: `Estate Tax — ${fmt(res.estateTax || 0)}` },
+                              { name: `Net to Heirs — ${fmt(res.netEstate || res.eol)}` },
+                            ],
+                            links: (() => {
+                              const taxRatio = (res.estateTax || 0) / res.eol;
+                              const heirRatio = (res.netEstate || res.eol) / res.eol;
+                              const links = [];
+
+                              // Taxable flows (soft orange)
+                              if (res.estateTax > 0 && res.eolAccounts.taxable > 0) {
+                                links.push({
+                                  source: 0,
+                                  target: 3,
+                                  value: res.eolAccounts.taxable * taxRatio,
+                                  color: '#fb923c',
+                                });
+                              }
+                              if (res.eolAccounts.taxable > 0) {
+                                links.push({
+                                  source: 0,
+                                  target: 4,
+                                  value: res.eolAccounts.taxable * heirRatio,
+                                  color: '#fb923c',
+                                });
+                              }
+
+                              // Pre-tax flows (soft blue)
+                              if (res.estateTax > 0 && res.eolAccounts.pretax > 0) {
+                                links.push({
+                                  source: 1,
+                                  target: 3,
+                                  value: res.eolAccounts.pretax * taxRatio,
+                                  color: '#60a5fa',
+                                });
+                              }
+                              if (res.eolAccounts.pretax > 0) {
+                                links.push({
+                                  source: 1,
+                                  target: 4,
+                                  value: res.eolAccounts.pretax * heirRatio,
+                                  color: '#60a5fa',
+                                });
+                              }
+
+                              // Roth flows (soft green)
+                              if (res.estateTax > 0 && res.eolAccounts.roth > 0) {
+                                links.push({
+                                  source: 2,
+                                  target: 3,
+                                  value: res.eolAccounts.roth * taxRatio,
+                                  color: '#4ade80',
+                                });
+                              }
+                              if (res.eolAccounts.roth > 0) {
+                                links.push({
+                                  source: 2,
+                                  target: 4,
+                                  value: res.eolAccounts.roth * heirRatio,
+                                  color: '#4ade80',
+                                });
+                              }
+
+                              return links;
+                            })(),
+                          }}
+                          width={800}
+                          height={350}
+                          nodeWidth={15}
+                          nodePadding={15}
+                          margin={{ top: 30, right: 80, bottom: 30, left: 60 }}
+                          link={(props: any) => {
+                            const { sourceX, targetX, sourceY, targetY, sourceControlX, targetControlX, linkWidth, payload } = props;
+                            return (
+                              <path
+                                d={`M${sourceX},${sourceY} C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}`}
+                                fill="none"
+                                stroke={payload?.color || '#94a3b8'}
+                                strokeWidth={linkWidth}
+                                strokeOpacity={0.6}
+                              />
+                            );
+                          }}
+                          node={(props: any) => {
+                            const { x, y, width, height, index, payload } = props;
+                            const colors = ['#fb923c', '#60a5fa', '#4ade80', '#ef4444', '#10b981'];
+                            const fill = colors[index] || '#64748b';
+                            const fullName = payload?.name || '';
+                            const [label, value] = fullName.split(' — ');
+                            const textY = y + height / 2;
+
+                            return (
+                              <g>
+                                <Rectangle x={x} y={y} width={width} height={height} fill={fill} fillOpacity={0.85} />
+                                <text
+                                  x={index < 3 ? x - 10 : x + width + 10}
+                                  y={textY - 8}
+                                  textAnchor={index < 3 ? "end" : "start"}
+                                  dominantBaseline="middle"
+                                  fill="#374151"
+                                  fontSize="12"
+                                  fontWeight="600"
+                                >
+                                  {label}
+                                </text>
+                                <text
+                                  x={index < 3 ? x - 10 : x + width + 10}
+                                  y={textY + 8}
+                                  textAnchor={index < 3 ? "end" : "start"}
+                                  dominantBaseline="middle"
+                                  fill="#6b7280"
+                                  fontSize="11"
+                                  fontWeight="500"
+                                >
+                                  {value}
+                                </text>
+                              </g>
+                            );
+                          }}
+                        />
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Account Breakdown Table */}
+                    <div className="mb-4">
+                      <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">End-of-Life Account Breakdown</h3>
+                      <table className="w-full text-xs border border-gray-200">
+                        <tbody>
+                          <tr className="bg-gray-50">
+                            <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Taxable Accounts</th>
+                            <td className="px-3 py-2 text-right text-black">{fmt(res.eolAccounts.taxable)}</td>
+                          </tr>
+                          <tr>
+                            <th className="px-3 py-2 text-left font-semibold text-black">Pre-Tax (401k/IRA)</th>
+                            <td className="px-3 py-2 text-right text-black">{fmt(res.eolAccounts.pretax)}</td>
+                          </tr>
+                          <tr className="bg-gray-50">
+                            <th className="px-3 py-2 text-left font-semibold text-black">Roth (Tax-Free)</th>
+                            <td className="px-3 py-2 text-right text-black">{fmt(res.eolAccounts.roth)}</td>
+                          </tr>
+                          <tr className="border-t-2 border-gray-900">
+                            <th className="px-3 py-2 text-left font-bold text-black">Total Estate</th>
+                            <td className="px-3 py-2 text-right font-bold text-black">{fmt(res.eol)}</td>
+                          </tr>
+                          <tr className="bg-gray-50">
+                            <th className="px-3 py-2 text-left font-semibold text-black">Estate Tax</th>
+                            <td className="px-3 py-2 text-right text-black">{fmt(res.estateTax || 0)}</td>
+                          </tr>
+                          <tr className="border-t-2 border-gray-900">
+                            <th className="px-3 py-2 text-left font-bold text-black">Net to Heirs</th>
+                            <td className="px-3 py-2 text-right font-bold text-black">{fmt(res.netEstate || res.eol)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Total RMDs */}
+                    {res.totalRMDs > 0 && (
+                      <div className="mb-4">
+                        <h3 className="text-base font-semibold mb-2 text-black">Total RMDs (Age 73+)</h3>
+                        <p className="text-sm text-gray-700">Cumulative Required Minimum Distributions: <span className="font-bold">{fmt(res.totalRMDs)}</span></p>
+                      </div>
+                    )}
+
+                    {/* Disclaimer */}
+                    <div className="p-3 bg-gray-50 border border-gray-300 rounded text-xs text-gray-700">
+                      <p className="leading-relaxed">
+                        <strong>Disclaimer:</strong> This Lifetime Wealth Flow illustration attributes estate tax proportionally across all account types based on their share of the total estate. In practice, executors often choose to satisfy estate tax using taxable assets first to preserve tax-advantaged accounts. The economic burden ultimately depends on your estate structure, beneficiary designations, and trust planning.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-600">No end-of-life wealth data available.</p>
+                )}
+              </section>
+
+              {/* PAGE 7: STRESS TESTING (if scenarios are active) */}
+              {(historicalYear || (inflationShockRate > 0 && inflationShockDuration > 0) || comparisonMode) && (
+                <section className="print-section print-page-break-after">
+                  <header className="mb-4 border-b-2 border-gray-900 pb-3">
+                    <h2 className="text-xl font-bold text-black">Stress Testing & Scenario Analysis</h2>
+                    <p className="text-xs text-gray-700 mt-1">Testing your plan against adverse market and inflation conditions</p>
+                  </header>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    {/* Bear Market Stress Test */}
+                    {historicalYear && (
+                      <div className="p-4 border-2 border-red-300 bg-red-50 rounded">
+                        <h3 className="text-base font-semibold mb-2 text-black">Bear Market Stress Test</h3>
+                        <p className="text-xs text-gray-700 mb-3">
+                          Testing with actual historical returns starting from a major market crash.
+                        </p>
+                        {(() => {
+                          const scenario = BEAR_MARKET_SCENARIOS.find(s => s.year === historicalYear);
+                          return scenario ? (
+                            <div className="space-y-2">
+                              <div className="p-2 bg-white border border-red-200 rounded">
+                                <div className="flex items-start justify-between mb-1">
+                                  <div>
+                                    <div className="font-semibold text-sm text-black">{scenario.year} - {scenario.label}</div>
+                                    <div className="text-xs text-gray-600 mt-1">{scenario.description}</div>
+                                  </div>
+                                  <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
+                                    scenario.risk === 'extreme'
+                                      ? 'bg-red-200 text-red-900'
+                                      : scenario.risk === 'high'
+                                      ? 'bg-orange-200 text-orange-900'
+                                      : 'bg-yellow-200 text-yellow-900'
+                                  }`}>
+                                    {scenario.firstYear}
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-700 leading-relaxed">
+                                <strong>Why this matters:</strong> Retiring into a bear market can permanently damage your portfolio even if markets recover later.
+                                This scenario uses actual sequential S&P 500 returns from {historicalYear} forward.
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-600">Active scenario: {historicalYear}</p>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                    {/* Inflation Shock Stress Test */}
+                    {inflationShockRate > 0 && inflationShockDuration > 0 && (
+                      <div className="p-4 border-2 border-orange-300 bg-orange-50 rounded">
+                        <h3 className="text-base font-semibold mb-2 text-black">Inflation Shock Stress Test</h3>
+                        <p className="text-xs text-gray-700 mb-3">
+                          Modeling sustained high inflation on your real purchasing power.
+                        </p>
+                        {(() => {
+                          const scenario = INFLATION_SHOCK_SCENARIOS.find(s => s.rate === inflationShockRate && s.duration === inflationShockDuration);
+                          return scenario ? (
+                            <div className="space-y-2">
+                              <div className="p-2 bg-white border border-orange-200 rounded">
+                                <div className="flex items-start justify-between mb-1">
+                                  <div>
+                                    <div className="font-semibold text-sm text-black">{scenario.label}</div>
+                                    <div className="text-xs text-gray-600 mt-1">{scenario.description}</div>
+                                  </div>
+                                  <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
+                                    scenario.risk === 'extreme'
+                                      ? 'bg-red-200 text-red-900'
+                                      : scenario.risk === 'high'
+                                      ? 'bg-orange-200 text-orange-900'
+                                      : 'bg-yellow-200 text-yellow-900'
+                                  }`}>
+                                    {scenario.rate}%
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-700 leading-relaxed">
+                                <strong>Impact:</strong> {inflationShockRate}% inflation for {inflationShockDuration} years starting at retirement, then returning to {infRate}% baseline.
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-600">
+                              <strong>Custom scenario:</strong> {inflationShockRate}% inflation for {inflationShockDuration} years
+                            </p>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Scenario Comparison Summary */}
+                  {comparisonMode && comparisonData && (comparisonData.showBearMarket || comparisonData.showInflation) && (
+                    <div className="p-4 border-2 border-blue-300 bg-blue-50 rounded">
+                      <h3 className="text-base font-semibold mb-2 text-black">Scenario Comparison</h3>
+                      <p className="text-xs text-gray-700 mb-3">
+                        The wealth accumulation chart (Page 3) shows how these scenarios compare to your baseline projection.
+                      </p>
+                      <table className="w-full text-xs border border-gray-200 bg-white">
+                        <thead>
+                          <tr className="bg-gray-50">
+                            <th className="px-3 py-2 text-left font-semibold text-black">Scenario</th>
+                            <th className="px-3 py-2 text-left font-semibold text-black">Description</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="px-3 py-2 text-black font-semibold">Baseline</td>
+                            <td className="px-3 py-2 text-black">
+                              {retMode === 'fixed' ? `${retRate}% nominal return` : 'Historical S&P 500 returns'} with {infRate}% inflation
+                            </td>
+                          </tr>
+                          {comparisonData.showBearMarket && comparisonData.bearMarket && (
+                            <tr className="bg-gray-50">
+                              <td className="px-3 py-2 text-black font-semibold">Bear Market</td>
+                              <td className="px-3 py-2 text-black">
+                                Severe early retirement downturn ({comparisonData.bearMarket.label || `${comparisonData.bearMarket.year} scenario`})
+                              </td>
+                            </tr>
+                          )}
+                          {comparisonData.showInflation && comparisonData.inflation && (
+                            <tr>
+                              <td className="px-3 py-2 text-black font-semibold">Inflation Shock</td>
+                              <td className="px-3 py-2 text-black">
+                                Elevated inflation for first {inflationShockDuration} years of retirement
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* PAGE 8: PLAN ANALYSIS (if generated) */}
+              <section className="print-section print-page-break-after">
+                <header className="mb-4 border-b-2 border-gray-900 pb-3">
+                  <h2 className="text-xl font-bold text-black">Plan Analysis</h2>
+                  <p className="text-xs text-gray-700 mt-1">AI-generated insights and recommendations</p>
+                </header>
+
+                {aiInsight && aiInsight.trim().length > 0 ? (
+                  <div className="prose prose-sm max-w-none">
+                    <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">
+                      {aiInsight}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-gray-50 border border-gray-300 rounded">
+                    <p className="text-sm text-gray-700">Plan analysis was not generated for this report.</p>
+                  </div>
+                )}
+              </section>
+
               {/* FINAL PAGE: DISCLAIMERS & LIMITATIONS (No page-break-after to avoid blank page) */}
               <section className="print-section">
                 <header className="mb-4 border-b-2 border-gray-900 pb-3">
@@ -3464,8 +3812,8 @@ export default function App() {
               />
             </div>
 
-            {/* Lifetime Wealth Flow - Sankey Diagram */}
-            <div className="print-section print-block wealth-flow-block">
+            {/* Lifetime Wealth Flow - Sankey Diagram (Screen only - hidden from print) */}
+            <div className="print:hidden wealth-flow-block">
             <Card className="border-2 border-slate-200 dark:border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -3717,7 +4065,7 @@ export default function App() {
             </Card>
             </div>
 
-            <div className="print-section print-block analysis-block">
+            <div className="print:hidden analysis-block">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
