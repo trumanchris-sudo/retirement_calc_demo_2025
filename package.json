@@ -9,7 +9,10 @@
     "lint": "next lint",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test tests/e2e",
+    "test:a11y": "playwright test tests/accessibility",
+    "test:all": "npm run test:coverage && npm run test:e2e && npm run test:a11y"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
