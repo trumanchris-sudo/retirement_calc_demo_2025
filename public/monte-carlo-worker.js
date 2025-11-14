@@ -639,7 +639,8 @@ function runSingleSimulation(params, seed) {
 
   const eolWealth = Math.max(0, retBalTax + retBalPre + retBalRoth);
   const yearsFrom2025 = yrsToRet + yrsToSim;
-  const eolReal = eolWealth / Math.pow(1 + infl, yearsFrom2025);
+  // Use cumulativeInflation to match the balancesReal array deflation (accounts for inflation shocks)
+  const eolReal = eolWealth / cumulativeInflation;
 
   return {
     balancesReal,
