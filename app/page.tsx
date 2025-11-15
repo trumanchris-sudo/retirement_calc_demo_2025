@@ -1759,24 +1759,8 @@ export default function App() {
           const netEstateP50 = eolP50 - estateTaxP50;
           const netEstateP90 = eolP90 - estateTaxP90;
 
-          // Run generational wealth simulation for all three percentiles
-          const simP10 = simulateRealPerBeneficiaryPayout(
-            netEstateP10,
-            yearsFrom2025,
-            retRate,
-            infRate,
-            hypPerBen,
-            Math.max(1, hypStartBens),
-            totalFertilityRate,
-            generationLength,
-            Math.max(1, hypDeathAge),
-            Math.max(0, hypMinDistAge),
-            10000,
-            benAges.length > 0 ? benAges : [0],
-            fertilityWindowStart,
-            fertilityWindowEnd
-          );
-
+          // Run generational wealth simulation for P50 only (skip P10/P90 for performance)
+          // In Monte Carlo mode, only show median generational outcome
           const simP50 = simulateRealPerBeneficiaryPayout(
             netEstateP50,
             yearsFrom2025,
@@ -1794,41 +1778,7 @@ export default function App() {
             fertilityWindowEnd
           );
 
-          const simP90 = simulateRealPerBeneficiaryPayout(
-            netEstateP90,
-            yearsFrom2025,
-            retRate,
-            infRate,
-            hypPerBen,
-            Math.max(1, hypStartBens),
-            totalFertilityRate,
-            generationLength,
-            Math.max(1, hypDeathAge),
-            Math.max(0, hypMinDistAge),
-            10000,
-            benAges.length > 0 ? benAges : [0],
-            fertilityWindowStart,
-            fertilityWindowEnd
-          );
-
-          // Count how many percentiles resulted in perpetual wealth
-          const perpetualCount = [
-            simP10.fundLeftReal > 0,
-            simP50.fundLeftReal > 0,
-            simP90.fundLeftReal > 0
-          ].filter(Boolean).length;
-
-          // Estimate probability: if P50 is perpetual, assume ~50%+
-          // This is a rough estimate since we only have 3 data points
-          let probPerpetual = 0;
-          if (simP90.fundLeftReal > 0 && simP50.fundLeftReal > 0 && simP10.fundLeftReal > 0) {
-            probPerpetual = 0.90; // All three are perpetual, very likely >90%
-          } else if (simP90.fundLeftReal > 0 && simP50.fundLeftReal > 0) {
-            probPerpetual = 0.65; // P50 and P90 perpetual, ~65%
-          } else if (simP90.fundLeftReal > 0) {
-            probPerpetual = 0.15; // Only P90 perpetual, ~15%
-          }
-
+          // In Monte Carlo mode, only show P50 generational outcome for performance
           genPayout = {
             perBenReal: hypPerBen,
             years: simP50.years,
@@ -1838,23 +1788,13 @@ export default function App() {
             totalFertilityRate,
             generationLength,
             deathAge: Math.max(1, hypDeathAge),
-            // Monte Carlo fields
-            p10: {
-              years: simP10.years,
-              fundLeftReal: simP10.fundLeftReal,
-              isPerpetual: simP10.fundLeftReal > 0
-            },
+            // Monte Carlo fields - P50 only
             p50: {
               years: simP50.years,
               fundLeftReal: simP50.fundLeftReal,
               isPerpetual: simP50.fundLeftReal > 0
             },
-            p90: {
-              years: simP90.years,
-              fundLeftReal: simP90.fundLeftReal,
-              isPerpetual: simP90.fundLeftReal > 0
-            },
-            probPerpetual
+            probPerpetual: simP50.fundLeftReal > 0 ? 0.5 : 0
           };
         }
 
@@ -5386,15 +5326,15 @@ export default function App() {
               </div>
             </AnimatedSection>
 
-            {/* Monte Carlo Visualizer - Always render to avoid canvas initialization issues */}
-            <div ref={monteCarloRef} className="scroll-mt-4">
+            {/* Monte Carlo Visualizer - Temporarily disabled for performance */}
+            {/* <div ref={monteCarloRef} className="scroll-mt-4">
               <AnimatedSection animation="fade-in" delay={400}>
                 <MonteCarloVisualizer
                   isRunning={isLoadingAi}
                   visible={walkSeries === 'trulyRandom'}
                 />
               </AnimatedSection>
-            </div>
+            </div> */}
 
             </TabPanel>
           </div>
