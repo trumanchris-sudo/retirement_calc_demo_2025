@@ -2556,14 +2556,14 @@ export default function App() {
         onAdjust={(deltas: AdjustmentDeltas) => {
           // Apply deltas to current inputs and recalculate
           // Calculate total contributions
-          const totalContribs = cPre1 + cPost1 + cRoth1;
+          const totalContribs = cTax1 + cPre1 + cPost1;
           const adjustedTotal = totalContribs * (1 + deltas.contributionDelta / 100);
 
           // Apply proportional adjustment to each contribution type
           const ratio = adjustedTotal / totalContribs;
+          setCTax1(Math.round(cTax1 * ratio));
           setCPre1(Math.round(cPre1 * ratio));
           setCPost1(Math.round(cPost1 * ratio));
-          setCRoth1(Math.round(cRoth1 * ratio));
 
           // Apply withdrawal rate delta
           setWdPct(parseFloat((wdPct + deltas.withdrawalRateDelta).toFixed(2)));
@@ -6137,8 +6137,8 @@ export default function App() {
             const DISCRETIONARY_RATE = 0.25; // 25% for discretionary spending
             const TAXES_RATE = 0.30; // 30% for taxes (federal, state, FICA)
 
-            // Calculate total annual contributions (pre-tax + post-tax + Roth)
-            const totalContributions = cPre1 + cPost1 + cRoth1;
+            // Calculate total annual contributions (taxable + pre-tax + post-tax/Roth)
+            const totalContributions = cTax1 + cPre1 + cPost1;
 
             // Work backwards: if contributions are X% of gross, what's the gross income?
             const impliedGrossIncome = totalContributions / RETIREMENT_SAVINGS_RATE;
