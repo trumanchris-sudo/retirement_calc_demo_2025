@@ -46,7 +46,7 @@ import { LastCalculatedBadge } from "@/components/calculator/LastCalculatedBadge
 import { RecalculateButton } from "@/components/calculator/RecalculateButton";
 import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
 import { TimelineView } from "@/components/calculator/TimelineView";
-import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizer";
+import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 
 // Import types
@@ -5318,10 +5318,11 @@ export default function App() {
             </AnimatedSection>
 
             {/* Monte Carlo Visualizer - Always render to avoid canvas initialization issues */}
+            {/* TESTING: Set visible={true} to debug independently of walkSeries */}
             <AnimatedSection animation="fade-in" delay={400}>
               <MonteCarloVisualizer
                 isRunning={isLoadingAi}
-                visible={walkSeries === 'trulyRandom'}
+                visible={true}
               />
             </AnimatedSection>
 

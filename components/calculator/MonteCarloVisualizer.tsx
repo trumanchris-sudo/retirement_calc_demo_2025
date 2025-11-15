@@ -353,13 +353,8 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
     }
   }, [isRunning, animateSimulation]);
 
-  // Don't render if not visible - but keep minimal DOM presence to avoid hydration issues
-  if (!visible) {
-    return null;
-  }
-
   return (
-    <Card>
+    <Card style={{ visibility: visible ? 'visible' : 'hidden', position: visible ? 'relative' : 'absolute' }}>
       <CardHeader>
         <CardTitle>Monte Carlo Simulation Visualizer</CardTitle>
         <CardDescription>
