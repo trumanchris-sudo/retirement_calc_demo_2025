@@ -972,6 +972,8 @@ export default function App() {
 
   const [res, setRes] = useState<CalculationResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+
 
   const [aiInsight, setAiInsight] = useState<string>("");
   const [isLoadingAi, setIsLoadingAi] = useState<boolean>(false);
@@ -1037,7 +1039,10 @@ export default function App() {
 
   // Initialize web worker
   useEffect(() => {
-    workerRef.current = new Worker('/monte-carlo-worker.js');
+    workerRef.current = new Worker(new URL('/monte-carlo-worker.js', window.location.origin), {
+  type: 'module',
+});
+
 
     return () => {
       if (workerRef.current) {
