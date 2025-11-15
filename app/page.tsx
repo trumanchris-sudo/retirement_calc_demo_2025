@@ -6277,7 +6277,6 @@ export default function App() {
 
         {/* Math Tab */}
         <TabPanel id="math" activeTab={activeMainTab}>
-        <AnimatedSection animation="fade-in" delay={100}>
           <Card className="math-print-section print-section print-page-break-before">
             <CardHeader>
               <CardTitle>Math</CardTitle>
@@ -6636,7 +6635,6 @@ export default function App() {
                 </div>
             </CardContent>
           </Card>
-        </AnimatedSection>
         </TabPanel>
       </div>
       </div>
