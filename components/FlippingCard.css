@@ -173,6 +173,36 @@
     inset 0 -1px 0 0 rgba(0, 0, 0, 0.25);
 }
 
+/* Mobile styles - reduce card size by 50% */
+@media (max-width: 640px) {
+  .flip-card {
+    min-height: 140px;
+  }
+
+  .flip-card-face {
+    min-height: 140px;
+    padding: 16px;
+  }
+
+  .flip-card-body-main {
+    font-size: 1.75rem;
+    margin-bottom: 4px;
+  }
+
+  .flip-card-header,
+  .flip-card-footer {
+    font-size: 0.8rem;
+  }
+
+  .flip-card-body-details {
+    font-size: 0.85rem;
+  }
+
+  .flip-card-list li {
+    padding: 6px 0;
+  }
+}
+
 /* Print styles - disable 3D transforms and show front face only */
 @media print {
   .flip-card-scene {

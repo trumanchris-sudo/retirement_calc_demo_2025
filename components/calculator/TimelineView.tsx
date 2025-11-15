@@ -62,7 +62,7 @@ export function TimelineView({ result, currentAge, retirementAge, spouseAge }: T
       year: currentYear,
       label: "Today",
       description: "Current Age & Starting Point",
-      icon: <CalendarDays className="w-5 h-5" />,
+      icon: <CalendarDays className="w-4 h-4 md:w-5 md:h-5" />,
       color: "bg-blue-500"
     },
     ...(currentAge < retirementAge ? [{
@@ -70,7 +70,7 @@ export function TimelineView({ result, currentAge, retirementAge, spouseAge }: T
       year: retirementYear,
       label: "Retirement",
       description: `Begin retirement withdrawals`,
-      icon: <Trophy className="w-5 h-5" />,
+      icon: <Trophy className="w-4 h-4 md:w-5 md:h-5" />,
       color: "bg-green-500"
     }] : []),
     ...(currentAge < medicareAge ? [{
@@ -78,7 +78,7 @@ export function TimelineView({ result, currentAge, retirementAge, spouseAge }: T
       year: medicareYear,
       label: "Medicare Eligible",
       description: "Healthcare coverage begins",
-      icon: <Heart className="w-5 h-5" />,
+      icon: <Heart className="w-4 h-4 md:w-5 md:h-5" />,
       color: "bg-red-400"
     }] : []),
     ...(currentAge < ssClaimAge ? [{
@@ -86,7 +86,7 @@ export function TimelineView({ result, currentAge, retirementAge, spouseAge }: T
       year: ssClaimYear,
       label: "Social Security",
       description: "Full retirement benefits claim",
-      icon: <Building2 className="w-5 h-5" />,
+      icon: <Building2 className="w-4 h-4 md:w-5 md:h-5" />,
       color: "bg-purple-500"
     }] : []),
     ...(currentAge < rmdAge ? [{
@@ -94,7 +94,7 @@ export function TimelineView({ result, currentAge, retirementAge, spouseAge }: T
       year: rmdYear,
       label: "RMDs Begin",
       description: "Required Minimum Distributions",
-      icon: <ArrowUpCircle className="w-5 h-5" />,
+      icon: <ArrowUpCircle className="w-4 h-4 md:w-5 md:h-5" />,
       color: "bg-orange-500"
     }] : []),
     ...(currentAge < ltcAge ? [{
@@ -102,7 +102,7 @@ export function TimelineView({ result, currentAge, retirementAge, spouseAge }: T
       year: ltcYear,
       label: "Long-Term Care Zone",
       description: "Increased healthcare probability",
-      icon: <AlertCircle className="w-5 h-5" />,
+      icon: <AlertCircle className="w-4 h-4 md:w-5 md:h-5" />,
       color: "bg-yellow-500"
     }] : []),
     {
@@ -110,7 +110,7 @@ export function TimelineView({ result, currentAge, retirementAge, spouseAge }: T
       year: estateYear,
       label: "Estate Projection",
       description: "Projected end-of-life balance",
-      icon: <Landmark className="w-5 h-5" />,
+      icon: <Landmark className="w-4 h-4 md:w-5 md:h-5" />,
       color: "bg-indigo-500"
     }
   ];
@@ -127,27 +127,27 @@ export function TimelineView({ result, currentAge, retirementAge, spouseAge }: T
         <div className="relative">
           {/* Horizontal scrollable timeline */}
           <div className="overflow-x-auto pb-4">
-            <div className="flex gap-4 min-w-max">
+            <div className="flex gap-3 md:gap-4 min-w-max">
               {events.map((event, index) => (
-                <div key={index} className="relative flex flex-col items-center min-w-[180px]">
+                <div key={index} className="relative flex flex-col items-center min-w-[120px] md:min-w-[180px]">
                   {/* Timeline line connector */}
                   {index < events.length - 1 && (
-                    <div className="absolute top-8 left-[50%] w-full h-0.5 bg-border z-0" />
+                    <div className="absolute top-6 md:top-8 left-[50%] w-full h-0.5 bg-border z-0" />
                   )}
 
                   {/* Event node */}
-                  <div className={`relative z-10 w-16 h-16 rounded-full ${event.color} flex items-center justify-center text-white shadow-lg mb-3`}>
+                  <div className={`relative z-10 w-12 h-12 md:w-16 md:h-16 rounded-full ${event.color} flex items-center justify-center text-white shadow-lg mb-2 md:mb-3`}>
                     {event.icon}
                   </div>
 
                   {/* Event details */}
-                  <div className="text-center space-y-1">
-                    <Badge variant="outline" className="mb-1 font-mono text-xs">
+                  <div className="text-center space-y-0.5 md:space-y-1">
+                    <Badge variant="outline" className="mb-1 font-mono text-[10px] md:text-xs px-1 md:px-2">
                       Age {event.age}
                     </Badge>
-                    <div className="font-semibold text-sm">{event.label}</div>
-                    <div className="text-xs text-muted-foreground">{event.year}</div>
-                    <div className="text-xs text-muted-foreground max-w-[160px]">
+                    <div className="font-semibold text-xs md:text-sm">{event.label}</div>
+                    <div className="text-[10px] md:text-xs text-muted-foreground">{event.year}</div>
+                    <div className="text-[10px] md:text-xs text-muted-foreground max-w-[110px] md:max-w-[160px]">
                       {event.description}
                     </div>
                   </div>
