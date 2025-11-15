@@ -22,6 +22,7 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
   const nodesRef = useRef<Node[]>([]);
   const isMountedRef = useRef(true);
   const isAnimatingRef = useRef(false);
+  const isInitializedRef = useRef(false);
   const [pathsCompleted, setPathsCompleted] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -31,6 +32,8 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    let resizeTimeout: number | undefined;
 
     // Set canvas size
     const resizeCanvas = () => {
@@ -50,11 +53,16 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
       ctx.scale(dpr, dpr);
     };
 
-    // Use requestAnimationFrame to ensure DOM is ready
-    requestAnimationFrame(() => {
-      resizeCanvas();
-    });
-    window.addEventListener('resize', resizeCanvas);
+    // Debounced resize handler to prevent rapid context resets
+    const handleResize = () => {
+      if (resizeTimeout) {
+        cancelAnimationFrame(resizeTimeout);
+      }
+      resizeTimeout = requestAnimationFrame(() => {
+        resizeCanvas();
+        resizeTimeout = undefined;
+      });
+    };
 
     // Initialize nodes (network graph representation)
     // Defer initialization until canvas is sized
@@ -65,7 +73,7 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
 
       // Only initialize if canvas has valid dimensions
       if (width === 0 || height === 0) {
-        return;
+        return false;
       }
 
       const nodeCount = 150;
@@ -88,15 +96,25 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
           }
         }
       });
+
+      return true;
     };
 
-    // Initialize nodes after canvas is ready
+    // Use requestAnimationFrame to ensure DOM is ready, then initialize
     requestAnimationFrame(() => {
-      initializeNodes();
+      resizeCanvas();
+      if (initializeNodes()) {
+        isInitializedRef.current = true;
+      }
     });
 
+    window.addEventListener('resize', handleResize);
+
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('resize', handleResize);
+      if (resizeTimeout) {
+        cancelAnimationFrame(resizeTimeout);
+      }
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -109,6 +127,7 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
     return () => {
       isMountedRef.current = false;
       isAnimatingRef.current = false;
+      isInitializedRef.current = false;
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -117,18 +136,40 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
 
   const animateSimulation = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      // Clean up animation state
+      isAnimatingRef.current = false;
+      if (isMountedRef.current) setIsAnimating(false);
+      return;
+    }
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      // Clean up animation state
+      isAnimatingRef.current = false;
+      if (isMountedRef.current) setIsAnimating(false);
+      return;
+    }
 
     const dpr = window.devicePixelRatio || 1;
     const width = canvas.width / dpr;
     const height = canvas.height / dpr;
 
-    // Guard against invalid dimensions
+    // Guard against invalid dimensions - retry once if not initialized yet
     if (width === 0 || height === 0) {
-      console.warn('MonteCarloVisualizer: Canvas has zero dimensions, skipping animation');
+      if (!isInitializedRef.current && isMountedRef.current && isAnimatingRef.current) {
+        // Canvas might not be ready yet, retry after a frame
+        console.warn('MonteCarloVisualizer: Canvas not ready, retrying...');
+        requestAnimationFrame(() => {
+          if (isAnimatingRef.current && isMountedRef.current) {
+            animateSimulation();
+          }
+        });
+      } else {
+        console.warn('MonteCarloVisualizer: Canvas has zero dimensions, stopping animation');
+        isAnimatingRef.current = false;
+        if (isMountedRef.current) setIsAnimating(false);
+      }
       return;
     }
 
@@ -136,7 +177,19 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
 
     // Guard against uninitialized nodes
     if (!nodes || nodes.length === 0) {
-      console.warn('MonteCarloVisualizer: Nodes not initialized, skipping animation');
+      if (!isInitializedRef.current && isMountedRef.current && isAnimatingRef.current) {
+        // Nodes might not be ready yet, retry after a frame
+        console.warn('MonteCarloVisualizer: Nodes not ready, retrying...');
+        requestAnimationFrame(() => {
+          if (isAnimatingRef.current && isMountedRef.current) {
+            animateSimulation();
+          }
+        });
+      } else {
+        console.warn('MonteCarloVisualizer: Nodes not initialized, stopping animation');
+        isAnimatingRef.current = false;
+        if (isMountedRef.current) setIsAnimating(false);
+      }
       return;
     }
 
@@ -212,18 +265,20 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
         gradient.addColorStop(0.5, `rgba(139, 92, 246, ${alpha * 1.2})`);
         gradient.addColorStop(1, `rgba(59, 130, 246, ${alpha})`);
 
+        // Set glow effect before drawing
         ctx.strokeStyle = gradient;
         ctx.lineWidth = 2;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(139, 92, 246, 0.5)';
+
         ctx.beginPath();
         ctx.moveTo(node.x, node.y);
         ctx.lineTo(nextNode.x, nextNode.y);
         ctx.stroke();
 
-        // Add glow effect
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = 'rgba(139, 92, 246, 0.5)';
-        ctx.stroke();
+        // Reset shadow for subsequent draws
         ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
 
         // Move to next node occasionally
         if (path.progress > 0.8 && Math.random() > 0.7) {
