@@ -237,8 +237,8 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
         });
       });
 
-      // Add new paths periodically
-      if (frame % 3 === 0 && completedPaths < maxPaths) {
+      // Add new paths periodically (every 5 frames for slower, more visible animation)
+      if (frame % 5 === 0 && completedPaths < maxPaths) {
         const randomNode = Math.floor(Math.random() * nodes.length);
         activePaths.push({
           nodeIndex: randomNode,
@@ -249,7 +249,7 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
 
       // Draw and update active paths (glowing connections)
       activePaths = activePaths.filter(path => {
-        path.progress += 0.05;
+        path.progress += 0.03; // Slower progression for longer visible paths
 
         if (path.progress >= 1) {
           completedPaths++;
@@ -343,14 +343,9 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
       setIsAnimating(true);
       setPathsCompleted(0);
       animateSimulation();
-    } else {
-      isAnimatingRef.current = false;
-      setIsAnimating(false);
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = undefined;
-      }
     }
+    // Note: Don't stop animation when isRunning becomes false
+    // Let the animation complete all 1000 paths naturally
   }, [isRunning, animateSimulation]);
 
   return (

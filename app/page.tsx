@@ -1024,6 +1024,7 @@ export default function App() {
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
+  const monteCarloRef = useRef<HTMLDivElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const tabGroupRef = useRef<TabGroupRef>(null);
 
@@ -1869,6 +1870,9 @@ export default function App() {
         setTimeout(() => {
           if (showGen && genPayout) {
             genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else if (walkSeries === 'trulyRandom') {
+            // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
+            monteCarloRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
           } else {
             resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
           }
@@ -2270,6 +2274,9 @@ export default function App() {
       setTimeout(() => {
         if (showGen && genPayout) {
           genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else if (walkSeries === 'trulyRandom') {
+          // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
+          monteCarloRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
         } else {
           resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         }
@@ -5318,12 +5325,14 @@ export default function App() {
             </AnimatedSection>
 
             {/* Monte Carlo Visualizer - Always render to avoid canvas initialization issues */}
-            <AnimatedSection animation="fade-in" delay={400}>
-              <MonteCarloVisualizer
-                isRunning={isLoadingAi}
-                visible={walkSeries === 'trulyRandom'}
-              />
-            </AnimatedSection>
+            <div ref={monteCarloRef} className="scroll-mt-4">
+              <AnimatedSection animation="fade-in" delay={400}>
+                <MonteCarloVisualizer
+                  isRunning={isLoadingAi}
+                  visible={walkSeries === 'trulyRandom'}
+                />
+              </AnimatedSection>
+            </div>
 
             </TabPanel>
           </div>
