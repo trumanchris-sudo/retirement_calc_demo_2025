@@ -1,5 +1,7 @@
 // types/planner.ts
 
+import type { GenerationalPayout } from "./calculator";
+
 export type FilingStatus = "single" | "married";
 export type ReturnMode = "fixed" | "randomWalk";
 export type WalkSeries = "nominal" | "real" | "trulyRandom";
@@ -116,35 +118,6 @@ export type BatchSummary = {
   y1AfterTaxReal_p90: number;
   probRuin: number;
   allRuns: SimResult[];  // Store all simulation runs for spaghetti plot
-};
-
-// Generational payout result
-export type GenerationalPayout = {
-  perBenReal: number;
-  years: number;
-  fundLeftReal: number;
-  startBeneficiaries: number;
-  lastLivingCount: number;
-  totalFertilityRate: number;
-  generationLength: number;
-  deathAge: number;
-  benAges?: number[];
-  p10?: {
-    years: number;
-    fundLeftReal: number;
-    isPerpetual: boolean;
-  };
-  p50?: {
-    years: number;
-    fundLeftReal: number;
-    isPerpetual: boolean;
-  };
-  p90?: {
-    years: number;
-    fundLeftReal: number;
-    isPerpetual: boolean;
-  };
-  probPerpetual?: number;
 };
 
 // The final result object displayed to user
