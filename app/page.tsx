@@ -1343,6 +1343,8 @@ export default function App() {
       const worker = workerRef.current;
 
       const handleMessage = (e: MessageEvent) => {
+        if (!e.data) return;
+
         const { type, result, completed, total, error } = e.data;
 
         if (type === 'progress') {
