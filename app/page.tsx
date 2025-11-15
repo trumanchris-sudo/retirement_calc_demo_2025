@@ -45,6 +45,9 @@ import { TabPanel } from "@/components/calculator/TabPanel";
 import { LastCalculatedBadge } from "@/components/calculator/LastCalculatedBadge";
 import { RecalculateButton } from "@/components/calculator/RecalculateButton";
 import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
+import { TimelineView } from "@/components/calculator/TimelineView";
+import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizer";
+import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 
 // Import types
 import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress } from "@/types/calculator";
@@ -2496,6 +2499,19 @@ export default function App() {
             navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
             alert('Plan summary copied to clipboard!');
           }
+        }}
+        onAdjust={(deltas: AdjustmentDeltas) => {
+          // Apply deltas to current inputs and recalculate
+          // Note: This modifies inputs as deltas, not absolute values
+          const adjustedAnnContrib = annContrib * (1 + deltas.contributionDelta / 100);
+          const adjustedWdPct = wdPct + deltas.withdrawalRateDelta;
+
+          // Update state with adjusted values
+          setAnnContrib(Math.round(adjustedAnnContrib));
+          setWdPct(parseFloat(adjustedWdPct.toFixed(2)));
+
+          // Trigger recalculation after a brief delay to allow state to update
+          setTimeout(() => calc(), 100);
         }}
       />
 
@@ -5300,6 +5316,14 @@ export default function App() {
               </Card>
               </div>
             </AnimatedSection>
+
+            {/* Monte Carlo Visualizer */}
+            {walkSeries === 'trulyRandom' && (
+              <AnimatedSection animation="fade-in" delay={400}>
+                <MonteCarloVisualizer isRunning={isLoadingAi} />
+              </AnimatedSection>
+            )}
+
             </TabPanel>
           </div>
           </AnimatedSection>
@@ -5838,6 +5862,8 @@ export default function App() {
                     </div>
                   </div>
 
+                  <Separator className="my-6" />
+
                   {/* Core Configuration */}
                   <div className="space-y-4 mb-6">
                     <h5 className="font-semibold text-foreground">Core Settings</h5>
@@ -5884,6 +5910,8 @@ export default function App() {
                       />
                     </div>
                   </div>
+
+                  <Separator className="my-6" />
 
                   {/* Advanced Demographics */}
                   <Accordion type="single" collapsible className="mb-4">
@@ -5937,6 +5965,9 @@ export default function App() {
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
+
+                  <Separator className="my-6" />
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-2">
                       <Label className="flex items-center gap-1.5 text-foreground">
@@ -5960,7 +5991,9 @@ export default function App() {
                   </div>
 
                   {res?.genPayout && (
-                    <div ref={genRef} className="mt-6">
+                    <>
+                      <Separator className="my-6" />
+                      <div ref={genRef} className="mt-6">
                       {(() => {
                         // Determine if perpetual based on all three percentiles
                         const isPerpetual =
@@ -6012,7 +6045,8 @@ export default function App() {
                           </>
                         );
                       })()}
-                    </div>
+                      </div>
+                    </>
                   )}
                 </div>
 
@@ -6025,6 +6059,20 @@ export default function App() {
         </AnimatedSection>
         </TabPanel>
 
+        {/* Timeline View Tab */}
+        <TabPanel id="timeline" activeTab={activeMainTab}>
+        <AnimatedSection animation="fade-in" delay={100}>
+          {res && (
+            <TimelineView
+              result={res}
+              currentAge={older}
+              retirementAge={retAge}
+              spouseAge={younger}
+            />
+          )}
+        </AnimatedSection>
+        </TabPanel>
+
         {/* The Math Tab */}
         <TabPanel id="math" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
@@ -6033,8 +6081,8 @@ export default function App() {
               <CardTitle>The Math</CardTitle>
               <CardDescription>Understanding the calculations behind your retirement projections</CardDescription>
             </CardHeader>
-            <CardContent>
-                <div className="space-y-6 text-sm leading-relaxed pt-4">
+            <CardContent className="overflow-x-auto">
+                <div className="space-y-6 text-sm leading-relaxed pt-4 max-w-full break-words">
             <section>
               <h3 className="text-xl font-semibold mb-3 text-blue-900">Overview</h3>
               <p className="text-gray-700">
