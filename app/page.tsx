@@ -47,7 +47,6 @@ import { RecalculateButton } from "@/components/calculator/RecalculateButton";
 import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
 import { TimelineView } from "@/components/calculator/TimelineView";
 import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
-import FullScreenVisualizer, { type FullScreenVisualizerHandle } from "@/components/calculator/FullScreenVisualizer";
 import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 
@@ -1031,7 +1030,6 @@ export default function App() {
   const monteCarloRef = useRef<HTMLDivElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const tabGroupRef = useRef<TabGroupRef>(null);
-  const visualizerRef = useRef<FullScreenVisualizerHandle>(null);
   const splashRef = useRef<CyberpunkSplashHandle>(null);
 
   // State for tracking simulation progress
@@ -1039,10 +1037,7 @@ export default function App() {
 
   // Initialize web worker
   useEffect(() => {
-    workerRef.current = new Worker(
-      new URL('../workers/mcWorker.js', import.meta.url),
-      { type: 'module' }
-    );
+    workerRef.current = new Worker('/monte-carlo-worker.js');
 
     return () => {
       if (workerRef.current) {
@@ -1345,6 +1340,8 @@ export default function App() {
       const worker = workerRef.current;
 
       const handleMessage = (e: MessageEvent) => {
+        if (!e.data) return;
+
         const { type, result, completed, total, error } = e.data;
 
         if (type === 'progress') {
@@ -1524,9 +1521,6 @@ export default function App() {
 
     // Start cinematic Monte Carlo sequence
     splashRef.current?.play();
-    setTimeout(() => {
-      visualizerRef.current?.start();
-    }, 700); // Wait for splash flicker to complete
 
     // Clear any existing stress test comparison data
     setComparisonData({
@@ -1548,9 +1542,6 @@ export default function App() {
     if (walkSeries === 'trulyRandom') {
       currentSeed = Math.floor(Math.random() * 1000000);
       setSeed(currentSeed);
-      // Trigger full-screen Monte Carlo overlay
-      setShowMonteCarloOverlay(true);
-      setMonteCarloCalculationComplete(false);
     }
 
     try {
@@ -1891,8 +1882,6 @@ export default function App() {
           } else if (walkSeries === 'trulyRandom') {
             // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
             monteCarloRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-            // Stop visualizer animation (triggers fade out)
-            visualizerRef.current?.stop();
           } else {
             resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
           }
@@ -2297,8 +2286,6 @@ export default function App() {
         } else if (walkSeries === 'trulyRandom') {
           // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
           monteCarloRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-          // Stop visualizer animation (triggers fade out)
-          visualizerRef.current?.stop();
         } else {
           resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         }
@@ -2311,8 +2298,6 @@ export default function App() {
       setErr(e instanceof Error ? e.message : String(e));
       setRes(null);
       setIsLoadingAi(false);
-      // Stop visualizer on error
-      visualizerRef.current?.stop();
     }
   }, [
     age1, age2, retAge, isMar, sTax, sPre, sPost,
@@ -2503,8 +2488,7 @@ export default function App() {
         />
       )}
 
-      {/* Full-screen Monte Carlo visualizer and splash */}
-      <FullScreenVisualizer ref={visualizerRef} />
+      {/* Full-screen Monte Carlo splash */}
       <CyberpunkSplash ref={splashRef} />
 
       <div
