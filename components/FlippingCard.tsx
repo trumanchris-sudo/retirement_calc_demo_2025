@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useLayoutEffect, ReactNode } from 'react';
+import React, { useState, ReactNode } from 'react';
 import './FlippingCard.css';
 
 /**
@@ -25,39 +25,6 @@ export const FlippingCard: React.FC<FlippingCardProps> = ({
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
-  // --- Dynamic height management ---
-  const [cardHeight, setCardHeight] = useState<string>('auto');
-  const cardRef = useRef<HTMLDivElement>(null); // Ref for the main .flip-card element
-  const frontRef = useRef<HTMLDivElement>(null); // Ref for the front face
-  const backRef = useRef<HTMLDivElement>(null); // Ref for the back face
-
-  // Function to set height based on the visible face
-  const updateHeight = () => {
-    if (isFlipped) {
-      if (backRef.current) {
-        setCardHeight(`${backRef.current.offsetHeight}px`);
-      }
-    } else {
-      if (frontRef.current) {
-        setCardHeight(`${frontRef.current.offsetHeight}px`);
-      }
-    }
-  };
-
-  // Set initial height on mount
-  useLayoutEffect(() => {
-    updateHeight();
-    // Re-check height after a short delay to ensure images/fonts have loaded
-    const timer = setTimeout(updateHeight, 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Update height when flip state changes
-  useEffect(() => {
-    updateHeight();
-  }, [isFlipped]);
-  // --- End of dynamic height management ---
-
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
   };
@@ -65,18 +32,14 @@ export const FlippingCard: React.FC<FlippingCardProps> = ({
   return (
     <div className={`flip-card-scene ${className}`} onClick={handleFlip}>
       <div
-        ref={cardRef}
         className={`flip-card ${isFlipped ? 'is-flipped' : ''}`}
-        style={{ height: cardHeight }}
       >
         <div
-          ref={frontRef}
           className="flip-card-face flip-card-front"
         >
           {frontContent}
         </div>
         <div
-          ref={backRef}
           className="flip-card-face flip-card-back"
         >
           {backContent}

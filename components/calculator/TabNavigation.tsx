@@ -18,7 +18,7 @@ const tabs: Array<{ id: MainTabId; label: string; description: string }> = [
   { id: 'stress', label: 'Stress Tests', description: 'Test market scenarios' },
   { id: 'legacy', label: 'Legacy Planning', description: 'Generational wealth' },
   { id: 'timeline', label: 'Timeline', description: 'Chronological view of milestones' },
-  { id: 'math', label: 'The Math', description: 'Understanding the calculations' },
+  { id: 'math', label: 'Math', description: 'Understanding the calculations' },
 ];
 
 export function TabNavigation({ activeTab, onTabChange, hasResults = false }: TabNavigationProps) {

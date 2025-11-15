@@ -445,20 +445,20 @@ const FlippingStatCard: React.FC<{
   const frontContent = (
     <>
       <div className="flip-card-header">
-        <Badge variant="secondary" className={`${c.bg} ${c.badge} border-0`}>
+        <Badge variant="secondary" className="border-0">
           {title}
         </Badge>
         <span className="flip-card-icon text-xs opacity-50 print-hide flip-hint">Click to flip ↻</span>
       </div>
       <div className="flex items-start justify-between mb-3">
-        <div className={`text-3xl font-bold ${c.text} mb-1`}>{value}</div>
+        <div className="text-3xl font-bold mb-1">{value}</div>
         {Icon && (
-          <div className={`p-2 rounded-lg ${c.bg}`}>
-            <Icon className={`w-5 h-5 ${c.icon}`} />
+          <div className="p-2 rounded-lg">
+            <Icon className="w-5 h-5" />
           </div>
         )}
       </div>
-      {sub && <p className={`text-sm ${c.sub}`}>{sub}</p>}
+      {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
     </>
   );
 
@@ -1877,7 +1877,10 @@ export default function App() {
         }
 
         setTimeout(() => {
-          if (showGen && genPayout) {
+          // In All-in-One tab, scroll to top of page
+          if (activeMainTab === 'all') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } else if (showGen && genPayout) {
             genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
           } else if (walkSeries === 'trulyRandom') {
             // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
@@ -2281,7 +2284,10 @@ export default function App() {
       }
 
       setTimeout(() => {
-        if (showGen && genPayout) {
+        // In All-in-One tab, scroll to top of page
+        if (activeMainTab === 'all') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (showGen && genPayout) {
           genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
         } else if (walkSeries === 'trulyRandom') {
           // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
@@ -4459,11 +4465,11 @@ export default function App() {
                 <AccordionItem value="scenarios" className="border-none">
                   <Card data-scenarios-section>
                     <AccordionTrigger className="px-6 hover:no-underline [&[data-state=open]>div>svg]:rotate-180">
-                      <CardHeader className="p-0 flex-1">
+                      <CardHeader className="p-0 flex-1 text-left">
                         <div className="flex items-center justify-between">
-                          <div>
-                            <CardTitle>Save & Compare Scenarios</CardTitle>
-                            <CardDescription>Save different retirement strategies and compare them side-by-side</CardDescription>
+                          <div className="text-left">
+                            <CardTitle className="text-left">Save & Compare Scenarios</CardTitle>
+                            <CardDescription className="text-left">Save different retirement strategies and compare them side-by-side</CardDescription>
                           </div>
                           <Button
                             variant={showScenarios ? "default" : "outline"}
@@ -5841,13 +5847,6 @@ export default function App() {
               <CardDescription>Model multi-generational wealth transfer and dynasty trusts</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="p-6 bg-card rounded-xl border border-border shadow-sm gen-card">
-                  <div className="flex items-center justify-between mb-6">
-                    <h4 className="text-xl font-semibold text-foreground">
-                      Generational Wealth Configuration
-                    </h4>
-                  </div>
-
                   {/* Preset Buttons */}
                   <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
                     <p className="text-sm font-semibold mb-3 text-foreground">Quick Presets:</p>
@@ -6052,18 +6051,23 @@ export default function App() {
 
                         return (
                           <>
-                            <GenerationalResultCard
-                              variant={variant}
-                              amountPerBeneficiary={res.genPayout.perBenReal}
-                              yearsOfSupport={isPerpetual ? "Infinity" : res.genPayout.years}
-                              percentile10={p10Value}
-                              percentile50={p50Value}
-                              percentile90={p90Value}
-                              probability={res.genPayout.probPerpetual || 0}
-                              explanationText={explanationText}
-                            />
+                            <div className="flex items-start gap-4 justify-center">
+                              <GenerationalResultCard
+                                variant={variant}
+                                amountPerBeneficiary={res.genPayout.perBenReal}
+                                yearsOfSupport={isPerpetual ? "Infinity" : res.genPayout.years}
+                                percentile10={p10Value}
+                                percentile50={p50Value}
+                                percentile90={p90Value}
+                                probability={res.genPayout.probPerpetual || 0}
+                                explanationText={explanationText}
+                              />
+                              <div className="flex-shrink-0">
+                                <AddToWalletButton result={legacyResult} />
+                              </div>
+                            </div>
                             <div className="mt-6 flex justify-center">
-                              <AddToWalletButton result={legacyResult} />
+                              <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
                             </div>
                           </>
                         );
@@ -6071,12 +6075,6 @@ export default function App() {
                       </div>
                     </>
                   )}
-                </div>
-
-              {/* Recalculate Button for Legacy Tab */}
-              <div className="flex justify-center mt-6">
-                <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
-              </div>
             </CardContent>
           </Card>
         </AnimatedSection>
@@ -6096,12 +6094,12 @@ export default function App() {
         </AnimatedSection>
         </TabPanel>
 
-        {/* The Math Tab */}
+        {/* Math Tab */}
         <TabPanel id="math" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           <Card className="math-print-section print-section print-page-break-before">
             <CardHeader>
-              <CardTitle>The Math</CardTitle>
+              <CardTitle>Math</CardTitle>
               <CardDescription>Understanding the calculations behind your retirement projections</CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">

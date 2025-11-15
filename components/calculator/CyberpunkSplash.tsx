@@ -68,57 +68,87 @@ const CyberpunkSplash = forwardRef<CyberpunkSplashHandle>((props, ref) => {
   // Logo opacity
   const logoOpacity = animationPhase === "logoVisible" ? 1 : 0;
 
-  // Five bars with different timings and positions for async effect
+  // Multiple slim purple stripes with different timings and positions for async effect
   const bars = [
     {
       width: "180%",
-      height: "180%",
+      height: "40%",
       rotation: -35,
       left: "-40%",
-      bottom: "-40%",
+      bottom: "-20%",
       inDuration: "0.9s",
       outDuration: "0.8s",
       delay: "0s"
     },
     {
       width: "200%",
-      height: "200%",
+      height: "35%",
       rotation: -40,
       left: "-50%",
-      bottom: "-50%",
+      bottom: "-15%",
       inDuration: "1.1s",
       outDuration: "0.9s",
       delay: "0.05s"
     },
     {
       width: "220%",
-      height: "220%",
+      height: "45%",
       rotation: -45,
       left: "-60%",
-      bottom: "-60%",
+      bottom: "-25%",
       inDuration: "1.0s",
       outDuration: "0.85s",
       delay: "0.1s"
     },
     {
       width: "200%",
-      height: "200%",
+      height: "38%",
       rotation: -50,
       right: "-50%",
-      top: "-50%",
+      top: "-20%",
       inDuration: "1.05s",
       outDuration: "0.9s",
       delay: "0.08s"
     },
     {
       width: "220%",
-      height: "220%",
+      height: "42%",
       rotation: -38,
       right: "-60%",
-      top: "-60%",
+      top: "-18%",
       inDuration: "1.15s",
       outDuration: "0.95s",
       delay: "0.12s"
+    },
+    {
+      width: "190%",
+      height: "36%",
+      rotation: -42,
+      left: "-45%",
+      bottom: "-10%",
+      inDuration: "0.95s",
+      outDuration: "0.82s",
+      delay: "0.03s"
+    },
+    {
+      width: "210%",
+      height: "44%",
+      rotation: -48,
+      right: "-55%",
+      top: "-15%",
+      inDuration: "1.08s",
+      outDuration: "0.88s",
+      delay: "0.06s"
+    },
+    {
+      width: "185%",
+      height: "32%",
+      rotation: -36,
+      left: "-35%",
+      bottom: "-8%",
+      inDuration: "0.92s",
+      outDuration: "0.79s",
+      delay: "0.02s"
     }
   ];
 
