@@ -445,20 +445,20 @@ const FlippingStatCard: React.FC<{
   const frontContent = (
     <>
       <div className="flip-card-header">
-        <Badge variant="secondary" className="border-0">
+        <Badge variant="secondary" className={`border-0 bg-transparent ${c.badge}`}>
           {title}
         </Badge>
         <span className="flip-card-icon text-xs opacity-50 print-hide flip-hint">Click to flip ↻</span>
       </div>
       <div className="flex items-start justify-between mb-3">
-        <div className="text-3xl font-bold mb-1">{value}</div>
+        <div className={`text-3xl font-bold mb-1 ${c.text}`}>{value}</div>
         {Icon && (
           <div className="p-2 rounded-lg">
-            <Icon className="w-5 h-5" />
+            <Icon className={`w-5 h-5 ${c.icon}`} />
           </div>
         )}
       </div>
-      {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
+      {sub && <p className={`text-sm ${c.sub}`}>{sub}</p>}
     </>
   );
 
@@ -6091,6 +6091,143 @@ export default function App() {
               spouseAge={Math.min(age1, isMar ? age2 : age1)}
             />
           )}
+        </AnimatedSection>
+        </TabPanel>
+
+        {/* Budget Tab */}
+        <TabPanel id="budget" activeTab={activeMainTab}>
+        <AnimatedSection animation="fade-in" delay={100}>
+          {res && (() => {
+            // Calculate implied budget from retirement contributions
+            // Assumptions for budget allocation
+            const RETIREMENT_SAVINGS_RATE = 0.15; // 15% of gross income
+            const HOUSING_RATE = 0.30; // 30% for housing/necessities
+            const DISCRETIONARY_RATE = 0.25; // 25% for discretionary spending
+            const TAXES_RATE = 0.30; // 30% for taxes (federal, state, FICA)
+
+            // Calculate total annual contributions (pre-tax + post-tax + Roth)
+            const totalContributions = cPre1 + cPost1 + cRoth1;
+
+            // Work backwards: if contributions are X% of gross, what's the gross income?
+            const impliedGrossIncome = totalContributions / RETIREMENT_SAVINGS_RATE;
+
+            // Calculate budget categories
+            const budgetCategories = {
+              gross: impliedGrossIncome,
+              retirement: totalContributions,
+              taxes: impliedGrossIncome * TAXES_RATE,
+              housing: impliedGrossIncome * HOUSING_RATE,
+              discretionary: impliedGrossIncome * DISCRETIONARY_RATE,
+            };
+
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Implied Budget</CardTitle>
+                  <CardDescription>
+                    Based on your ${fmt(totalContributions)} annual retirement contributions,
+                    here's the minimum budget you would need assuming standard allocation percentages.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Info Box */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-100">How This Works</h4>
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      We work backwards from your retirement contributions to estimate your minimum required income
+                      using common financial planning ratios. This assumes you're saving {(RETIREMENT_SAVINGS_RATE * 100).toFixed(0)}%
+                      of your gross income for retirement.
+                    </p>
+                  </div>
+
+                  {/* Budget Breakdown */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Gross Income */}
+                      <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="text-sm text-muted-foreground mb-1">Implied Gross Income</div>
+                        <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                          {fmt(budgetCategories.gross)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">100% of budget</div>
+                      </div>
+
+                      {/* Retirement Savings */}
+                      <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                        <div className="text-sm text-muted-foreground mb-1">Retirement Contributions</div>
+                        <div className="text-3xl font-bold text-green-900 dark:text-green-100">
+                          {fmt(budgetCategories.retirement)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {(RETIREMENT_SAVINGS_RATE * 100).toFixed(0)}% of gross income
+                        </div>
+                      </div>
+
+                      {/* Taxes */}
+                      <div className="p-4 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                        <div className="text-sm text-muted-foreground mb-1">Estimated Taxes</div>
+                        <div className="text-3xl font-bold text-red-900 dark:text-red-100">
+                          {fmt(budgetCategories.taxes)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {(TAXES_RATE * 100).toFixed(0)}% of gross income
+                        </div>
+                      </div>
+
+                      {/* Housing/Necessities */}
+                      <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200 dark:border-purple-800 rounded-lg">
+                        <div className="text-sm text-muted-foreground mb-1">Housing & Necessities</div>
+                        <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
+                          {fmt(budgetCategories.housing)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {(HOUSING_RATE * 100).toFixed(0)}% of gross income
+                        </div>
+                      </div>
+
+                      {/* Discretionary */}
+                      <div className="p-4 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg col-span-1 md:col-span-2">
+                        <div className="text-sm text-muted-foreground mb-1">Discretionary Spending</div>
+                        <div className="text-3xl font-bold text-yellow-900 dark:text-yellow-100">
+                          {fmt(budgetCategories.discretionary)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {(DISCRETIONARY_RATE * 100).toFixed(0)}% of gross income
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Assumptions */}
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    <h4 className="font-semibold text-sm mb-3">Budget Assumptions</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Retirement Savings:</span>
+                        <span className="font-medium">{(RETIREMENT_SAVINGS_RATE * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Taxes (all):</span>
+                        <span className="font-medium">{(TAXES_RATE * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Housing/Necessities:</span>
+                        <span className="font-medium">{(HOUSING_RATE * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Discretionary:</span>
+                        <span className="font-medium">{(DISCRETIONARY_RATE * 100).toFixed(0)}%</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                      These percentages are based on common financial planning guidelines. Your actual budget may vary
+                      based on your location, family size, and lifestyle choices.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
         </AnimatedSection>
         </TabPanel>
 

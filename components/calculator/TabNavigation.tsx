@@ -3,7 +3,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-export type MainTabId = 'all' | 'configure' | 'results' | 'stress' | 'legacy' | 'timeline' | 'math';
+export type MainTabId = 'all' | 'configure' | 'results' | 'stress' | 'legacy' | 'timeline' | 'budget' | 'math';
 
 export interface TabNavigationProps {
   activeTab: MainTabId;
@@ -18,6 +18,7 @@ const tabs: Array<{ id: MainTabId; label: string; description: string }> = [
   { id: 'stress', label: 'Stress Tests', description: 'Test market scenarios' },
   { id: 'legacy', label: 'Legacy Planning', description: 'Generational wealth' },
   { id: 'timeline', label: 'Timeline', description: 'Chronological view of milestones' },
+  { id: 'budget', label: 'Budget', description: 'Implied budget from savings' },
   { id: 'math', label: 'Math', description: 'Understanding the calculations' },
 ];
 
@@ -27,7 +28,7 @@ export function TabNavigation({ activeTab, onTabChange, hasResults = false }: Ta
       <nav className="flex space-x-2 overflow-x-auto" aria-label="Main navigation tabs">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
-          const isDisabled = !hasResults && (tab.id === 'results' || tab.id === 'stress' || tab.id === 'legacy' || tab.id === 'timeline' || tab.id === 'math');
+          const isDisabled = !hasResults && (tab.id === 'results' || tab.id === 'stress' || tab.id === 'legacy' || tab.id === 'timeline' || tab.id === 'budget' || tab.id === 'math');
 
           return (
             <button
