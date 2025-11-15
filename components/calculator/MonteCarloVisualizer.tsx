@@ -14,9 +14,17 @@ interface Node {
 
 interface MonteCarloVisualizerProps {
   isRunning?: boolean;
+  visible?: boolean;
 }
 
-export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizerProps) {
+/**
+ * MonteCarloVisualizer - Visual representation of Monte Carlo simulation
+ *
+ * CRITICAL: This component should always be rendered, not conditionally mounted.
+ * Use the 'visible' prop to control visibility via CSS instead of conditional rendering.
+ * Conditional mounting/unmounting causes canvas initialization race conditions.
+ */
+export function MonteCarloVisualizer({ isRunning = false, visible = true }: MonteCarloVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>();
   const nodesRef = useRef<Node[]>([]);
@@ -344,6 +352,11 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
       }
     }
   }, [isRunning, animateSimulation]);
+
+  // Don't render if not visible - but keep minimal DOM presence to avoid hydration issues
+  if (!visible) {
+    return null;
+  }
 
   return (
     <Card>

@@ -5317,12 +5317,13 @@ export default function App() {
               </div>
             </AnimatedSection>
 
-            {/* Monte Carlo Visualizer */}
-            {walkSeries === 'trulyRandom' && (
-              <AnimatedSection animation="fade-in" delay={400}>
-                <MonteCarloVisualizer isRunning={isLoadingAi} />
-              </AnimatedSection>
-            )}
+            {/* Monte Carlo Visualizer - Always render to avoid canvas initialization issues */}
+            <AnimatedSection animation="fade-in" delay={400}>
+              <MonteCarloVisualizer
+                isRunning={isLoadingAi}
+                visible={walkSeries === 'trulyRandom'}
+              />
+            </AnimatedSection>
 
             </TabPanel>
           </div>
