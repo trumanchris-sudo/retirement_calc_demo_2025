@@ -104,6 +104,19 @@ html {
   transition: margin-top 0.4s ease-out, transform 0.4s ease-out;
 }
 
+/* Center Sankey chart on mobile */
+.wealth-flow-responsive {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .wealth-flow-responsive {
+    margin: 0 auto;
+  }
+}
+
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
   html {

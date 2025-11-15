@@ -68,126 +68,126 @@ const CyberpunkSplash = forwardRef<CyberpunkSplashHandle>((props, ref) => {
   // Logo opacity - show concurrent with bars
   const logoOpacity = (animationPhase === "barsIn" || animationPhase === "logoVisible") ? 1 : 0;
 
-  // Multiple long, skinny diagonal bars with staggered timing to fill screen
+  // Multiple wider diagonal bars with closer positioning for better coverage
   const bars = [
-    // Bottom-left diagonal wave (6 bars)
+    // Bottom-left diagonal wave (6 bars) - closer positioning, wider bars
     {
-      width: "280%",
-      height: "18%",
+      width: "300%",
+      height: "28%",
       rotation: -38,
-      left: "-90%",
-      bottom: "-9%",
+      left: "-50%",
+      bottom: "-14%",
       inDuration: "0.85s",
       outDuration: "0.75s",
       delay: "0s"
     },
     {
-      width: "270%",
-      height: "20%",
+      width: "310%",
+      height: "30%",
       rotation: -40,
-      left: "-85%",
-      bottom: "-10%",
+      left: "-55%",
+      bottom: "-15%",
       inDuration: "0.90s",
       outDuration: "0.78s",
       delay: "0.04s"
     },
     {
-      width: "290%",
-      height: "17%",
+      width: "295%",
+      height: "26%",
       rotation: -36,
-      left: "-95%",
-      bottom: "-8%",
+      left: "-48%",
+      bottom: "-13%",
       inDuration: "0.95s",
       outDuration: "0.80s",
       delay: "0.08s"
     },
     {
-      width: "275%",
-      height: "22%",
+      width: "305%",
+      height: "32%",
       rotation: -42,
-      left: "-87%",
-      bottom: "-11%",
+      left: "-52%",
+      bottom: "-16%",
       inDuration: "1.0s",
       outDuration: "0.82s",
       delay: "0.12s"
     },
     {
-      width: "285%",
-      height: "19%",
+      width: "298%",
+      height: "29%",
       rotation: -39,
-      left: "-92%",
-      bottom: "-9%",
+      left: "-51%",
+      bottom: "-14%",
       inDuration: "1.05s",
       outDuration: "0.85s",
       delay: "0.16s"
     },
     {
-      width: "265%",
-      height: "21%",
+      width: "290%",
+      height: "27%",
       rotation: -37,
-      left: "-82%",
-      bottom: "-10%",
+      left: "-47%",
+      bottom: "-13%",
       inDuration: "1.10s",
       outDuration: "0.88s",
       delay: "0.20s"
     },
-    // Top-right diagonal wave (6 bars)
+    // Top-right diagonal wave (6 bars) - closer positioning, wider bars
     {
-      width: "280%",
-      height: "18%",
+      width: "300%",
+      height: "28%",
       rotation: -38,
-      right: "-90%",
-      top: "-9%",
+      right: "-50%",
+      top: "-14%",
       inDuration: "0.88s",
       outDuration: "0.76s",
       delay: "0.02s"
     },
     {
-      width: "270%",
-      height: "20%",
+      width: "310%",
+      height: "30%",
       rotation: -40,
-      right: "-85%",
-      top: "-10%",
+      right: "-55%",
+      top: "-15%",
       inDuration: "0.93s",
       outDuration: "0.79s",
       delay: "0.06s"
     },
     {
-      width: "290%",
-      height: "17%",
+      width: "295%",
+      height: "26%",
       rotation: -36,
-      right: "-95%",
-      top: "-8%",
+      right: "-48%",
+      top: "-13%",
       inDuration: "0.98s",
       outDuration: "0.81s",
       delay: "0.10s"
     },
     {
-      width: "275%",
-      height: "22%",
+      width: "305%",
+      height: "32%",
       rotation: -42,
-      right: "-87%",
-      top: "-11%",
+      right: "-52%",
+      top: "-16%",
       inDuration: "1.03s",
       outDuration: "0.83s",
       delay: "0.14s"
     },
     {
-      width: "285%",
-      height: "19%",
+      width: "298%",
+      height: "29%",
       rotation: -39,
-      right: "-92%",
-      top: "-9%",
+      right: "-51%",
+      top: "-14%",
       inDuration: "1.08s",
       outDuration: "0.86s",
       delay: "0.18s"
     },
     {
-      width: "265%",
-      height: "21%",
+      width: "290%",
+      height: "27%",
       rotation: -37,
-      right: "-82%",
-      top: "-10%",
+      right: "-47%",
+      top: "-13%",
       inDuration: "1.13s",
       outDuration: "0.89s",
       delay: "0.22s"

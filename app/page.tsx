@@ -379,9 +379,34 @@ const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading
     );
   }
 
+  // Format the insight text to have bolded headers
+  const formatInsight = (text: string) => {
+    // Split by lines and format headers
+    const lines = text.split('\n');
+    return lines.map((line, index) => {
+      // Check if line is a header (starts with ## or is followed by a colon and is short)
+      const isMarkdownHeader = line.startsWith('##') || line.startsWith('#');
+      const isColonHeader = line.includes(':') && line.length < 80 && !line.includes('$') && index > 0 && lines[index - 1] === '';
+
+      if (isMarkdownHeader) {
+        // Remove markdown symbols and bold
+        const headerText = line.replace(/^#+\s*/, '');
+        return <h4 key={index} className="font-bold text-base mt-4 mb-2 first:mt-0">{headerText}</h4>;
+      } else if (isColonHeader) {
+        return <h5 key={index} className="font-semibold text-sm mt-3 mb-1">{line}</h5>;
+      } else if (line.trim() === '') {
+        return <br key={index} />;
+      } else {
+        return <p key={index} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">{line}</p>;
+      }
+    });
+  };
+
   return (
     <div className="p-6 rounded-xl bg-card border shadow-sm">
-      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{insight}</p>
+      <div className="space-y-1">
+        {formatInsight(insight)}
+      </div>
     </div>
   );
 };
@@ -1519,8 +1544,10 @@ export default function App() {
     setAiError(null);
     setIsLoadingAi(true);
 
-    // Start cinematic Monte Carlo sequence
-    splashRef.current?.play();
+    // Start cinematic Monte Carlo sequence only from All-in-One or Configure tabs
+    if (activeMainTab === 'all' || activeMainTab === 'configure') {
+      splashRef.current?.play();
+    }
 
     // Clear any existing stress test comparison data
     setComparisonData({
@@ -2528,13 +2555,21 @@ export default function App() {
         }}
         onAdjust={(deltas: AdjustmentDeltas) => {
           // Apply deltas to current inputs and recalculate
-          // Note: This modifies inputs as deltas, not absolute values
-          const adjustedAnnContrib = annContrib * (1 + deltas.contributionDelta / 100);
-          const adjustedWdPct = wdPct + deltas.withdrawalRateDelta;
+          // Calculate total contributions
+          const totalContribs = cPre1 + cPost1 + cRoth1;
+          const adjustedTotal = totalContribs * (1 + deltas.contributionDelta / 100);
 
-          // Update state with adjusted values
-          setAnnContrib(Math.round(adjustedAnnContrib));
-          setWdPct(parseFloat(adjustedWdPct.toFixed(2)));
+          // Apply proportional adjustment to each contribution type
+          const ratio = adjustedTotal / totalContribs;
+          setCPre1(Math.round(cPre1 * ratio));
+          setCPost1(Math.round(cPost1 * ratio));
+          setCRoth1(Math.round(cRoth1 * ratio));
+
+          // Apply withdrawal rate delta
+          setWdPct(parseFloat((wdPct + deltas.withdrawalRateDelta).toFixed(2)));
+
+          // Mark inputs as modified
+          setInputsModified(true);
 
           // Trigger recalculation after a brief delay to allow state to update
           setTimeout(() => calc(), 100);
@@ -6051,7 +6086,7 @@ export default function App() {
 
                         return (
                           <>
-                            <div className="flex items-start gap-4 justify-center">
+                            <div className="flex justify-center">
                               <GenerationalResultCard
                                 variant={variant}
                                 amountPerBeneficiary={res.genPayout.perBenReal}
@@ -6062,12 +6097,10 @@ export default function App() {
                                 probability={res.genPayout.probPerpetual || 0}
                                 explanationText={explanationText}
                               />
-                              <div className="flex-shrink-0">
-                                <AddToWalletButton result={legacyResult} />
-                              </div>
                             </div>
-                            <div className="mt-6 flex justify-center">
+                            <div className="mt-6 flex justify-center gap-3">
                               <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
+                              <AddToWalletButton result={legacyResult} />
                             </div>
                           </>
                         );
@@ -6080,23 +6113,22 @@ export default function App() {
         </AnimatedSection>
         </TabPanel>
 
-        {/* Timeline View Tab */}
-        <TabPanel id="timeline" activeTab={activeMainTab}>
-        <AnimatedSection animation="fade-in" delay={100}>
-          {res && (
-            <TimelineView
-              result={res}
-              currentAge={Math.max(age1, isMar ? age2 : age1)}
-              retirementAge={retAge}
-              spouseAge={Math.min(age1, isMar ? age2 : age1)}
-            />
-          )}
-        </AnimatedSection>
-        </TabPanel>
-
         {/* Budget Tab */}
         <TabPanel id="budget" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
+          {/* Retirement Timeline - First element */}
+          {res && (
+            <div className="mb-6">
+              <TimelineView
+                result={res}
+                currentAge={Math.max(age1, isMar ? age2 : age1)}
+                retirementAge={retAge}
+                spouseAge={Math.min(age1, isMar ? age2 : age1)}
+              />
+            </div>
+          )}
+
+          {/* Budget Calculator */}
           {res && (() => {
             // Calculate implied budget from retirement contributions
             // Assumptions for budget allocation
