@@ -68,87 +68,129 @@ const CyberpunkSplash = forwardRef<CyberpunkSplashHandle>((props, ref) => {
   // Logo opacity - show concurrent with bars
   const logoOpacity = (animationPhase === "barsIn" || animationPhase === "logoVisible") ? 1 : 0;
 
-  // Multiple purple stripes with staggered timing to fill screen
+  // Multiple long, skinny diagonal bars with staggered timing to fill screen
   const bars = [
+    // Bottom-left diagonal wave (6 bars)
     {
-      width: "180%",
-      height: "70%",
-      rotation: -35,
-      left: "-40%",
-      bottom: "-35%",
-      inDuration: "0.9s",
-      outDuration: "0.8s",
+      width: "280%",
+      height: "18%",
+      rotation: -38,
+      left: "-90%",
+      bottom: "-9%",
+      inDuration: "0.85s",
+      outDuration: "0.75s",
       delay: "0s"
     },
     {
-      width: "200%",
-      height: "75%",
+      width: "270%",
+      height: "20%",
       rotation: -40,
-      left: "-50%",
-      bottom: "-37%",
-      inDuration: "1.1s",
-      outDuration: "0.9s",
-      delay: "0.05s"
+      left: "-85%",
+      bottom: "-10%",
+      inDuration: "0.90s",
+      outDuration: "0.78s",
+      delay: "0.04s"
     },
     {
-      width: "220%",
-      height: "80%",
-      rotation: -45,
-      left: "-60%",
-      bottom: "-40%",
-      inDuration: "1.0s",
-      outDuration: "0.85s",
-      delay: "0.1s"
-    },
-    {
-      width: "200%",
-      height: "72%",
-      rotation: -50,
-      right: "-50%",
-      top: "-36%",
-      inDuration: "1.05s",
-      outDuration: "0.9s",
+      width: "290%",
+      height: "17%",
+      rotation: -36,
+      left: "-95%",
+      bottom: "-8%",
+      inDuration: "0.95s",
+      outDuration: "0.80s",
       delay: "0.08s"
     },
     {
-      width: "220%",
-      height: "78%",
-      rotation: -38,
-      right: "-60%",
-      top: "-39%",
-      inDuration: "1.15s",
-      outDuration: "0.95s",
+      width: "275%",
+      height: "22%",
+      rotation: -42,
+      left: "-87%",
+      bottom: "-11%",
+      inDuration: "1.0s",
+      outDuration: "0.82s",
       delay: "0.12s"
     },
     {
-      width: "190%",
-      height: "68%",
-      rotation: -42,
-      left: "-45%",
-      bottom: "-34%",
-      inDuration: "0.95s",
-      outDuration: "0.82s",
-      delay: "0.03s"
+      width: "285%",
+      height: "19%",
+      rotation: -39,
+      left: "-92%",
+      bottom: "-9%",
+      inDuration: "1.05s",
+      outDuration: "0.85s",
+      delay: "0.16s"
     },
     {
-      width: "210%",
-      height: "76%",
-      rotation: -48,
-      right: "-55%",
-      top: "-38%",
-      inDuration: "1.08s",
+      width: "265%",
+      height: "21%",
+      rotation: -37,
+      left: "-82%",
+      bottom: "-10%",
+      inDuration: "1.10s",
       outDuration: "0.88s",
+      delay: "0.20s"
+    },
+    // Top-right diagonal wave (6 bars)
+    {
+      width: "280%",
+      height: "18%",
+      rotation: -38,
+      right: "-90%",
+      top: "-9%",
+      inDuration: "0.88s",
+      outDuration: "0.76s",
+      delay: "0.02s"
+    },
+    {
+      width: "270%",
+      height: "20%",
+      rotation: -40,
+      right: "-85%",
+      top: "-10%",
+      inDuration: "0.93s",
+      outDuration: "0.79s",
       delay: "0.06s"
     },
     {
-      width: "185%",
-      height: "65%",
+      width: "290%",
+      height: "17%",
       rotation: -36,
-      left: "-35%",
-      bottom: "-32%",
-      inDuration: "0.92s",
-      outDuration: "0.79s",
-      delay: "0.02s"
+      right: "-95%",
+      top: "-8%",
+      inDuration: "0.98s",
+      outDuration: "0.81s",
+      delay: "0.10s"
+    },
+    {
+      width: "275%",
+      height: "22%",
+      rotation: -42,
+      right: "-87%",
+      top: "-11%",
+      inDuration: "1.03s",
+      outDuration: "0.83s",
+      delay: "0.14s"
+    },
+    {
+      width: "285%",
+      height: "19%",
+      rotation: -39,
+      right: "-92%",
+      top: "-9%",
+      inDuration: "1.08s",
+      outDuration: "0.86s",
+      delay: "0.18s"
+    },
+    {
+      width: "265%",
+      height: "21%",
+      rotation: -37,
+      right: "-82%",
+      top: "-10%",
+      inDuration: "1.13s",
+      outDuration: "0.89s",
+      delay: "0.22s"
     }
   ];
 
