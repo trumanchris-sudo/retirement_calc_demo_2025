@@ -1442,6 +1442,28 @@ export default function App() {
       retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
       historicalYear, inflationShockRate, inflationShockDuration, seed, isMar]);
 
+  /**
+   * Run comparison with randomly selected bear market and inflation shock scenarios
+   */
+  const runRandomComparison = useCallback(() => {
+    // Randomly select a bear market scenario
+    const randomBearScenario = BEAR_MARKET_SCENARIOS[Math.floor(Math.random() * BEAR_MARKET_SCENARIOS.length)];
+
+    // Randomly select an inflation shock scenario
+    const randomInflationScenario = INFLATION_SHOCK_SCENARIOS[Math.floor(Math.random() * INFLATION_SHOCK_SCENARIOS.length)];
+
+    // Set the states
+    setHistoricalYear(randomBearScenario.year);
+    setInflationShockRate(randomInflationScenario.rate);
+    setInflationShockDuration(randomInflationScenario.duration);
+    setComparisonMode(true);
+
+    // Delay runComparison to ensure state updates are processed
+    setTimeout(() => {
+      runComparison();
+    }, 50);
+  }, [runComparison]);
+
   // Generational wealth preset configurations
   const applyGenerationalPreset = useCallback((preset: 'conservative' | 'moderate' | 'aggressive') => {
     switch (preset) {
@@ -5034,7 +5056,7 @@ export default function App() {
                         </svg>
                         <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
                           <strong>Comparison Mode Active:</strong> The chart below shows multiple scenarios overlaid using <strong>real (inflation-adjusted) values</strong> for accurate comparison across different inflation rates.
-                          Select a bear market and/or inflation shock above, then click "Refresh Comparison" to update the chart.
+                          Select a bear market and/or inflation shock above, then click "Refresh Comparison" to update the chart. Or click "Random Comparison" to automatically select random scenarios.
                         </div>
                       </div>
                     </div>
@@ -5094,7 +5116,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="flex justify-center">
+                    <div className="flex justify-center gap-3">
                       <Button
                         onClick={() => {
                           setComparisonMode(true);
@@ -5105,6 +5127,17 @@ export default function App() {
                         className="bg-blue-600 hover:bg-blue-700"
                       >
                         Refresh Comparison
+                      </Button>
+                      <Button
+                        onClick={runRandomComparison}
+                        variant="outline"
+                        size="sm"
+                        className="border-purple-600 text-purple-600 hover:bg-purple-50 dark:border-purple-400 dark:text-purple-400 dark:hover:bg-purple-950/20"
+                      >
+                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Random Comparison
                       </Button>
                     </div>
                     </TabsContent>
