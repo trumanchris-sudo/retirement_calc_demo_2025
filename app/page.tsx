@@ -2555,24 +2555,31 @@ export default function App() {
         }}
         onAdjust={(deltas: AdjustmentDeltas) => {
           // Apply deltas to current inputs and recalculate
-          // Calculate total contributions
-          const totalContribs = cTax1 + cPre1 + cPost1;
-          const adjustedTotal = totalContribs * (1 + deltas.contributionDelta / 100);
 
-          // Apply proportional adjustment to each contribution type
-          const ratio = adjustedTotal / totalContribs;
-          setCTax1(Math.round(cTax1 * ratio));
-          setCPre1(Math.round(cPre1 * ratio));
-          setCPost1(Math.round(cPost1 * ratio));
+          // Apply contribution delta if non-zero
+          if (deltas.contributionDelta !== 0) {
+            const totalContribs = cTax1 + cPre1 + cPost1;
+            if (totalContribs > 0) {
+              const adjustedTotal = totalContribs * (1 + deltas.contributionDelta / 100);
+              const ratio = adjustedTotal / totalContribs;
+              setCTax1(Math.round(cTax1 * ratio));
+              setCPre1(Math.round(cPre1 * ratio));
+              setCPost1(Math.round(cPost1 * ratio));
+            }
+          }
 
-          // Apply withdrawal rate delta
-          setWdPct(parseFloat((wdPct + deltas.withdrawalRateDelta).toFixed(2)));
+          // Apply withdrawal rate delta if non-zero
+          if (deltas.withdrawalRateDelta !== 0) {
+            setWdPct(parseFloat((wdPct + deltas.withdrawalRateDelta).toFixed(2)));
+          }
 
-          // Mark inputs as modified
+          // Mark inputs as modified and trigger recalculation
           setInputsModified(true);
 
-          // Trigger recalculation after a brief delay to allow state to update
-          setTimeout(() => calc(), 100);
+          // Use requestAnimationFrame for better timing
+          requestAnimationFrame(() => {
+            calc();
+          });
         }}
       />
 

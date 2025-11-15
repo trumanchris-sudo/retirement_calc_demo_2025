@@ -36,8 +36,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
 
   const handleRecalculate = () => {
-    if (onAdjust) {
+    if (onAdjust && (contributionDelta !== 0 || withdrawalRateDelta !== 0)) {
       onAdjust({ contributionDelta, withdrawalRateDelta });
+      // Reset deltas after applying
+      setContributionDelta(0);
+      setWithdrawalRateDelta(0);
       setIsAdjustOpen(false);
     }
   };
