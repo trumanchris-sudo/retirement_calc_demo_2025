@@ -46,7 +46,9 @@ import { LastCalculatedBadge } from "@/components/calculator/LastCalculatedBadge
 import { RecalculateButton } from "@/components/calculator/RecalculateButton";
 import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
 import { TimelineView } from "@/components/calculator/TimelineView";
-import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizer";
+import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
+import FullScreenVisualizer, { type FullScreenVisualizerHandle } from "@/components/calculator/FullScreenVisualizer";
+import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 
 // Import types
@@ -1024,8 +1026,11 @@ export default function App() {
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
+  const monteCarloRef = useRef<HTMLDivElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const tabGroupRef = useRef<TabGroupRef>(null);
+  const visualizerRef = useRef<FullScreenVisualizerHandle>(null);
+  const splashRef = useRef<CyberpunkSplashHandle>(null);
 
   // State for tracking simulation progress
   const [calcProgress, setCalcProgress] = useState<CalculationProgress | null>(null);
@@ -1512,6 +1517,12 @@ export default function App() {
     setAiError(null);
     setIsLoadingAi(true);
 
+    // Start cinematic Monte Carlo sequence
+    splashRef.current?.play();
+    setTimeout(() => {
+      visualizerRef.current?.start();
+    }, 700); // Wait for splash flicker to complete
+
     // Clear any existing stress test comparison data
     setComparisonData({
       baseline: null,
@@ -1532,6 +1543,9 @@ export default function App() {
     if (walkSeries === 'trulyRandom') {
       currentSeed = Math.floor(Math.random() * 1000000);
       setSeed(currentSeed);
+      // Trigger full-screen Monte Carlo overlay
+      setShowMonteCarloOverlay(true);
+      setMonteCarloCalculationComplete(false);
     }
 
     try {
@@ -1869,6 +1883,11 @@ export default function App() {
         setTimeout(() => {
           if (showGen && genPayout) {
             genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else if (walkSeries === 'trulyRandom') {
+            // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
+            monteCarloRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            // Stop visualizer animation (triggers fade out)
+            visualizerRef.current?.stop();
           } else {
             resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
           }
@@ -2270,6 +2289,11 @@ export default function App() {
       setTimeout(() => {
         if (showGen && genPayout) {
           genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else if (walkSeries === 'trulyRandom') {
+          // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
+          monteCarloRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          // Stop visualizer animation (triggers fade out)
+          visualizerRef.current?.stop();
         } else {
           resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         }
@@ -2282,6 +2306,8 @@ export default function App() {
       setErr(e instanceof Error ? e.message : String(e));
       setRes(null);
       setIsLoadingAi(false);
+      // Stop visualizer on error
+      visualizerRef.current?.stop();
     }
   }, [
     age1, age2, retAge, isMar, sTax, sPre, sPost,
@@ -2471,6 +2497,11 @@ export default function App() {
           onComplete={() => setLoaderComplete(true)}
         />
       )}
+
+      {/* Full-screen Monte Carlo visualizer and splash */}
+      <FullScreenVisualizer ref={visualizerRef} />
+      <CyberpunkSplash ref={splashRef} />
+
       <div
         className="min-h-screen bg-background"
         style={{
@@ -5317,12 +5348,15 @@ export default function App() {
               </div>
             </AnimatedSection>
 
-            {/* Monte Carlo Visualizer */}
-            {walkSeries === 'trulyRandom' && (
+            {/* Monte Carlo Visualizer - Always render to avoid canvas initialization issues */}
+            <div ref={monteCarloRef} className="scroll-mt-4">
               <AnimatedSection animation="fade-in" delay={400}>
-                <MonteCarloVisualizer isRunning={isLoadingAi} />
+                <MonteCarloVisualizer
+                  isRunning={isLoadingAi}
+                  visible={walkSeries === 'trulyRandom'}
+                />
               </AnimatedSection>
-            )}
+            </div>
 
             </TabPanel>
           </div>
@@ -6065,9 +6099,9 @@ export default function App() {
           {res && (
             <TimelineView
               result={res}
-              currentAge={older}
+              currentAge={Math.max(age1, isMar ? age2 : age1)}
               retirementAge={retAge}
-              spouseAge={younger}
+              spouseAge={Math.min(age1, isMar ? age2 : age1)}
             />
           )}
         </AnimatedSection>

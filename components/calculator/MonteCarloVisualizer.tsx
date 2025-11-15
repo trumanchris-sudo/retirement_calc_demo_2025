@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Node {
@@ -14,12 +14,23 @@ interface Node {
 
 interface MonteCarloVisualizerProps {
   isRunning?: boolean;
+  visible?: boolean;
 }
 
-export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizerProps) {
+/**
+ * MonteCarloVisualizer - Visual representation of Monte Carlo simulation
+ *
+ * CRITICAL: This component should always be rendered, not conditionally mounted.
+ * Use the 'visible' prop to control visibility via CSS instead of conditional rendering.
+ * Conditional mounting/unmounting causes canvas initialization race conditions.
+ */
+export function MonteCarloVisualizer({ isRunning = false, visible = true }: MonteCarloVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>();
   const nodesRef = useRef<Node[]>([]);
+  const isMountedRef = useRef(true);
+  const isAnimatingRef = useRef(false);
+  const isInitializedRef = useRef(false);
   const [pathsCompleted, setPathsCompleted] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -30,73 +41,165 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    let resizeTimeout: number | undefined;
+
     // Set canvas size
     const resizeCanvas = () => {
       const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * window.devicePixelRatio;
-      canvas.height = rect.height * window.devicePixelRatio;
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+      // Guard against zero-width canvas (component not yet visible)
+      if (rect.width === 0 || rect.height === 0) {
+        return;
+      }
+
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+
+      // Reset transform before scaling (canvas resize resets context, but be explicit)
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
     };
 
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    // Debounced resize handler to prevent rapid context resets
+    const handleResize = () => {
+      if (resizeTimeout) {
+        cancelAnimationFrame(resizeTimeout);
+      }
+      resizeTimeout = requestAnimationFrame(() => {
+        resizeCanvas();
+        resizeTimeout = undefined;
+      });
+    };
 
     // Initialize nodes (network graph representation)
-    const nodeCount = 150;
-    const width = canvas.width / window.devicePixelRatio;
-    const height = canvas.height / window.devicePixelRatio;
+    // Defer initialization until canvas is sized
+    const initializeNodes = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const width = canvas.width / dpr;
+      const height = canvas.height / dpr;
 
-    nodesRef.current = Array.from({ length: nodeCount }, (_, i) => ({
-      id: i,
-      x: Math.random() * width,
-      y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      connections: []
-    }));
+      // Only initialize if canvas has valid dimensions
+      if (width === 0 || height === 0) {
+        return false;
+      }
 
-    // Create random connections between nodes
-    nodesRef.current.forEach(node => {
-      const connectionCount = Math.floor(Math.random() * 3) + 1;
-      for (let i = 0; i < connectionCount; i++) {
-        const targetId = Math.floor(Math.random() * nodeCount);
-        if (targetId !== node.id && !node.connections.includes(targetId)) {
-          node.connections.push(targetId);
+      const nodeCount = 150;
+      nodesRef.current = Array.from({ length: nodeCount }, (_, i) => ({
+        id: i,
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        connections: []
+      }));
+
+      // Create random connections between nodes
+      nodesRef.current.forEach(node => {
+        const connectionCount = Math.floor(Math.random() * 3) + 1;
+        for (let i = 0; i < connectionCount; i++) {
+          const targetId = Math.floor(Math.random() * nodeCount);
+          if (targetId !== node.id && !node.connections.includes(targetId)) {
+            node.connections.push(targetId);
+          }
         }
+      });
+
+      return true;
+    };
+
+    // Use requestAnimationFrame to ensure DOM is ready, then initialize
+    requestAnimationFrame(() => {
+      resizeCanvas();
+      if (initializeNodes()) {
+        isInitializedRef.current = true;
       }
     });
 
+    window.addEventListener('resize', handleResize);
+
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('resize', handleResize);
+      if (resizeTimeout) {
+        cancelAnimationFrame(resizeTimeout);
+      }
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
   }, []);
 
+  // Track component mount status
   useEffect(() => {
-    if (isRunning) {
-      setIsAnimating(true);
-      setPathsCompleted(0);
-      animateSimulation();
-    } else {
-      setIsAnimating(false);
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      isAnimatingRef.current = false;
+      isInitializedRef.current = false;
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-    }
-  }, [isRunning]);
+    };
+  }, []);
 
-  const animateSimulation = () => {
+  const animateSimulation = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      // Clean up animation state
+      isAnimatingRef.current = false;
+      if (isMountedRef.current) setIsAnimating(false);
+      return;
+    }
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      // Clean up animation state
+      isAnimatingRef.current = false;
+      if (isMountedRef.current) setIsAnimating(false);
+      return;
+    }
 
-    const width = canvas.width / window.devicePixelRatio;
-    const height = canvas.height / window.devicePixelRatio;
+    const dpr = window.devicePixelRatio || 1;
+    const width = canvas.width / dpr;
+    const height = canvas.height / dpr;
+
+    // Guard against invalid dimensions - retry once if not initialized yet
+    if (width === 0 || height === 0) {
+      if (!isInitializedRef.current && isMountedRef.current && isAnimatingRef.current) {
+        // Canvas might not be ready yet, retry after a frame
+        console.warn('MonteCarloVisualizer: Canvas not ready, retrying...');
+        requestAnimationFrame(() => {
+          if (isAnimatingRef.current && isMountedRef.current) {
+            animateSimulation();
+          }
+        });
+      } else {
+        console.warn('MonteCarloVisualizer: Canvas has zero dimensions, stopping animation');
+        isAnimatingRef.current = false;
+        if (isMountedRef.current) setIsAnimating(false);
+      }
+      return;
+    }
+
     const nodes = nodesRef.current;
+
+    // Guard against uninitialized nodes
+    if (!nodes || nodes.length === 0) {
+      if (!isInitializedRef.current && isMountedRef.current && isAnimatingRef.current) {
+        // Nodes might not be ready yet, retry after a frame
+        console.warn('MonteCarloVisualizer: Nodes not ready, retrying...');
+        requestAnimationFrame(() => {
+          if (isAnimatingRef.current && isMountedRef.current) {
+            animateSimulation();
+          }
+        });
+      } else {
+        console.warn('MonteCarloVisualizer: Nodes not initialized, stopping animation');
+        isAnimatingRef.current = false;
+        if (isMountedRef.current) setIsAnimating(false);
+      }
+      return;
+    }
 
     let frame = 0;
     const maxPaths = 1000;
@@ -104,7 +207,8 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
     let completedPaths = 0;
 
     const animate = () => {
-      ctx.clearRect(0, 0, width, height);
+      try {
+        ctx.clearRect(0, 0, width, height);
 
       // Update node positions (gentle floating motion)
       nodes.forEach(node => {
@@ -133,8 +237,8 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
         });
       });
 
-      // Add new paths periodically
-      if (frame % 3 === 0 && completedPaths < maxPaths) {
+      // Add new paths periodically (every 5 frames for slower, more visible animation)
+      if (frame % 5 === 0 && completedPaths < maxPaths) {
         const randomNode = Math.floor(Math.random() * nodes.length);
         activePaths.push({
           nodeIndex: randomNode,
@@ -145,11 +249,14 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
 
       // Draw and update active paths (glowing connections)
       activePaths = activePaths.filter(path => {
-        path.progress += 0.05;
+        path.progress += 0.03; // Slower progression for longer visible paths
 
         if (path.progress >= 1) {
           completedPaths++;
-          setPathsCompleted(completedPaths);
+          // Only update state if component is still mounted
+          if (isMountedRef.current) {
+            setPathsCompleted(completedPaths);
+          }
           return false; // Remove completed path
         }
 
@@ -166,18 +273,20 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
         gradient.addColorStop(0.5, `rgba(139, 92, 246, ${alpha * 1.2})`);
         gradient.addColorStop(1, `rgba(59, 130, 246, ${alpha})`);
 
+        // Set glow effect before drawing
         ctx.strokeStyle = gradient;
         ctx.lineWidth = 2;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(139, 92, 246, 0.5)';
+
         ctx.beginPath();
         ctx.moveTo(node.x, node.y);
         ctx.lineTo(nextNode.x, nextNode.y);
         ctx.stroke();
 
-        // Add glow effect
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = 'rgba(139, 92, 246, 0.5)';
-        ctx.stroke();
+        // Reset shadow for subsequent draws
         ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
 
         // Move to next node occasionally
         if (path.progress > 0.8 && Math.random() > 0.7) {
@@ -208,18 +317,39 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
 
       frame++;
 
-      if (completedPaths < maxPaths && isAnimating) {
+      // Continue animation only if still mounted and animating
+      if (completedPaths < maxPaths && isAnimatingRef.current && isMountedRef.current) {
         animationFrameRef.current = requestAnimationFrame(animate);
-      } else if (completedPaths >= maxPaths) {
+      } else if (completedPaths >= maxPaths && isMountedRef.current) {
+        isAnimatingRef.current = false;
         setIsAnimating(false);
+      }
+      } catch (error) {
+        console.error('MonteCarloVisualizer animation error:', error);
+        // Stop animation on error
+        isAnimatingRef.current = false;
+        if (isMountedRef.current) {
+          setIsAnimating(false);
+        }
       }
     };
 
     animate();
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isRunning) {
+      isAnimatingRef.current = true;
+      setIsAnimating(true);
+      setPathsCompleted(0);
+      animateSimulation();
+    }
+    // Note: Don't stop animation when isRunning becomes false
+    // Let the animation complete all 1000 paths naturally
+  }, [isRunning, animateSimulation]);
 
   return (
-    <Card>
+    <Card style={{ visibility: visible ? 'visible' : 'hidden', position: visible ? 'relative' : 'absolute' }}>
       <CardHeader>
         <CardTitle>Monte Carlo Simulation Visualizer</CardTitle>
         <CardDescription>
