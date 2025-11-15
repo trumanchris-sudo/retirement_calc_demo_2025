@@ -26,7 +26,7 @@ interface MonteCarloVisualizerProps {
  */
 export function MonteCarloVisualizer({ isRunning = false, visible = true }: MonteCarloVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   const nodesRef = useRef<Node[]>([]);
   const isMountedRef = useRef(true);
   const isAnimatingRef = useRef(false);

@@ -81,7 +81,7 @@ describe('Retirement Engine', () => {
 
     it('should produce different results with different seeds', () => {
       const inputs = createDefaultInputs();
-      inputs.retMode = 'random'; // Use random mode to see seed effect
+      inputs.retMode = 'randomWalk'; // Use random mode to see seed effect
 
       const result1 = runSingleSimulation(inputs, 12345);
       const result2 = runSingleSimulation(inputs, 67890);
@@ -326,7 +326,7 @@ describe('Retirement Engine', () => {
 
     it('should handle random return mode', () => {
       const inputs = createDefaultInputs();
-      inputs.retMode = 'random';
+      inputs.retMode = 'randomWalk';
 
       const result = runSingleSimulation(inputs, 12345);
       expect(result.balancesReal).toBeInstanceOf(Array);
@@ -335,7 +335,7 @@ describe('Retirement Engine', () => {
 
     it('should handle historical return mode', () => {
       const inputs = createDefaultInputs();
-      inputs.retMode = 'walk';
+      inputs.retMode = 'randomWalk';
       inputs.historicalYear = 2008; // Bear market year
 
       const result = runSingleSimulation(inputs, 12345);

@@ -12,10 +12,10 @@ import {
   Trophy,
   Landmark
 } from "lucide-react";
-import type { CalcResult } from "@/types/calculator";
+import type { CalculationResult } from "@/types/calculator";
 
 interface TimelineViewProps {
-  result: CalcResult;
+  result: CalculationResult;
   currentAge: number;
   retirementAge: number;
   spouseAge?: number;
