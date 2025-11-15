@@ -77,6 +77,15 @@ export const NIIT_THRESHOLD = {
   married: 250000,
 } as const;
 
+/** IRMAA (Income-Related Monthly Adjustment Amount) thresholds for Medicare surcharges */
+export const IRMAA_THRESHOLD_SINGLE = 103000;
+export const IRMAA_THRESHOLD_MARRIED = 206000;
+
+/** Long-Term Care (LTC) default parameters */
+export const LTC_PROBABILITY = 70; // % probability of needing LTC
+export const LTC_DURATION = 3.5; // Expected duration in years
+export const LTC_ANNUAL_COST = 80000; // Annual long-term care cost
+
 // Net worth data (Median) from Fed's 2022 Survey of Consumer Finances (released Oct 2023)
 export const NET_WORTH_DATA = {
   under35: { median: 39000, label: "Under 35" },

@@ -340,6 +340,40 @@ const SparkleIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
   </svg>
 );
 
+// Helper function to convert text to title case (moved outside component to prevent re-render issues)
+const toTitleCase = (str: string) => {
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+// Format the insight text to have bolded headers (moved outside component to prevent re-render issues)
+const formatInsight = (text: string) => {
+  // Split by lines and format headers
+  const lines = text.split('\n');
+  return lines.map((line, index) => {
+    // Check if line is a header (starts with ## or is followed by a colon and is short)
+    const isMarkdownHeader = line.startsWith('##') || line.startsWith('#');
+    const isColonHeader = line.includes(':') && line.length < 80 && !line.includes('$') && index > 0 && lines[index - 1] === '';
+
+    if (isMarkdownHeader) {
+      // Remove markdown symbols, convert to title case, and bold
+      const headerText = line.replace(/^#+\s*/, '');
+      const titleCaseHeader = toTitleCase(headerText);
+      return <h4 key={index} className="font-bold text-base mt-4 mb-2 first:mt-0">{titleCaseHeader}</h4>;
+    } else if (isColonHeader) {
+      const titleCaseHeader = toTitleCase(line);
+      return <h5 key={index} className="font-semibold text-sm mt-3 mb-1">{titleCaseHeader}</h5>;
+    } else if (line.trim() === '') {
+      return <br key={index} />;
+    } else {
+      return <p key={index} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">{line}</p>;
+    }
+  });
+};
+
 const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading: boolean }> = ({ insight, error, isLoading }) => {
   if (isLoading) {
      return (
@@ -378,40 +412,6 @@ const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading
       </div>
     );
   }
-
-  // Format the insight text to have bolded headers
-  const formatInsight = (text: string) => {
-    // Helper function to convert text to title case
-    const toTitleCase = (str: string) => {
-      return str
-        .toLowerCase()
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-    };
-
-    // Split by lines and format headers
-    const lines = text.split('\n');
-    return lines.map((line, index) => {
-      // Check if line is a header (starts with ## or is followed by a colon and is short)
-      const isMarkdownHeader = line.startsWith('##') || line.startsWith('#');
-      const isColonHeader = line.includes(':') && line.length < 80 && !line.includes('$') && index > 0 && lines[index - 1] === '';
-
-      if (isMarkdownHeader) {
-        // Remove markdown symbols, convert to title case, and bold
-        const headerText = line.replace(/^#+\s*/, '');
-        const titleCaseHeader = toTitleCase(headerText);
-        return <h4 key={index} className="font-bold text-base mt-4 mb-2 first:mt-0">{titleCaseHeader}</h4>;
-      } else if (isColonHeader) {
-        const titleCaseHeader = toTitleCase(line);
-        return <h5 key={index} className="font-semibold text-sm mt-3 mb-1">{titleCaseHeader}</h5>;
-      } else if (line.trim() === '') {
-        return <br key={index} />;
-      } else {
-        return <p key={index} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">{line}</p>;
-      }
-    });
-  };
 
   return (
     <div className="p-6 rounded-xl bg-card border shadow-sm">
