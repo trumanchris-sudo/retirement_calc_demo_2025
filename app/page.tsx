@@ -47,6 +47,7 @@ import { RecalculateButton } from "@/components/calculator/RecalculateButton";
 import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
 import { TimelineView } from "@/components/calculator/TimelineView";
 import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
+import { FullScreenMonteCarloOverlay } from "@/components/calculator/FullScreenMonteCarloOverlay";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 
 // Import types
@@ -1012,6 +1013,10 @@ export default function App() {
   const [loaderHandoff, setLoaderHandoff] = useState(false); // Track when handoff starts
   const [cubeAppended, setCubeAppended] = useState(false); // Track when cube animation completes
 
+  // Full-screen Monte Carlo overlay state
+  const [showMonteCarloOverlay, setShowMonteCarloOverlay] = useState(false);
+  const [monteCarloCalculationComplete, setMonteCarloCalculationComplete] = useState(false);
+
   // Tabbed interface state - foundation for future reorganization
   const [activeMainTab, setActiveMainTab] = useState<MainTabId>('all');
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
@@ -1533,6 +1538,9 @@ export default function App() {
     if (walkSeries === 'trulyRandom') {
       currentSeed = Math.floor(Math.random() * 1000000);
       setSeed(currentSeed);
+      // Trigger full-screen Monte Carlo overlay
+      setShowMonteCarloOverlay(true);
+      setMonteCarloCalculationComplete(false);
     }
 
     try {
@@ -1873,6 +1881,8 @@ export default function App() {
           } else if (walkSeries === 'trulyRandom') {
             // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
             monteCarloRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            // Mark Monte Carlo calculation as complete (overlay will continue animating)
+            setMonteCarloCalculationComplete(true);
           } else {
             resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
           }
@@ -2277,6 +2287,8 @@ export default function App() {
         } else if (walkSeries === 'trulyRandom') {
           // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
           monteCarloRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          // Mark Monte Carlo calculation as complete (overlay will continue animating)
+          setMonteCarloCalculationComplete(true);
         } else {
           resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         }
@@ -2289,6 +2301,9 @@ export default function App() {
       setErr(e instanceof Error ? e.message : String(e));
       setRes(null);
       setIsLoadingAi(false);
+      // Close overlay on error
+      setShowMonteCarloOverlay(false);
+      setMonteCarloCalculationComplete(false);
     }
   }, [
     age1, age2, retAge, isMar, sTax, sPre, sPost,
@@ -2478,6 +2493,17 @@ export default function App() {
           onComplete={() => setLoaderComplete(true)}
         />
       )}
+
+      {/* Full-screen Monte Carlo overlay */}
+      <FullScreenMonteCarloOverlay
+        isActive={showMonteCarloOverlay}
+        calculationComplete={monteCarloCalculationComplete}
+        onComplete={() => {
+          setShowMonteCarloOverlay(false);
+          setMonteCarloCalculationComplete(false);
+        }}
+      />
+
       <div
         className="min-h-screen bg-background"
         style={{
