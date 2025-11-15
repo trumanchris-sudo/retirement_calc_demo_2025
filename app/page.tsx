@@ -46,9 +46,7 @@ import { LastCalculatedBadge } from "@/components/calculator/LastCalculatedBadge
 import { RecalculateButton } from "@/components/calculator/RecalculateButton";
 import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
 import { TimelineView } from "@/components/calculator/TimelineView";
-// TESTING: Using minimal test version to isolate issue
-import { MonteCarloVisualizerTest as MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerTest";
-// import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
+import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 
 // Import types
@@ -5320,11 +5318,10 @@ export default function App() {
             </AnimatedSection>
 
             {/* Monte Carlo Visualizer - Always render to avoid canvas initialization issues */}
-            {/* TESTING: Set visible={true} to debug independently of walkSeries */}
             <AnimatedSection animation="fade-in" delay={400}>
               <MonteCarloVisualizer
                 isRunning={isLoadingAi}
-                visible={true}
+                visible={walkSeries === 'trulyRandom'}
               />
             </AnimatedSection>
 
@@ -6069,9 +6066,9 @@ export default function App() {
           {res && (
             <TimelineView
               result={res}
-              currentAge={older}
+              currentAge={Math.max(age1, isMar ? age2 : age1)}
               retirementAge={retAge}
-              spouseAge={younger}
+              spouseAge={Math.min(age1, isMar ? age2 : age1)}
             />
           )}
         </AnimatedSection>
