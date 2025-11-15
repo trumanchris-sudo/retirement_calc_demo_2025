@@ -76,7 +76,6 @@ class MonteCarloErrorBoundary extends Component<Props, State> {
   <MonteCarloVisualizer
     isRunning={this.props.isRunning}
     visible={this.props.visible ?? true}
-    onComplete={() => console.log("Monte Carlo visualization completed")}
   />
 );
 

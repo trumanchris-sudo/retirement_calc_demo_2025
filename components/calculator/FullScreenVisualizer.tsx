@@ -32,7 +32,7 @@ export interface FullScreenVisualizerHandle {
 const FullScreenVisualizer = forwardRef<FullScreenVisualizerHandle>((props, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   const particlesRef = useRef<Particle[]>([]);
   const isAnimatingRef = useRef(false);
   const startTimeRef = useRef<number>(0);

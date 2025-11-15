@@ -1457,9 +1457,9 @@ export default function App() {
       // This preserves bal, real, p10, p90 while adding baseline, bearMarket, inflation
       const mergedData = res.data.map((row, i) => ({
         ...row, // Keep year, a1, a2, bal, real, p10, p90, etc.
-        baseline: baselineResult.balancesReal[i] ?? null,
-        bearMarket: bearData ? bearData[i] ?? null : null,
-        inflation: inflationData ? inflationData[i] ?? null : null,
+        baseline: baselineResult.balancesReal[i],
+        bearMarket: bearData ? bearData[i] : undefined,
+        inflation: inflationData ? inflationData[i] : undefined,
       }));
 
       // Update comparison state
@@ -1736,21 +1736,7 @@ export default function App() {
         const netEstate = eolWealth - estateTax;
 
         // Generational payout calculation (if enabled) - Monte Carlo version
-        let genPayout: null | {
-          perBenReal: number;
-          years: number;
-          fundLeftReal: number;
-          startBeneficiaries: number;
-          lastLivingCount: number;
-          birthMultiple: number;
-          birthInterval: number;
-          deathAge: number;
-          // Monte Carlo fields
-          p10?: { years: number; fundLeftReal: number; isPerpetual: boolean };
-          p50?: { years: number; fundLeftReal: number; isPerpetual: boolean };
-          p90?: { years: number; fundLeftReal: number; isPerpetual: boolean };
-          probPerpetual?: number;
-        } = null;
+        let genPayout: GenerationalPayout | null = null;
 
         if (showGen && netEstate > 0) {
           const benAges = hypBenAgesStr
@@ -2229,16 +2215,7 @@ export default function App() {
         pretax: retBalPre,
         roth: retBalRoth,
       };
-      let genPayout: null | {
-        perBenReal: number;
-        years: number;
-        fundLeftReal: number;
-        startBeneficiaries: number;
-        lastLivingCount: number;
-        birthMultiple: number;
-        birthInterval: number;
-        deathAge: number;
-      } = null;
+      let genPayout: GenerationalPayout | null = null;
 
       if (showGen && netEstate > 0) {
         // Parse beneficiary ages from comma-separated string
@@ -2331,7 +2308,7 @@ export default function App() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (showGen && genPayout) {
           genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-        } else if (walkSeries === 'trulyRandom') {
+        } else if ((walkSeries as string) === 'trulyRandom') {
           // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
           monteCarloRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
         } else {
@@ -2503,27 +2480,27 @@ export default function App() {
   // Load a scenario (restore inputs)
   const loadScenario = useCallback((scenario: SavedScenario) => {
     const inp = scenario.inputs;
-    setAge1(inp.age1);
-    setAge2(inp.age2);
-    setRetAge(inp.retAge);
-    setMarital(inp.marital);
-    setSTax(inp.sTax);
-    setSPre(inp.sPre);
-    setSPost(inp.sPost);
-    setCTax1(inp.cTax1);
-    setCPre1(inp.cPre1);
-    setCPost1(inp.cPost1);
-    setCMatch1(inp.cMatch1);
-    setCTax2(inp.cTax2);
-    setCPre2(inp.cPre2);
-    setCPost2(inp.cPost2);
-    setCMatch2(inp.cMatch2);
-    setRetRate(inp.retRate);
-    setInfRate(inp.infRate);
-    setStateRate(inp.stateRate);
-    setWdRate(inp.wdRate);
-    setIncContrib(inp.incContrib);
-    setIncRate(inp.incRate);
+    setAge1(inp.age1 ?? 30);
+    setAge2(inp.age2 ?? 30);
+    setRetAge(inp.retAge ?? 65);
+    setMarital(inp.marital ?? 'single');
+    setSTax(inp.sTax ?? 0);
+    setSPre(inp.sPre ?? 0);
+    setSPost(inp.sPost ?? 0);
+    setCTax1(inp.cTax1 ?? 0);
+    setCPre1(inp.cPre1 ?? 0);
+    setCPost1(inp.cPost1 ?? 0);
+    setCMatch1(inp.cMatch1 ?? 0);
+    setCTax2(inp.cTax2 ?? 0);
+    setCPre2(inp.cPre2 ?? 0);
+    setCPost2(inp.cPost2 ?? 0);
+    setCMatch2(inp.cMatch2 ?? 0);
+    setRetRate(inp.retRate ?? 7);
+    setInfRate(inp.infRate ?? 3);
+    setStateRate(inp.stateRate ?? 0);
+    setWdRate(inp.wdRate ?? 4);
+    setIncContrib(inp.incContrib ?? false);
+    setIncRate(inp.incRate ?? 4.5);
   }, []);
 
   return (
@@ -2556,6 +2533,7 @@ export default function App() {
         cubeAppended={cubeAppended}
         onPrint={() => window.print()}
         onShare={() => {
+          if (!res) return;
           const shareData = {
             title: 'Tax-Aware Retirement Plan',
             text: `Retirement projection: ${fmt(res.finReal)} by age ${retAge}, ${fmt(res.wdReal)}/yr after-tax income`,
@@ -2587,7 +2565,7 @@ export default function App() {
 
           // Apply withdrawal rate delta if non-zero
           if (deltas.withdrawalRateDelta !== 0) {
-            setWdPct(parseFloat((wdPct + deltas.withdrawalRateDelta).toFixed(2)));
+            setWdRate(parseFloat((wdRate + deltas.withdrawalRateDelta).toFixed(2)));
             hasChanges = true;
           }
 
@@ -2950,7 +2928,7 @@ export default function App() {
                       </tr>
                       <tr className="bg-gray-50">
                         <th className="px-3 py-2 text-left font-semibold text-black">Estate Tax Exemption</th>
-                        <td className="px-3 py-2 text-right text-black">{fmt(ESTATE_TAX_EXEMPTION)} (2025 threshold)</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single)} (2025 threshold)</td>
                       </tr>
                       <tr>
                         <th className="px-3 py-2 text-left font-semibold text-black">Estate Tax Rate</th>
@@ -3142,7 +3120,7 @@ export default function App() {
                           dot={false}
                           name="Baseline (Real)"
                         />
-                        {comparisonData.showBearMarket && comparisonData.bearMarket?.data && (
+                        {comparisonData.bearMarket?.visible && comparisonData.bearMarket?.data && (
                           <Line
                             type="monotone"
                             dataKey="bearMarket"
@@ -3153,7 +3131,7 @@ export default function App() {
                             name="Bear Market (Real)"
                           />
                         )}
-                        {comparisonData.showInflation && comparisonData.inflation?.data && (
+                        {comparisonData.inflation?.visible && comparisonData.inflation?.data && (
                           <Line
                             type="monotone"
                             dataKey="inflation"
@@ -3454,7 +3432,7 @@ export default function App() {
               )}
 
               {/* PAGE 5: SCENARIO COMPARISON (if applicable) */}
-              {comparisonMode && comparisonData && (comparisonData.showBearMarket || comparisonData.showInflation) && (
+              {comparisonMode && comparisonData && (comparisonData.bearMarket?.visible || comparisonData.inflation?.visible) && (
                 <section className="print-section print-page-break-after">
                   <header className="mb-4 border-b-2 border-gray-900 pb-3">
                     <h2 className="text-xl font-bold text-black">Scenario Comparison</h2>
@@ -3480,7 +3458,7 @@ export default function App() {
                             {retMode === 'fixed' ? `${retRate}% nominal return` : 'Historical S&P 500 returns'} with {infRate}% inflation
                           </td>
                         </tr>
-                        {comparisonData.showBearMarket && (
+                        {comparisonData.bearMarket?.visible && (
                           <tr>
                             <th className="px-3 py-2 text-left font-semibold text-black">Bear Market</th>
                             <td className="px-3 py-2 text-left text-black">
@@ -3488,8 +3466,8 @@ export default function App() {
                             </td>
                           </tr>
                         )}
-                        {comparisonData.showInflation && (
-                          <tr className={comparisonData.showBearMarket ? 'bg-gray-50' : ''}>
+                        {comparisonData.inflation?.visible && (
+                          <tr className={comparisonData.bearMarket?.visible ? 'bg-gray-50' : ''}>
                             <th className="px-3 py-2 text-left font-semibold text-black">Inflation Shock</th>
                             <td className="px-3 py-2 text-left text-black">
                               Elevated {inflationShockRate}% inflation for {inflationShockDuration} years starting at retirement
@@ -3796,7 +3774,7 @@ export default function App() {
                   </div>
 
                   {/* Scenario Comparison Summary */}
-                  {comparisonMode && comparisonData && (comparisonData.showBearMarket || comparisonData.showInflation) && (
+                  {comparisonMode && comparisonData && (comparisonData.bearMarket?.visible || comparisonData.inflation?.visible) && (
                     <div className="p-4 border-2 border-blue-300 bg-blue-50 rounded">
                       <h3 className="text-base font-semibold mb-2 text-black">Scenario Comparison</h3>
                       <p className="text-xs text-gray-700 mb-3">
@@ -3816,7 +3794,7 @@ export default function App() {
                               {retMode === 'fixed' ? `${retRate}% nominal return` : 'Historical S&P 500 returns'} with {infRate}% inflation
                             </td>
                           </tr>
-                          {comparisonData.showBearMarket && comparisonData.bearMarket && (
+                          {comparisonData.bearMarket?.visible && comparisonData.bearMarket && (
                             <tr className="bg-gray-50">
                               <td className="px-3 py-2 text-black font-semibold">Bear Market</td>
                               <td className="px-3 py-2 text-black">
@@ -3824,7 +3802,7 @@ export default function App() {
                               </td>
                             </tr>
                           )}
-                          {comparisonData.showInflation && comparisonData.inflation && (
+                          {comparisonData.inflation?.visible && comparisonData.inflation && (
                             <tr>
                               <td className="px-3 py-2 text-black font-semibold">Inflation Shock</td>
                               <td className="px-3 py-2 text-black">
@@ -3888,7 +3866,7 @@ export default function App() {
                       <li>Inflation assumptions ({infRate}% baseline) are estimates and actual inflation may vary substantially.</li>
                       <li>The model assumes consistent contribution and withdrawal patterns, which may not reflect real-world behavior.</li>
                       <li>Healthcare costs, long-term care, and other major expenses are not explicitly modeled unless incorporated into withdrawal rates.</li>
-                      <li>Estate tax exemptions and rates reflect current law ({fmt(ESTATE_TAX_EXEMPTION)} exemption, {(ESTATE_TAX_RATE * 100).toFixed(0)}% rate) and may change.</li>
+                      <li>Estate tax exemptions and rates reflect current law ({fmt(marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single)} exemption, {(ESTATE_TAX_RATE * 100).toFixed(0)}% rate) and may change.</li>
                     </ul>
                   </div>
 
@@ -4843,7 +4821,7 @@ export default function App() {
                                     <div className="flex items-start gap-2">
                                       <span className="text-green-600 dark:text-green-400">🏆</span>
                                       <div>
-                                        <strong>Highest end-of-life wealth:</strong> {bestEOL.name} ({fmt(bestEOL.results.eol)})
+                                        <strong>Highest end-of-life wealth:</strong> {bestEOL.name} ({fmt(bestEOL.results.eolReal)})
                                       </div>
                                     </div>
                                     <div className="flex items-start gap-2">
@@ -6527,7 +6505,7 @@ export default function App() {
                 <div>
                   <h4 className="text-lg font-semibold mb-2 text-blue-800">Estate Tax</h4>
                   <p className="text-gray-700">
-                    Under current law (2025), estates exceeding ${(ESTATE_TAX_EXEMPTION / 1_000_000).toFixed(2)}
+                    Under current law (2025), estates exceeding ${((marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single) / 1_000_000).toFixed(2)}
                     million are subject to a 40% federal estate tax on the amount above the exemption. Your heirs
                     receive the net estate after this tax. Note: Estate tax laws may change, and this is a simplified
                     calculation that doesn't account for spousal transfers, trusts, or state estate taxes.

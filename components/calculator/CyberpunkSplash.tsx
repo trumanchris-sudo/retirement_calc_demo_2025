@@ -61,7 +61,7 @@ const CyberpunkSplash = forwardRef<CyberpunkSplashHandle>((props, ref) => {
   }
 
   // Calculate bar positions based on phase
-  const barsVisible = animationPhase !== "idle";
+  // Note: animationPhase can't be "idle" here due to early return above
   const barsIn = animationPhase === "barsIn" || animationPhase === "logoVisible" || animationPhase === "logoFade";
   const barsOut = animationPhase === "barsOut";
 
@@ -201,7 +201,7 @@ const CyberpunkSplash = forwardRef<CyberpunkSplashHandle>((props, ref) => {
         inset: 0,
         zIndex: 10000,
         overflow: "hidden",
-        pointerEvents: barsVisible ? "auto" : "none",
+        pointerEvents: "auto",
         backgroundColor: "rgba(0, 0, 0, 0.3)", // Slight darkening
       }}
     >

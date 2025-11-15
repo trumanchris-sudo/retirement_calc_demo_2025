@@ -150,8 +150,7 @@ function buildReturnGenerator(options: {
 function calcRMD(pretaxBalance: number, age: number): number {
   if (age < RMD_START_AGE || pretaxBalance <= 0) return 0;
 
-  const divisorIndex = Math.min(age - RMD_START_AGE, RMD_DIVISORS.length - 1);
-  const divisor = RMD_DIVISORS[divisorIndex];
+  const divisor = RMD_DIVISORS[age] || 2.0; // Use 2.0 for ages beyond 120
 
   return pretaxBalance / divisor;
 }
@@ -312,7 +311,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     const bal = bTax + bPre + bPost;
 
     // Apply year-specific inflation (handles inflation shocks)
-    const yearInflation = getEffectiveInflation(y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
+    const yearInflation = getEffectiveInflation(y, yrsToRet, infRate, inflationShockRate ?? null, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
     balancesReal.push(bal / cumulativeInflation);
   }
@@ -417,7 +416,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     const totalNow = retBalTax + retBalPre + retBalRoth;
 
     // Apply year-specific inflation (handles inflation shocks)
-    const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
+    const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, infRate, inflationShockRate ?? null, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
     balancesReal.push(totalNow / cumulativeInflation);
 

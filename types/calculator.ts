@@ -68,7 +68,7 @@ export interface CalculatorInputs {
   infRate: number;      // Inflation rate
   stateRate: number;    // State tax rate
   wdRate: number;       // Withdrawal rate in retirement
-  incContrib: number;   // Annual contribution increase
+  incContrib: boolean;  // Enable annual contribution increase
   incRate: number;      // Income/contribution increase rate
 
   // Simulation Settings
