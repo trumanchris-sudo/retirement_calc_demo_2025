@@ -1,362 +1,243 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef } from "react";
+
+interface SplashProps {
+  /** Set true when the user hits Calculate */
+  isActive: boolean;
+  /** Called after lines + text phases complete */
+  onComplete?: () => void;
+}
 
 interface Node {
-  id: number;
   x: number;
   y: number;
   vx: number;
   vy: number;
-  connections: number[];
 }
 
-interface FullScreenMonteCarloOverlayProps {
-  isActive: boolean;
-  calculationComplete?: boolean;
-  onComplete: () => void;
-}
+const LINES_DURATION = 1500; // ms before text phase
+const TEXT_DURATION = 3000;  // ms text stays up
+const NUM_NODES = 220;       // tweak if you want more/less density
 
-/**
- * FullScreenMonteCarloOverlay - Cinematic full-screen neural network animation
- *
- * Shows a dramatic neural network visualization while Monte Carlo simulation runs.
- * Features three phases:
- * 1. Neural network fills screen (0-2000ms)
- * 2. "WORK DIE RETIRE" text appears (2000-2600ms)
- * 3. Fade out (2600-3300ms)
- */
-export function FullScreenMonteCarloOverlay({
-  isActive,
-  calculationComplete = false,
-  onComplete
-}: FullScreenMonteCarloOverlayProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameRef = useRef<number>();
+export function FullscreenMonteCarloSplash({ isActive, onComplete }: SplashProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+
+  const animationFrameRef = useRef<number | null>(null);
   const nodesRef = useRef<Node[]>([]);
-  const startTimeRef = useRef<number>(0);
-  const [phase, setPhase] = useState<'neural' | 'text' | 'fadeout'>('neural');
-  const [overlayOpacity, setOverlayOpacity] = useState(1);
-  const [animationComplete, setAnimationComplete] = useState(false);
-  const [showSkip, setShowSkip] = useState(false);
+  const startTimeRef = useRef<number | null>(null);
+  const phaseRef = useRef<"idle" | "lines" | "text" | "done">("idle");
+  const textTimeoutRef = useRef<number | null>(null);
 
-  // Check for reduced motion preference
-  const prefersReducedMotion = typeof window !== 'undefined'
-    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    : false;
+  // Resize canvas to full window
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  // Detect device capability for node count
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const isLowEnd = typeof navigator !== 'undefined' && navigator.hardwareConcurrency < 4;
-  const nodeCount = isLowEnd ? 150 : isMobile ? 300 : 600;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-  // Initialize canvas and nodes
+    const resize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
+
+  // Kick off animation when isActive flips true
   useEffect(() => {
     if (!isActive) return;
 
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // Reset state
+    phaseRef.current = "lines";
+    startTimeRef.current = null;
+    nodesRef.current = initNodes(canvas);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Set canvas to full viewport
-    const resizeCanvas = () => {
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      ctx.scale(dpr, dpr);
-    };
+    // Ensure overlay is visible
+    if (overlayRef.current) {
+      overlayRef.current.style.opacity = "1";
+      overlayRef.current.style.pointerEvents = "auto";
+    }
 
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    const animate = (timestamp: number) => {
+      if (!startTimeRef.current) startTimeRef.current = timestamp;
+      const elapsed = timestamp - startTimeRef.current;
+      const phase = phaseRef.current;
 
-    // Initialize nodes
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+      const width = canvas.width / (window.devicePixelRatio || 1);
+      const height = canvas.height / (window.devicePixelRatio || 1);
 
-    nodesRef.current = Array.from({ length: nodeCount }, (_, i) => ({
-      id: i,
-      x: Math.random() * width,
-      y: Math.random() * height,
-      vx: (Math.random() - 0.5) * (isMobile ? 0.5 : 1.0), // Faster movement on desktop
-      vy: (Math.random() - 0.5) * (isMobile ? 0.5 : 1.0),
-      connections: []
-    }));
+      if (phase === "lines") {
+        // No clearRect – strokes accumulate
+        stepNodes(nodesRef.current, width, height);
+        drawLines(ctx, nodesRef.current, width, height);
 
-    // Create random connections (more edges for fuller look)
-    nodesRef.current.forEach(node => {
-      const connectionCount = Math.floor(Math.random() * 4) + 3; // 3-6 connections
-      for (let i = 0; i < connectionCount; i++) {
-        const targetId = Math.floor(Math.random() * nodeCount);
-        if (targetId !== node.id && !node.connections.includes(targetId)) {
-          node.connections.push(targetId);
+        if (elapsed >= LINES_DURATION) {
+          phaseRef.current = "text";
+          // Start text timer
+          if (textTimeoutRef.current) {
+            window.clearTimeout(textTimeoutRef.current);
+          }
+          textTimeoutRef.current = window.setTimeout(() => {
+            phaseRef.current = "done";
+            if (overlayRef.current) {
+              overlayRef.current.style.opacity = "0";
+              overlayRef.current.style.pointerEvents = "none";
+            }
+            if (onComplete) onComplete();
+          }, TEXT_DURATION);
         }
       }
-    });
 
-    startTimeRef.current = performance.now();
-
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      if (phase !== "done") {
+        animationFrameRef.current = window.requestAnimationFrame(animate);
       }
     };
-  }, [isActive, nodeCount, isMobile]);
 
-  // Main animation loop
-  const animate = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    const nodes = nodesRef.current;
-    const elapsed = performance.now() - startTimeRef.current;
-
-    // Phase transitions
-    if (elapsed > 2000 && phase === 'neural') {
-      setPhase('text');
-    }
-    if (elapsed > 2600 && phase === 'text') {
-      setPhase('fadeout');
-      setAnimationComplete(true);
-    }
-
-    // Clear canvas
-    ctx.clearRect(0, 0, width, height);
-
-    // Calculate opacity progression (fade in over first 2 seconds)
-    const neuralOpacity = Math.min(1, elapsed / 2000);
-
-    // Use lighter blend mode for glowing effect
-    ctx.globalCompositeOperation = 'lighter';
-
-    // Update node positions
-    nodes.forEach(node => {
-      node.x += node.vx;
-      node.y += node.vy;
-
-      // Bounce off edges
-      if (node.x < 0 || node.x > width) node.vx *= -1;
-      if (node.y < 0 || node.y > height) node.vy *= -1;
-
-      // Keep within bounds
-      node.x = Math.max(0, Math.min(width, node.x));
-      node.y = Math.max(0, Math.min(height, node.y));
-    });
-
-    // Draw connections with varying thickness
-    nodes.forEach(node => {
-      node.connections.forEach(targetId => {
-        const target = nodes[targetId];
-
-        // Vary line width based on time (thicken progressively)
-        const timeProgress = Math.min(1, elapsed / 2000);
-        const lineWidth = 0.5 + (timeProgress * 2.5); // 0.5 to 3
-
-        const gradient = ctx.createLinearGradient(node.x, node.y, target.x, target.y);
-        const alpha = neuralOpacity * 0.15; // Semi-transparent
-        gradient.addColorStop(0, `rgba(139, 92, 246, ${alpha})`);
-        gradient.addColorStop(0.5, `rgba(168, 85, 247, ${alpha * 1.3})`);
-        gradient.addColorStop(1, `rgba(139, 92, 246, ${alpha})`);
-
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = lineWidth;
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = 'rgba(139, 92, 246, 0.4)';
-
-        ctx.beginPath();
-        ctx.moveTo(node.x, node.y);
-        ctx.lineTo(target.x, target.y);
-        ctx.stroke();
-      });
-    });
-
-    // Reset shadow
-    ctx.shadowBlur = 0;
-    ctx.globalCompositeOperation = 'source-over';
-
-    // Draw nodes
-    nodes.forEach(node => {
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(168, 85, 247, ${neuralOpacity * 0.6})`;
-      ctx.fill();
-    });
-
-    if (!animationComplete) {
-      animationFrameRef.current = requestAnimationFrame(animate);
-    }
-  }, [phase, animationComplete]);
-
-  // Start animation when active
-  useEffect(() => {
-    if (isActive && !prefersReducedMotion) {
-      animate();
-    } else if (isActive && prefersReducedMotion) {
-      // Skip animation for reduced motion users
-      setTimeout(() => onComplete(), 100);
-    }
+    animationFrameRef.current = window.requestAnimationFrame(animate);
 
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-    };
-  }, [isActive, animate, prefersReducedMotion, onComplete]);
-
-  // Show skip button after 2 seconds
-  useEffect(() => {
-    if (!isActive) return;
-    const timer = setTimeout(() => setShowSkip(true), 2000);
-    return () => clearTimeout(timer);
-  }, [isActive]);
-
-  // Handle fade out when both animation and calculation are complete
-  useEffect(() => {
-    if (animationComplete && calculationComplete) {
-      setOverlayOpacity(0);
-      setTimeout(() => {
-        onComplete();
-      }, 700); // Wait for fade transition
-    }
-  }, [animationComplete, calculationComplete, onComplete]);
-
-  // Escape key to skip
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isActive) {
-        onComplete();
+      if (textTimeoutRef.current) {
+        window.clearTimeout(textTimeoutRef.current);
       }
     };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
   }, [isActive, onComplete]);
-
-  // Timeout failsafe (10 seconds max)
-  useEffect(() => {
-    if (!isActive) return;
-    const timeout = setTimeout(() => {
-      console.warn('Overlay timeout - forcing completion');
-      onComplete();
-    }, 10000);
-    return () => clearTimeout(timeout);
-  }, [isActive, onComplete]);
-
-  if (!isActive) return null;
 
   return (
-    <>
-      {/* Screen reader announcement */}
-      <div role="status" aria-live="polite" className="sr-only">
-        Running Monte Carlo simulation...
-      </div>
-
-      {/* Main overlay */}
+    <div
+      ref={overlayRef}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        background:
+          "radial-gradient(circle at center, rgba(20,15,50,0.75), rgba(5,2,20,0.95))",
+        display: isActive ? "flex" : "none",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "opacity 0.5s ease",
+      }}
+    >
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+        }}
+      />
+      {/* Center text – only visible in "text" / "done" phases */}
       <div
         style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 9999,
-          pointerEvents: showSkip ? 'auto' : 'none',
-          opacity: overlayOpacity,
-          transition: 'opacity 700ms ease-out',
-          backgroundColor: 'rgba(0, 0, 0, 0.4)', // Subtle dark backdrop
+          position: "relative",
+          zIndex: 1,
+          opacity:
+            phaseRef.current === "text" || phaseRef.current === "done" ? 1 : 0,
+          transition: "opacity 400ms ease",
+          textAlign: "center",
+          letterSpacing: "0.2em",
+          textTransform: "uppercase",
+          fontWeight: 800,
+          fontSize: "2.4rem",
+          color: "#ffffff",
         }}
       >
-        {/* Canvas */}
-        <canvas
-          ref={canvasRef}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-          }}
-        />
-
-        {/* Text overlay */}
-        {phase !== 'neural' && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              textAlign: 'center',
-              opacity: phase === 'text' ? 1 : 0,
-              transition: 'opacity 600ms ease-in-out, transform 400ms ease-out',
-              animation: phase === 'text' ? 'scaleIn 400ms ease-out' : 'none',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 'clamp(48px, 8vw, 120px)',
-                fontWeight: 800,
-                letterSpacing: '0.15em',
-                color: 'rgba(255, 255, 255, 0.95)',
-                textShadow: '0 0 30px rgba(168, 85, 247, 0.5), 0 0 60px rgba(139, 92, 246, 0.3)',
-                lineHeight: 1.2,
-              }}
-            >
-              WORK
-              <br />
-              DIE
-              <br />
-              RETIRE
-            </div>
-          </div>
-        )}
-
-        {/* Skip button */}
-        {showSkip && (
-          <button
-            onClick={onComplete}
-            style={{
-              position: 'absolute',
-              top: '20px',
-              right: '20px',
-              padding: '8px 16px',
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '8px',
-              color: 'white',
-              fontSize: '14px',
-              cursor: 'pointer',
-              backdropFilter: 'blur(10px)',
-              transition: 'all 200ms ease',
-              pointerEvents: 'auto',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-            }}
-          >
-            Skip (ESC)
-          </button>
-        )}
+        <div>WORK</div>
+        <div>DIE</div>
+        <div>RETIRE</div>
       </div>
-
-      {/* Scale-in animation for text */}
-      <style jsx>{`
-        @keyframes scaleIn {
-          from {
-            transform: translate(-50%, -50%) scale(0.95);
-            opacity: 0;
-          }
-          to {
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 1;
-          }
-        }
-      `}</style>
-    </>
+    </div>
   );
+}
+
+// --- helpers ----------------------------------------------------
+
+function initNodes(canvas: HTMLCanvasElement): Node[] {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const nodes: Node[] = [];
+
+  for (let i = 0; i < NUM_NODES; i++) {
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+
+    // Slightly different speeds
+    const speed = 220 + Math.random() * 140; // px/sec
+    const angle = Math.random() * Math.PI * 2;
+
+    nodes.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+    });
+  }
+
+  return nodes;
+}
+
+function stepNodes(nodes: Node[], width: number, height: number) {
+  const dt = 1 / 60; // assume ~60fps; good enough for this splash
+
+  for (const n of nodes) {
+    n.x += n.vx * dt;
+    n.y += n.vy * dt;
+
+    // Bounce on edges
+    if (n.x <= 0 || n.x >= width) {
+      n.vx *= -1;
+      n.x = clamp(n.x, 0, width);
+    }
+    if (n.y <= 0 || n.y >= height) {
+      n.vy *= -1;
+      n.y = clamp(n.y, 0, height);
+    }
+  }
+}
+
+function drawLines(
+  ctx: CanvasRenderingContext2D,
+  nodes: Node[],
+  width: number,
+  height: number
+) {
+  ctx.save();
+  ctx.lineWidth = 4; // thick lines so it fills fast
+  ctx.strokeStyle = "rgba(168, 85, 247, 0.35)"; // purple with some alpha
+
+  // Just draw from each node to its “future” position to create motion streaks.
+  // You can tweak this pattern later if you want more structure.
+  for (const n of nodes) {
+    const trailX = n.x - n.vx * 0.02;
+    const trailY = n.y - n.vy * 0.02;
+
+    ctx.beginPath();
+    ctx.moveTo(trailX, trailY);
+    ctx.lineTo(n.x, n.y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function clamp(v: number, min: number, max: number) {
+  return v < min ? min : v > max ? max : v;
 }
