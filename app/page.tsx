@@ -1039,10 +1039,10 @@ export default function App() {
 
   // Initialize web worker
   useEffect(() => {
-    workerRef.current = new Worker(new URL('/monte-carlo-worker.js', window.location.origin), {
-  type: 'module',
-});
-
+    workerRef.current = new Worker(
+      new URL('../workers/mcWorker.js', import.meta.url),
+      { type: 'module' }
+    );
 
     return () => {
       if (workerRef.current) {
