@@ -1077,10 +1077,22 @@ export default function App() {
 
   // Initialize web worker
   useEffect(() => {
-    workerRef.current = new Worker('/monte-carlo-worker.js');
+    console.log('[WORKER] Initializing web worker...');
+    try {
+      workerRef.current = new Worker('/monte-carlo-worker.js');
+      console.log('[WORKER] Web worker initialized successfully');
+
+      // Add global error handler
+      workerRef.current.onerror = (error) => {
+        console.error('[WORKER] Worker global error:', error);
+      };
+    } catch (error) {
+      console.error('[WORKER] Failed to initialize worker:', error);
+    }
 
     return () => {
       if (workerRef.current) {
+        console.log('[WORKER] Terminating web worker');
         workerRef.current.terminate();
       }
     };
@@ -1372,17 +1384,21 @@ export default function App() {
   // Helper function to run Monte Carlo simulation via web worker
   const runMonteCarloViaWorker = useCallback((inputs: Inputs, baseSeed: number, N: number = 1000): Promise<BatchSummary> => {
     return new Promise((resolve, reject) => {
+      console.log('[WORKER] Starting runMonteCarloViaWorker...');
       if (!workerRef.current) {
+        console.error('[WORKER] Worker not initialized!');
         reject(new Error("Worker not initialized"));
         return;
       }
 
       const worker = workerRef.current;
+      console.log('[WORKER] Worker exists, setting up message handler');
 
       const handleMessage = (e: MessageEvent) => {
         if (!e.data) return;
 
         const { type, result, completed, total, error } = e.data;
+        console.log('[WORKER] Received message:', { type, completed, total, hasResult: !!result, error });
 
         if (type === 'progress') {
           const percent = Math.round((completed / total) * 100);
@@ -1392,17 +1408,27 @@ export default function App() {
             message: `Running Monte Carlo simulation... ${completed} / ${total}`
           });
         } else if (type === 'complete') {
+          console.log('[WORKER] Worker complete! Resolving promise...');
           setCalcProgress(null);
           worker.removeEventListener('message', handleMessage);
           resolve(result);
         } else if (type === 'error') {
+          console.error('[WORKER] Worker error:', error);
           setCalcProgress(null);
           worker.removeEventListener('message', handleMessage);
           reject(new Error(error));
         }
       };
 
+      const handleError = (e: ErrorEvent) => {
+        console.error('[WORKER] Worker error event:', e);
+        setCalcProgress(null);
+        reject(new Error(`Worker error: ${e.message}`));
+      };
+
       worker.addEventListener('message', handleMessage);
+      worker.addEventListener('error', handleError);
+      console.log('[WORKER] Posting message to worker with N=', N);
       worker.postMessage({ type: 'run', params: inputs, baseSeed, N });
     });
   }, []);
@@ -1554,6 +1580,7 @@ export default function App() {
   }, []);
 
   const calc = useCallback(async () => {
+    console.log('[CALC] Starting calculation...');
     setErr(null);
     setAiInsight("");
     setAiError(null);
@@ -1562,6 +1589,7 @@ export default function App() {
 
     // Start cinematic Monte Carlo sequence only from All-in-One or Configure tabs
     if (activeMainTab === 'all' || activeMainTab === 'configure') {
+      console.log('[CALC] Playing splash animation');
       splashRef.current?.play();
     }
 
@@ -1585,9 +1613,11 @@ export default function App() {
     if (walkSeries === 'trulyRandom') {
       currentSeed = Math.floor(Math.random() * 1000000);
       setSeed(currentSeed);
+      console.log('[CALC] Using Monte Carlo mode with seed:', currentSeed);
     }
 
     try {
+      console.log('[CALC] Validating inputs...');
       // Comprehensive input validation with specific error messages
       const validationResult = validateCalculatorInputs({
         age1,
@@ -1612,8 +1642,11 @@ export default function App() {
       });
 
       if (!validationResult.isValid) {
+        console.error('[CALC] Validation failed:', validationResult.error);
         throw new Error(validationResult.error);
       }
+
+      console.log('[CALC] Validation passed, starting calculation...');
 
       const younger = Math.min(age1, isMar ? age2 : age1);
       const older = Math.max(age1, isMar ? age2 : age1);
@@ -1628,6 +1661,7 @@ export default function App() {
 
       // If truly random mode, run Monte Carlo simulation via web worker (N=1000)
       if (walkSeries === 'trulyRandom') {
+        console.log('[CALC] Running Monte Carlo via web worker...');
         const inputs: Inputs = {
           marital, age1, age2, retAge, sTax, sPre, sPost,
           cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
@@ -1652,7 +1686,9 @@ export default function App() {
           ltcAgeRangeEnd,
         };
 
+        console.log('[CALC] Calling web worker with inputs...');
         const batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, 1000);
+        console.log('[CALC] Web worker completed, batch summary:', batchSummary);
 
         // Reconstruct data array from batch summary percentile balances
         const data: any[] = [];
@@ -2261,10 +2297,12 @@ export default function App() {
       }, 100);
 
     } catch (e: unknown) {
+      console.error('[CALC] Calculation error:', e);
       setErr(e instanceof Error ? e.message : String(e));
       setRes(null);
       setIsLoadingAi(false);
     } finally {
+      console.log('[CALC] Calculation complete, setting isRunning to false');
       setIsRunning(false);
     }
   }, [
