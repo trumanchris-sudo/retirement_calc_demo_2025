@@ -1558,6 +1558,7 @@ export default function App() {
     setAiInsight("");
     setAiError(null);
     setIsLoadingAi(true);
+    setIsRunning(true);
 
     // Start cinematic Monte Carlo sequence only from All-in-One or Configure tabs
     if (activeMainTab === 'all' || activeMainTab === 'configure') {
@@ -2323,6 +2324,8 @@ export default function App() {
       setErr(e instanceof Error ? e.message : String(e));
       setRes(null);
       setIsLoadingAi(false);
+    } finally {
+      setIsRunning(false);
     }
   }, [
     age1, age2, retAge, isMar, sTax, sPre, sPost,
