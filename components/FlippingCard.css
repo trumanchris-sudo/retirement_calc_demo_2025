@@ -13,9 +13,8 @@
 .flip-card {
   position: relative;
   width: 100%;
-  /* Height is controlled by inline styles from React */
-  /* Added 'height' to the transition for smooth resizing */
-  transition: transform 0.8s, height 0.4s ease-out;
+  min-height: 280px;
+  transition: transform 0.4s ease-in-out, height 0.4s ease-in-out;
   transform-style: preserve-3d;
 }
 
@@ -28,8 +27,7 @@
 .flip-card-face {
   position: absolute;
   width: 100%;
-  height: auto; /* Let the content define the height */
-  /* Removed min-height - content determines size */
+  min-height: 280px;
   -webkit-backface-visibility: hidden; /* Safari */
   backface-visibility: hidden; /* Hides the back of the card when it's facing away */
 

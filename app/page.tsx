@@ -379,9 +379,34 @@ const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading
     );
   }
 
+  // Format the insight text to have bolded headers
+  const formatInsight = (text: string) => {
+    // Split by lines and format headers
+    const lines = text.split('\n');
+    return lines.map((line, index) => {
+      // Check if line is a header (starts with ## or is followed by a colon and is short)
+      const isMarkdownHeader = line.startsWith('##') || line.startsWith('#');
+      const isColonHeader = line.includes(':') && line.length < 80 && !line.includes('$') && index > 0 && lines[index - 1] === '';
+
+      if (isMarkdownHeader) {
+        // Remove markdown symbols and bold
+        const headerText = line.replace(/^#+\s*/, '');
+        return <h4 key={index} className="font-bold text-base mt-4 mb-2 first:mt-0">{headerText}</h4>;
+      } else if (isColonHeader) {
+        return <h5 key={index} className="font-semibold text-sm mt-3 mb-1">{line}</h5>;
+      } else if (line.trim() === '') {
+        return <br key={index} />;
+      } else {
+        return <p key={index} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">{line}</p>;
+      }
+    });
+  };
+
   return (
     <div className="p-6 rounded-xl bg-card border shadow-sm">
-      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{insight}</p>
+      <div className="space-y-1">
+        {formatInsight(insight)}
+      </div>
     </div>
   );
 };
@@ -445,15 +470,15 @@ const FlippingStatCard: React.FC<{
   const frontContent = (
     <>
       <div className="flip-card-header">
-        <Badge variant="secondary" className={`${c.bg} ${c.badge} border-0`}>
+        <Badge variant="secondary" className={`border-0 bg-transparent ${c.badge}`}>
           {title}
         </Badge>
         <span className="flip-card-icon text-xs opacity-50 print-hide flip-hint">Click to flip ↻</span>
       </div>
       <div className="flex items-start justify-between mb-3">
-        <div className={`text-3xl font-bold ${c.text} mb-1`}>{value}</div>
+        <div className={`text-3xl font-bold mb-1 ${c.text}`}>{value}</div>
         {Icon && (
-          <div className={`p-2 rounded-lg ${c.bg}`}>
+          <div className="p-2 rounded-lg">
             <Icon className={`w-5 h-5 ${c.icon}`} />
           </div>
         )}
@@ -1519,8 +1544,10 @@ export default function App() {
     setAiError(null);
     setIsLoadingAi(true);
 
-    // Start cinematic Monte Carlo sequence
-    splashRef.current?.play();
+    // Start cinematic Monte Carlo sequence only from All-in-One or Configure tabs
+    if (activeMainTab === 'all' || activeMainTab === 'configure') {
+      splashRef.current?.play();
+    }
 
     // Clear any existing stress test comparison data
     setComparisonData({
@@ -1877,7 +1904,10 @@ export default function App() {
         }
 
         setTimeout(() => {
-          if (showGen && genPayout) {
+          // In All-in-One tab, scroll to top of page
+          if (activeMainTab === 'all') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } else if (showGen && genPayout) {
             genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
           } else if (walkSeries === 'trulyRandom') {
             // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
@@ -2281,7 +2311,10 @@ export default function App() {
       }
 
       setTimeout(() => {
-        if (showGen && genPayout) {
+        // In All-in-One tab, scroll to top of page
+        if (activeMainTab === 'all') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (showGen && genPayout) {
           genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
         } else if (walkSeries === 'trulyRandom') {
           // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
@@ -2522,16 +2555,36 @@ export default function App() {
         }}
         onAdjust={(deltas: AdjustmentDeltas) => {
           // Apply deltas to current inputs and recalculate
-          // Note: This modifies inputs as deltas, not absolute values
-          const adjustedAnnContrib = annContrib * (1 + deltas.contributionDelta / 100);
-          const adjustedWdPct = wdPct + deltas.withdrawalRateDelta;
+          let hasChanges = false;
 
-          // Update state with adjusted values
-          setAnnContrib(Math.round(adjustedAnnContrib));
-          setWdPct(parseFloat(adjustedWdPct.toFixed(2)));
+          // Apply contribution delta if non-zero
+          if (deltas.contributionDelta !== 0) {
+            const totalContribs = cTax1 + cPre1 + cPost1;
+            if (totalContribs > 0) {
+              const adjustedTotal = totalContribs * (1 + deltas.contributionDelta / 100);
+              const ratio = adjustedTotal / totalContribs;
+              setCTax1(Math.round(cTax1 * ratio));
+              setCPre1(Math.round(cPre1 * ratio));
+              setCPost1(Math.round(cPost1 * ratio));
+              hasChanges = true;
+            }
+          }
 
-          // Trigger recalculation after a brief delay to allow state to update
-          setTimeout(() => calc(), 100);
+          // Apply withdrawal rate delta if non-zero
+          if (deltas.withdrawalRateDelta !== 0) {
+            setWdPct(parseFloat((wdPct + deltas.withdrawalRateDelta).toFixed(2)));
+            hasChanges = true;
+          }
+
+          // Only recalculate if changes were made
+          if (hasChanges) {
+            setInputsModified(true);
+
+            // Use requestAnimationFrame for better timing
+            requestAnimationFrame(() => {
+              calc();
+            });
+          }
         }}
       />
 
@@ -4459,11 +4512,11 @@ export default function App() {
                 <AccordionItem value="scenarios" className="border-none">
                   <Card data-scenarios-section>
                     <AccordionTrigger className="px-6 hover:no-underline [&[data-state=open]>div>svg]:rotate-180">
-                      <CardHeader className="p-0 flex-1">
+                      <CardHeader className="p-0 flex-1 text-left">
                         <div className="flex items-center justify-between">
-                          <div>
-                            <CardTitle>Save & Compare Scenarios</CardTitle>
-                            <CardDescription>Save different retirement strategies and compare them side-by-side</CardDescription>
+                          <div className="text-left">
+                            <CardTitle className="text-left">Save & Compare Scenarios</CardTitle>
+                            <CardDescription className="text-left">Save different retirement strategies and compare them side-by-side</CardDescription>
                           </div>
                           <Button
                             variant={showScenarios ? "default" : "outline"}
@@ -5841,13 +5894,6 @@ export default function App() {
               <CardDescription>Model multi-generational wealth transfer and dynasty trusts</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="p-6 bg-card rounded-xl border border-border shadow-sm gen-card">
-                  <div className="flex items-center justify-between mb-6">
-                    <h4 className="text-xl font-semibold text-foreground">
-                      Generational Wealth Configuration
-                    </h4>
-                  </div>
-
                   {/* Preset Buttons */}
                   <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
                     <p className="text-sm font-semibold mb-3 text-foreground">Quick Presets:</p>
@@ -6052,17 +6098,20 @@ export default function App() {
 
                         return (
                           <>
-                            <GenerationalResultCard
-                              variant={variant}
-                              amountPerBeneficiary={res.genPayout.perBenReal}
-                              yearsOfSupport={isPerpetual ? "Infinity" : res.genPayout.years}
-                              percentile10={p10Value}
-                              percentile50={p50Value}
-                              percentile90={p90Value}
-                              probability={res.genPayout.probPerpetual || 0}
-                              explanationText={explanationText}
-                            />
-                            <div className="mt-6 flex justify-center">
+                            <div className="flex justify-center">
+                              <GenerationalResultCard
+                                variant={variant}
+                                amountPerBeneficiary={res.genPayout.perBenReal}
+                                yearsOfSupport={isPerpetual ? "Infinity" : res.genPayout.years}
+                                percentile10={p10Value}
+                                percentile50={p50Value}
+                                percentile90={p90Value}
+                                probability={res.genPayout.probPerpetual || 0}
+                                explanationText={explanationText}
+                              />
+                            </div>
+                            <div className="mt-6 flex justify-center gap-3">
+                              <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
                               <AddToWalletButton result={legacyResult} />
                             </div>
                           </>
@@ -6071,37 +6120,167 @@ export default function App() {
                       </div>
                     </>
                   )}
-                </div>
-
-              {/* Recalculate Button for Legacy Tab */}
-              <div className="flex justify-center mt-6">
-                <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
-              </div>
             </CardContent>
           </Card>
         </AnimatedSection>
         </TabPanel>
 
-        {/* Timeline View Tab */}
-        <TabPanel id="timeline" activeTab={activeMainTab}>
+        {/* Budget Tab */}
+        <TabPanel id="budget" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
+          {/* Retirement Timeline - First element */}
           {res && (
-            <TimelineView
-              result={res}
-              currentAge={Math.max(age1, isMar ? age2 : age1)}
-              retirementAge={retAge}
-              spouseAge={Math.min(age1, isMar ? age2 : age1)}
-            />
+            <div className="mb-6">
+              <TimelineView
+                result={res}
+                currentAge={Math.max(age1, isMar ? age2 : age1)}
+                retirementAge={retAge}
+                spouseAge={Math.min(age1, isMar ? age2 : age1)}
+              />
+            </div>
           )}
+
+          {/* Budget Calculator */}
+          {res && (() => {
+            // Calculate implied budget from retirement contributions
+            // Assumptions for budget allocation
+            const RETIREMENT_SAVINGS_RATE = 0.15; // 15% of gross income
+            const HOUSING_RATE = 0.30; // 30% for housing/necessities
+            const DISCRETIONARY_RATE = 0.25; // 25% for discretionary spending
+            const TAXES_RATE = 0.30; // 30% for taxes (federal, state, FICA)
+
+            // Calculate total annual contributions (taxable + pre-tax + post-tax/Roth)
+            const totalContributions = cTax1 + cPre1 + cPost1;
+
+            // Work backwards: if contributions are X% of gross, what's the gross income?
+            const impliedGrossIncome = totalContributions / RETIREMENT_SAVINGS_RATE;
+
+            // Calculate budget categories
+            const budgetCategories = {
+              gross: impliedGrossIncome,
+              retirement: totalContributions,
+              taxes: impliedGrossIncome * TAXES_RATE,
+              housing: impliedGrossIncome * HOUSING_RATE,
+              discretionary: impliedGrossIncome * DISCRETIONARY_RATE,
+            };
+
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Implied Budget</CardTitle>
+                  <CardDescription>
+                    Based on your ${fmt(totalContributions)} annual retirement contributions,
+                    here's the minimum budget you would need assuming standard allocation percentages.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Info Box */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-100">How This Works</h4>
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      We work backwards from your retirement contributions to estimate your minimum required income
+                      using common financial planning ratios. This assumes you're saving {(RETIREMENT_SAVINGS_RATE * 100).toFixed(0)}%
+                      of your gross income for retirement.
+                    </p>
+                  </div>
+
+                  {/* Budget Breakdown */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Gross Income */}
+                      <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="text-sm text-muted-foreground mb-1">Implied Gross Income</div>
+                        <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                          {fmt(budgetCategories.gross)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">100% of budget</div>
+                      </div>
+
+                      {/* Retirement Savings */}
+                      <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                        <div className="text-sm text-muted-foreground mb-1">Retirement Contributions</div>
+                        <div className="text-3xl font-bold text-green-900 dark:text-green-100">
+                          {fmt(budgetCategories.retirement)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {(RETIREMENT_SAVINGS_RATE * 100).toFixed(0)}% of gross income
+                        </div>
+                      </div>
+
+                      {/* Taxes */}
+                      <div className="p-4 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                        <div className="text-sm text-muted-foreground mb-1">Estimated Taxes</div>
+                        <div className="text-3xl font-bold text-red-900 dark:text-red-100">
+                          {fmt(budgetCategories.taxes)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {(TAXES_RATE * 100).toFixed(0)}% of gross income
+                        </div>
+                      </div>
+
+                      {/* Housing/Necessities */}
+                      <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200 dark:border-purple-800 rounded-lg">
+                        <div className="text-sm text-muted-foreground mb-1">Housing & Necessities</div>
+                        <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
+                          {fmt(budgetCategories.housing)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {(HOUSING_RATE * 100).toFixed(0)}% of gross income
+                        </div>
+                      </div>
+
+                      {/* Discretionary */}
+                      <div className="p-4 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg col-span-1 md:col-span-2">
+                        <div className="text-sm text-muted-foreground mb-1">Discretionary Spending</div>
+                        <div className="text-3xl font-bold text-yellow-900 dark:text-yellow-100">
+                          {fmt(budgetCategories.discretionary)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {(DISCRETIONARY_RATE * 100).toFixed(0)}% of gross income
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Assumptions */}
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    <h4 className="font-semibold text-sm mb-3">Budget Assumptions</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Retirement Savings:</span>
+                        <span className="font-medium">{(RETIREMENT_SAVINGS_RATE * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Taxes (all):</span>
+                        <span className="font-medium">{(TAXES_RATE * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Housing/Necessities:</span>
+                        <span className="font-medium">{(HOUSING_RATE * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Discretionary:</span>
+                        <span className="font-medium">{(DISCRETIONARY_RATE * 100).toFixed(0)}%</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                      These percentages are based on common financial planning guidelines. Your actual budget may vary
+                      based on your location, family size, and lifestyle choices.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
         </AnimatedSection>
         </TabPanel>
 
-        {/* The Math Tab */}
+        {/* Math Tab */}
         <TabPanel id="math" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           <Card className="math-print-section print-section print-page-break-before">
             <CardHeader>
-              <CardTitle>The Math</CardTitle>
+              <CardTitle>Math</CardTitle>
               <CardDescription>Understanding the calculations behind your retirement projections</CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">

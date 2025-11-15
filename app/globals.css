@@ -99,6 +99,24 @@ html {
   animation: brand-handoff 0.3s cubic-bezier(0.4, 0, 0.6, 1) forwards;
 }
 
+/* Smooth transitions for layout shifts */
+.wealth-flow-block {
+  transition: margin-top 0.4s ease-out, transform 0.4s ease-out;
+}
+
+/* Center Sankey chart on mobile */
+.wealth-flow-responsive {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .wealth-flow-responsive {
+    margin: 0 auto;
+  }
+}
+
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
   html {

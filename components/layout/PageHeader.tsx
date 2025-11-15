@@ -42,6 +42,18 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     }
   };
 
+  // Reset deltas when popover closes
+  React.useEffect(() => {
+    if (!isAdjustOpen) {
+      // Small delay to allow the adjustment to process
+      const timer = setTimeout(() => {
+        setContributionDelta(0);
+        setWithdrawalRateDelta(0);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isAdjustOpen]);
+
   const handleReset = () => {
     setContributionDelta(0);
     setWithdrawalRateDelta(0);

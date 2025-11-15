@@ -4,8 +4,6 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  DollarSign,
-  TrendingUp,
   Heart,
   Building2,
   CalendarDays,
@@ -111,7 +109,7 @@ export function TimelineView({ result, currentAge, retirementAge, spouseAge }: T
       age: estateAge,
       year: estateYear,
       label: "Estate Projection",
-      description: `Final balance: ${result.finalBalance}`,
+      description: "Projected end-of-life balance",
       icon: <Landmark className="w-5 h-5" />,
       color: "bg-indigo-500"
     }
@@ -155,45 +153,6 @@ export function TimelineView({ result, currentAge, retirementAge, spouseAge }: T
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Summary cards below timeline */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 pt-6 border-t">
-            <div className="p-4 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="w-4 h-4 text-blue-500" />
-                <div className="text-sm font-semibold">Contribution Phase</div>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {currentAge < retirementAge
-                  ? `${yearsToRetirement} years until retirement`
-                  : 'In retirement phase'
-                }
-              </div>
-            </div>
-
-            <div className="p-4 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="w-4 h-4 text-green-500" />
-                <div className="text-sm font-semibold">Withdrawal Phase</div>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {currentAge >= retirementAge
-                  ? 'Currently withdrawing'
-                  : `Begins at age ${retirementAge}`
-                }
-              </div>
-            </div>
-
-            <div className="p-4 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="w-4 h-4 text-orange-500" />
-                <div className="text-sm font-semibold">Tax Events</div>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                RMDs begin at age {rmdAge}
-              </div>
             </div>
           </div>
         </div>

@@ -65,60 +65,132 @@ const CyberpunkSplash = forwardRef<CyberpunkSplashHandle>((props, ref) => {
   const barsIn = animationPhase === "barsIn" || animationPhase === "logoVisible" || animationPhase === "logoFade";
   const barsOut = animationPhase === "barsOut";
 
-  // Logo opacity
-  const logoOpacity = animationPhase === "logoVisible" ? 1 : 0;
+  // Logo opacity - show concurrent with bars
+  const logoOpacity = (animationPhase === "barsIn" || animationPhase === "logoVisible") ? 1 : 0;
 
-  // Five bars with different timings and positions for async effect
+  // Multiple wider diagonal bars with closer positioning for better coverage
   const bars = [
+    // Bottom-left diagonal wave (6 bars) - closer positioning, wider bars
     {
-      width: "180%",
-      height: "180%",
-      rotation: -35,
-      left: "-40%",
-      bottom: "-40%",
-      inDuration: "0.9s",
-      outDuration: "0.8s",
+      width: "300%",
+      height: "28%",
+      rotation: -38,
+      left: "-50%",
+      bottom: "-14%",
+      inDuration: "0.85s",
+      outDuration: "0.75s",
       delay: "0s"
     },
     {
-      width: "200%",
-      height: "200%",
+      width: "310%",
+      height: "30%",
       rotation: -40,
-      left: "-50%",
-      bottom: "-50%",
-      inDuration: "1.1s",
-      outDuration: "0.9s",
-      delay: "0.05s"
+      left: "-55%",
+      bottom: "-15%",
+      inDuration: "0.90s",
+      outDuration: "0.78s",
+      delay: "0.04s"
     },
     {
-      width: "220%",
-      height: "220%",
-      rotation: -45,
-      left: "-60%",
-      bottom: "-60%",
-      inDuration: "1.0s",
-      outDuration: "0.85s",
-      delay: "0.1s"
-    },
-    {
-      width: "200%",
-      height: "200%",
-      rotation: -50,
-      right: "-50%",
-      top: "-50%",
-      inDuration: "1.05s",
-      outDuration: "0.9s",
+      width: "295%",
+      height: "26%",
+      rotation: -36,
+      left: "-48%",
+      bottom: "-13%",
+      inDuration: "0.95s",
+      outDuration: "0.80s",
       delay: "0.08s"
     },
     {
-      width: "220%",
-      height: "220%",
-      rotation: -38,
-      right: "-60%",
-      top: "-60%",
-      inDuration: "1.15s",
-      outDuration: "0.95s",
+      width: "305%",
+      height: "32%",
+      rotation: -42,
+      left: "-52%",
+      bottom: "-16%",
+      inDuration: "1.0s",
+      outDuration: "0.82s",
       delay: "0.12s"
+    },
+    {
+      width: "298%",
+      height: "29%",
+      rotation: -39,
+      left: "-51%",
+      bottom: "-14%",
+      inDuration: "1.05s",
+      outDuration: "0.85s",
+      delay: "0.16s"
+    },
+    {
+      width: "290%",
+      height: "27%",
+      rotation: -37,
+      left: "-47%",
+      bottom: "-13%",
+      inDuration: "1.10s",
+      outDuration: "0.88s",
+      delay: "0.20s"
+    },
+    // Top-right diagonal wave (6 bars) - closer positioning, wider bars
+    {
+      width: "300%",
+      height: "28%",
+      rotation: -38,
+      right: "-50%",
+      top: "-14%",
+      inDuration: "0.88s",
+      outDuration: "0.76s",
+      delay: "0.02s"
+    },
+    {
+      width: "310%",
+      height: "30%",
+      rotation: -40,
+      right: "-55%",
+      top: "-15%",
+      inDuration: "0.93s",
+      outDuration: "0.79s",
+      delay: "0.06s"
+    },
+    {
+      width: "295%",
+      height: "26%",
+      rotation: -36,
+      right: "-48%",
+      top: "-13%",
+      inDuration: "0.98s",
+      outDuration: "0.81s",
+      delay: "0.10s"
+    },
+    {
+      width: "305%",
+      height: "32%",
+      rotation: -42,
+      right: "-52%",
+      top: "-16%",
+      inDuration: "1.03s",
+      outDuration: "0.83s",
+      delay: "0.14s"
+    },
+    {
+      width: "298%",
+      height: "29%",
+      rotation: -39,
+      right: "-51%",
+      top: "-14%",
+      inDuration: "1.08s",
+      outDuration: "0.86s",
+      delay: "0.18s"
+    },
+    {
+      width: "290%",
+      height: "27%",
+      rotation: -37,
+      right: "-47%",
+      top: "-13%",
+      inDuration: "1.13s",
+      outDuration: "0.89s",
+      delay: "0.22s"
     }
   ];
 
