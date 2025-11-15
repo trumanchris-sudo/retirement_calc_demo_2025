@@ -10,13 +10,13 @@ export interface CyberpunkSplashHandle {
 const PURPLE = "rgb(168, 85, 247)";
 
 /**
- * CyberpunkSplash - Simple diagonal purple bar animation with logo
+ * CyberpunkSplash - Five diagonal purple bars animation with logo
  *
  * Animation sequence:
- * - Purple bars slide in diagonally from bottom-left and top-right (0.8s)
+ * - Five thick purple bars slide in diagonally at different speeds (0.8-1.2s)
  * - Logo appears as simple white text
  * - Logo fades out (0.3s)
- * - Bars slide back to origin (0.7s)
+ * - Bars slide back to origin asynchronously (0.7-1.0s)
  * - Total duration: ~2.5s
  *
  * Imperative API:
@@ -36,10 +36,10 @@ const CyberpunkSplash = forwardRef<CyberpunkSplashHandle>((props, ref) => {
     setAnimationPhase("barsIn");
 
     // Animation timeline (2.5s total)
-    const timer1 = window.setTimeout(() => setAnimationPhase("logoVisible"), 800); // Bars finish sliding in
-    const timer2 = window.setTimeout(() => setAnimationPhase("logoFade"), 1500);   // Logo starts fading
-    const timer3 = window.setTimeout(() => setAnimationPhase("barsOut"), 1800);    // Bars start sliding out
-    const timer4 = window.setTimeout(() => setAnimationPhase("idle"), 2500);        // Complete animation
+    const timer1 = window.setTimeout(() => setAnimationPhase("logoVisible"), 1000); // Bars finish sliding in
+    const timer2 = window.setTimeout(() => setAnimationPhase("logoFade"), 1600);    // Logo starts fading
+    const timer3 = window.setTimeout(() => setAnimationPhase("barsOut"), 1900);     // Bars start sliding out
+    const timer4 = window.setTimeout(() => setAnimationPhase("idle"), 2800);         // Complete animation
 
     timeoutsRef.current = [timer1, timer2, timer3, timer4];
   }, []);
@@ -68,6 +68,60 @@ const CyberpunkSplash = forwardRef<CyberpunkSplashHandle>((props, ref) => {
   // Logo opacity
   const logoOpacity = animationPhase === "logoVisible" ? 1 : 0;
 
+  // Five bars with different timings and positions for async effect
+  const bars = [
+    {
+      width: "180%",
+      height: "180%",
+      rotation: -35,
+      left: "-40%",
+      bottom: "-40%",
+      inDuration: "0.9s",
+      outDuration: "0.8s",
+      delay: "0s"
+    },
+    {
+      width: "200%",
+      height: "200%",
+      rotation: -40,
+      left: "-50%",
+      bottom: "-50%",
+      inDuration: "1.1s",
+      outDuration: "0.9s",
+      delay: "0.05s"
+    },
+    {
+      width: "220%",
+      height: "220%",
+      rotation: -45,
+      left: "-60%",
+      bottom: "-60%",
+      inDuration: "1.0s",
+      outDuration: "0.85s",
+      delay: "0.1s"
+    },
+    {
+      width: "200%",
+      height: "200%",
+      rotation: -50,
+      right: "-50%",
+      top: "-50%",
+      inDuration: "1.05s",
+      outDuration: "0.9s",
+      delay: "0.08s"
+    },
+    {
+      width: "220%",
+      height: "220%",
+      rotation: -38,
+      right: "-60%",
+      top: "-60%",
+      inDuration: "1.15s",
+      outDuration: "0.95s",
+      delay: "0.12s"
+    }
+  ];
+
   return (
     <div
       style={{
@@ -76,49 +130,36 @@ const CyberpunkSplash = forwardRef<CyberpunkSplashHandle>((props, ref) => {
         zIndex: 10000,
         overflow: "hidden",
         pointerEvents: barsVisible ? "auto" : "none",
+        backgroundColor: "rgba(0, 0, 0, 0.3)", // Slight darkening
       }}
     >
-      {/* Bottom-left bar - slides in diagonally from bottom-left */}
-      <div
-        style={{
-          position: "absolute",
-          width: "200%",
-          height: "150%",
-          background: PURPLE,
-          transform: barsIn
-            ? "translate(0, 0) rotate(-45deg)"
-            : barsOut
-            ? "translate(-100%, 100%) rotate(-45deg)"
-            : "translate(-100%, 100%) rotate(-45deg)",
-          transformOrigin: "bottom left",
-          transition: barsIn
-            ? "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)"
-            : "transform 0.7s cubic-bezier(0.4, 0, 0.6, 1)",
-          left: "-50%",
-          bottom: "-50%",
-        }}
-      />
+      {/* Five purple bars sliding in from different angles */}
+      {bars.map((bar, index) => {
+        const isBottomLeft = 'left' in bar && 'bottom' in bar;
+        const initialTransform = isBottomLeft
+          ? `translate(-100%, 100%) rotate(${bar.rotation}deg)`
+          : `translate(100%, -100%) rotate(${bar.rotation}deg)`;
+        const finalTransform = `translate(0, 0) rotate(${bar.rotation}deg)`;
 
-      {/* Top-right bar - slides in diagonally from top-right */}
-      <div
-        style={{
-          position: "absolute",
-          width: "200%",
-          height: "150%",
-          background: PURPLE,
-          transform: barsIn
-            ? "translate(0, 0) rotate(-45deg)"
-            : barsOut
-            ? "translate(100%, -100%) rotate(-45deg)"
-            : "translate(100%, -100%) rotate(-45deg)",
-          transformOrigin: "top right",
-          transition: barsIn
-            ? "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)"
-            : "transform 0.7s cubic-bezier(0.4, 0, 0.6, 1)",
-          right: "-50%",
-          top: "-50%",
-        }}
-      />
+        return (
+          <div
+            key={index}
+            style={{
+              position: "absolute",
+              width: bar.width,
+              height: bar.height,
+              background: PURPLE,
+              ...(isBottomLeft ? { left: bar.left, bottom: bar.bottom } : { right: bar.right, top: bar.top }),
+              transformOrigin: isBottomLeft ? "bottom left" : "top right",
+              transform: barsIn ? finalTransform : initialTransform,
+              transition: barsIn
+                ? `transform ${bar.inDuration} cubic-bezier(0.4, 0, 0.2, 1) ${bar.delay}`
+                : `transform ${bar.outDuration} cubic-bezier(0.4, 0, 0.6, 1)`,
+              opacity: 0.95,
+            }}
+          />
+        );
+      })}
 
       {/* Logo - simple white block text */}
       <div
@@ -136,11 +177,12 @@ const CyberpunkSplash = forwardRef<CyberpunkSplashHandle>((props, ref) => {
             textAlign: "center",
             color: "#ffffff",
             fontWeight: 800,
-            fontSize: "3rem",
+            fontSize: "clamp(2rem, 8vw, 4rem)",
             letterSpacing: "0.3em",
             textTransform: "uppercase",
             opacity: logoOpacity,
             transition: "opacity 0.4s ease",
+            textShadow: "0 0 20px rgba(255, 255, 255, 0.3)",
           }}
         >
           <div>WORK</div>
