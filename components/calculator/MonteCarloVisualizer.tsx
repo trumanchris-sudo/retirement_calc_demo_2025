@@ -35,37 +35,64 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
     // Set canvas size
     const resizeCanvas = () => {
       const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * window.devicePixelRatio;
-      canvas.height = rect.height * window.devicePixelRatio;
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+      // Guard against zero-width canvas (component not yet visible)
+      if (rect.width === 0 || rect.height === 0) {
+        return;
+      }
+
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+
+      // Reset transform before scaling (canvas resize resets context, but be explicit)
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
     };
 
-    resizeCanvas();
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      resizeCanvas();
+    });
     window.addEventListener('resize', resizeCanvas);
 
     // Initialize nodes (network graph representation)
-    const nodeCount = 150;
-    const width = canvas.width / window.devicePixelRatio;
-    const height = canvas.height / window.devicePixelRatio;
+    // Defer initialization until canvas is sized
+    const initializeNodes = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const width = canvas.width / dpr;
+      const height = canvas.height / dpr;
 
-    nodesRef.current = Array.from({ length: nodeCount }, (_, i) => ({
-      id: i,
-      x: Math.random() * width,
-      y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      connections: []
-    }));
-
-    // Create random connections between nodes
-    nodesRef.current.forEach(node => {
-      const connectionCount = Math.floor(Math.random() * 3) + 1;
-      for (let i = 0; i < connectionCount; i++) {
-        const targetId = Math.floor(Math.random() * nodeCount);
-        if (targetId !== node.id && !node.connections.includes(targetId)) {
-          node.connections.push(targetId);
-        }
+      // Only initialize if canvas has valid dimensions
+      if (width === 0 || height === 0) {
+        return;
       }
+
+      const nodeCount = 150;
+      nodesRef.current = Array.from({ length: nodeCount }, (_, i) => ({
+        id: i,
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        connections: []
+      }));
+
+      // Create random connections between nodes
+      nodesRef.current.forEach(node => {
+        const connectionCount = Math.floor(Math.random() * 3) + 1;
+        for (let i = 0; i < connectionCount; i++) {
+          const targetId = Math.floor(Math.random() * nodeCount);
+          if (targetId !== node.id && !node.connections.includes(targetId)) {
+            node.connections.push(targetId);
+          }
+        }
+      });
+    };
+
+    // Initialize nodes after canvas is ready
+    requestAnimationFrame(() => {
+      initializeNodes();
     });
 
     return () => {
@@ -95,9 +122,23 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const width = canvas.width / window.devicePixelRatio;
-    const height = canvas.height / window.devicePixelRatio;
+    const dpr = window.devicePixelRatio || 1;
+    const width = canvas.width / dpr;
+    const height = canvas.height / dpr;
+
+    // Guard against invalid dimensions
+    if (width === 0 || height === 0) {
+      console.warn('MonteCarloVisualizer: Canvas has zero dimensions, skipping animation');
+      return;
+    }
+
     const nodes = nodesRef.current;
+
+    // Guard against uninitialized nodes
+    if (!nodes || nodes.length === 0) {
+      console.warn('MonteCarloVisualizer: Nodes not initialized, skipping animation');
+      return;
+    }
 
     let frame = 0;
     const maxPaths = 1000;
@@ -105,7 +146,8 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
     let completedPaths = 0;
 
     const animate = () => {
-      ctx.clearRect(0, 0, width, height);
+      try {
+        ctx.clearRect(0, 0, width, height);
 
       // Update node positions (gentle floating motion)
       nodes.forEach(node => {
@@ -218,6 +260,14 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
       } else if (completedPaths >= maxPaths && isMountedRef.current) {
         isAnimatingRef.current = false;
         setIsAnimating(false);
+      }
+      } catch (error) {
+        console.error('MonteCarloVisualizer animation error:', error);
+        // Stop animation on error
+        isAnimatingRef.current = false;
+        if (isMountedRef.current) {
+          setIsAnimating(false);
+        }
       }
     };
 
