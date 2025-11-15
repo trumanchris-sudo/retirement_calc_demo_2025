@@ -176,13 +176,15 @@ const CyberpunkSplash = forwardRef<CyberpunkSplashHandle>((props, ref) => {
           style={{
             textAlign: "center",
             color: "#ffffff",
-            fontWeight: 800,
+            fontWeight: 900,
             fontSize: "clamp(2rem, 8vw, 4rem)",
             letterSpacing: "0.3em",
             textTransform: "uppercase",
             opacity: logoOpacity,
             transition: "opacity 0.4s ease",
             textShadow: "0 0 20px rgba(255, 255, 255, 0.3)",
+            WebkitTextStroke: "2px white",
+            paintOrder: "stroke fill",
           }}
         >
           <div>WORK</div>

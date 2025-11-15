@@ -1543,9 +1543,6 @@ export default function App() {
     if (walkSeries === 'trulyRandom') {
       currentSeed = Math.floor(Math.random() * 1000000);
       setSeed(currentSeed);
-      // Trigger full-screen Monte Carlo overlay
-      setShowMonteCarloOverlay(true);
-      setMonteCarloCalculationComplete(false);
     }
 
     try {
