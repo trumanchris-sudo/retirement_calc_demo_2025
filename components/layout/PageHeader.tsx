@@ -36,14 +36,23 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
 
   const handleRecalculate = () => {
-    if (onAdjust && (contributionDelta !== 0 || withdrawalRateDelta !== 0)) {
+    if (onAdjust) {
       onAdjust({ contributionDelta, withdrawalRateDelta });
-      // Reset deltas after applying
-      setContributionDelta(0);
-      setWithdrawalRateDelta(0);
       setIsAdjustOpen(false);
     }
   };
+
+  // Reset deltas when popover closes
+  React.useEffect(() => {
+    if (!isAdjustOpen) {
+      // Small delay to allow the adjustment to process
+      const timer = setTimeout(() => {
+        setContributionDelta(0);
+        setWithdrawalRateDelta(0);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isAdjustOpen]);
 
   const handleReset = () => {
     setContributionDelta(0);

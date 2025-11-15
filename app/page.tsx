@@ -2555,6 +2555,7 @@ export default function App() {
         }}
         onAdjust={(deltas: AdjustmentDeltas) => {
           // Apply deltas to current inputs and recalculate
+          let hasChanges = false;
 
           // Apply contribution delta if non-zero
           if (deltas.contributionDelta !== 0) {
@@ -2565,21 +2566,25 @@ export default function App() {
               setCTax1(Math.round(cTax1 * ratio));
               setCPre1(Math.round(cPre1 * ratio));
               setCPost1(Math.round(cPost1 * ratio));
+              hasChanges = true;
             }
           }
 
           // Apply withdrawal rate delta if non-zero
           if (deltas.withdrawalRateDelta !== 0) {
             setWdPct(parseFloat((wdPct + deltas.withdrawalRateDelta).toFixed(2)));
+            hasChanges = true;
           }
 
-          // Mark inputs as modified and trigger recalculation
-          setInputsModified(true);
+          // Only recalculate if changes were made
+          if (hasChanges) {
+            setInputsModified(true);
 
-          // Use requestAnimationFrame for better timing
-          requestAnimationFrame(() => {
-            calc();
-          });
+            // Use requestAnimationFrame for better timing
+            requestAnimationFrame(() => {
+              calc();
+            });
+          }
         }}
       />
 
