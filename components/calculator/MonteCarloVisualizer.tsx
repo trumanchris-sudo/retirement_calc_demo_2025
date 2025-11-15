@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Node {
@@ -20,6 +20,8 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>();
   const nodesRef = useRef<Node[]>([]);
+  const isMountedRef = useRef(true);
+  const isAnimatingRef = useRef(false);
   const [pathsCompleted, setPathsCompleted] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -74,20 +76,19 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
     };
   }, []);
 
+  // Track component mount status
   useEffect(() => {
-    if (isRunning) {
-      setIsAnimating(true);
-      setPathsCompleted(0);
-      animateSimulation();
-    } else {
-      setIsAnimating(false);
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      isAnimatingRef.current = false;
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-    }
-  }, [isRunning]);
+    };
+  }, []);
 
-  const animateSimulation = () => {
+  const animateSimulation = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -149,7 +150,10 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
 
         if (path.progress >= 1) {
           completedPaths++;
-          setPathsCompleted(completedPaths);
+          // Only update state if component is still mounted
+          if (isMountedRef.current) {
+            setPathsCompleted(completedPaths);
+          }
           return false; // Remove completed path
         }
 
@@ -208,15 +212,33 @@ export function MonteCarloVisualizer({ isRunning = false }: MonteCarloVisualizer
 
       frame++;
 
-      if (completedPaths < maxPaths && isAnimating) {
+      // Continue animation only if still mounted and animating
+      if (completedPaths < maxPaths && isAnimatingRef.current && isMountedRef.current) {
         animationFrameRef.current = requestAnimationFrame(animate);
-      } else if (completedPaths >= maxPaths) {
+      } else if (completedPaths >= maxPaths && isMountedRef.current) {
+        isAnimatingRef.current = false;
         setIsAnimating(false);
       }
     };
 
     animate();
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isRunning) {
+      isAnimatingRef.current = true;
+      setIsAnimating(true);
+      setPathsCompleted(0);
+      animateSimulation();
+    } else {
+      isAnimatingRef.current = false;
+      setIsAnimating(false);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = undefined;
+      }
+    }
+  }, [isRunning, animateSimulation]);
 
   return (
     <Card>
