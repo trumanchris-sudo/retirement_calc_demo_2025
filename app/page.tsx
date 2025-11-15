@@ -46,7 +46,9 @@ import { LastCalculatedBadge } from "@/components/calculator/LastCalculatedBadge
 import { RecalculateButton } from "@/components/calculator/RecalculateButton";
 import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
 import { TimelineView } from "@/components/calculator/TimelineView";
-import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
+// TESTING: Using minimal test version to isolate issue
+import { MonteCarloVisualizerTest as MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerTest";
+// import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 
 // Import types
