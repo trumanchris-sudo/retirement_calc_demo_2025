@@ -84,7 +84,7 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
         return false;
       }
 
-      const nodeCount = 150;
+      const nodeCount = 100;
       nodesRef.current = Array.from({ length: nodeCount }, (_, i) => ({
         id: i,
         x: Math.random() * width,
@@ -94,9 +94,9 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
         connections: []
       }));
 
-      // Create random connections between nodes
+      // Create random connections between nodes (more connections for deeper network)
       nodesRef.current.forEach(node => {
-        const connectionCount = Math.floor(Math.random() * 3) + 1;
+        const connectionCount = Math.floor(Math.random() * 4) + 2; // 2-5 connections per node
         for (let i = 0; i < connectionCount; i++) {
           const targetId = Math.floor(Math.random() * nodeCount);
           if (targetId !== node.id && !node.connections.includes(targetId)) {
@@ -226,7 +226,7 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
 
       // Draw connections (dim)
       ctx.strokeStyle = 'rgba(100, 116, 139, 0.1)';
-      ctx.lineWidth = 0.5;
+      ctx.lineWidth = 0.3;
       nodes.forEach(node => {
         node.connections.forEach(targetId => {
           const target = nodes[targetId];
@@ -275,9 +275,9 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
 
         // Set glow effect before drawing
         ctx.strokeStyle = gradient;
-        ctx.lineWidth = 2;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = 'rgba(139, 92, 246, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = 'rgba(139, 92, 246, 0.4)';
 
         ctx.beginPath();
         ctx.moveTo(node.x, node.y);
@@ -288,8 +288,8 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
         ctx.shadowBlur = 0;
         ctx.shadowColor = 'transparent';
 
-        // Move to next node occasionally
-        if (path.progress > 0.8 && Math.random() > 0.7) {
+        // Move to next node occasionally (reduced frequency to prevent excessive looping)
+        if (path.progress > 0.9 && Math.random() > 0.85) {
           path.nodeIndex = nextNodeId;
           path.progress = 0;
         }
@@ -302,7 +302,7 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
         const isActive = activePaths.some(p => p.nodeIndex === node.id);
 
         ctx.beginPath();
-        ctx.arc(node.x, node.y, isActive ? 4 : 2, 0, Math.PI * 2);
+        ctx.arc(node.x, node.y, isActive ? 3 : 1.5, 0, Math.PI * 2);
         ctx.fillStyle = isActive
           ? 'rgba(139, 92, 246, 0.9)'
           : 'rgba(100, 116, 139, 0.4)';
@@ -310,7 +310,7 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
 
         if (isActive) {
           ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)';
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 1.5;
           ctx.stroke();
         }
       });
@@ -360,7 +360,7 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
         <div className="relative">
           <canvas
             ref={canvasRef}
-            className="w-full h-[400px] rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800"
+            className="w-full h-[250px] md:h-[400px] rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800"
           />
           {isAnimating && (
             <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-border">

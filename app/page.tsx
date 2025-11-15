@@ -381,6 +381,15 @@ const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading
 
   // Format the insight text to have bolded headers
   const formatInsight = (text: string) => {
+    // Helper function to convert text to title case
+    const toTitleCase = (str: string) => {
+      return str
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    };
+
     // Split by lines and format headers
     const lines = text.split('\n');
     return lines.map((line, index) => {
@@ -389,11 +398,13 @@ const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading
       const isColonHeader = line.includes(':') && line.length < 80 && !line.includes('$') && index > 0 && lines[index - 1] === '';
 
       if (isMarkdownHeader) {
-        // Remove markdown symbols and bold
+        // Remove markdown symbols, convert to title case, and bold
         const headerText = line.replace(/^#+\s*/, '');
-        return <h4 key={index} className="font-bold text-base mt-4 mb-2 first:mt-0">{headerText}</h4>;
+        const titleCaseHeader = toTitleCase(headerText);
+        return <h4 key={index} className="font-bold text-base mt-4 mb-2 first:mt-0">{titleCaseHeader}</h4>;
       } else if (isColonHeader) {
-        return <h5 key={index} className="font-semibold text-sm mt-3 mb-1">{line}</h5>;
+        const titleCaseHeader = toTitleCase(line);
+        return <h5 key={index} className="font-semibold text-sm mt-3 mb-1">{titleCaseHeader}</h5>;
       } else if (line.trim() === '') {
         return <br key={index} />;
       } else {
@@ -858,7 +869,10 @@ interface ComparisonChartProps {
 }
 
 // Memoized comparison chart for scenario analysis
-const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data, comparisonData, isDarkMode, fmt }) => (
+const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data, comparisonData, isDarkMode, fmt }) => {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+
+  return (
   <ResponsiveContainer width="100%" height={400}>
     <ComposedChart data={data}>
       <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -866,7 +880,7 @@ const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data, compar
       <YAxis
         tickFormatter={(v) => fmt(v as number)}
         className="text-sm"
-        label={{ value: 'Portfolio Value (Real)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+        label={isMobile ? undefined : { value: 'Portfolio Value (Real)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
       />
       <RTooltip
         formatter={(v) => fmt(v as number)}
@@ -916,7 +930,8 @@ const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data, compar
       )}
     </ComposedChart>
   </ResponsiveContainer>
-));
+  );
+});
 
 ScenarioComparisonChart.displayName = 'ScenarioComparisonChart';
 
@@ -981,8 +996,8 @@ export default function App() {
   const [totalFertilityRate, setTotalFertilityRate] = useState(2.1); // Children per person (lifetime)
   const [generationLength, setGenerationLength] = useState(30); // Average age when having children
   const [fertilityWindowStart, setFertilityWindowStart] = useState(25);
-  const [fertilityWindowEnd, setFertilityWindowEnd] = useState(35);
-  const [hypDeathAge, setHypDeathAge] = useState(90);
+  const [fertilityWindowEnd, setFertilityWindowEnd] = useState(40);
+  const [hypDeathAge, setHypDeathAge] = useState(95);
   const [hypBenAgesStr, setHypBenAgesStr] = useState("35, 40");
   const [hypMinDistAge, setHypMinDistAge] = useState(21); // Minimum age to receive distributions
 
@@ -2412,15 +2427,15 @@ export default function App() {
       range: contribImpact * 2,
     });
 
-    // Inflation: ±0.5% affects real purchasing power
-    // Higher inflation reduces real EOL value
+    // Inflation: ±0.5% affects both accumulation and purchasing power
+    // Impact is approximately ±0.5% * totalYears on real value
     const inflationDelta = 0.005;
-    const inflationImpact = baselineEOL * (1 - Math.pow(1 + inflationDelta, totalYears) / Math.pow(1 + infRate/100, totalYears)) * Math.pow(1 + infRate/100, totalYears);
+    const inflationImpact = baselineEOL * inflationDelta * totalYears * 0.5; // Conservative linear approximation
     variations.push({
       label: "Inflation Rate",
-      high: -Math.abs(inflationImpact), // Higher inflation = lower real value
-      low: Math.abs(inflationImpact), // Lower inflation = higher real value
-      range: Math.abs(inflationImpact) * 2,
+      high: -inflationImpact, // Higher inflation = lower real value
+      low: inflationImpact, // Lower inflation = higher real value
+      range: inflationImpact * 2,
     });
 
     // Sort by range (impact magnitude)
@@ -5911,7 +5926,7 @@ export default function App() {
                       <Button
                         onClick={() => applyGenerationalPreset('moderate')}
                         variant="outline"
-                        className="w-full text-left justify-start hover:bg-purple-100 dark:hover:bg-purple-900"
+                        className="w-full text-left justify-start hover:bg-indigo-100 dark:hover:bg-indigo-900"
                       >
                         <div>
                           <div className="font-semibold">Moderate</div>
@@ -5921,7 +5936,7 @@ export default function App() {
                       <Button
                         onClick={() => applyGenerationalPreset('aggressive')}
                         variant="outline"
-                        className="w-full text-left justify-start hover:bg-indigo-100 dark:hover:bg-indigo-900"
+                        className="w-full text-left justify-start hover:bg-purple-100 dark:hover:bg-purple-900"
                       >
                         <div>
                           <div className="font-semibold">Aggressive</div>
@@ -6110,7 +6125,7 @@ export default function App() {
                                 explanationText={explanationText}
                               />
                             </div>
-                            <div className="mt-6 flex justify-center gap-3">
+                            <div className="mt-6 flex flex-col md:flex-row justify-center gap-3">
                               <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
                               <AddToWalletButton result={legacyResult} />
                             </div>
