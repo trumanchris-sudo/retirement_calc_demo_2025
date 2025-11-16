@@ -678,7 +678,8 @@ function checkPerpetualViability(
   generationLength: number,
   perBenReal: number,
   initialFundReal: number,
-  startBens: number
+  startBens: number,
+  debugLog = false
 ): boolean {
   // Calculate population growth rate from fertility
   // Population growth rate ≈ (TFR - 2) / generationLength
@@ -698,7 +699,20 @@ function checkPerpetualViability(
   // Apply 95% safety margin (5% buffer for model uncertainties)
   const safeThreshold = perpetualThreshold * 0.95;
 
-  return distributionRate < safeThreshold;
+  const isPerpetual = distributionRate < safeThreshold;
+
+  if (debugLog) {
+    console.log('[PERPETUAL CHECK] Real return rate: ' + (realReturnRate * 100).toFixed(2) + '%');
+    console.log('[PERPETUAL CHECK] Population growth rate: ' + (populationGrowthRate * 100).toFixed(2) + '%');
+    console.log('[PERPETUAL CHECK] Perpetual threshold (return - pop growth): ' + (perpetualThreshold * 100).toFixed(2) + '%');
+    console.log('[PERPETUAL CHECK] Safe threshold (95% of perpetual threshold): ' + (safeThreshold * 100).toFixed(2) + '%');
+    console.log('[PERPETUAL CHECK] Annual distribution: $' + annualDistribution.toLocaleString() + ' ($' + perBenReal.toLocaleString() + ' × ' + startBens + ' beneficiaries)');
+    console.log('[PERPETUAL CHECK] Initial fund: $' + initialFundReal.toLocaleString());
+    console.log('[PERPETUAL CHECK] Distribution rate: ' + (distributionRate * 100).toFixed(2) + '%');
+    console.log('[PERPETUAL CHECK] Result: ' + (isPerpetual ? 'PERPETUAL ✓' : 'NOT PERPETUAL ✗') + ' (' + (distributionRate * 100).toFixed(2) + '% ' + (isPerpetual ? '<' : '>=') + ' ' + (safeThreshold * 100).toFixed(2) + '%)');
+  }
+
+  return isPerpetual;
 }
 
 /**
@@ -2036,7 +2050,10 @@ export default function App() {
           const netEstateP25 = eolP25 - estateTaxP25;
           const netEstateP50 = eolP50 - estateTaxP50;
           const netEstateP75 = eolP75 - estateTaxP75;
-          console.log('[CALC] Net estates - p25:', netEstateP25, 'p50:', netEstateP50, 'p75:', netEstateP75);
+          console.log('[CALC] Net estates - p25:', netEstateP25.toLocaleString(), 'p50:', netEstateP50.toLocaleString(), 'p75:', netEstateP75.toLocaleString());
+          console.log('[SUCCESS RATE DEBUG] Distribution per beneficiary: $' + hypPerBen.toLocaleString() + '/year');
+          console.log('[SUCCESS RATE DEBUG] Initial beneficiaries:', hypStartBens);
+          console.log('[SUCCESS RATE DEBUG] Total annual distribution: $' + (hypPerBen * hypStartBens).toLocaleString());
 
           // Run generational wealth simulation for all three percentiles (P25, P50, P75)
           // This allows us to calculate actual success rate based on which percentiles are perpetual
@@ -2096,19 +2113,60 @@ export default function App() {
 
           console.log('[CALC] Generational simulations completed - P25:', simP25, 'P50:', simP50, 'P75:', simP75);
 
-          // Calculate actual success rate based on which percentiles are perpetual
-          // P25 perpetual → 75% success (75% of sims were above P25)
-          // P50 perpetual → 50% success (50% of sims were above P50)
-          // P75 perpetual → 25% success (25% of sims were above P75)
-          // Otherwise → 0%
-          let calculatedProbPerpetual = 0;
-          if (simP25.fundLeftReal > 0) {
-            calculatedProbPerpetual = 0.75;  // 75% success rate
-          } else if (simP50.fundLeftReal > 0) {
-            calculatedProbPerpetual = 0.50;  // 50% success rate
-          } else if (simP75.fundLeftReal > 0) {
-            calculatedProbPerpetual = 0.25;  // 25% success rate
-          }
+          // ========================================
+          // CORRECT APPROACH: Use all 1,000 MC simulations for empirical success rate
+          // ========================================
+          console.log('[SUCCESS RATE DEBUG] ====================');
+          console.log('[SUCCESS RATE DEBUG] CALCULATING EMPIRICAL SUCCESS RATE FROM ALL 1,000 SIMULATIONS');
+          console.log('[SUCCESS RATE DEBUG] ====================');
+
+          // Step 1: Calculate minimum estate required for perpetual legacy
+          const realReturnRate = realReturn(retRate, infRate);
+          const populationGrowthRate = (totalFertilityRate - 2.0) / generationLength;
+          const sustainableDistRate = realReturnRate - populationGrowthRate;
+          const totalAnnualDist = hypPerBen * Math.max(1, hypStartBens);
+          const minEstateRequired = totalAnnualDist / sustainableDistRate;
+          const safeMinEstate = minEstateRequired * 1.05; // 5% safety margin
+
+          console.log('[SUCCESS RATE DEBUG] Real return rate: ' + (realReturnRate * 100).toFixed(2) + '%');
+          console.log('[SUCCESS RATE DEBUG] Population growth rate: ' + (populationGrowthRate * 100).toFixed(2) + '%');
+          console.log('[SUCCESS RATE DEBUG] Sustainable distribution rate: ' + (sustainableDistRate * 100).toFixed(2) + '%');
+          console.log('[SUCCESS RATE DEBUG] Total annual distribution: $' + totalAnnualDist.toLocaleString());
+          console.log('[SUCCESS RATE DEBUG] Minimum estate required (with 5% safety): $' + safeMinEstate.toLocaleString());
+
+          // Step 2: Extract all 1,000 EOL values from Monte Carlo results
+          const allEstatesReal = batchSummary.allRuns.map(run => run.eolReal);
+          console.log('[SUCCESS RATE DEBUG] Total MC simulations: ' + allEstatesReal.length);
+
+          // Step 3: Convert to nominal terms and apply estate tax
+          const allEstatesAfterTax = allEstatesReal.map(eolReal => {
+            const eolNominal = eolReal * Math.pow(1 + infl, yearsFrom2025);
+            const estateTax = calcEstateTax(eolNominal, marital);
+            return eolNominal - estateTax;
+          });
+
+          // Step 4: Count how many estates meet the perpetual threshold
+          const successCount = allEstatesAfterTax.filter(estate => estate >= safeMinEstate).length;
+          const calculatedProbPerpetual = successCount / allEstatesAfterTax.length;
+          const successRatePercent = Math.round(calculatedProbPerpetual * 100);
+
+          console.log('[SUCCESS RATE DEBUG] Estates meeting perpetual threshold: ' + successCount + ' / ' + allEstatesAfterTax.length);
+          console.log('[SUCCESS RATE DEBUG] SUCCESS RATE: ' + successRatePercent + '%');
+
+          // Step 5: Show distribution of estates for debugging
+          const sortedEstates = [...allEstatesAfterTax].sort((a, b) => a - b);
+          console.log('[SUCCESS RATE DEBUG] Estate distribution:');
+          console.log('[SUCCESS RATE DEBUG]   P10: $' + sortedEstates[Math.floor(allEstatesAfterTax.length * 0.10)].toLocaleString());
+          console.log('[SUCCESS RATE DEBUG]   P25: $' + sortedEstates[Math.floor(allEstatesAfterTax.length * 0.25)].toLocaleString());
+          console.log('[SUCCESS RATE DEBUG]   P50: $' + sortedEstates[Math.floor(allEstatesAfterTax.length * 0.50)].toLocaleString());
+          console.log('[SUCCESS RATE DEBUG]   P75: $' + sortedEstates[Math.floor(allEstatesAfterTax.length * 0.75)].toLocaleString());
+          console.log('[SUCCESS RATE DEBUG]   P90: $' + sortedEstates[Math.floor(allEstatesAfterTax.length * 0.90)].toLocaleString());
+          console.log('[SUCCESS RATE DEBUG] ====================');
+
+          // Legacy: Keep percentile simulations for P10, P50, P90 display in UI
+          const p25Perpetual = simP25.fundLeftReal > 0;
+          const p50Perpetual = simP50.fundLeftReal > 0;
+          const p75Perpetual = simP75.fundLeftReal > 0;
 
           console.log('[CALC] Calculated success rate:', calculatedProbPerpetual);
 
@@ -2188,31 +2246,29 @@ export default function App() {
         setLegacyResult(calculateLegacyResult(newRes));
         console.log('[CALC] Result set successfully');
 
-        // Track calculation for tab interface and auto-switch to results
+        // Track calculation for tab interface
+        const isFirstCalculation = !lastCalculated;
         setLastCalculated(new Date());
         setInputsModified(false);
 
-        // Auto-switch from Configure tab to Results tab
-        if (activeMainTab === 'configure') {
-          setActiveMainTab('results');
-        }
+        // NAVIGATION BEHAVIOR FIX:
+        // - First calculation from Configure tab → Navigate to Results tab and scroll to top
+        // - Recalculate from ANY other location → Stay on current tab, don't scroll
+        const shouldNavigate = isFirstCalculation && activeMainTab === 'configure';
 
-        setTimeout(() => {
-          // In All-in-One tab, scroll to top of page
-          if (activeMainTab === 'all') {
+        if (shouldNavigate) {
+          // First calculation from Configure tab: switch to Results and scroll
+          setActiveMainTab('results');
+          setTimeout(() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
-          } else if (showGen && genPayout) {
-            genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-          } else if (walkSeries === 'trulyRandom') {
-            // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
-            monteCarloRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-          } else {
-            resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }
-          // AI insight will be generated on demand when user clicks button
+            setOlderAgeForAnalysis(olderAgeForAI);
+            setIsLoadingAi(false);
+          }, 100);
+        } else {
+          // Recalculate: stay put, no navigation or scrolling
           setOlderAgeForAnalysis(olderAgeForAI);
           setIsLoadingAi(false);
-        }, 100);
+        }
 
         console.log('[CALC] Monte Carlo calculation complete, exiting early');
         return; // Exit early, we're done with batch mode
@@ -4445,63 +4501,6 @@ export default function App() {
                     </div>
                   </>
                 }
-              />
-            </div>
-
-            {/* Download PDF Report Button */}
-            <div className="print:hidden flex justify-center my-6">
-              <DownloadPDFButton
-                marital={marital}
-                age1={age1}
-                age2={age2}
-                retAge={retAge}
-                sTax={sTax}
-                sPre={sPre}
-                sPost={sPost}
-                cTax1={cTax1}
-                cPre1={cPre1}
-                cPost1={cPost1}
-                cMatch1={cMatch1}
-                cTax2={cTax2}
-                cPre2={cPre2}
-                cPost2={cPost2}
-                cMatch2={cMatch2}
-                retRate={retRate}
-                infRate={infRate}
-                stateRate={stateRate}
-                wdRate={wdRate}
-                incContrib={incContrib}
-                incRate={incRate}
-                retMode={retMode}
-                walkSeries={walkSeries}
-                includeSS={includeSS}
-                ssIncome={ssIncome}
-                ssClaimAge={ssClaimAge}
-                ssIncome2={ssIncome2}
-                ssClaimAge2={ssClaimAge2}
-                includeMedicare={includeMedicare}
-                medicarePremium={medicarePremium}
-                medicalInflation={medicalInflation}
-                irmaaThresholdSingle={irmaaThresholdSingle}
-                irmaaThresholdMarried={irmaaThresholdMarried}
-                irmaaSurcharge={irmaaSurcharge}
-                includeLTC={includeLTC}
-                ltcAnnualCost={ltcAnnualCost}
-                ltcProbability={ltcProbability}
-                ltcDuration={ltcDuration}
-                ltcOnsetAge={ltcOnsetAge}
-                showGen={showGen}
-                hypPerBen={hypPerBen}
-                numberOfChildren={numberOfChildren}
-                totalFertilityRate={totalFertilityRate}
-                generationLength={generationLength}
-                fertilityWindowStart={fertilityWindowStart}
-                fertilityWindowEnd={fertilityWindowEnd}
-                results={res}
-                userName={undefined}
-                variant="default"
-                size="lg"
-                className="shadow-lg"
               />
             </div>
 

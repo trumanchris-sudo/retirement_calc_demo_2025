@@ -749,6 +749,14 @@ function runMonteCarloSimulation(params, baseSeed, N = 1000) {
 
   const probRuin = results.filter(r => r.ruined).length / N;
 
+  // For legacy success rate calculation, return lightweight version of all runs
+  // (just eolReal and ruined status, not full balancesReal arrays)
+  const allRunsLightweight = results.map(r => ({
+    eolReal: r.eolReal,
+    y1AfterTaxReal: r.y1AfterTaxReal,
+    ruined: r.ruined
+  }));
+
   return {
     p10BalancesReal,
     p50BalancesReal,
@@ -760,7 +768,7 @@ function runMonteCarloSimulation(params, baseSeed, N = 1000) {
     y1AfterTaxReal_p50,
     y1AfterTaxReal_p75,
     probRuin,
-    allRuns: [], // Don't return individual runs to reduce memory usage and focus on percentiles
+    allRuns: allRunsLightweight, // Return lightweight version for empirical success rate calculation
   };
 }
 

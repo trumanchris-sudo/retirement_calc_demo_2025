@@ -4,7 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
 export const metadata: Metadata = {
-  title: 'Tax-Aware Retirement Planner',
+  title: 'Work Die Retire - Plan your financial future with confidence',
   description: 'Advanced retirement planning tool with tax-aware projections, Monte Carlo simulations, and generational wealth modeling',
 }
 

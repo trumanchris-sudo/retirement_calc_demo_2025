@@ -110,14 +110,18 @@ export type BatchSummary = {
   p10BalancesReal: number[];
   p50BalancesReal: number[];
   p90BalancesReal: number[];
-  eolReal_p10: number;
+  eolReal_p10?: number; // Optional for backward compatibility
+  eolReal_p25: number;
   eolReal_p50: number;
-  eolReal_p90: number;
-  y1AfterTaxReal_p10: number;
+  eolReal_p75: number;
+  eolReal_p90?: number; // Optional for backward compatibility
+  y1AfterTaxReal_p10?: number; // Optional for backward compatibility
+  y1AfterTaxReal_p25: number;
   y1AfterTaxReal_p50: number;
-  y1AfterTaxReal_p90: number;
+  y1AfterTaxReal_p75: number;
+  y1AfterTaxReal_p90?: number; // Optional for backward compatibility
   probRuin: number;
-  allRuns: SimResult[];  // Store all simulation runs for spaghetti plot
+  allRuns: SimResult[];  // All simulation runs for empirical success rate calculation
 };
 
 // The final result object displayed to user
