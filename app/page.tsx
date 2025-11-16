@@ -1270,7 +1270,7 @@ export default function App() {
     return analysis.trim();
   };
 
-  const fetchAiInsight = async (calcResult: CalculationResult, olderAge: number, customQuestion?: string) => {
+  const fetchAiInsight = useCallback(async (calcResult: CalculationResult, olderAge: number, customQuestion?: string) => {
     if (!calcResult) return;
 
     // Only use API for custom questions (Q&A feature)
@@ -1356,7 +1356,7 @@ export default function App() {
     } finally {
       setIsLoadingAi(false);
     }
-  };
+  }, [retAge, total, marital, wdRate, retRate, infRate, stateRate, includeSS, ssIncome, ssClaimAge, sTax, sPre, sPost, retMode]);
 
   const handleAskQuestion = async () => {
     if (!userQuestion.trim() || !res) {
@@ -1411,11 +1411,13 @@ export default function App() {
           console.log('[WORKER] Worker complete! Resolving promise...');
           setCalcProgress(null);
           worker.removeEventListener('message', handleMessage);
+          worker.removeEventListener('error', handleError);
           resolve(result);
         } else if (type === 'error') {
           console.error('[WORKER] Worker error:', error);
           setCalcProgress(null);
           worker.removeEventListener('message', handleMessage);
+          worker.removeEventListener('error', handleError);
           reject(new Error(error));
         }
       };
@@ -1423,6 +1425,8 @@ export default function App() {
       const handleError = (e: ErrorEvent) => {
         console.error('[WORKER] Worker error event:', e);
         setCalcProgress(null);
+        worker.removeEventListener('message', handleMessage);
+        worker.removeEventListener('error', handleError);
         reject(new Error(`Worker error: ${e.message}`));
       };
 
@@ -1662,6 +1666,7 @@ export default function App() {
       // If truly random mode, run Monte Carlo simulation via web worker (N=1000)
       if (walkSeries === 'trulyRandom') {
         console.log('[CALC] Running Monte Carlo via web worker...');
+        console.log('[CALC] Worker ref exists:', !!workerRef.current);
         const inputs: Inputs = {
           marital, age1, age2, retAge, sTax, sPre, sPost,
           cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
@@ -1687,9 +1692,28 @@ export default function App() {
         };
 
         console.log('[CALC] Calling web worker with inputs...');
-        const batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, 1000);
-        console.log('[CALC] Web worker completed, batch summary:', batchSummary);
+        let batchSummary;
+        try {
+          batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, 1000);
+          console.log('[CALC] Web worker completed successfully, batch summary:', batchSummary);
+          console.log('[CALC] p50BalancesReal length:', batchSummary?.p50BalancesReal?.length);
+          console.log('[CALC] p10BalancesReal length:', batchSummary?.p10BalancesReal?.length);
+          console.log('[CALC] p90BalancesReal length:', batchSummary?.p90BalancesReal?.length);
+          console.log('[CALC] y1AfterTaxReal_p50:', batchSummary?.y1AfterTaxReal_p50);
+          console.log('[CALC] eolReal_p50:', batchSummary?.eolReal_p50);
+          console.log('[CALC] probRuin:', batchSummary?.probRuin);
+        } catch (workerError) {
+          console.error('[CALC] Worker failed with error:', workerError);
+          throw workerError; // Re-throw to be caught by outer catch
+        }
 
+        // Validate batch summary has required data
+        if (!batchSummary || !batchSummary.p50BalancesReal || batchSummary.p50BalancesReal.length === 0) {
+          console.error('[CALC] Invalid batch summary received:', batchSummary);
+          throw new Error('Monte Carlo simulation returned invalid results');
+        }
+
+        console.log('[CALC] Starting data reconstruction...');
         // Reconstruct data array from batch summary percentile balances
         const data: any[] = [];
         for (let i = 0; i < batchSummary.p50BalancesReal.length; i++) {
@@ -1713,8 +1737,10 @@ export default function App() {
 
           data.push(dataPoint);
         }
+        console.log('[CALC] Data reconstruction complete, data length:', data.length);
 
         // Use median values for key metrics
+        console.log('[CALC] Calculating key metrics...');
         const finReal = batchSummary.p50BalancesReal[yrsToRet];
         const finNom = finReal * Math.pow(1 + infl, yrsToRet);
         const wdRealY1 = batchSummary.y1AfterTaxReal_p50;
@@ -1725,7 +1751,9 @@ export default function App() {
         const eolReal = batchSummary.eolReal_p50;
         const yearsFrom2025 = yrsToRet + yrsToSim;
         const eolWealth = eolReal * Math.pow(1 + infl, yearsFrom2025);
+        console.log('[CALC] Key metrics calculated - finReal:', finReal, 'eolWealth:', eolWealth);
 
+        console.log('[CALC] Starting RMD calculation, yrsToSim:', yrsToSim);
         // Calculate RMD data for trulyRandom mode based on median balances
         // Assume typical allocation: 50% pretax, 30% taxable, 20% roth
         const rmdData: { age: number; spending: number; rmd: number }[] = [];
@@ -1767,26 +1795,39 @@ export default function App() {
             }
           }
         }
+        console.log('[CALC] RMD calculation complete, rmdData length:', rmdData.length);
 
         // Calculate estate tax using median EOL
+        console.log('[CALC] Calculating estate tax...');
         const estateTax = calcEstateTax(eolWealth, marital);
         const netEstate = eolWealth - estateTax;
+        console.log('[CALC] Estate tax calculated - estateTax:', estateTax, 'netEstate:', netEstate);
 
         // Generational payout calculation (if enabled) - Monte Carlo version
+        // TEMPORARILY DISABLED: The cohort simulation blocks the UI thread even at 500 iterations
+        // TODO: Move to web worker or make asynchronous
+        console.log('[CALC] Checking generational payout, showGen:', showGen, 'netEstate > 0:', netEstate > 0);
+        console.log('[CALC] SKIPPING generational payout in Monte Carlo mode to prevent UI freeze');
         let genPayout: GenerationalPayout | null = null;
 
-        if (showGen && netEstate > 0) {
+        if (false && showGen && netEstate > 0) {  // Temporarily disabled
+          console.log('[CALC] Starting generational payout calculation...');
+          console.log('[CALC] hypBenAgesStr:', hypBenAgesStr);
           const benAges = hypBenAgesStr
             .split(',')
             .map(s => parseInt(s.trim(), 10))
             .filter(n => !isNaN(n) && n >= 0 && n < 90);
+          console.log('[CALC] benAges parsed:', benAges);
 
           // Calculate EOL values for all three percentiles
+          console.log('[CALC] Calculating EOL percentiles...');
           const eolP10 = batchSummary.eolReal_p10 * Math.pow(1 + infl, yearsFrom2025);
           const eolP50 = batchSummary.eolReal_p50 * Math.pow(1 + infl, yearsFrom2025);
           const eolP90 = batchSummary.eolReal_p90 * Math.pow(1 + infl, yearsFrom2025);
+          console.log('[CALC] EOL percentiles - p10:', eolP10, 'p50:', eolP50, 'p90:', eolP90);
 
           // Calculate estate tax and net estate for each percentile
+          console.log('[CALC] Calculating estate taxes for percentiles...');
           const estateTaxP10 = calcEstateTax(eolP10, marital);
           const estateTaxP50 = calcEstateTax(eolP50, marital);
           const estateTaxP90 = calcEstateTax(eolP90, marital);
@@ -1794,9 +1835,12 @@ export default function App() {
           const netEstateP10 = eolP10 - estateTaxP10;
           const netEstateP50 = eolP50 - estateTaxP50;
           const netEstateP90 = eolP90 - estateTaxP90;
+          console.log('[CALC] Net estates - p10:', netEstateP10, 'p50:', netEstateP50, 'p90:', netEstateP90);
 
           // Run generational wealth simulation for P50 only (skip P10/P90 for performance)
           // In Monte Carlo mode, only show median generational outcome
+          console.log('[CALC] About to call simulateRealPerBeneficiaryPayout...');
+          console.log('[CALC] Parameters - netEstateP50:', netEstateP50, 'yearsFrom2025:', yearsFrom2025, 'retRate:', retRate);
           const simP50 = simulateRealPerBeneficiaryPayout(
             netEstateP50,
             yearsFrom2025,
@@ -1808,13 +1852,15 @@ export default function App() {
             generationLength,
             Math.max(1, hypDeathAge),
             Math.max(0, hypMinDistAge),
-            10000,
+            500,  // Reduced from 10000 to 500 to prevent UI blocking
             benAges.length > 0 ? benAges : [0],
             fertilityWindowStart,
             fertilityWindowEnd
           );
+          console.log('[CALC] simulateRealPerBeneficiaryPayout completed, simP50:', simP50);
 
           // In Monte Carlo mode, only show P50 generational outcome for performance
+          console.log('[CALC] Building genPayout object...');
           genPayout = {
             perBenReal: hypPerBen,
             years: simP50.years,
@@ -1833,10 +1879,14 @@ export default function App() {
             probPerpetual: simP50.fundLeftReal > 0 ? 0.5 : 0
           };
         }
+        console.log('[CALC] Generational payout complete, genPayout:', genPayout ? 'exists' : 'null');
 
         // Determine if ruined (survived fewer years than expected)
+        console.log('[CALC] Calculating survYrs, probRuin:', batchSummary.probRuin);
         const survYrs = batchSummary.probRuin > 0.5 ? yrsToSim - 5 : yrsToSim;
+        console.log('[CALC] survYrs calculated:', survYrs);
 
+        console.log('[CALC] Building newRes object...');
         newRes = {
           finNom,
           finReal,
@@ -1870,7 +1920,9 @@ export default function App() {
           },
         };
 
+        console.log('[CALC] About to set result, newRes:', newRes);
         setRes(newRes);
+        console.log('[CALC] Result set successfully');
 
         // Track calculation for tab interface and auto-switch to results
         setLastCalculated(new Date());
@@ -1898,6 +1950,7 @@ export default function App() {
           setIsLoadingAi(false);
         }, 100);
 
+        console.log('[CALC] Monte Carlo calculation complete, exiting early');
         return; // Exit early, we're done with batch mode
       }
 
@@ -2212,7 +2265,7 @@ export default function App() {
           generationLength,
           Math.max(1, hypDeathAge),
           Math.max(0, hypMinDistAge),
-          10000,
+          500,  // Reduced from 10000 to 500 to prevent UI blocking
           benAges.length > 0 ? benAges : [0],
           fertilityWindowStart,
           fertilityWindowEnd
