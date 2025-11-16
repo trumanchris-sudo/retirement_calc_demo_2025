@@ -678,7 +678,8 @@ function checkPerpetualViability(
   generationLength: number,
   perBenReal: number,
   initialFundReal: number,
-  startBens: number
+  startBens: number,
+  debugLog = false
 ): boolean {
   // Calculate population growth rate from fertility
   // Population growth rate ≈ (TFR - 2) / generationLength
@@ -698,7 +699,20 @@ function checkPerpetualViability(
   // Apply 95% safety margin (5% buffer for model uncertainties)
   const safeThreshold = perpetualThreshold * 0.95;
 
-  return distributionRate < safeThreshold;
+  const isPerpetual = distributionRate < safeThreshold;
+
+  if (debugLog) {
+    console.log('[PERPETUAL CHECK] Real return rate: ' + (realReturnRate * 100).toFixed(2) + '%');
+    console.log('[PERPETUAL CHECK] Population growth rate: ' + (populationGrowthRate * 100).toFixed(2) + '%');
+    console.log('[PERPETUAL CHECK] Perpetual threshold (return - pop growth): ' + (perpetualThreshold * 100).toFixed(2) + '%');
+    console.log('[PERPETUAL CHECK] Safe threshold (95% of perpetual threshold): ' + (safeThreshold * 100).toFixed(2) + '%');
+    console.log('[PERPETUAL CHECK] Annual distribution: $' + annualDistribution.toLocaleString() + ' ($' + perBenReal.toLocaleString() + ' × ' + startBens + ' beneficiaries)');
+    console.log('[PERPETUAL CHECK] Initial fund: $' + initialFundReal.toLocaleString());
+    console.log('[PERPETUAL CHECK] Distribution rate: ' + (distributionRate * 100).toFixed(2) + '%');
+    console.log('[PERPETUAL CHECK] Result: ' + (isPerpetual ? 'PERPETUAL ✓' : 'NOT PERPETUAL ✗') + ' (' + (distributionRate * 100).toFixed(2) + '% ' + (isPerpetual ? '<' : '>=') + ' ' + (safeThreshold * 100).toFixed(2) + '%)');
+  }
+
+  return isPerpetual;
 }
 
 /**
@@ -2036,7 +2050,10 @@ export default function App() {
           const netEstateP25 = eolP25 - estateTaxP25;
           const netEstateP50 = eolP50 - estateTaxP50;
           const netEstateP75 = eolP75 - estateTaxP75;
-          console.log('[CALC] Net estates - p25:', netEstateP25, 'p50:', netEstateP50, 'p75:', netEstateP75);
+          console.log('[CALC] Net estates - p25:', netEstateP25.toLocaleString(), 'p50:', netEstateP50.toLocaleString(), 'p75:', netEstateP75.toLocaleString());
+          console.log('[SUCCESS RATE DEBUG] Distribution per beneficiary: $' + hypPerBen.toLocaleString() + '/year');
+          console.log('[SUCCESS RATE DEBUG] Initial beneficiaries:', hypStartBens);
+          console.log('[SUCCESS RATE DEBUG] Total annual distribution: $' + (hypPerBen * hypStartBens).toLocaleString());
 
           // Run generational wealth simulation for all three percentiles (P25, P50, P75)
           // This allows us to calculate actual success rate based on which percentiles are perpetual
@@ -2096,18 +2113,78 @@ export default function App() {
 
           console.log('[CALC] Generational simulations completed - P25:', simP25, 'P50:', simP50, 'P75:', simP75);
 
+          // Enhanced debug logging for success rate calculation
+          const p25Perpetual = simP25.fundLeftReal > 0;
+          const p50Perpetual = simP50.fundLeftReal > 0;
+          const p75Perpetual = simP75.fundLeftReal > 0;
+
+          console.log('[SUCCESS RATE DEBUG] ====================');
+          console.log('[SUCCESS RATE DEBUG] TESTING PERPETUALITY FOR EACH PERCENTILE');
+          console.log('[SUCCESS RATE DEBUG] ====================');
+
+          // Re-run perpetual check with debug logging for P25
+          console.log('[SUCCESS RATE DEBUG] --- P25 Estate ($' + netEstateP25.toLocaleString() + ') ---');
+          const fundP25Real = netEstateP25 / Math.pow(1 + infRate / 100, yearsFrom2025);
+          checkPerpetualViability(
+            realReturn(retRate, infRate),
+            totalFertilityRate,
+            generationLength,
+            hypPerBen,
+            fundP25Real,
+            Math.max(1, hypStartBens),
+            true // Enable debug logging
+          );
+
+          // Re-run perpetual check with debug logging for P50
+          console.log('[SUCCESS RATE DEBUG] --- P50 Estate ($' + netEstateP50.toLocaleString() + ') ---');
+          const fundP50Real = netEstateP50 / Math.pow(1 + infRate / 100, yearsFrom2025);
+          checkPerpetualViability(
+            realReturn(retRate, infRate),
+            totalFertilityRate,
+            generationLength,
+            hypPerBen,
+            fundP50Real,
+            Math.max(1, hypStartBens),
+            true // Enable debug logging
+          );
+
+          // Re-run perpetual check with debug logging for P75
+          console.log('[SUCCESS RATE DEBUG] --- P75 Estate ($' + netEstateP75.toLocaleString() + ') ---');
+          const fundP75Real = netEstateP75 / Math.pow(1 + infRate / 100, yearsFrom2025);
+          checkPerpetualViability(
+            realReturn(retRate, infRate),
+            totalFertilityRate,
+            generationLength,
+            hypPerBen,
+            fundP75Real,
+            Math.max(1, hypStartBens),
+            true // Enable debug logging
+          );
+
+          console.log('[SUCCESS RATE DEBUG] ====================');
+          console.log('[SUCCESS RATE DEBUG] SIMULATION RESULTS:');
+          console.log('[SUCCESS RATE DEBUG] P25 Estate: $' + netEstateP25.toLocaleString() + ' → ' + (p25Perpetual ? 'PERPETUAL' : 'DEPLETED') + ' (years: ' + simP25.years + ', fund left: $' + simP25.fundLeftReal.toLocaleString() + ')');
+          console.log('[SUCCESS RATE DEBUG] P50 Estate: $' + netEstateP50.toLocaleString() + ' → ' + (p50Perpetual ? 'PERPETUAL' : 'DEPLETED') + ' (years: ' + simP50.years + ', fund left: $' + simP50.fundLeftReal.toLocaleString() + ')');
+          console.log('[SUCCESS RATE DEBUG] P75 Estate: $' + netEstateP75.toLocaleString() + ' → ' + (p75Perpetual ? 'PERPETUAL' : 'DEPLETED') + ' (years: ' + simP75.years + ', fund left: $' + simP75.fundLeftReal.toLocaleString() + ')');
+          console.log('[SUCCESS RATE DEBUG] ====================');
+
           // Calculate actual success rate based on which percentiles are perpetual
           // P25 perpetual → 75% success (75% of sims were above P25)
           // P50 perpetual → 50% success (50% of sims were above P50)
           // P75 perpetual → 25% success (25% of sims were above P75)
           // Otherwise → 0%
           let calculatedProbPerpetual = 0;
-          if (simP25.fundLeftReal > 0) {
+          if (p25Perpetual) {
             calculatedProbPerpetual = 0.75;  // 75% success rate
-          } else if (simP50.fundLeftReal > 0) {
+            console.log('[SUCCESS RATE DEBUG] P25 is perpetual → 75% of simulations had estates >= P25 → SUCCESS RATE: 75%');
+          } else if (p50Perpetual) {
             calculatedProbPerpetual = 0.50;  // 50% success rate
-          } else if (simP75.fundLeftReal > 0) {
+            console.log('[SUCCESS RATE DEBUG] P50 is perpetual (but not P25) → 50% of simulations had estates >= P50 → SUCCESS RATE: 50%');
+          } else if (p75Perpetual) {
             calculatedProbPerpetual = 0.25;  // 25% success rate
+            console.log('[SUCCESS RATE DEBUG] P75 is perpetual (but not P25 or P50) → 25% of simulations had estates >= P75 → SUCCESS RATE: 25%');
+          } else {
+            console.log('[SUCCESS RATE DEBUG] None of the percentiles achieved perpetual legacy → SUCCESS RATE: 0%');
           }
 
           console.log('[CALC] Calculated success rate:', calculatedProbPerpetual);
