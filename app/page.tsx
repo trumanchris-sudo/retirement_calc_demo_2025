@@ -1696,11 +1696,24 @@ export default function App() {
         try {
           batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, 1000);
           console.log('[CALC] Web worker completed successfully, batch summary:', batchSummary);
+          console.log('[CALC] p50BalancesReal length:', batchSummary?.p50BalancesReal?.length);
+          console.log('[CALC] p10BalancesReal length:', batchSummary?.p10BalancesReal?.length);
+          console.log('[CALC] p90BalancesReal length:', batchSummary?.p90BalancesReal?.length);
+          console.log('[CALC] y1AfterTaxReal_p50:', batchSummary?.y1AfterTaxReal_p50);
+          console.log('[CALC] eolReal_p50:', batchSummary?.eolReal_p50);
+          console.log('[CALC] probRuin:', batchSummary?.probRuin);
         } catch (workerError) {
           console.error('[CALC] Worker failed with error:', workerError);
           throw workerError; // Re-throw to be caught by outer catch
         }
 
+        // Validate batch summary has required data
+        if (!batchSummary || !batchSummary.p50BalancesReal || batchSummary.p50BalancesReal.length === 0) {
+          console.error('[CALC] Invalid batch summary received:', batchSummary);
+          throw new Error('Monte Carlo simulation returned invalid results');
+        }
+
+        console.log('[CALC] Starting data reconstruction...');
         // Reconstruct data array from batch summary percentile balances
         const data: any[] = [];
         for (let i = 0; i < batchSummary.p50BalancesReal.length; i++) {
@@ -1724,8 +1737,10 @@ export default function App() {
 
           data.push(dataPoint);
         }
+        console.log('[CALC] Data reconstruction complete, data length:', data.length);
 
         // Use median values for key metrics
+        console.log('[CALC] Calculating key metrics...');
         const finReal = batchSummary.p50BalancesReal[yrsToRet];
         const finNom = finReal * Math.pow(1 + infl, yrsToRet);
         const wdRealY1 = batchSummary.y1AfterTaxReal_p50;
@@ -1736,6 +1751,7 @@ export default function App() {
         const eolReal = batchSummary.eolReal_p50;
         const yearsFrom2025 = yrsToRet + yrsToSim;
         const eolWealth = eolReal * Math.pow(1 + infl, yearsFrom2025);
+        console.log('[CALC] Key metrics calculated - finReal:', finReal, 'eolWealth:', eolWealth);
 
         // Calculate RMD data for trulyRandom mode based on median balances
         // Assume typical allocation: 50% pretax, 30% taxable, 20% roth
@@ -1881,7 +1897,9 @@ export default function App() {
           },
         };
 
+        console.log('[CALC] About to set result, newRes:', newRes);
         setRes(newRes);
+        console.log('[CALC] Result set successfully');
 
         // Track calculation for tab interface and auto-switch to results
         setLastCalculated(new Date());
@@ -1909,6 +1927,7 @@ export default function App() {
           setIsLoadingAi(false);
         }, 100);
 
+        console.log('[CALC] Monte Carlo calculation complete, exiting early');
         return; // Exit early, we're done with batch mode
       }
 
