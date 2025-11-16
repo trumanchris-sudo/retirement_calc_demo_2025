@@ -1139,13 +1139,17 @@ export default function App() {
 
   // Generational wealth parameters (improved demographic model)
   const [hypPerBen, setHypPerBen] = useState(100_000);
-  const [hypStartBens, setHypStartBens] = useState(2);
+
+  // New intuitive beneficiary inputs
+  const [numberOfChildren, setNumberOfChildren] = useState(2);
+  const [parentAgeAtFirstChild, setParentAgeAtFirstChild] = useState(30);
+  const [childSpacingYears, setChildSpacingYears] = useState(3);
+
   const [totalFertilityRate, setTotalFertilityRate] = useState(2.1); // Children per person (lifetime)
   const [generationLength, setGenerationLength] = useState(30); // Average age when having children
   const [fertilityWindowStart, setFertilityWindowStart] = useState(25);
   const [fertilityWindowEnd, setFertilityWindowEnd] = useState(40);
   const [hypDeathAge, setHypDeathAge] = useState(95);
-  const [hypBenAgesStr, setHypBenAgesStr] = useState("35, 40");
   const [hypMinDistAge, setHypMinDistAge] = useState(21); // Minimum age to receive distributions
 
   // Legacy state variables for backward compatibility with old simulation
@@ -1164,6 +1168,26 @@ export default function App() {
   // Refs for legacy card image download
   const legacyCardRefAllInOne = useRef<HTMLDivElement>(null);
   const legacyCardRefLegacy = useRef<HTMLDivElement>(null);
+
+  // Auto-calculate beneficiary ages based on user's age and family structure
+  const { hypBenAgesStr, hypStartBens } = useMemo(() => {
+    const olderAge = Math.max(age1, age2);
+
+    // Calculate ages of children at time of death
+    const childrenAges: number[] = [];
+    for (let i = 0; i < numberOfChildren; i++) {
+      const childAgeAtDeath = hypDeathAge - parentAgeAtFirstChild - (i * childSpacingYears);
+      // Only include children who would be alive at time of death (age < hypDeathAge)
+      if (childAgeAtDeath > 0 && childAgeAtDeath < hypDeathAge) {
+        childrenAges.push(childAgeAtDeath);
+      }
+    }
+
+    return {
+      hypBenAgesStr: childrenAges.length > 0 ? childrenAges.join(', ') : '0',
+      hypStartBens: Math.max(1, childrenAges.length)
+    };
+  }, [numberOfChildren, parentAgeAtFirstChild, childSpacingYears, hypDeathAge, age1, age2]);
 
   const [aiInsight, setAiInsight] = useState<string>("");
   const [isLoadingAi, setIsLoadingAi] = useState<boolean>(false);
@@ -6189,12 +6213,35 @@ export default function App() {
                         onInputChange={handleInputChange}
                       />
                       <Input
-                        label="Initial Beneficiaries"
-                        value={hypStartBens}
-                        setter={setHypStartBens}
+                        label="Number of Children"
+                        value={numberOfChildren}
+                        setter={setNumberOfChildren}
                         min={1}
+                        max={10}
                         step={1}
-                        tip="Number of beneficiaries at the start (e.g., your children)"
+                        tip="How many children do you have (or expect to have)?"
+                        onInputChange={handleInputChange}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input
+                        label="Your Age When First Child is Born"
+                        value={parentAgeAtFirstChild}
+                        setter={setParentAgeAtFirstChild}
+                        min={18}
+                        max={50}
+                        step={1}
+                        tip="Your age when your first (oldest) child is born"
+                        onInputChange={handleInputChange}
+                      />
+                      <Input
+                        label="Years Between Children"
+                        value={childSpacingYears}
+                        setter={setChildSpacingYears}
+                        min={1}
+                        max={10}
+                        step={1}
+                        tip="Average spacing between children (e.g., 3 years)"
                         onInputChange={handleInputChange}
                       />
                     </div>
@@ -6280,24 +6327,18 @@ export default function App() {
 
                   <Separator className="my-6" />
 
+                  {/* Auto-calculated beneficiary information */}
                   <div className="grid grid-cols-1 gap-4">
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-1.5 text-foreground">
-                        Initial Beneficiary Ages at Death
-                        <Tip text={`Enter ages of living beneficiaries at your time of death, separated by commas (e.g., '35, 40, 45'). Only beneficiaries within the fertility window (${fertilityWindowStart}-${fertilityWindowEnd}) will produce children.`} />
+                    <div className="space-y-2 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <Label className="flex items-center gap-1.5 text-foreground font-semibold">
+                        Children Ages at Your Death (Age {hypDeathAge})
+                        <Tip text={`Based on your inputs, your ${numberOfChildren} ${numberOfChildren === 1 ? 'child' : 'children'} will be these ages when you pass away. Only children within the fertility window (${fertilityWindowStart}-${fertilityWindowEnd}) will produce grandchildren in the simulation.`} />
                       </Label>
-                      <UIInput
-                        type="text"
-                        value={hypBenAgesStr}
-                        onChange={(e) => setHypBenAgesStr(e.target.value)}
-                        placeholder="e.g., 35, 40"
-                        className="transition-all"
-                      />
+                      <div className="text-sm text-foreground bg-white dark:bg-gray-900 p-3 rounded border border-blue-200 dark:border-blue-700 font-mono">
+                        {hypBenAgesStr || 'No children specified'}
+                      </div>
                       <p className="text-xs text-muted-foreground">
-                        {hypBenAgesStr.split(',').filter(s => {
-                          const n = parseInt(s.trim(), 10);
-                          return !isNaN(n) && n >= 0 && n < 90;
-                        }).length} beneficiaries specified
+                        {hypStartBens} {hypStartBens === 1 ? 'beneficiary' : 'beneficiaries'} calculated
                       </p>
                     </div>
                   </div>
