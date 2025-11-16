@@ -4680,39 +4680,6 @@ export default function App() {
                 </Card>
             </div>
 
-            {/* Legacy Result Cards - Show if generational wealth enabled and calculated */}
-            {showGen && res.genPayout && legacyResult && (
-              <AnimatedSection animation="fade-in" delay={100}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Legacy Planning Results</CardTitle>
-                    <CardDescription>Generational wealth transfer analysis</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col md:flex-row justify-center gap-6">
-                      <div ref={legacyCardRefAllInOne}>
-                        <LegacyResultCard
-                          payout={res.genPayout.perBenReal}
-                          duration={res.genPayout.years}
-                          isPerpetual={res.genPayout.p50?.isPerpetual === true}
-                          successRate={(res.genPayout.probPerpetual || 0) * 100}
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-6 flex flex-col md:flex-row justify-center gap-3">
-                      <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
-                      <DownloadCardButton
-                        enabled={!!legacyResult}
-                        cardRef={legacyCardRefAllInOne}
-                        filename="legacy-card.png"
-                      />
-                      <AddToWalletButton result={legacyResult} />
-                    </div>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-            )}
-
             <div className="print:hidden analysis-block">
             <Card>
               <CardHeader>
