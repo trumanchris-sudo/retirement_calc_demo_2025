@@ -737,15 +737,15 @@ function runMonteCarloSimulation(params, baseSeed, N = 1000) {
 
   const eolValues = results.map(r => r.eolReal);
   const trimmedEol = trimExtremeValues(eolValues, TRIM_COUNT);
-  const eolReal_p10 = percentile(trimmedEol, 10);
+  const eolReal_p25 = percentile(trimmedEol, 25);
   const eolReal_p50 = percentile(trimmedEol, 50);
-  const eolReal_p90 = percentile(trimmedEol, 90);
+  const eolReal_p75 = percentile(trimmedEol, 75);
 
   const y1Values = results.map(r => r.y1AfterTaxReal);
   const trimmedY1 = trimExtremeValues(y1Values, TRIM_COUNT);
-  const y1AfterTaxReal_p10 = percentile(trimmedY1, 10);
+  const y1AfterTaxReal_p25 = percentile(trimmedY1, 25);
   const y1AfterTaxReal_p50 = percentile(trimmedY1, 50);
-  const y1AfterTaxReal_p90 = percentile(trimmedY1, 90);
+  const y1AfterTaxReal_p75 = percentile(trimmedY1, 75);
 
   const probRuin = results.filter(r => r.ruined).length / N;
 
@@ -753,12 +753,12 @@ function runMonteCarloSimulation(params, baseSeed, N = 1000) {
     p10BalancesReal,
     p50BalancesReal,
     p90BalancesReal,
-    eolReal_p10,
+    eolReal_p25,
     eolReal_p50,
-    eolReal_p90,
-    y1AfterTaxReal_p10,
+    eolReal_p75,
+    y1AfterTaxReal_p25,
     y1AfterTaxReal_p50,
-    y1AfterTaxReal_p90,
+    y1AfterTaxReal_p75,
     probRuin,
     allRuns: [], // Don't return individual runs to reduce memory usage and focus on percentiles
   };

@@ -85,7 +85,9 @@ export const LegacyResultCard: React.FC<LegacyProps> = ({
   const icon = getIcon();
 
   // Subheadline: "PERPETUAL LEGACY" for perpetual, duration for finite
-  const subheadline = isPerpetual
+  // Handle edge cases: if duration is Infinity or >= 10000, treat as perpetual
+  const isEffectivelyPerpetual = isPerpetual || duration >= 10000 || !isFinite(duration);
+  const subheadline = isEffectivelyPerpetual
     ? 'PERPETUAL LEGACY'
     : `${duration.toLocaleString('en-US')} YEAR DURATION`;
 
