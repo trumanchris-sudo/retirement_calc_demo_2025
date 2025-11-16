@@ -1411,11 +1411,13 @@ export default function App() {
           console.log('[WORKER] Worker complete! Resolving promise...');
           setCalcProgress(null);
           worker.removeEventListener('message', handleMessage);
+          worker.removeEventListener('error', handleError);
           resolve(result);
         } else if (type === 'error') {
           console.error('[WORKER] Worker error:', error);
           setCalcProgress(null);
           worker.removeEventListener('message', handleMessage);
+          worker.removeEventListener('error', handleError);
           reject(new Error(error));
         }
       };
@@ -1423,6 +1425,8 @@ export default function App() {
       const handleError = (e: ErrorEvent) => {
         console.error('[WORKER] Worker error event:', e);
         setCalcProgress(null);
+        worker.removeEventListener('message', handleMessage);
+        worker.removeEventListener('error', handleError);
         reject(new Error(`Worker error: ${e.message}`));
       };
 
@@ -1662,6 +1666,7 @@ export default function App() {
       // If truly random mode, run Monte Carlo simulation via web worker (N=1000)
       if (walkSeries === 'trulyRandom') {
         console.log('[CALC] Running Monte Carlo via web worker...');
+        console.log('[CALC] Worker ref exists:', !!workerRef.current);
         const inputs: Inputs = {
           marital, age1, age2, retAge, sTax, sPre, sPost,
           cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
@@ -1687,8 +1692,14 @@ export default function App() {
         };
 
         console.log('[CALC] Calling web worker with inputs...');
-        const batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, 1000);
-        console.log('[CALC] Web worker completed, batch summary:', batchSummary);
+        let batchSummary;
+        try {
+          batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, 1000);
+          console.log('[CALC] Web worker completed successfully, batch summary:', batchSummary);
+        } catch (workerError) {
+          console.error('[CALC] Worker failed with error:', workerError);
+          throw workerError; // Re-throw to be caught by outer catch
+        }
 
         // Reconstruct data array from batch summary percentile balances
         const data: any[] = [];
