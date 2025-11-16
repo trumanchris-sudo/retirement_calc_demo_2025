@@ -95,6 +95,28 @@ export default function Income2026Page() {
 
   const isMarried = maritalStatus === "married";
 
+  // Helper function to handle numeric input changes
+  // Strips non-numeric characters and converts to number
+  const handleNumericInput = (value: string, setter: (val: number) => void) => {
+    // Remove all non-numeric characters
+    const numericValue = value.replace(/[^0-9]/g, '');
+    // Convert to number, default to 0 if empty
+    const numberValue = numericValue === '' ? 0 : Number(numericValue);
+    setter(numberValue);
+  };
+
+  // Helper function for decimal inputs (like percentages or rates)
+  const handleDecimalInput = (value: string, setter: (val: number) => void) => {
+    // Allow only numbers and one decimal point
+    const decimalValue = value.replace(/[^0-9.]/g, '');
+    // Prevent multiple decimal points
+    const parts = decimalValue.split('.');
+    const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : decimalValue;
+    // Convert to number, default to 0 if empty
+    const numberValue = sanitized === '' ? 0 : Number(sanitized);
+    setter(numberValue);
+  };
+
   // Helper component for income input section
   const IncomeSection = ({
     label,
@@ -159,9 +181,11 @@ export default function Income2026Page() {
             <Label htmlFor={`${idPrefix}-base`}>Base Annual Salary</Label>
             <Input
               id={`${idPrefix}-base`}
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={baseIncome}
-              onChange={(e) => onBaseIncomeChange(Number(e.target.value))}
+              onChange={(e) => handleNumericInput(e.target.value, onBaseIncomeChange)}
               placeholder="150000"
             />
           </div>
@@ -169,9 +193,11 @@ export default function Income2026Page() {
             <Label htmlFor={`${idPrefix}-bonus`}>Annual Bonus</Label>
             <Input
               id={`${idPrefix}-bonus`}
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={bonus}
-              onChange={(e) => onBonusChange(Number(e.target.value))}
+              onChange={(e) => handleNumericInput(e.target.value, onBonusChange)}
               placeholder="15000"
             />
           </div>
@@ -192,9 +218,11 @@ export default function Income2026Page() {
             <Label htmlFor={`${idPrefix}-overtime`}>Estimated Monthly Overtime</Label>
             <Input
               id={`${idPrefix}-overtime`}
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={overtime}
-              onChange={(e) => onOvertimeChange(Number(e.target.value))}
+              onChange={(e) => handleNumericInput(e.target.value, onOvertimeChange)}
               placeholder="500"
             />
           </div>
@@ -211,9 +239,11 @@ export default function Income2026Page() {
             <Label htmlFor={`${idPrefix}-401k`}>401(k) Contribution</Label>
             <Input
               id={`${idPrefix}-401k`}
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={preTax401k}
-              onChange={(e) => onPreTax401kChange(Number(e.target.value))}
+              onChange={(e) => handleNumericInput(e.target.value, onPreTax401kChange)}
               placeholder="750"
             />
           </div>
@@ -221,9 +251,11 @@ export default function Income2026Page() {
             <Label htmlFor={`${idPrefix}-health`}>Health Insurance Premium</Label>
             <Input
               id={`${idPrefix}-health`}
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={preTaxHealth}
-              onChange={(e) => onPreTaxHealthChange(Number(e.target.value))}
+              onChange={(e) => handleNumericInput(e.target.value, onPreTaxHealthChange)}
               placeholder="200"
             />
           </div>
@@ -231,9 +263,11 @@ export default function Income2026Page() {
             <Label htmlFor={`${idPrefix}-hsa`}>HSA Contribution</Label>
             <Input
               id={`${idPrefix}-hsa`}
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={preTaxHSA}
-              onChange={(e) => onPreTaxHSAChange(Number(e.target.value))}
+              onChange={(e) => handleNumericInput(e.target.value, onPreTaxHSAChange)}
               placeholder="300"
             />
           </div>
@@ -241,9 +275,11 @@ export default function Income2026Page() {
             <Label htmlFor={`${idPrefix}-fsa`}>FSA Contribution</Label>
             <Input
               id={`${idPrefix}-fsa`}
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={preTaxFSA}
-              onChange={(e) => onPreTaxFSAChange(Number(e.target.value))}
+              onChange={(e) => handleNumericInput(e.target.value, onPreTaxFSAChange)}
               placeholder="100"
             />
           </div>
@@ -260,9 +296,11 @@ export default function Income2026Page() {
             <Label htmlFor={`${idPrefix}-roth`}>Roth 401(k) Contribution</Label>
             <Input
               id={`${idPrefix}-roth`}
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={rothContrib}
-              onChange={(e) => onRothContribChange(Number(e.target.value))}
+              onChange={(e) => handleNumericInput(e.target.value, onRothContribChange)}
               placeholder="250"
             />
           </div>
@@ -270,9 +308,11 @@ export default function Income2026Page() {
             <Label htmlFor={`${idPrefix}-disability`}>Disability Insurance</Label>
             <Input
               id={`${idPrefix}-disability`}
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={disability}
-              onChange={(e) => onDisabilityChange(Number(e.target.value))}
+              onChange={(e) => handleNumericInput(e.target.value, onDisabilityChange)}
               placeholder="50"
             />
           </div>
@@ -280,9 +320,11 @@ export default function Income2026Page() {
             <Label htmlFor={`${idPrefix}-life`}>Life Insurance Premium</Label>
             <Input
               id={`${idPrefix}-life`}
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={life}
-              onChange={(e) => onLifeChange(Number(e.target.value))}
+              onChange={(e) => handleNumericInput(e.target.value, onLifeChange)}
               placeholder="25"
             />
           </div>
@@ -448,9 +490,11 @@ export default function Income2026Page() {
                 <Label htmlFor="mortgage">Mortgage Payment</Label>
                 <Input
                   id="mortgage"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={mortgagePayment}
-                  onChange={(e) => setMortgagePayment(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setMortgagePayment)}
                   placeholder="2500"
                 />
               </div>
@@ -458,9 +502,11 @@ export default function Income2026Page() {
                 <Label htmlFor="household">Household Expenses</Label>
                 <Input
                   id="household"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={householdExpenses}
-                  onChange={(e) => setHouseholdExpenses(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setHouseholdExpenses)}
                   placeholder="1500"
                 />
               </div>
@@ -468,9 +514,11 @@ export default function Income2026Page() {
                 <Label htmlFor="discretionary">Discretionary Spending</Label>
                 <Input
                   id="discretionary"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={discretionarySpending}
-                  onChange={(e) => setDiscretionarySpending(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setDiscretionarySpending)}
                   placeholder="1000"
                 />
               </div>
@@ -478,9 +526,11 @@ export default function Income2026Page() {
                 <Label htmlFor="childcare">Childcare Costs</Label>
                 <Input
                   id="childcare"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={childcareCosts}
-                  onChange={(e) => setChildcareCosts(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setChildcareCosts)}
                   placeholder="2000"
                 />
               </div>
@@ -501,9 +551,11 @@ export default function Income2026Page() {
                 <Label htmlFor="investments">Non-Retirement Investments</Label>
                 <Input
                   id="investments"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={nonRetirementInvestments}
-                  onChange={(e) => setNonRetirementInvestments(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setNonRetirementInvestments)}
                   placeholder="500"
                 />
               </div>
@@ -511,9 +563,11 @@ export default function Income2026Page() {
                 <Label htmlFor="surplus">Surplus Liquidity Savings</Label>
                 <Input
                   id="surplus"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={surplusLiquidity}
-                  onChange={(e) => setSurplusLiquidity(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setSurplusLiquidity)}
                   placeholder="1000"
                 />
               </div>
@@ -535,9 +589,11 @@ export default function Income2026Page() {
                 <Label htmlFor="mortgage-balance">Current Mortgage Balance</Label>
                 <Input
                   id="mortgage-balance"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={mortgageBalance}
-                  onChange={(e) => setMortgageBalance(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setMortgageBalance)}
                   placeholder="350000"
                 />
               </div>
@@ -545,10 +601,11 @@ export default function Income2026Page() {
                 <Label htmlFor="mortgage-rate">Mortgage Interest Rate (%)</Label>
                 <Input
                   id="mortgage-rate"
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9.]*"
                   value={mortgageRate}
-                  onChange={(e) => setMortgageRate(Number(e.target.value))}
+                  onChange={(e) => handleDecimalInput(e.target.value, setMortgageRate)}
                   placeholder="3.25"
                 />
               </div>
@@ -556,9 +613,11 @@ export default function Income2026Page() {
                 <Label htmlFor="mortgage-interest">Est. Monthly Interest Portion</Label>
                 <Input
                   id="mortgage-interest"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={mortgageInterestMonthly}
-                  onChange={(e) => setMortgageInterestMonthly(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setMortgageInterestMonthly)}
                   placeholder="950"
                 />
               </div>
@@ -580,9 +639,11 @@ export default function Income2026Page() {
                 <Label htmlFor="car-fmv">Current Fair Market Value</Label>
                 <Input
                   id="car-fmv"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={carFMV}
-                  onChange={(e) => setCarFMV(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setCarFMV)}
                   placeholder="35000"
                 />
               </div>
@@ -590,9 +651,11 @@ export default function Income2026Page() {
                 <Label htmlFor="car-life">Estimated Useful Life (years)</Label>
                 <Input
                   id="car-life"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={carUsefulLife}
-                  onChange={(e) => setCarUsefulLife(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setCarUsefulLife)}
                   placeholder="10"
                 />
               </div>
@@ -600,9 +663,11 @@ export default function Income2026Page() {
                 <Label htmlFor="car-residual">Residual Value Floor</Label>
                 <Input
                   id="car-residual"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={carResidualValue}
-                  onChange={(e) => setCarResidualValue(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setCarResidualValue)}
                   placeholder="5000"
                 />
               </div>
@@ -610,9 +675,11 @@ export default function Income2026Page() {
                 <Label htmlFor="car-firesale">Firesale Discount (%)</Label>
                 <Input
                   id="car-firesale"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={carFiresaleDiscount}
-                  onChange={(e) => setCarFiresaleDiscount(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setCarFiresaleDiscount)}
                   placeholder="30"
                 />
               </div>
@@ -634,9 +701,11 @@ export default function Income2026Page() {
                 <Label htmlFor="federal-extra">Federal Withholding (per paycheck)</Label>
                 <Input
                   id="federal-extra"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={federalWithholdingExtra}
-                  onChange={(e) => setFederalWithholdingExtra(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setFederalWithholdingExtra)}
                   placeholder="100"
                 />
               </div>
@@ -644,9 +713,11 @@ export default function Income2026Page() {
                 <Label htmlFor="state-extra">State Withholding (per paycheck)</Label>
                 <Input
                   id="state-extra"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={stateWithholdingExtra}
-                  onChange={(e) => setStateWithholdingExtra(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setStateWithholdingExtra)}
                   placeholder="50"
                 />
               </div>
