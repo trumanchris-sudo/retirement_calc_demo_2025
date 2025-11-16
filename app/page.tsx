@@ -32,6 +32,7 @@ import { FlippingCard } from "@/components/FlippingCard";
 import { GenerationalResultCard } from "@/components/GenerationalResultCard";
 import { LegacyResultCard } from "@/components/LegacyResultCard";
 import AddToWalletButton from "@/components/AddToWalletButton";
+import DownloadCardButton from "@/components/DownloadCardButton";
 import { LegacyResult } from "@/lib/walletPass";
 import UserInputsPrintSummary from "@/components/UserInputsPrintSummary";
 import { TopBanner } from "@/components/layout/TopBanner";
@@ -1159,6 +1160,10 @@ export default function App() {
   const [err, setErr] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [legacyResult, setLegacyResult] = useState<LegacyResult | null>(null);
+
+  // Refs for legacy card image download
+  const legacyCardRefAllInOne = useRef<HTMLDivElement>(null);
+  const legacyCardRefLegacy = useRef<HTMLDivElement>(null);
 
   const [aiInsight, setAiInsight] = useState<string>("");
   const [isLoadingAi, setIsLoadingAi] = useState<boolean>(false);
@@ -4599,14 +4604,21 @@ export default function App() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-col md:flex-row justify-center gap-6">
-                      <LegacyResultCard
-                        payout={res.genPayout.perBenReal}
-                        duration={res.genPayout.years}
-                        isPerpetual={res.genPayout.p50?.isPerpetual === true}
-                      />
+                      <div ref={legacyCardRefAllInOne}>
+                        <LegacyResultCard
+                          payout={res.genPayout.perBenReal}
+                          duration={res.genPayout.years}
+                          isPerpetual={res.genPayout.p50?.isPerpetual === true}
+                        />
+                      </div>
                     </div>
                     <div className="mt-6 flex flex-col md:flex-row justify-center gap-3">
                       <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
+                      <DownloadCardButton
+                        enabled={!!legacyResult}
+                        cardRef={legacyCardRefAllInOne}
+                        filename="legacy-card.png"
+                      />
                       <AddToWalletButton result={legacyResult} />
                     </div>
                   </CardContent>
@@ -6354,16 +6366,23 @@ export default function App() {
 
                             {/* LegacyResultCard for simpler visual */}
                             <div className="flex justify-center mb-6">
-                              <LegacyResultCard
-                                payout={res.genPayout.perBenReal}
-                                duration={res.genPayout.years}
-                                isPerpetual={isPerpetual}
-                              />
+                              <div ref={legacyCardRefLegacy}>
+                                <LegacyResultCard
+                                  payout={res.genPayout.perBenReal}
+                                  duration={res.genPayout.years}
+                                  isPerpetual={isPerpetual}
+                                />
+                              </div>
                             </div>
 
                             {/* Action Buttons */}
                             <div className="mt-6 flex flex-col md:flex-row justify-center gap-3">
                               <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
+                              <DownloadCardButton
+                                enabled={!!legacyResult}
+                                cardRef={legacyCardRefLegacy}
+                                filename="legacy-card.png"
+                              />
                               <AddToWalletButton result={legacyResult} />
                             </div>
                           </>

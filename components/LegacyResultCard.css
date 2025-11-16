@@ -1,200 +1,453 @@
 /* =========================
-   Legacy Result Card Styles
+   Premium Legacy Card Styles
+   High-end wealth management aesthetic
 ========================= */
 
-.legacy-card {
+/* Import premium fonts */
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+/* Base Card Container */
+.legacy-premium-card {
   position: relative;
+  width: 100%;
+  max-width: 480px;
+  min-height: 520px;
   border-radius: 24px;
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border) / 0.5);
-  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.06);
-  padding: 28px 24px 26px;
-  text-align: center;
+  padding: 42px 36px;
   overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  isolation: isolate;
+
+  /* Smooth transitions */
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
 }
 
-.legacy-card:before {
-  content: "";
+.legacy-premium-card:hover {
+  transform: translateY(-4px) scale(1.01);
+}
+
+/* Glassmorphic overlay layer */
+.legacy-premium-card__glass {
   position: absolute;
-  inset: -1px;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: inherit;
-  background: conic-gradient(
-    from 180deg at 50% 0%,
-    rgba(33, 81, 255, 0.25),
-    rgba(21, 54, 165, 0.25),
-    transparent 65%
-  );
-  filter: blur(18px);
-  opacity: 0.25;
+  z-index: 1;
   pointer-events: none;
 }
 
-.legacy-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 32px rgba(16, 24, 40, 0.12);
+/* Ambient glow effect */
+.legacy-premium-card__glow {
+  position: absolute;
+  inset: -60px;
+  opacity: 0.6;
+  filter: blur(60px);
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
 }
 
-/* State: Perpetual Legacy */
-.legacy-card.is-perpetual {
-  background: radial-gradient(
-      120% 120% at 50% -10%,
-      rgba(109, 163, 255, 0.30),
-      transparent 50%
-    ),
-    linear-gradient(145deg, #2a4cf7 0%, #122d9f 60%, #0d1f6d 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #fff;
+.legacy-premium-card:hover .legacy-premium-card__glow {
+  opacity: 0.8;
 }
 
-.legacy-card.is-perpetual .legacy-card__promise strong {
-  color: #fff;
+/* Content container - sits above glass */
+.legacy-premium-card__content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
-.legacy-card.is-perpetual .legacy-card__chip {
-  background: rgba(255, 255, 255, 0.12);
-  color: #f1f5ff;
-  border-color: rgba(255, 255, 255, 0.18);
+/* ==================
+   PLATINUM VARIANT
+   (Perpetual Legacy - Diamond White with Iridescence)
+================== */
+.legacy-premium-card--platinum {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(200, 210, 255, 0.15), transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(255, 200, 255, 0.12), transparent 50%),
+    linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #0d1117 100%);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 24px 64px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.legacy-card.is-perpetual .legacy-card__detail,
-.legacy-card.is-perpetual .legacy-card__micro {
-  color: #e5edff;
-  opacity: 0.9;
+.legacy-premium-card--platinum:hover {
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.4),
+    0 32px 80px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
-/* Icon Container */
-.legacy-card__icon {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 10px;
+.legacy-premium-card--platinum .legacy-premium-card__glow {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(200, 210, 255, 0.4), transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(255, 200, 255, 0.3), transparent 50%);
+}
+
+/* ==================
+   GOLD VARIANT
+   (High Duration - Navy/Gold Luxury)
+================== */
+.legacy-premium-card--gold {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(218, 165, 32, 0.12), transparent 50%),
+    linear-gradient(145deg, #0a1628 0%, #1e3a5f 50%, #0f1e3a 100%);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 24px 64px rgba(218, 165, 32, 0.15),
+    inset 0 1px 0 rgba(218, 165, 32, 0.2);
+}
+
+.legacy-premium-card--gold:hover {
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.4),
+    0 32px 80px rgba(218, 165, 32, 0.25),
+    inset 0 1px 0 rgba(218, 165, 32, 0.3);
+}
+
+.legacy-premium-card--gold .legacy-premium-card__glow {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(218, 165, 32, 0.3), transparent 60%);
+}
+
+/* ==================
+   EMERALD VARIANT
+   (Moderate Duration - Forest Green/Silver)
+================== */
+.legacy-premium-card--emerald {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(52, 211, 153, 0.15), transparent 50%),
+    linear-gradient(145deg, #0c1810 0%, #1a3a2e 50%, #0d1f17 100%);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 24px 64px rgba(52, 211, 153, 0.15),
+    inset 0 1px 0 rgba(52, 211, 153, 0.2);
+}
+
+.legacy-premium-card--emerald:hover {
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.4),
+    0 32px 80px rgba(52, 211, 153, 0.25),
+    inset 0 1px 0 rgba(52, 211, 153, 0.3);
+}
+
+.legacy-premium-card--emerald .legacy-premium-card__glow {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(52, 211, 153, 0.3), transparent 60%);
+}
+
+/* ==================
+   ICON CONTAINER
+================== */
+.legacy-premium-card__icon-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
   display: grid;
   place-items: center;
-  color: #2151ff;
-  background: rgba(33, 81, 255, 0.08);
-  border: 1px solid #c7d2fe;
-  border-radius: 14px;
-  backdrop-filter: blur(2px);
+  margin-bottom: 24px;
 }
 
-.is-perpetual .legacy-card__icon {
-  color: #cfe1ff;
-  background: rgba(255, 255, 255, 0.10);
-  border-color: rgba(255, 255, 255, 0.18);
+.legacy-premium-card__icon-backdrop {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
 }
 
-/* Large Number */
-.legacy-card__big {
-  font-size: clamp(56px, 9vw, 84px);
-  font-weight: 800;
+.legacy-premium-card:hover .legacy-premium-card__icon-backdrop {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.premium-icon {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* Platinum icon - Diamond white/purple */
+.legacy-premium-card--platinum .premium-icon {
+  color: #e5e7ff;
+}
+
+/* Gold icon - Rich gold */
+.legacy-premium-card--gold .premium-icon {
+  color: #daa520;
+}
+
+/* Emerald icon - Bright emerald */
+.legacy-premium-card--emerald .premium-icon {
+  color: #34d399;
+}
+
+/* ==================
+   HEADER & TEXT
+================== */
+.legacy-premium-card__header {
+  margin-bottom: 20px;
+}
+
+.legacy-premium-card__headline {
+  font-family: 'Crimson Pro', 'Georgia', serif;
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 600;
   letter-spacing: -0.02em;
-  line-height: 0.9;
-  margin-top: 4px;
-  color: hsl(var(--foreground));
+  line-height: 1.2;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
-.is-perpetual .legacy-card__big {
-  color: #fff;
-}
-
-/* Headline */
-.legacy-card__headline {
-  margin-top: 6px;
-  font-size: clamp(18px, 3.5vw, 22px);
-  font-weight: 600;
-  color: #1536a5;
-}
-
-.is-perpetual .legacy-card__headline {
-  color: #eaf0ff;
-}
-
-/* Chip/Badge */
-.legacy-card__chip {
-  display: inline-block;
-  margin: 10px auto 2px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-/* Promise Statement */
-.legacy-card__promise {
-  margin: 14px 0 6px;
-  font-size: 16px;
-  line-height: 1.45;
-  color: hsl(var(--foreground));
-}
-
-.legacy-card__promise strong {
-  font-weight: 800;
-  color: #1536a5;
-  white-space: nowrap;
-}
-
-.is-perpetual .legacy-card__promise {
-  color: #fff;
-}
-
-/* Detail Text */
-.legacy-card__detail {
+.legacy-premium-card__subheadline {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
   margin: 0;
-  font-size: 14px;
-  line-height: 1.55;
-  color: hsl(var(--muted-foreground));
 }
 
-/* Micro Text */
-.legacy-card__micro {
-  margin-top: 14px;
-  font-size: 12px;
+/* Platinum subheadline */
+.legacy-premium-card--platinum .legacy-premium-card__subheadline {
+  color: rgba(229, 231, 255, 0.8);
+}
+
+/* Gold subheadline */
+.legacy-premium-card--gold .legacy-premium-card__subheadline {
+  color: rgba(218, 165, 32, 0.9);
+}
+
+/* Emerald subheadline */
+.legacy-premium-card--emerald .legacy-premium-card__subheadline {
+  color: rgba(52, 211, 153, 0.9);
+}
+
+/* ==================
+   DIVIDER
+================== */
+.legacy-premium-card__divider {
+  width: 60px;
+  height: 1px;
+  margin: 20px 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+}
+
+/* ==================
+   VALUE SECTION
+================== */
+.legacy-premium-card__value {
+  margin-bottom: 16px;
+}
+
+.legacy-premium-card__currency {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 4px;
+}
+
+.legacy-premium-card__amount {
+  font-family: 'Crimson Pro', 'Georgia', serif;
+  font-size: clamp(36px, 6vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.2);
+  margin-bottom: 8px;
+}
+
+.legacy-premium-card__period {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
   letter-spacing: 0.02em;
+}
+
+/* ==================
+   BADGE
+================== */
+.legacy-premium-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  margin-bottom: 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.legacy-premium-card__badge-icon {
   opacity: 0.8;
-  color: hsl(var(--muted-foreground));
+  color: currentColor;
 }
 
-/* Dark mode adjustments */
-.dark .legacy-card {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+/* ==================
+   DETAIL TEXT
+================== */
+.legacy-premium-card__detail {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  max-width: 400px;
 }
 
-.dark .legacy-card:hover {
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+/* ==================
+   ACCENT LINE
+================== */
+.legacy-premium-card__accent {
+  width: 100%;
+  height: 1px;
+  margin-top: 28px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
 }
 
-.dark .legacy-card__icon {
-  color: #6da3ff;
-  background: rgba(109, 163, 255, 0.12);
-  border-color: #27419f;
+/* Platinum accent - iridescent */
+.legacy-premium-card--platinum .legacy-premium-card__accent {
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(200, 210, 255, 0.5),
+    rgba(255, 200, 255, 0.4),
+    rgba(200, 210, 255, 0.5),
+    transparent);
 }
 
-.dark .legacy-card__headline {
-  color: #4b7ffd;
+/* Gold accent */
+.legacy-premium-card--gold .legacy-premium-card__accent {
+  background: linear-gradient(90deg, transparent, rgba(218, 165, 32, 0.5), transparent);
 }
 
-.dark .legacy-card__promise strong {
-  color: #6da3ff;
+/* Emerald accent */
+.legacy-premium-card--emerald .legacy-premium-card__accent {
+  background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.5), transparent);
 }
 
-/* Print styles - disable transforms and transitions */
+/* ==================
+   RESPONSIVE DESIGN
+================== */
+@media (max-width: 640px) {
+  .legacy-premium-card {
+    max-width: 100%;
+    padding: 32px 24px;
+    min-height: 480px;
+  }
+
+  .legacy-premium-card__icon-container {
+    width: 64px;
+    height: 64px;
+  }
+
+  .premium-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .legacy-premium-card__headline {
+    font-size: 24px;
+  }
+
+  .legacy-premium-card__amount {
+    font-size: 40px;
+  }
+
+  .legacy-premium-card__detail {
+    font-size: 13px;
+  }
+}
+
+/* ==================
+   PRINT STYLES
+================== */
 @media print {
-  .legacy-card {
+  .legacy-premium-card {
     transform: none !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .legacy-premium-card__glass,
+  .legacy-premium-card__glow {
+    display: none;
+  }
+
+  .legacy-premium-card__content {
+    background: white;
+    color: black;
+  }
+
+  .legacy-premium-card__headline,
+  .legacy-premium-card__amount {
+    color: #000;
+    text-shadow: none;
+  }
+}
+
+/* ==================
+   DARK MODE ENHANCEMENTS
+================== */
+.dark .legacy-premium-card {
+  /* Dark mode already looks premium, just ensure consistency */
+}
+
+/* ==================
+   ACCESSIBILITY
+================== */
+@media (prefers-reduced-motion: reduce) {
+  .legacy-premium-card,
+  .legacy-premium-card:hover,
+  .legacy-premium-card__icon-backdrop,
+  .legacy-premium-card__glow {
     transition: none !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    animation: none !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .legacy-premium-card {
+    border: 2px solid currentColor;
   }
 
-  .legacy-card:hover {
-    transform: none !important;
-  }
-
-  .legacy-card:before {
-    display: none !important;
+  .legacy-premium-card__glass {
+    opacity: 0;
   }
 }

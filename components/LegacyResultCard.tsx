@@ -15,26 +15,39 @@ const kOrM = (n: number) => {
   return `${n.toFixed(0)}`;
 };
 
-/* Simple, clean infinity glyph */
-const IconInfinity = () => (
-  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" aria-hidden>
-    <path d="M18.5 8c-2.1 0-3.8 1.6-6.5 4.5C9.3 15.4 7.6 17 5.5 17 3.6 17 2 15.4 2 13.5S3.6 10 5.5 10c2.1 0 3.8 1.6 6.5 4.5 2.7 2.9 4.4 4.5 6.5 4.5 1.9 0 3.5-1.6 3.5-3.5S20.4 8 18.5 8Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+/* Premium Icons - Minimal & Elegant */
+const IconDiamond = () => (
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden className="premium-icon">
+    <path d="M12 2L2 9l10 13L22 9z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" fillOpacity="0.1"/>
+    <path d="M2 9h20M12 2l-3 7h6l-3-7zM7 9l5 13M17 9l-5 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
-const IconGenerations = () => (
-  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" aria-hidden>
-    <circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="1.8"/>
-    <path d="M3 12h3M18 12h3M12 3v3M12 18v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+const IconCrown = () => (
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden className="premium-icon">
+    <path d="M3 8l3 10h12l3-10-6 3-3-3-3 3-6-3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" fillOpacity="0.1"/>
+    <circle cx="12" cy="5" r="1.5" fill="currentColor"/>
+    <circle cx="3" cy="8" r="1.5" fill="currentColor"/>
+    <circle cx="21" cy="8" r="1.5" fill="currentColor"/>
+  </svg>
+);
+
+const IconGeneration = () => (
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden className="premium-icon">
+    <path d="M12 2v20M8 18l4 4 4-4M8 6l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="12" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2"/>
+    <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2"/>
+    <circle cx="12" cy="16" r="2" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2"/>
   </svg>
 );
 
 type LegacyProps = {
-  payout: number;           // per beneficiary, per year (real)
-  duration?: number;        // years (ignored if isPerpetual)
+  payout: number;
+  duration?: number;
   isPerpetual?: boolean;
-  currency?: string;        // default USD
-  label?: string;           // optional subtitle override
+  currency?: string;
+  label?: string;
+  variant?: 'platinum' | 'gold' | 'emerald' | 'default';
 };
 
 export const LegacyResultCard: React.FC<LegacyProps> = ({
@@ -42,41 +55,73 @@ export const LegacyResultCard: React.FC<LegacyProps> = ({
   duration = 0,
   isPerpetual = false,
   currency = "USD",
-  label
+  label,
+  variant = 'default'
 }) => {
-  const headline = isPerpetual ? "Perpetual Legacy" : "Years of Support";
-  const big = isPerpetual ? "∞" : String(duration);
-  const micro = isPerpetual ? "Inflation-indexed, principal preserved" : "Inflation-indexed support";
-  const chip = isPerpetual ? "Real $ / yr" : `${duration} yrs`;
+  // Auto-select variant based on outcome if not specified
+  const selectedVariant = variant === 'default'
+    ? (isPerpetual ? 'platinum' : (duration > 100 ? 'gold' : 'emerald'))
+    : variant;
+
+  const headline = isPerpetual ? "Perpetual Legacy" : "Generational Wealth";
+  const subheadline = isPerpetual ? "Infinite Horizon" : `${duration} Year Duration`;
+  const icon = isPerpetual ? <IconDiamond /> : (duration > 50 ? <IconCrown /> : <IconGeneration />);
 
   return (
-    <div className={`legacy-card ${isPerpetual ? "is-perpetual" : "is-finite"}`} role="region" aria-label={headline}>
-      <div className="legacy-card__icon">{isPerpetual ? <IconInfinity /> : <IconGenerations />}</div>
+    <div
+      className={`legacy-premium-card legacy-premium-card--${selectedVariant} ${isPerpetual ? 'is-perpetual' : 'is-finite'}`}
+      role="region"
+      aria-label={headline}
+    >
+      {/* Glassmorphic overlay */}
+      <div className="legacy-premium-card__glass" />
 
-      <div className="legacy-card__big">{big}</div>
-      <div className="legacy-card__headline">{headline}</div>
+      {/* Ambient glow */}
+      <div className="legacy-premium-card__glow" />
 
-      <div className="legacy-card__chip" aria-hidden>
-        {chip}
+      {/* Content Container */}
+      <div className="legacy-premium-card__content">
+
+        {/* Icon with elegant backdrop */}
+        <div className="legacy-premium-card__icon-container">
+          <div className="legacy-premium-card__icon-backdrop" />
+          {icon}
+        </div>
+
+        {/* Main headline */}
+        <div className="legacy-premium-card__header">
+          <h3 className="legacy-premium-card__headline">{headline}</h3>
+          <p className="legacy-premium-card__subheadline">{subheadline}</p>
+        </div>
+
+        {/* Divider line */}
+        <div className="legacy-premium-card__divider" />
+
+        {/* Primary value - Large, elegant serif font */}
+        <div className="legacy-premium-card__value">
+          <div className="legacy-premium-card__currency">USD</div>
+          <div className="legacy-premium-card__amount">{fmtMoney(payout, currency)}</div>
+          <div className="legacy-premium-card__period">per beneficiary / year</div>
+        </div>
+
+        {/* Real dollar badge */}
+        <div className="legacy-premium-card__badge">
+          <svg className="legacy-premium-card__badge-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M6 1v10M3 3h6a1.5 1.5 0 010 3H3M3 6h6a1.5 1.5 0 010 3H3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+          </svg>
+          <span>2025 Real Dollars</span>
+        </div>
+
+        {/* Detail text */}
+        <p className="legacy-premium-card__detail">
+          {label || (isPerpetual
+            ? `Portfolio maintains purchasing power across generations, delivering ${kOrM(payout)} annually in today's dollars, indefinitely.`
+            : `Supports ${duration} years of distributions, providing approximately ${kOrM(payout)} per beneficiary each year, inflation-adjusted.`)}
+        </p>
+
+        {/* Metallic accent line */}
+        <div className="legacy-premium-card__accent" />
       </div>
-
-      <p className="legacy-card__promise">
-        <strong>
-          {fmtMoney(payout, currency)}
-          <br />
-          per beneficiary / year (real)
-        </strong>
-      </p>
-
-      <p className="legacy-card__detail">
-        {label
-          ? label
-          : isPerpetual
-          ? `Sustains approximately ${kOrM(payout)} per beneficiary every year, in today's dollars.`
-          : `Delivers about ${kOrM(payout)} per beneficiary each year for ${duration} years, indexed to inflation.`}
-      </p>
-
-      <div className="legacy-card__micro">{micro}</div>
     </div>
   );
 };
