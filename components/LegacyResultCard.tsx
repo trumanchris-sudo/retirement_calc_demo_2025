@@ -138,11 +138,6 @@ export const LegacyResultCard: React.FC<LegacyProps> = ({
 
           </div>
 
-          {/* Footer */}
-          <div className="legacy-premium-card__footer">
-            <span className="legacy-premium-card__badge-text">≈ 2025 REAL DOLLARS</span>
-          </div>
-
         </div>
       </div>
     </div>

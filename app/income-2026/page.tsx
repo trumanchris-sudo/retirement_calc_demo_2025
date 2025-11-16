@@ -8,13 +8,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { TopBanner } from "@/components/layout/TopBanner";
+
+type FilingStatus = "single" | "married";
 
 export default function Income2026Page() {
   // Marital status
-  const [isMarried, setIsMarried] = useState(false);
+  const [maritalStatus, setMaritalStatus] = useState<FilingStatus>("single");
 
   // Person 1 (User) Income Inputs
   const [p1Name, setP1Name] = useState("Person 1");
@@ -86,6 +93,246 @@ export default function Income2026Page() {
     console.log("Calculating 2026 income projections...");
   };
 
+  const isMarried = maritalStatus === "married";
+
+  // Helper function to handle numeric input changes
+  // Strips non-numeric characters and converts to number
+  const handleNumericInput = (value: string, setter: (val: number) => void) => {
+    // Remove all non-numeric characters
+    const numericValue = value.replace(/[^0-9]/g, '');
+    // Convert to number, default to 0 if empty
+    const numberValue = numericValue === '' ? 0 : Number(numericValue);
+    setter(numberValue);
+  };
+
+  // Helper function for decimal inputs (like percentages or rates)
+  const handleDecimalInput = (value: string, setter: (val: number) => void) => {
+    // Allow only numbers and one decimal point
+    const decimalValue = value.replace(/[^0-9.]/g, '');
+    // Prevent multiple decimal points
+    const parts = decimalValue.split('.');
+    const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : decimalValue;
+    // Convert to number, default to 0 if empty
+    const numberValue = sanitized === '' ? 0 : Number(sanitized);
+    setter(numberValue);
+  };
+
+  // Helper component for income input section
+  const IncomeSection = ({
+    label,
+    nameValue, onNameChange,
+    baseIncome, onBaseIncomeChange,
+    bonus, onBonusChange,
+    bonusMonth, onBonusMonthChange,
+    overtime, onOvertimeChange,
+    preTax401k, onPreTax401kChange,
+    preTaxHealth, onPreTaxHealthChange,
+    preTaxHSA, onPreTaxHSAChange,
+    preTaxFSA, onPreTaxFSAChange,
+    rothContrib, onRothContribChange,
+    disability, onDisabilityChange,
+    life, onLifeChange,
+    idPrefix
+  }: {
+    label: string;
+    nameValue: string;
+    onNameChange: (v: string) => void;
+    baseIncome: number;
+    onBaseIncomeChange: (v: number) => void;
+    bonus: number;
+    onBonusChange: (v: number) => void;
+    bonusMonth: string;
+    onBonusMonthChange: (v: string) => void;
+    overtime: number;
+    onOvertimeChange: (v: number) => void;
+    preTax401k: number;
+    onPreTax401kChange: (v: number) => void;
+    preTaxHealth: number;
+    onPreTaxHealthChange: (v: number) => void;
+    preTaxHSA: number;
+    onPreTaxHSAChange: (v: number) => void;
+    preTaxFSA: number;
+    onPreTaxFSAChange: (v: number) => void;
+    rothContrib: number;
+    onRothContribChange: (v: number) => void;
+    disability: number;
+    onDisabilityChange: (v: number) => void;
+    life: number;
+    onLifeChange: (v: number) => void;
+    idPrefix: string;
+  }) => (
+    <div className="space-y-6">
+      <h3 className="text-lg font-semibold text-foreground">{label}</h3>
+
+      {/* Income Sources */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Income Sources</h4>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-name`}>Name/Label</Label>
+            <Input
+              id={`${idPrefix}-name`}
+              value={nameValue}
+              onChange={(e) => onNameChange(e.target.value)}
+              placeholder="e.g., John, Primary Earner"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-base`}>Base Annual Salary</Label>
+            <Input
+              id={`${idPrefix}-base`}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={baseIncome}
+              onChange={(e) => handleNumericInput(e.target.value, onBaseIncomeChange)}
+              placeholder="150000"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-bonus`}>Annual Bonus</Label>
+            <Input
+              id={`${idPrefix}-bonus`}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={bonus}
+              onChange={(e) => handleNumericInput(e.target.value, onBonusChange)}
+              placeholder="15000"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-bonus-month`}>Bonus Payment Month</Label>
+            <select
+              id={`${idPrefix}-bonus-month`}
+              value={bonusMonth}
+              onChange={(e) => onBonusMonthChange(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {months.slice(0, 12).map(month => (
+                <option key={month} value={month}>{month}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-overtime`}>Estimated Monthly Overtime</Label>
+            <Input
+              id={`${idPrefix}-overtime`}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={overtime}
+              onChange={(e) => handleNumericInput(e.target.value, onOvertimeChange)}
+              placeholder="500"
+            />
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Pre-Tax Deductions */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Pre-Tax Deductions (per paycheck)</h4>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-401k`}>401(k) Contribution</Label>
+            <Input
+              id={`${idPrefix}-401k`}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={preTax401k}
+              onChange={(e) => handleNumericInput(e.target.value, onPreTax401kChange)}
+              placeholder="750"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-health`}>Health Insurance Premium</Label>
+            <Input
+              id={`${idPrefix}-health`}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={preTaxHealth}
+              onChange={(e) => handleNumericInput(e.target.value, onPreTaxHealthChange)}
+              placeholder="200"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-hsa`}>HSA Contribution</Label>
+            <Input
+              id={`${idPrefix}-hsa`}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={preTaxHSA}
+              onChange={(e) => handleNumericInput(e.target.value, onPreTaxHSAChange)}
+              placeholder="300"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-fsa`}>FSA Contribution</Label>
+            <Input
+              id={`${idPrefix}-fsa`}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={preTaxFSA}
+              onChange={(e) => handleNumericInput(e.target.value, onPreTaxFSAChange)}
+              placeholder="100"
+            />
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Post-Tax Deductions */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Post-Tax Deductions (per paycheck)</h4>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-roth`}>Roth 401(k) Contribution</Label>
+            <Input
+              id={`${idPrefix}-roth`}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={rothContrib}
+              onChange={(e) => handleNumericInput(e.target.value, onRothContribChange)}
+              placeholder="250"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-disability`}>Disability Insurance</Label>
+            <Input
+              id={`${idPrefix}-disability`}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={disability}
+              onChange={(e) => handleNumericInput(e.target.value, onDisabilityChange)}
+              placeholder="50"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-life`}>Life Insurance Premium</Label>
+            <Input
+              id={`${idPrefix}-life`}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={life}
+              onChange={(e) => handleNumericInput(e.target.value, onLifeChange)}
+              placeholder="25"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <TopBanner />
@@ -125,331 +372,109 @@ export default function Income2026Page() {
             <CardTitle>Household Setup</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="married"
-                checked={isMarried}
-                onCheckedChange={(checked) => setIsMarried(!!checked)}
-              />
-              <label
-                htmlFor="married"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Married (include spouse income)
-              </label>
+            <div className="space-y-2 max-w-xs">
+              <Label htmlFor="marital-status">Marital Status</Label>
+              <Select value={maritalStatus} onValueChange={(value: FilingStatus) => setMaritalStatus(value)}>
+                <SelectTrigger id="marital-status">
+                  <SelectValue placeholder="Select marital status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="single">Single</SelectItem>
+                  <SelectItem value="married">Married</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
 
-        {/* Income Tabs */}
-        <Tabs defaultValue="person1" className="mb-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="person1">{p1Name}</TabsTrigger>
-            <TabsTrigger value="person2" disabled={!isMarried}>{p2Name} {!isMarried && "(Married Only)"}</TabsTrigger>
-          </TabsList>
-
-          {/* Person 1 Income */}
-          <TabsContent value="person1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Income Sources</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="p1-name">Name/Label</Label>
-                    <Input
-                      id="p1-name"
-                      value={p1Name}
-                      onChange={(e) => setP1Name(e.target.value)}
-                      placeholder="e.g., John, Primary Earner"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="p1-base">Base Annual Salary</Label>
-                    <Input
-                      id="p1-base"
-                      type="number"
-                      value={p1BaseIncome}
-                      onChange={(e) => setP1BaseIncome(Number(e.target.value))}
-                      placeholder="150000"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="p1-bonus">Annual Bonus</Label>
-                    <Input
-                      id="p1-bonus"
-                      type="number"
-                      value={p1Bonus}
-                      onChange={(e) => setP1Bonus(Number(e.target.value))}
-                      placeholder="15000"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="p1-bonus-month">Bonus Payment Month</Label>
-                    <select
-                      id="p1-bonus-month"
-                      value={p1BonusMonth}
-                      onChange={(e) => setP1BonusMonth(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {months.slice(0, 12).map(month => (
-                        <option key={month} value={month}>{month}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="p1-overtime">Estimated Monthly Overtime</Label>
-                    <Input
-                      id="p1-overtime"
-                      type="number"
-                      value={p1OvertimeMonthly}
-                      onChange={(e) => setP1OvertimeMonthly(Number(e.target.value))}
-                      placeholder="500"
-                    />
-                  </div>
+        {/* Income Sections - Stacked vertically */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Income Sources & Deductions</CardTitle>
+            <CardDescription>
+              {isMarried ? "Enter income details for both you and your spouse" : "Enter your income details"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-8">
+              {/* Person 1 / Your Income */}
+              <div>
+                <div className="mb-4 pb-2 border-b-2 border-border">
+                  <h3 className="text-lg font-semibold text-foreground uppercase tracking-wide">
+                    {isMarried ? "Your Income" : "Income Details"}
+                  </h3>
                 </div>
+                <IncomeSection
+                  label=""
+                  nameValue={p1Name}
+                  onNameChange={setP1Name}
+                  baseIncome={p1BaseIncome}
+                  onBaseIncomeChange={setP1BaseIncome}
+                  bonus={p1Bonus}
+                  onBonusChange={setP1Bonus}
+                  bonusMonth={p1BonusMonth}
+                  onBonusMonthChange={setP1BonusMonth}
+                  overtime={p1OvertimeMonthly}
+                  onOvertimeChange={setP1OvertimeMonthly}
+                  preTax401k={p1PreTax401k}
+                  onPreTax401kChange={setP1PreTax401k}
+                  preTaxHealth={p1PreTaxHealthInsurance}
+                  onPreTaxHealthChange={setP1PreTaxHealthInsurance}
+                  preTaxHSA={p1PreTaxHSA}
+                  onPreTaxHSAChange={setP1PreTaxHSA}
+                  preTaxFSA={p1PreTaxFSA}
+                  onPreTaxFSAChange={setP1PreTaxFSA}
+                  rothContrib={p1RothContribution}
+                  onRothContribChange={setP1RothContribution}
+                  disability={p1DisabilityInsurance}
+                  onDisabilityChange={setP1DisabilityInsurance}
+                  life={p1LifeInsurance}
+                  onLifeChange={setP1LifeInsurance}
+                  idPrefix="p1"
+                />
+              </div>
 
-                <Separator />
-
+              {/* Person 2 / Spouse's Income (only if married) */}
+              {isMarried && (
                 <div>
-                  <h3 className="font-semibold mb-4">Pre-Tax Deductions (per paycheck)</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="p1-401k">401(k) Contribution</Label>
-                      <Input
-                        id="p1-401k"
-                        type="number"
-                        value={p1PreTax401k}
-                        onChange={(e) => setP1PreTax401k(Number(e.target.value))}
-                        placeholder="750"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="p1-health">Health Insurance Premium</Label>
-                      <Input
-                        id="p1-health"
-                        type="number"
-                        value={p1PreTaxHealthInsurance}
-                        onChange={(e) => setP1PreTaxHealthInsurance(Number(e.target.value))}
-                        placeholder="200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="p1-hsa">HSA Contribution</Label>
-                      <Input
-                        id="p1-hsa"
-                        type="number"
-                        value={p1PreTaxHSA}
-                        onChange={(e) => setP1PreTaxHSA(Number(e.target.value))}
-                        placeholder="300"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="p1-fsa">FSA Contribution</Label>
-                      <Input
-                        id="p1-fsa"
-                        type="number"
-                        value={p1PreTaxFSA}
-                        onChange={(e) => setP1PreTaxFSA(Number(e.target.value))}
-                        placeholder="100"
-                      />
-                    </div>
+                  <div className="mb-4 pb-2 border-b-2 border-border">
+                    <h3 className="text-lg font-semibold text-foreground uppercase tracking-wide">
+                      Spouse's Income
+                    </h3>
                   </div>
+                  <IncomeSection
+                    label=""
+                    nameValue={p2Name}
+                    onNameChange={setP2Name}
+                    baseIncome={p2BaseIncome}
+                    onBaseIncomeChange={setP2BaseIncome}
+                    bonus={p2Bonus}
+                    onBonusChange={setP2Bonus}
+                    bonusMonth={p2BonusMonth}
+                    onBonusMonthChange={setP2BonusMonth}
+                    overtime={p2OvertimeMonthly}
+                    onOvertimeChange={setP2OvertimeMonthly}
+                    preTax401k={p2PreTax401k}
+                    onPreTax401kChange={setP2PreTax401k}
+                    preTaxHealth={p2PreTaxHealthInsurance}
+                    onPreTaxHealthChange={setP2PreTaxHealthInsurance}
+                    preTaxHSA={p2PreTaxHSA}
+                    onPreTaxHSAChange={setP2PreTaxHSA}
+                    preTaxFSA={p2PreTaxFSA}
+                    onPreTaxFSAChange={setP2PreTaxFSA}
+                    rothContrib={p2RothContribution}
+                    onRothContribChange={setP2RothContribution}
+                    disability={p2DisabilityInsurance}
+                    onDisabilityChange={setP2DisabilityInsurance}
+                    life={p2LifeInsurance}
+                    onLifeChange={setP2LifeInsurance}
+                    idPrefix="p2"
+                  />
                 </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="font-semibold mb-4">Post-Tax Deductions (per paycheck)</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="p1-roth">Roth 401(k) Contribution</Label>
-                      <Input
-                        id="p1-roth"
-                        type="number"
-                        value={p1RothContribution}
-                        onChange={(e) => setP1RothContribution(Number(e.target.value))}
-                        placeholder="250"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="p1-disability">Disability Insurance</Label>
-                      <Input
-                        id="p1-disability"
-                        type="number"
-                        value={p1DisabilityInsurance}
-                        onChange={(e) => setP1DisabilityInsurance(Number(e.target.value))}
-                        placeholder="50"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="p1-life">Life Insurance Premium</Label>
-                      <Input
-                        id="p1-life"
-                        type="number"
-                        value={p1LifeInsurance}
-                        onChange={(e) => setP1LifeInsurance(Number(e.target.value))}
-                        placeholder="25"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Person 2 Income (Spouse) */}
-          <TabsContent value="person2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Spouse Income Sources</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="p2-name">Name/Label</Label>
-                    <Input
-                      id="p2-name"
-                      value={p2Name}
-                      onChange={(e) => setP2Name(e.target.value)}
-                      placeholder="e.g., Jane, Spouse"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="p2-base">Base Annual Salary</Label>
-                    <Input
-                      id="p2-base"
-                      type="number"
-                      value={p2BaseIncome}
-                      onChange={(e) => setP2BaseIncome(Number(e.target.value))}
-                      placeholder="120000"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="p2-bonus">Annual Bonus</Label>
-                    <Input
-                      id="p2-bonus"
-                      type="number"
-                      value={p2Bonus}
-                      onChange={(e) => setP2Bonus(Number(e.target.value))}
-                      placeholder="10000"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="p2-bonus-month">Bonus Payment Month</Label>
-                    <select
-                      id="p2-bonus-month"
-                      value={p2BonusMonth}
-                      onChange={(e) => setP2BonusMonth(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {months.slice(0, 12).map(month => (
-                        <option key={month} value={month}>{month}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="p2-overtime">Estimated Monthly Overtime</Label>
-                    <Input
-                      id="p2-overtime"
-                      type="number"
-                      value={p2OvertimeMonthly}
-                      onChange={(e) => setP2OvertimeMonthly(Number(e.target.value))}
-                      placeholder="500"
-                    />
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="font-semibold mb-4">Pre-Tax Deductions (per paycheck)</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="p2-401k">401(k) Contribution</Label>
-                      <Input
-                        id="p2-401k"
-                        type="number"
-                        value={p2PreTax401k}
-                        onChange={(e) => setP2PreTax401k(Number(e.target.value))}
-                        placeholder="750"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="p2-health">Health Insurance Premium</Label>
-                      <Input
-                        id="p2-health"
-                        type="number"
-                        value={p2PreTaxHealthInsurance}
-                        onChange={(e) => setP2PreTaxHealthInsurance(Number(e.target.value))}
-                        placeholder="150"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="p2-hsa">HSA Contribution</Label>
-                      <Input
-                        id="p2-hsa"
-                        type="number"
-                        value={p2PreTaxHSA}
-                        onChange={(e) => setP2PreTaxHSA(Number(e.target.value))}
-                        placeholder="200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="p2-fsa">FSA Contribution</Label>
-                      <Input
-                        id="p2-fsa"
-                        type="number"
-                        value={p2PreTaxFSA}
-                        onChange={(e) => setP2PreTaxFSA(Number(e.target.value))}
-                        placeholder="50"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="font-semibold mb-4">Post-Tax Deductions (per paycheck)</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="p2-roth">Roth 401(k) Contribution</Label>
-                      <Input
-                        id="p2-roth"
-                        type="number"
-                        value={p2RothContribution}
-                        onChange={(e) => setP2RothContribution(Number(e.target.value))}
-                        placeholder="250"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="p2-disability">Disability Insurance</Label>
-                      <Input
-                        id="p2-disability"
-                        type="number"
-                        value={p2DisabilityInsurance}
-                        onChange={(e) => setP2DisabilityInsurance(Number(e.target.value))}
-                        placeholder="50"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="p2-life">Life Insurance Premium</Label>
-                      <Input
-                        id="p2-life"
-                        type="number"
-                        value={p2LifeInsurance}
-                        onChange={(e) => setP2LifeInsurance(Number(e.target.value))}
-                        placeholder="20"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Spending Buckets */}
         <Card className="mb-6">
@@ -465,9 +490,11 @@ export default function Income2026Page() {
                 <Label htmlFor="mortgage">Mortgage Payment</Label>
                 <Input
                   id="mortgage"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={mortgagePayment}
-                  onChange={(e) => setMortgagePayment(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setMortgagePayment)}
                   placeholder="2500"
                 />
               </div>
@@ -475,9 +502,11 @@ export default function Income2026Page() {
                 <Label htmlFor="household">Household Expenses</Label>
                 <Input
                   id="household"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={householdExpenses}
-                  onChange={(e) => setHouseholdExpenses(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setHouseholdExpenses)}
                   placeholder="1500"
                 />
               </div>
@@ -485,9 +514,11 @@ export default function Income2026Page() {
                 <Label htmlFor="discretionary">Discretionary Spending</Label>
                 <Input
                   id="discretionary"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={discretionarySpending}
-                  onChange={(e) => setDiscretionarySpending(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setDiscretionarySpending)}
                   placeholder="1000"
                 />
               </div>
@@ -495,9 +526,11 @@ export default function Income2026Page() {
                 <Label htmlFor="childcare">Childcare Costs</Label>
                 <Input
                   id="childcare"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={childcareCosts}
-                  onChange={(e) => setChildcareCosts(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setChildcareCosts)}
                   placeholder="2000"
                 />
               </div>
@@ -518,9 +551,11 @@ export default function Income2026Page() {
                 <Label htmlFor="investments">Non-Retirement Investments</Label>
                 <Input
                   id="investments"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={nonRetirementInvestments}
-                  onChange={(e) => setNonRetirementInvestments(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setNonRetirementInvestments)}
                   placeholder="500"
                 />
               </div>
@@ -528,9 +563,11 @@ export default function Income2026Page() {
                 <Label htmlFor="surplus">Surplus Liquidity Savings</Label>
                 <Input
                   id="surplus"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={surplusLiquidity}
-                  onChange={(e) => setSurplusLiquidity(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setSurplusLiquidity)}
                   placeholder="1000"
                 />
               </div>
@@ -552,9 +589,11 @@ export default function Income2026Page() {
                 <Label htmlFor="mortgage-balance">Current Mortgage Balance</Label>
                 <Input
                   id="mortgage-balance"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={mortgageBalance}
-                  onChange={(e) => setMortgageBalance(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setMortgageBalance)}
                   placeholder="350000"
                 />
               </div>
@@ -562,10 +601,11 @@ export default function Income2026Page() {
                 <Label htmlFor="mortgage-rate">Mortgage Interest Rate (%)</Label>
                 <Input
                   id="mortgage-rate"
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9.]*"
                   value={mortgageRate}
-                  onChange={(e) => setMortgageRate(Number(e.target.value))}
+                  onChange={(e) => handleDecimalInput(e.target.value, setMortgageRate)}
                   placeholder="3.25"
                 />
               </div>
@@ -573,9 +613,11 @@ export default function Income2026Page() {
                 <Label htmlFor="mortgage-interest">Est. Monthly Interest Portion</Label>
                 <Input
                   id="mortgage-interest"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={mortgageInterestMonthly}
-                  onChange={(e) => setMortgageInterestMonthly(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setMortgageInterestMonthly)}
                   placeholder="950"
                 />
               </div>
@@ -597,9 +639,11 @@ export default function Income2026Page() {
                 <Label htmlFor="car-fmv">Current Fair Market Value</Label>
                 <Input
                   id="car-fmv"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={carFMV}
-                  onChange={(e) => setCarFMV(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setCarFMV)}
                   placeholder="35000"
                 />
               </div>
@@ -607,9 +651,11 @@ export default function Income2026Page() {
                 <Label htmlFor="car-life">Estimated Useful Life (years)</Label>
                 <Input
                   id="car-life"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={carUsefulLife}
-                  onChange={(e) => setCarUsefulLife(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setCarUsefulLife)}
                   placeholder="10"
                 />
               </div>
@@ -617,9 +663,11 @@ export default function Income2026Page() {
                 <Label htmlFor="car-residual">Residual Value Floor</Label>
                 <Input
                   id="car-residual"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={carResidualValue}
-                  onChange={(e) => setCarResidualValue(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setCarResidualValue)}
                   placeholder="5000"
                 />
               </div>
@@ -627,9 +675,11 @@ export default function Income2026Page() {
                 <Label htmlFor="car-firesale">Firesale Discount (%)</Label>
                 <Input
                   id="car-firesale"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={carFiresaleDiscount}
-                  onChange={(e) => setCarFiresaleDiscount(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setCarFiresaleDiscount)}
                   placeholder="30"
                 />
               </div>
@@ -651,9 +701,11 @@ export default function Income2026Page() {
                 <Label htmlFor="federal-extra">Federal Withholding (per paycheck)</Label>
                 <Input
                   id="federal-extra"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={federalWithholdingExtra}
-                  onChange={(e) => setFederalWithholdingExtra(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setFederalWithholdingExtra)}
                   placeholder="100"
                 />
               </div>
@@ -661,9 +713,11 @@ export default function Income2026Page() {
                 <Label htmlFor="state-extra">State Withholding (per paycheck)</Label>
                 <Input
                   id="state-extra"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={stateWithholdingExtra}
-                  onChange={(e) => setStateWithholdingExtra(Number(e.target.value))}
+                  onChange={(e) => handleNumericInput(e.target.value, setStateWithholdingExtra)}
                   placeholder="50"
                 />
               </div>

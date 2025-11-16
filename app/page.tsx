@@ -33,6 +33,7 @@ import { GenerationalResultCard } from "@/components/GenerationalResultCard";
 import { LegacyResultCard } from "@/components/LegacyResultCard";
 import AddToWalletButton from "@/components/AddToWalletButton";
 import DownloadCardButton from "@/components/DownloadCardButton";
+import DownloadPDFButton from "@/components/DownloadPDFButton";
 import { LegacyResult } from "@/lib/walletPass";
 import UserInputsPrintSummary from "@/components/UserInputsPrintSummary";
 import { TopBanner } from "@/components/layout/TopBanner";
@@ -890,14 +891,14 @@ async function runTenSeedsAndSummarize(params: Inputs, baseSeed: number): Promis
   }
 
   const eolValues = results.map(r => r.eolReal);
-  const eolReal_p10 = percentile(eolValues, 10);
+  const eolReal_p25 = percentile(eolValues, 25);
   const eolReal_p50 = percentile(eolValues, 50);
-  const eolReal_p90 = percentile(eolValues, 90);
+  const eolReal_p75 = percentile(eolValues, 75);
 
   const y1Values = results.map(r => r.y1AfterTaxReal);
-  const y1AfterTaxReal_p10 = percentile(y1Values, 10);
+  const y1AfterTaxReal_p25 = percentile(y1Values, 25);
   const y1AfterTaxReal_p50 = percentile(y1Values, 50);
-  const y1AfterTaxReal_p90 = percentile(y1Values, 90);
+  const y1AfterTaxReal_p75 = percentile(y1Values, 75);
 
   const probRuin = results.filter(r => r.ruined).length / N;
 
@@ -905,12 +906,12 @@ async function runTenSeedsAndSummarize(params: Inputs, baseSeed: number): Promis
     p10BalancesReal,
     p50BalancesReal,
     p90BalancesReal,
-    eolReal_p10,
+    eolReal_p25,
     eolReal_p50,
-    eolReal_p90,
-    y1AfterTaxReal_p10,
+    eolReal_p75,
+    y1AfterTaxReal_p25,
     y1AfterTaxReal_p50,
-    y1AfterTaxReal_p90,
+    y1AfterTaxReal_p75,
     probRuin,
     allRuns: results,  // Include all simulation runs for spaghetti plot
   };
@@ -2021,29 +2022,29 @@ export default function App() {
 
           // Calculate EOL values for all three percentiles
           console.log('[CALC] Calculating EOL percentiles...');
-          const eolP10 = batchSummary.eolReal_p10 * Math.pow(1 + infl, yearsFrom2025);
+          const eolP25 = batchSummary.eolReal_p25 * Math.pow(1 + infl, yearsFrom2025);
           const eolP50 = batchSummary.eolReal_p50 * Math.pow(1 + infl, yearsFrom2025);
-          const eolP90 = batchSummary.eolReal_p90 * Math.pow(1 + infl, yearsFrom2025);
-          console.log('[CALC] EOL percentiles - p10:', eolP10, 'p50:', eolP50, 'p90:', eolP90);
+          const eolP75 = batchSummary.eolReal_p75 * Math.pow(1 + infl, yearsFrom2025);
+          console.log('[CALC] EOL percentiles - p25:', eolP25, 'p50:', eolP50, 'p75:', eolP75);
 
           // Calculate estate tax and net estate for each percentile
           console.log('[CALC] Calculating estate taxes for percentiles...');
-          const estateTaxP10 = calcEstateTax(eolP10, marital);
+          const estateTaxP25 = calcEstateTax(eolP25, marital);
           const estateTaxP50 = calcEstateTax(eolP50, marital);
-          const estateTaxP90 = calcEstateTax(eolP90, marital);
+          const estateTaxP75 = calcEstateTax(eolP75, marital);
 
-          const netEstateP10 = eolP10 - estateTaxP10;
+          const netEstateP25 = eolP25 - estateTaxP25;
           const netEstateP50 = eolP50 - estateTaxP50;
-          const netEstateP90 = eolP90 - estateTaxP90;
-          console.log('[CALC] Net estates - p10:', netEstateP10, 'p50:', netEstateP50, 'p90:', netEstateP90);
+          const netEstateP75 = eolP75 - estateTaxP75;
+          console.log('[CALC] Net estates - p25:', netEstateP25, 'p50:', netEstateP50, 'p75:', netEstateP75);
 
-          // Run generational wealth simulation for all three percentiles (P10, P50, P90)
+          // Run generational wealth simulation for all three percentiles (P25, P50, P75)
           // This allows us to calculate actual success rate based on which percentiles are perpetual
-          console.log('[CALC] Running generational simulations for P10, P50, P90...');
+          console.log('[CALC] Running generational simulations for P25, P50, P75...');
           console.log('[CALC] Parameters - yearsFrom2025:', yearsFrom2025, 'retRate:', retRate);
 
-          const simP10 = simulateRealPerBeneficiaryPayout(
-            netEstateP10,
+          const simP25 = simulateRealPerBeneficiaryPayout(
+            netEstateP25,
             yearsFrom2025,
             retRate,
             infRate,
@@ -2076,8 +2077,8 @@ export default function App() {
             fertilityWindowEnd
           );
 
-          const simP90 = simulateRealPerBeneficiaryPayout(
-            netEstateP90,
+          const simP75 = simulateRealPerBeneficiaryPayout(
+            netEstateP75,
             yearsFrom2025,
             retRate,
             infRate,
@@ -2093,20 +2094,20 @@ export default function App() {
             fertilityWindowEnd
           );
 
-          console.log('[CALC] Generational simulations completed - P10:', simP10, 'P50:', simP50, 'P90:', simP90);
+          console.log('[CALC] Generational simulations completed - P25:', simP25, 'P50:', simP50, 'P75:', simP75);
 
           // Calculate actual success rate based on which percentiles are perpetual
-          // P10 perpetual → 90% success (90% of sims were above P10)
+          // P25 perpetual → 75% success (75% of sims were above P25)
           // P50 perpetual → 50% success (50% of sims were above P50)
-          // P90 perpetual → 10% success (10% of sims were above P90)
+          // P75 perpetual → 25% success (25% of sims were above P75)
           // Otherwise → 0%
           let calculatedProbPerpetual = 0;
-          if (simP10.fundLeftReal > 0) {
-            calculatedProbPerpetual = 0.90;  // 90% success rate
+          if (simP25.fundLeftReal > 0) {
+            calculatedProbPerpetual = 0.75;  // 75% success rate
           } else if (simP50.fundLeftReal > 0) {
             calculatedProbPerpetual = 0.50;  // 50% success rate
-          } else if (simP90.fundLeftReal > 0) {
-            calculatedProbPerpetual = 0.10;  // 10% success rate
+          } else if (simP75.fundLeftReal > 0) {
+            calculatedProbPerpetual = 0.25;  // 25% success rate
           }
 
           console.log('[CALC] Calculated success rate:', calculatedProbPerpetual);
@@ -2124,9 +2125,9 @@ export default function App() {
             deathAge: Math.max(1, hypDeathAge),
             // All three percentiles
             p10: {
-              years: simP10.years,
-              fundLeftReal: simP10.fundLeftReal,
-              isPerpetual: simP10.fundLeftReal > 0
+              years: simP25.years,
+              fundLeftReal: simP25.fundLeftReal,
+              isPerpetual: simP25.fundLeftReal > 0
             },
             p50: {
               years: simP50.years,
@@ -2134,9 +2135,9 @@ export default function App() {
               isPerpetual: simP50.fundLeftReal > 0
             },
             p90: {
-              years: simP90.years,
-              fundLeftReal: simP90.fundLeftReal,
-              isPerpetual: simP90.fundLeftReal > 0
+              years: simP75.years,
+              fundLeftReal: simP75.fundLeftReal,
+              isPerpetual: simP75.fundLeftReal > 0
             },
             probPerpetual: calculatedProbPerpetual  // Calculated from percentile results, not hardcoded!
           };
@@ -2835,7 +2836,30 @@ export default function App() {
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         showActions={!!res}
         cubeAppended={cubeAppended}
-        onPrint={() => window.print()}
+        onDownloadPDF={async () => {
+          if (!res) return;
+
+          const { generatePDFReport } = await import('@/lib/pdfReport');
+          const reportData = {
+            inputs: {
+              marital, age1, age2, retAge, sTax, sPre, sPost,
+              cTax1, cPre1, cPost1, cMatch1,
+              cTax2, cPre2, cPost2, cMatch2,
+              retRate, infRate, stateRate, wdRate, incContrib, incRate,
+              retMode, walkSeries,
+              includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+              includeMedicare, medicarePremium, medicalInflation,
+              irmaaThresholdSingle, irmaaThresholdMarried, irmaaSurcharge,
+              includeLTC, ltcAnnualCost, ltcProbability, ltcDuration, ltcOnsetAge,
+              showGen, hypPerBen, numberOfChildren,
+              totalFertilityRate, generationLength,
+              fertilityWindowStart, fertilityWindowEnd
+            },
+            results: res,
+            reportId: `RPT-${Date.now()}`
+          };
+          await generatePDFReport(reportData);
+        }}
         onShare={() => {
           if (!res) return;
           const shareData = {
@@ -4424,6 +4448,63 @@ export default function App() {
               />
             </div>
 
+            {/* Download PDF Report Button */}
+            <div className="print:hidden flex justify-center my-6">
+              <DownloadPDFButton
+                marital={marital}
+                age1={age1}
+                age2={age2}
+                retAge={retAge}
+                sTax={sTax}
+                sPre={sPre}
+                sPost={sPost}
+                cTax1={cTax1}
+                cPre1={cPre1}
+                cPost1={cPost1}
+                cMatch1={cMatch1}
+                cTax2={cTax2}
+                cPre2={cPre2}
+                cPost2={cPost2}
+                cMatch2={cMatch2}
+                retRate={retRate}
+                infRate={infRate}
+                stateRate={stateRate}
+                wdRate={wdRate}
+                incContrib={incContrib}
+                incRate={incRate}
+                retMode={retMode}
+                walkSeries={walkSeries}
+                includeSS={includeSS}
+                ssIncome={ssIncome}
+                ssClaimAge={ssClaimAge}
+                ssIncome2={ssIncome2}
+                ssClaimAge2={ssClaimAge2}
+                includeMedicare={includeMedicare}
+                medicarePremium={medicarePremium}
+                medicalInflation={medicalInflation}
+                irmaaThresholdSingle={irmaaThresholdSingle}
+                irmaaThresholdMarried={irmaaThresholdMarried}
+                irmaaSurcharge={irmaaSurcharge}
+                includeLTC={includeLTC}
+                ltcAnnualCost={ltcAnnualCost}
+                ltcProbability={ltcProbability}
+                ltcDuration={ltcDuration}
+                ltcOnsetAge={ltcOnsetAge}
+                showGen={showGen}
+                hypPerBen={hypPerBen}
+                numberOfChildren={numberOfChildren}
+                totalFertilityRate={totalFertilityRate}
+                generationLength={generationLength}
+                fertilityWindowStart={fertilityWindowStart}
+                fertilityWindowEnd={fertilityWindowEnd}
+                results={res}
+                userName={undefined}
+                variant="default"
+                size="lg"
+                className="shadow-lg"
+              />
+            </div>
+
             {/* Lifetime Wealth Flow - Sankey Diagram (Screen only - hidden from print) */}
             <div className="print:hidden wealth-flow-block">
                 <Card className="border-2 border-slate-200 dark:border-slate-700">
@@ -4679,39 +4760,6 @@ export default function App() {
                     </CardContent>
                 </Card>
             </div>
-
-            {/* Legacy Result Cards - Show if generational wealth enabled and calculated */}
-            {showGen && res.genPayout && legacyResult && (
-              <AnimatedSection animation="fade-in" delay={100}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Legacy Planning Results</CardTitle>
-                    <CardDescription>Generational wealth transfer analysis</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col md:flex-row justify-center gap-6">
-                      <div ref={legacyCardRefAllInOne}>
-                        <LegacyResultCard
-                          payout={res.genPayout.perBenReal}
-                          duration={res.genPayout.years}
-                          isPerpetual={res.genPayout.p50?.isPerpetual === true}
-                          successRate={(res.genPayout.probPerpetual || 0) * 100}
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-6 flex flex-col md:flex-row justify-center gap-3">
-                      <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
-                      <DownloadCardButton
-                        enabled={!!legacyResult}
-                        cardRef={legacyCardRefAllInOne}
-                        filename="legacy-card.png"
-                      />
-                      <AddToWalletButton result={legacyResult} />
-                    </div>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-            )}
 
             <div className="print:hidden analysis-block">
             <Card>

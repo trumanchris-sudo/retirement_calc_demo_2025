@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Moon, Sun, Printer, Share2, Sliders, DollarSign } from "lucide-react";
+import { Moon, Sun, FileText, Share2, Sliders, DollarSign } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -12,7 +12,7 @@ interface PageHeaderProps {
   showActions?: boolean;
   isDarkMode?: boolean;
   onToggleDarkMode: () => void;
-  onPrint?: () => void;
+  onDownloadPDF?: () => void;
   onShare?: () => void;
   onAdjust?: (deltas: AdjustmentDeltas) => void;
   cubeAppended?: boolean;
@@ -27,7 +27,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   showActions = false,
   isDarkMode = false,
   onToggleDarkMode,
-  onPrint,
+  onDownloadPDF,
   onShare,
   onAdjust,
   cubeAppended = false
@@ -216,20 +216,20 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onPrint}
+                onClick={onDownloadPDF}
                 className="md:hidden no-print"
-                aria-label="Print"
+                aria-label="Download PDF Report"
               >
-                <Printer className="w-4 h-4" />
+                <FileText className="w-4 h-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onPrint}
+                onClick={onDownloadPDF}
                 className="hidden md:inline-flex no-print"
               >
-                <Printer className="w-4 h-4 mr-2" />
-                Print
+                <FileText className="w-4 h-4 mr-2" />
+                PDF Report
               </Button>
 
               <Button
