@@ -4525,63 +4525,6 @@ export default function App() {
               />
             </div>
 
-            {/* Download PDF Report Button */}
-            <div className="print:hidden flex justify-center my-6">
-              <DownloadPDFButton
-                marital={marital}
-                age1={age1}
-                age2={age2}
-                retAge={retAge}
-                sTax={sTax}
-                sPre={sPre}
-                sPost={sPost}
-                cTax1={cTax1}
-                cPre1={cPre1}
-                cPost1={cPost1}
-                cMatch1={cMatch1}
-                cTax2={cTax2}
-                cPre2={cPre2}
-                cPost2={cPost2}
-                cMatch2={cMatch2}
-                retRate={retRate}
-                infRate={infRate}
-                stateRate={stateRate}
-                wdRate={wdRate}
-                incContrib={incContrib}
-                incRate={incRate}
-                retMode={retMode}
-                walkSeries={walkSeries}
-                includeSS={includeSS}
-                ssIncome={ssIncome}
-                ssClaimAge={ssClaimAge}
-                ssIncome2={ssIncome2}
-                ssClaimAge2={ssClaimAge2}
-                includeMedicare={includeMedicare}
-                medicarePremium={medicarePremium}
-                medicalInflation={medicalInflation}
-                irmaaThresholdSingle={irmaaThresholdSingle}
-                irmaaThresholdMarried={irmaaThresholdMarried}
-                irmaaSurcharge={irmaaSurcharge}
-                includeLTC={includeLTC}
-                ltcAnnualCost={ltcAnnualCost}
-                ltcProbability={ltcProbability}
-                ltcDuration={ltcDuration}
-                ltcOnsetAge={ltcOnsetAge}
-                showGen={showGen}
-                hypPerBen={hypPerBen}
-                numberOfChildren={numberOfChildren}
-                totalFertilityRate={totalFertilityRate}
-                generationLength={generationLength}
-                fertilityWindowStart={fertilityWindowStart}
-                fertilityWindowEnd={fertilityWindowEnd}
-                results={res}
-                userName={undefined}
-                variant="default"
-                size="lg"
-                className="shadow-lg"
-              />
-            </div>
-
             {/* Lifetime Wealth Flow - Sankey Diagram (Screen only - hidden from print) */}
             <div className="print:hidden wealth-flow-block">
                 <Card className="border-2 border-slate-200 dark:border-slate-700">
