@@ -2037,10 +2037,28 @@ export default function App() {
           const netEstateP90 = eolP90 - estateTaxP90;
           console.log('[CALC] Net estates - p10:', netEstateP10, 'p50:', netEstateP50, 'p90:', netEstateP90);
 
-          // Run generational wealth simulation for P50 only (skip P10/P90 for performance)
-          // In Monte Carlo mode, only show median generational outcome
-          console.log('[CALC] About to call simulateRealPerBeneficiaryPayout...');
-          console.log('[CALC] Parameters - netEstateP50:', netEstateP50, 'yearsFrom2025:', yearsFrom2025, 'retRate:', retRate);
+          // Run generational wealth simulation for all three percentiles (P10, P50, P90)
+          // This allows us to calculate actual success rate based on which percentiles are perpetual
+          console.log('[CALC] Running generational simulations for P10, P50, P90...');
+          console.log('[CALC] Parameters - yearsFrom2025:', yearsFrom2025, 'retRate:', retRate);
+
+          const simP10 = simulateRealPerBeneficiaryPayout(
+            netEstateP10,
+            yearsFrom2025,
+            retRate,
+            infRate,
+            hypPerBen,
+            Math.max(1, hypStartBens),
+            totalFertilityRate,
+            generationLength,
+            Math.max(1, hypDeathAge),
+            Math.max(0, hypMinDistAge),
+            10000,  // Optimized simulation with early-exit and chunking
+            benAges.length > 0 ? benAges : [0],
+            fertilityWindowStart,
+            fertilityWindowEnd
+          );
+
           const simP50 = simulateRealPerBeneficiaryPayout(
             netEstateP50,
             yearsFrom2025,
@@ -2057,9 +2075,43 @@ export default function App() {
             fertilityWindowStart,
             fertilityWindowEnd
           );
-          console.log('[CALC] simulateRealPerBeneficiaryPayout completed, simP50:', simP50);
 
-          // In Monte Carlo mode, only show P50 generational outcome for performance
+          const simP90 = simulateRealPerBeneficiaryPayout(
+            netEstateP90,
+            yearsFrom2025,
+            retRate,
+            infRate,
+            hypPerBen,
+            Math.max(1, hypStartBens),
+            totalFertilityRate,
+            generationLength,
+            Math.max(1, hypDeathAge),
+            Math.max(0, hypMinDistAge),
+            10000,  // Optimized simulation with early-exit and chunking
+            benAges.length > 0 ? benAges : [0],
+            fertilityWindowStart,
+            fertilityWindowEnd
+          );
+
+          console.log('[CALC] Generational simulations completed - P10:', simP10, 'P50:', simP50, 'P90:', simP90);
+
+          // Calculate actual success rate based on which percentiles are perpetual
+          // P10 perpetual → 90% success (90% of sims were above P10)
+          // P50 perpetual → 50% success (50% of sims were above P50)
+          // P90 perpetual → 10% success (10% of sims were above P90)
+          // Otherwise → 0%
+          let calculatedProbPerpetual = 0;
+          if (simP10.fundLeftReal > 0) {
+            calculatedProbPerpetual = 0.90;  // 90% success rate
+          } else if (simP50.fundLeftReal > 0) {
+            calculatedProbPerpetual = 0.50;  // 50% success rate
+          } else if (simP90.fundLeftReal > 0) {
+            calculatedProbPerpetual = 0.10;  // 10% success rate
+          }
+
+          console.log('[CALC] Calculated success rate:', calculatedProbPerpetual);
+
+          // Build genPayout object with all three percentiles
           console.log('[CALC] Building genPayout object...');
           genPayout = {
             perBenReal: hypPerBen,
@@ -2070,13 +2122,23 @@ export default function App() {
             totalFertilityRate,
             generationLength,
             deathAge: Math.max(1, hypDeathAge),
-            // Monte Carlo fields - P50 only
+            // All three percentiles
+            p10: {
+              years: simP10.years,
+              fundLeftReal: simP10.fundLeftReal,
+              isPerpetual: simP10.fundLeftReal > 0
+            },
             p50: {
               years: simP50.years,
               fundLeftReal: simP50.fundLeftReal,
               isPerpetual: simP50.fundLeftReal > 0
             },
-            probPerpetual: simP50.fundLeftReal > 0 ? 0.5 : 0
+            p90: {
+              years: simP90.years,
+              fundLeftReal: simP90.fundLeftReal,
+              isPerpetual: simP90.fundLeftReal > 0
+            },
+            probPerpetual: calculatedProbPerpetual  // Calculated from percentile results, not hardcoded!
           };
         }
         console.log('[CALC] Generational payout complete, genPayout:', genPayout ? 'exists' : 'null');
@@ -6367,70 +6429,28 @@ export default function App() {
                     <>
                       <Separator className="my-6" />
                       <div ref={genRef} className="mt-6">
-                      {(() => {
-                        // Determine if perpetual based on all three percentiles
-                        const isPerpetual =
-                          res.genPayout.p10?.isPerpetual === true &&
-                          res.genPayout.p50?.isPerpetual === true &&
-                          res.genPayout.p90?.isPerpetual === true;
+                      {/* Single LegacyResultCard with calculated success rate */}
+                      <div className="flex justify-center mb-6">
+                        <div ref={legacyCardRefLegacy}>
+                          <LegacyResultCard
+                            payout={res.genPayout.perBenReal}
+                            duration={res.genPayout.years}
+                            isPerpetual={res.genPayout.p50?.isPerpetual === true}
+                            successRate={(res.genPayout.probPerpetual || 0) * 100}
+                          />
+                        </div>
+                      </div>
 
-                        const variant = isPerpetual ? "perpetual" : "finite";
-
-                        const p10Value = res.genPayout.p10?.isPerpetual
-                          ? "Infinity"
-                          : res.genPayout.p10?.years || 0;
-                        const p50Value = res.genPayout.p50?.isPerpetual
-                          ? "Infinity"
-                          : res.genPayout.p50?.years || 0;
-                        const p90Value = res.genPayout.p90?.isPerpetual
-                          ? "Infinity"
-                          : res.genPayout.p90?.years || 0;
-
-                        const explanationText = isPerpetual
-                          ? `Each beneficiary receives ${fmt(res.genPayout.perBenReal)}/year (inflation-adjusted) from age ${hypMinDistAge} to ${hypDeathAge}—equivalent to a ${fmt(res.genPayout.perBenReal * 25)} trust fund. This provides lifelong financial security and freedom to pursue any career path.`
-                          : `Each beneficiary receives ${fmt(res.genPayout.perBenReal)}/year (inflation-adjusted) for ${res.genPayout.years} years, providing substantial financial support during their lifetime.`;
-
-                        return (
-                          <>
-                            {/* GenerationalResultCard for detailed Monte Carlo view */}
-                            <div className="flex justify-center mb-8">
-                              <GenerationalResultCard
-                                variant={variant}
-                                amountPerBeneficiary={res.genPayout.perBenReal}
-                                yearsOfSupport={isPerpetual ? "Infinity" : res.genPayout.years}
-                                percentile10={p10Value}
-                                percentile50={p50Value}
-                                percentile90={p90Value}
-                                probability={res.genPayout.probPerpetual || 0}
-                                explanationText={explanationText}
-                              />
-                            </div>
-
-                            {/* LegacyResultCard for simpler visual */}
-                            <div className="flex justify-center mb-6">
-                              <div ref={legacyCardRefLegacy}>
-                                <LegacyResultCard
-                                  payout={res.genPayout.perBenReal}
-                                  duration={res.genPayout.years}
-                                  isPerpetual={isPerpetual}
-                                  successRate={(res.genPayout.probPerpetual || 0) * 100}
-                                />
-                              </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="mt-6 flex flex-col md:flex-row justify-center gap-3">
-                              <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
-                              <DownloadCardButton
-                                enabled={!!legacyResult}
-                                cardRef={legacyCardRefLegacy}
-                                filename="legacy-card.png"
-                              />
-                              <AddToWalletButton result={legacyResult} />
-                            </div>
-                          </>
-                        );
-                      })()}
+                      {/* Action Buttons */}
+                      <div className="mt-6 flex flex-col md:flex-row justify-center gap-3">
+                        <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
+                        <DownloadCardButton
+                          enabled={!!legacyResult}
+                          cardRef={legacyCardRefLegacy}
+                          filename="legacy-card.png"
+                        />
+                        <AddToWalletButton result={legacyResult} />
+                      </div>
                       </div>
                     </>
                   )}

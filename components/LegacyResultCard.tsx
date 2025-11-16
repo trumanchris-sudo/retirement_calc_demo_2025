@@ -101,19 +101,19 @@ export const LegacyResultCard: React.FC<LegacyProps> = ({
       {/* Ambient glow */}
       <div className="legacy-premium-card__glow" />
 
-      {/* Content Container - Horizontal Layout */}
+      {/* Content Container - Vertical Layout */}
       <div className="legacy-premium-card__content">
 
-        {/* Left: Icon */}
-        <div className="legacy-premium-card__left">
+        {/* Top: Icon */}
+        <div className="legacy-premium-card__top">
           <div className="legacy-premium-card__icon-container">
             <div className="legacy-premium-card__icon-backdrop" />
             {icon}
           </div>
         </div>
 
-        {/* Right: All content */}
-        <div className="legacy-premium-card__right">
+        {/* Main: All content */}
+        <div className="legacy-premium-card__main">
 
           {/* Header */}
           <div className="legacy-premium-card__header">
@@ -121,15 +121,13 @@ export const LegacyResultCard: React.FC<LegacyProps> = ({
             <p className="legacy-premium-card__subheadline">{subheadline}</p>
           </div>
 
-          {/* Main metrics row */}
+          {/* Main metrics - vertical stack */}
           <div className="legacy-premium-card__metrics">
 
             {/* SUCCESS RATE - The hero metric */}
             <div className="legacy-premium-card__success">
               <div className="legacy-premium-card__success-percentage">{Math.round(successRate)}%</div>
-              <div className="legacy-premium-card__success-label">
-                {isPerpetual ? 'PERPETUAL PROBABILITY' : 'SUCCESS RATE'}
-              </div>
+              <div className="legacy-premium-card__success-label">SUCCESS RATE</div>
             </div>
 
             {/* Dollar amount */}

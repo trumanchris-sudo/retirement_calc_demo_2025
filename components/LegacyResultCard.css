@@ -6,14 +6,14 @@
 /* Import premium fonts */
 @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
-/* Base Card Container - Credit Card Format */
+/* Base Card Container - Vertical Format */
 .legacy-premium-card {
   position: relative;
   width: 100%;
-  max-width: 600px; /* Credit card width */
-  height: 378px; /* Credit card height (600 ÷ 1.586) */
-  border-radius: 16px; /* Subtle rounding like credit cards */
-  padding: 32px 36px;
+  max-width: 480px; /* Vertical card width */
+  min-height: 520px; /* Vertical card height */
+  border-radius: 20px; /* Rounded corners */
+  padding: 40px;
   overflow: hidden;
   isolation: isolate;
 
@@ -24,7 +24,7 @@
 }
 
 .legacy-premium-card:hover {
-  transform: translateY(-2px) scale(1.005);
+  transform: translateY(-4px) scale(1.01);
 }
 
 /* Glassmorphic overlay layer */
@@ -55,31 +55,33 @@
   opacity: 0.8;
 }
 
-/* Content container - sits above glass - HORIZONTAL LAYOUT */
+/* Content container - sits above glass - VERTICAL LAYOUT */
 .legacy-premium-card__content {
   position: relative;
   z-index: 2;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  gap: 32px;
+  gap: 24px;
   height: 100%;
+  text-align: center;
 }
 
-/* Left section - Icon */
-.legacy-premium-card__left {
+/* Icon section at top */
+.legacy-premium-card__top {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Right section - All content */
-.legacy-premium-card__right {
+/* Main content section */
+.legacy-premium-card__main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
+  width: 100%;
 }
 
 /* ==================
@@ -239,8 +241,8 @@
 ================== */
 .legacy-premium-card__icon-container {
   position: relative;
-  width: 72px;
-  height: 72px;
+  width: 96px;
+  height: 96px;
   display: grid;
   place-items: center;
 }
@@ -248,7 +250,7 @@
 .legacy-premium-card__icon-backdrop {
   position: absolute;
   inset: 0;
-  border-radius: 16px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
@@ -269,12 +271,12 @@
   position: relative;
   z-index: 1;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
 }
 
 /* ==================
-   HEADER - Compact for credit card
+   HEADER - Vertical Layout
 ================== */
 .legacy-premium-card__header {
   margin-bottom: 0;
@@ -282,18 +284,18 @@
 
 .legacy-premium-card__headline {
   font-family: 'Crimson Pro', 'Georgia', serif; /* SERIF for titles */
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.1;
   color: #ffffff;
-  margin: 0 0 2px 0;
+  margin: 0 0 6px 0;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .legacy-premium-card__subheadline {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; /* SANS-SERIF for labels */
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -302,13 +304,14 @@
 }
 
 /* ==================
-   METRICS ROW - Horizontal layout
+   METRICS SECTION - Vertical layout
 ================== */
 .legacy-premium-card__metrics {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  gap: 40px;
+  gap: 28px;
+  width: 100%;
 }
 
 /* ==================
@@ -316,24 +319,25 @@
 ================== */
 .legacy-premium-card__success {
   flex-shrink: 0;
+  width: 100%;
 }
 
 .legacy-premium-card__success-percentage {
   font-family: 'Inter', sans-serif; /* SANS-SERIF for percentages (bold, readable) */
-  font-size: 48px;
+  font-size: 72px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   line-height: 1;
   color: #ffffff;
   text-shadow:
     0 2px 8px rgba(0, 0, 0, 0.4),
     0 4px 16px rgba(0, 0, 0, 0.2);
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .legacy-premium-card__success-label {
   font-family: 'Inter', sans-serif; /* SANS-SERIF for labels */
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -345,11 +349,12 @@
 ================== */
 .legacy-premium-card__value {
   flex: 1;
+  width: 100%;
 }
 
 .legacy-premium-card__amount {
   font-family: 'Crimson Pro', 'Georgia', serif; /* SERIF for dollar amounts */
-  font-size: 36px;
+  font-size: 48px;
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -357,12 +362,12 @@
   text-shadow:
     0 2px 8px rgba(0, 0, 0, 0.4),
     0 4px 16px rgba(0, 0, 0, 0.2);
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .legacy-premium-card__period {
   font-family: 'Inter', sans-serif; /* SANS-SERIF for labels */
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.6);
   letter-spacing: 0.05em;
@@ -387,14 +392,13 @@
 }
 
 /* ==================
-   RESPONSIVE DESIGN - Maintain credit card ratio
+   RESPONSIVE DESIGN - Vertical card
 ================== */
 @media (max-width: 640px) {
   .legacy-premium-card {
     max-width: 100%;
-    height: auto;
-    aspect-ratio: 1.586;
-    padding: 24px 28px;
+    min-height: 450px;
+    padding: 32px 28px;
   }
 
   .legacy-premium-card__content {
@@ -402,31 +406,29 @@
   }
 
   .legacy-premium-card__icon-container {
-    width: 56px;
-    height: 56px;
+    width: 72px;
+    height: 72px;
   }
 
   .premium-icon {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
   }
 
   .legacy-premium-card__headline {
-    font-size: 20px;
+    font-size: 26px;
   }
 
   .legacy-premium-card__metrics {
-    gap: 24px;
-    flex-direction: column;
-    align-items: flex-start;
+    gap: 20px;
   }
 
   .legacy-premium-card__success-percentage {
-    font-size: 36px;
+    font-size: 56px;
   }
 
   .legacy-premium-card__amount {
-    font-size: 28px;
+    font-size: 36px;
   }
 }
 
