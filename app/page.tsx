@@ -2246,31 +2246,29 @@ export default function App() {
         setLegacyResult(calculateLegacyResult(newRes));
         console.log('[CALC] Result set successfully');
 
-        // Track calculation for tab interface and auto-switch to results
+        // Track calculation for tab interface
+        const isFirstCalculation = !lastCalculated;
         setLastCalculated(new Date());
         setInputsModified(false);
 
-        // Auto-switch from Configure tab to Results tab
-        if (activeMainTab === 'configure') {
-          setActiveMainTab('results');
-        }
+        // NAVIGATION BEHAVIOR FIX:
+        // - First calculation from Configure tab → Navigate to Results tab and scroll to top
+        // - Recalculate from ANY other location → Stay on current tab, don't scroll
+        const shouldNavigate = isFirstCalculation && activeMainTab === 'configure';
 
-        setTimeout(() => {
-          // In All-in-One tab, scroll to top of page
-          if (activeMainTab === 'all') {
+        if (shouldNavigate) {
+          // First calculation from Configure tab: switch to Results and scroll
+          setActiveMainTab('results');
+          setTimeout(() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
-          } else if (showGen && genPayout) {
-            genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-          } else if (walkSeries === 'trulyRandom') {
-            // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
-            monteCarloRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-          } else {
-            resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }
-          // AI insight will be generated on demand when user clicks button
+            setOlderAgeForAnalysis(olderAgeForAI);
+            setIsLoadingAi(false);
+          }, 100);
+        } else {
+          // Recalculate: stay put, no navigation or scrolling
           setOlderAgeForAnalysis(olderAgeForAI);
           setIsLoadingAi(false);
-        }, 100);
+        }
 
         console.log('[CALC] Monte Carlo calculation complete, exiting early');
         return; // Exit early, we're done with batch mode
