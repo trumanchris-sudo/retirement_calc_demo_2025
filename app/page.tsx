@@ -1809,17 +1809,22 @@ export default function App() {
 
         if (showGen && netEstate > 0) {
           console.log('[CALC] Starting generational payout calculation...');
+          console.log('[CALC] hypBenAgesStr:', hypBenAgesStr);
           const benAges = hypBenAgesStr
             .split(',')
             .map(s => parseInt(s.trim(), 10))
             .filter(n => !isNaN(n) && n >= 0 && n < 90);
+          console.log('[CALC] benAges parsed:', benAges);
 
           // Calculate EOL values for all three percentiles
+          console.log('[CALC] Calculating EOL percentiles...');
           const eolP10 = batchSummary.eolReal_p10 * Math.pow(1 + infl, yearsFrom2025);
           const eolP50 = batchSummary.eolReal_p50 * Math.pow(1 + infl, yearsFrom2025);
           const eolP90 = batchSummary.eolReal_p90 * Math.pow(1 + infl, yearsFrom2025);
+          console.log('[CALC] EOL percentiles - p10:', eolP10, 'p50:', eolP50, 'p90:', eolP90);
 
           // Calculate estate tax and net estate for each percentile
+          console.log('[CALC] Calculating estate taxes for percentiles...');
           const estateTaxP10 = calcEstateTax(eolP10, marital);
           const estateTaxP50 = calcEstateTax(eolP50, marital);
           const estateTaxP90 = calcEstateTax(eolP90, marital);
@@ -1827,9 +1832,12 @@ export default function App() {
           const netEstateP10 = eolP10 - estateTaxP10;
           const netEstateP50 = eolP50 - estateTaxP50;
           const netEstateP90 = eolP90 - estateTaxP90;
+          console.log('[CALC] Net estates - p10:', netEstateP10, 'p50:', netEstateP50, 'p90:', netEstateP90);
 
           // Run generational wealth simulation for P50 only (skip P10/P90 for performance)
           // In Monte Carlo mode, only show median generational outcome
+          console.log('[CALC] About to call simulateRealPerBeneficiaryPayout...');
+          console.log('[CALC] Parameters - netEstateP50:', netEstateP50, 'yearsFrom2025:', yearsFrom2025, 'retRate:', retRate);
           const simP50 = simulateRealPerBeneficiaryPayout(
             netEstateP50,
             yearsFrom2025,
@@ -1841,13 +1849,15 @@ export default function App() {
             generationLength,
             Math.max(1, hypDeathAge),
             Math.max(0, hypMinDistAge),
-            10000,
+            500,  // Reduced from 10000 to 500 to prevent UI blocking
             benAges.length > 0 ? benAges : [0],
             fertilityWindowStart,
             fertilityWindowEnd
           );
+          console.log('[CALC] simulateRealPerBeneficiaryPayout completed, simP50:', simP50);
 
           // In Monte Carlo mode, only show P50 generational outcome for performance
+          console.log('[CALC] Building genPayout object...');
           genPayout = {
             perBenReal: hypPerBen,
             years: simP50.years,
@@ -2252,7 +2262,7 @@ export default function App() {
           generationLength,
           Math.max(1, hypDeathAge),
           Math.max(0, hypMinDistAge),
-          10000,
+          500,  // Reduced from 10000 to 500 to prevent UI blocking
           benAges.length > 0 ? benAges : [0],
           fertilityWindowStart,
           fertilityWindowEnd
