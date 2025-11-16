@@ -6539,12 +6539,22 @@ export default function App() {
                 <div className="space-y-6 text-sm leading-relaxed pt-4 max-w-full break-words">
             <section>
               <h3 className="text-xl font-semibold mb-3 text-blue-900">Overview</h3>
-              <p className="text-gray-700">
+              <p className="text-gray-700 mb-4">
                 This calculator uses a comprehensive, tax-aware simulation to project your retirement finances.
                 It models two distinct phases: the <strong>accumulation phase</strong> (from now until retirement)
                 and the <strong>drawdown phase</strong> (from retirement until age {LIFE_EXP}). All calculations
                 account for compound growth, inflation, taxes, and required minimum distributions.
               </p>
+
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-gray-700">
+                  <strong>Filing Status:</strong> This calculator is configurable for both single and married filing status.
+                  Tax calculations automatically adjust based on your selection, using appropriate brackets
+                  (single: $15K standard deduction, married: $30K), NIIT thresholds (single: $200K, married: $250K),
+                  and IRMAA thresholds (single: $103K, married: $206K). Select your filing status in the Configure tab
+                  to ensure accurate tax projections.
+                </p>
+              </div>
             </section>
 
             <Separator />
@@ -6589,7 +6599,7 @@ export default function App() {
                   <ul className="list-disc pl-6 space-y-1 text-gray-700">
                     <li><strong>Taxable (Brokerage):</strong> Subject to long-term capital gains tax on withdrawals. We track your cost basis (total contributions) and only the gains are taxed.</li>
                     <li><strong>Pre-Tax (401k/Traditional IRA):</strong> Contributions grow tax-deferred. All withdrawals are taxed as ordinary income. Subject to Required Minimum Distributions (RMDs) starting at age {RMD_START_AGE}.</li>
-                    <li><strong>Post-Tax (Roth):</strong> Contributions grow tax-free. Qualified withdrawals in retirement are completely tax-free (no taxes, no RMDs).</li>
+                    <li><strong>Post-Tax (Roth):</strong> Contributions grow tax-free. <strong>Qualified withdrawals</strong> (age 59½ AND account open 5+ years) are completely tax-free (no taxes, no RMDs). This calculator assumes you've met the 5-year rule by retirement and all withdrawals are qualified.</li>
                   </ul>
                 </div>
               </div>
@@ -6714,9 +6724,13 @@ export default function App() {
 
                 <div>
                   <h4 className="text-lg font-semibold mb-2 text-blue-800">Healthcare Costs</h4>
+                  <p className="text-gray-700 mb-3">
+                    <strong>Important:</strong> Healthcare costs are withdrawn <strong>in addition to</strong> your base retirement
+                    spending. For example: $80K base withdrawal + $5K Medicare + $4K IRMAA + potential $80K/year LTC = significant
+                    additional portfolio drain. These are not included within your withdrawal rate—they stack on top.
+                  </p>
                   <p className="text-gray-700 mb-2">
-                    If enabled, the calculator models age-based healthcare expenses in addition to your regular
-                    retirement withdrawals:
+                    The calculator models the following age-based healthcare expenses:
                   </p>
                   <ul className="list-disc pl-6 space-y-2 text-gray-700">
                     <li>
@@ -6764,12 +6778,21 @@ export default function App() {
 
                 <div>
                   <h4 className="text-lg font-semibold mb-2 text-blue-800">Estate Tax</h4>
-                  <p className="text-gray-700">
+                  <p className="text-gray-700 mb-3">
                     Under current law (2025), estates exceeding ${((marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single) / 1_000_000).toFixed(2)}
                     million are subject to a 40% federal estate tax on the amount above the exemption. Your heirs
                     receive the net estate after this tax. Note: Estate tax laws may change, and this is a simplified
                     calculation that doesn't account for spousal transfers, trusts, or state estate taxes.
                   </p>
+
+                  <div className="mt-3 p-4 bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500 rounded">
+                    <p className="text-gray-700">
+                      <strong>⚠️ CRITICAL:</strong> The $13.99M/$27.98M exemption sunsets December 31, 2025, reverting to approximately
+                      $7M for single filers ($14M married). This calculator uses the 2025 exemption but may significantly overstate
+                      the exemption for deaths after 2025. If your projected estate exceeds $7M, consult an estate attorney for
+                      updated planning strategies.
+                    </p>
+                  </div>
                 </div>
 
                 <div>
@@ -6780,7 +6803,12 @@ export default function App() {
                   </p>
                   <ul className="list-disc pl-6 space-y-1 text-gray-700">
                     <li>The net estate (after estate tax) is deflated to 2025 purchasing power</li>
-                    <li>Each year, the fund grows at a real rate (nominal return minus inflation)</li>
+                    <li>
+                      <strong>Real Returns:</strong> For generational projections, we convert nominal returns to real returns
+                      by subtracting inflation using the Fisher equation: Real Return = (1 + Nominal) / (1 + Inflation) - 1.
+                      For example: 9.8% nominal - 2.6% inflation = ~7.0% real return used in perpetual threshold calculations.
+                      This ensures all values stay in constant 2025 dollars.
+                    </li>
                     <li>Only beneficiaries at or above the minimum distribution age receive payouts in constant 2025 dollars</li>
                     <li>Beneficiaries age each year; those reaching max lifespan exit the model</li>
                     <li>
