@@ -400,7 +400,7 @@ export default function Income2026Page() {
               {/* Person 1 / Your Income */}
               <div>
                 <div className="mb-4 pb-2 border-b-2 border-border">
-                  <h3 className="text-lg font-heading font-semibold text-foreground uppercase tracking-wide">
+                  <h3 className="text-lg font-semibold text-foreground uppercase tracking-wide">
                     {isMarried ? "Your Income" : "Income Details"}
                   </h3>
                 </div>
@@ -438,7 +438,7 @@ export default function Income2026Page() {
               {isMarried && (
                 <div>
                   <div className="mb-4 pb-2 border-b-2 border-border">
-                    <h3 className="text-lg font-heading font-semibold text-foreground uppercase tracking-wide">
+                    <h3 className="text-lg font-semibold text-foreground uppercase tracking-wide">
                       Spouse's Income
                     </h3>
                   </div>

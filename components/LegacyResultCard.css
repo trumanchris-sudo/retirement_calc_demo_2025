@@ -325,7 +325,7 @@
 
 .legacy-premium-card__success-percentage {
   font-family: var(--font-sans), Inter, sans-serif; /* SANS-SERIF for percentages (bold, readable) */
-  font-size: 72px;
+  font-size: 48px;
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -425,7 +425,7 @@
   }
 
   .legacy-premium-card__success-percentage {
-    font-size: 56px;
+    font-size: 36px;
   }
 
   .legacy-premium-card__amount {
