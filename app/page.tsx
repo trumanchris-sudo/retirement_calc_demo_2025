@@ -1804,10 +1804,13 @@ export default function App() {
         console.log('[CALC] Estate tax calculated - estateTax:', estateTax, 'netEstate:', netEstate);
 
         // Generational payout calculation (if enabled) - Monte Carlo version
+        // TEMPORARILY DISABLED: The cohort simulation blocks the UI thread even at 500 iterations
+        // TODO: Move to web worker or make asynchronous
         console.log('[CALC] Checking generational payout, showGen:', showGen, 'netEstate > 0:', netEstate > 0);
+        console.log('[CALC] SKIPPING generational payout in Monte Carlo mode to prevent UI freeze');
         let genPayout: GenerationalPayout | null = null;
 
-        if (showGen && netEstate > 0) {
+        if (false && showGen && netEstate > 0) {  // Temporarily disabled
           console.log('[CALC] Starting generational payout calculation...');
           console.log('[CALC] hypBenAgesStr:', hypBenAgesStr);
           const benAges = hypBenAgesStr
