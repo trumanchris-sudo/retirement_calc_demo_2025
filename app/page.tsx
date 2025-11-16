@@ -6291,6 +6291,25 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Calculate Button */}
+                  <div className="mt-8 flex justify-center">
+                    <Button
+                      onClick={calc}
+                      disabled={isRunning}
+                      size="lg"
+                      className="px-8 py-6 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all"
+                    >
+                      {isRunning ? (
+                        <>
+                          <Spinner className="mr-2" />
+                          Calculating...
+                        </>
+                      ) : (
+                        'Calculate Legacy Plan'
+                      )}
+                    </Button>
+                  </div>
+
                   {res?.genPayout && (
                     <>
                       <Separator className="my-6" />
