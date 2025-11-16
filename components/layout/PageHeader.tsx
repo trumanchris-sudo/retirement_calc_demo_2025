@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Moon, Sun, Printer, Share2, Sliders } from "lucide-react";
+import { Moon, Sun, Printer, Share2, Sliders, DollarSign } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -71,6 +72,30 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
         {/* Actions - Always show dark mode toggle prominently */}
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          {/* Income Planner Link */}
+          <Link href="/income-2026">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden no-print"
+              aria-label="2026 Income Planner"
+            >
+              <DollarSign className="w-4 h-4" />
+            </Button>
+          </Link>
+          <Link href="/income-2026">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden md:inline-flex no-print"
+            >
+              <DollarSign className="w-4 h-4 mr-2" />
+              2026 Income
+            </Button>
+          </Link>
+
+          <div className="w-px h-6 bg-border mx-1" aria-hidden="true" />
+
           {/* Dark Mode Toggle - Always First for Accessibility */}
           <Button
             variant="ghost"
