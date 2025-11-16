@@ -142,7 +142,7 @@ function addPageHeader(doc: jsPDF, pageNum: number, reportDate: string) {
   doc.setFont('helvetica', 'normal');
 
   // Header text
-  doc.text('Work Die Retire - Financial Planning Report', MARGIN, 15);
+  doc.text('Tax-Aware Retirement Calculator - Financial Planning Report', MARGIN, 15);
   doc.text(reportDate, PAGE_WIDTH - MARGIN, 15, { align: 'right' });
 
   // Header line

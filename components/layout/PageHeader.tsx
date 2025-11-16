@@ -66,7 +66,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         <div className="flex items-center gap-3 min-w-0 flex-shrink retirement-header-left">
           <CubeStaticMini />
           <span className="font-semibold text-slate-900 dark:text-slate-50 hidden sm:inline-block truncate retirement-header-title">
-            Work Die Retire
+            Tax-Aware Retirement Calculator
           </span>
         </div>
 

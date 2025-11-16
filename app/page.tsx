@@ -1155,7 +1155,11 @@ export default function App() {
   // Generational wealth parameters (improved demographic model)
   const [hypPerBen, setHypPerBen] = useState(100_000);
 
-  // New intuitive beneficiary inputs
+  // New intuitive beneficiary inputs - UPDATED to ask for current ages
+  const [childrenCurrentAges, setChildrenCurrentAges] = useState("5, 3"); // Comma-separated current ages
+  const [additionalChildrenExpected, setAdditionalChildrenExpected] = useState(0); // Number of additional children
+
+  // Legacy inputs (kept for backward compatibility with presets)
   const [numberOfChildren, setNumberOfChildren] = useState(2);
   const [parentAgeAtFirstChild, setParentAgeAtFirstChild] = useState(30);
   const [childSpacingYears, setChildSpacingYears] = useState(3);
@@ -1187,22 +1191,36 @@ export default function App() {
   // Auto-calculate beneficiary ages based on user's age and family structure
   const { hypBenAgesStr, hypStartBens } = useMemo(() => {
     const olderAge = Math.max(age1, age2);
+    const yearsUntilDeath = hypDeathAge - olderAge;
 
-    // Calculate ages of children at time of death
-    const childrenAges: number[] = [];
-    for (let i = 0; i < numberOfChildren; i++) {
-      const childAgeAtDeath = hypDeathAge - parentAgeAtFirstChild - (i * childSpacingYears);
-      // Only include children who would be alive at time of death (age < hypDeathAge)
-      if (childAgeAtDeath > 0 && childAgeAtDeath < hypDeathAge) {
-        childrenAges.push(childAgeAtDeath);
+    // Parse current children ages from comma-separated string
+    const currentAges = childrenCurrentAges
+      .split(',')
+      .map(s => parseInt(s.trim()))
+      .filter(n => !isNaN(n) && n >= 0);
+
+    // Calculate current children at time of death
+    const currentChildrenAtDeath = currentAges.map(age => age + yearsUntilDeath);
+
+    // Calculate additional children (assume 2-year birth intervals)
+    const additionalChildrenAtDeath: number[] = [];
+    for (let i = 0; i < additionalChildrenExpected; i++) {
+      const birthYear = (i + 1) * 2; // Born in 2, 4, 6 years, etc.
+      const ageAtDeath = yearsUntilDeath - birthYear;
+      if (ageAtDeath > 0 && ageAtDeath < hypDeathAge) {
+        additionalChildrenAtDeath.push(ageAtDeath);
       }
     }
 
+    // Combine all children ages at death
+    const allChildrenAges = [...currentChildrenAtDeath, ...additionalChildrenAtDeath]
+      .filter(age => age > 0 && age < hypDeathAge);
+
     return {
-      hypBenAgesStr: childrenAges.length > 0 ? childrenAges.join(', ') : '0',
-      hypStartBens: Math.max(1, childrenAges.length)
+      hypBenAgesStr: allChildrenAges.length > 0 ? allChildrenAges.join(', ') : '0',
+      hypStartBens: Math.max(1, allChildrenAges.length)
     };
-  }, [numberOfChildren, parentAgeAtFirstChild, childSpacingYears, hypDeathAge, age1, age2]);
+  }, [childrenCurrentAges, additionalChildrenExpected, hypDeathAge, age1, age2]);
 
   const [aiInsight, setAiInsight] = useState<string>("");
   const [isLoadingAi, setIsLoadingAi] = useState<boolean>(false);
@@ -2796,6 +2814,46 @@ export default function App() {
       console.error('Failed to load scenarios:', e);
     }
   }, []);
+
+  // Navigation State Persistence: Restore calculation results when returning from 2026 Income page
+  useEffect(() => {
+    try {
+      const savedResults = sessionStorage.getItem('calculatorResults');
+      const savedTab = sessionStorage.getItem('calculatorTab');
+
+      if (savedResults) {
+        const results = JSON.parse(savedResults);
+        console.log('[NAV PERSISTENCE] Restoring saved results');
+        setRes(results);
+        setLastCalculated(new Date());
+
+        // Clear the saved results after restoring
+        sessionStorage.removeItem('calculatorResults');
+      }
+
+      if (savedTab) {
+        const tab = savedTab as MainTabId;
+        console.log('[NAV PERSISTENCE] Restoring tab:', tab);
+        setActiveMainTab(tab);
+        sessionStorage.removeItem('calculatorTab');
+      }
+    } catch (e) {
+      console.error('[NAV PERSISTENCE] Failed to restore state:', e);
+    }
+  }, []);
+
+  // Save calculation results to sessionStorage when they change (for 2026 Income navigation)
+  useEffect(() => {
+    if (res) {
+      try {
+        sessionStorage.setItem('calculatorResults', JSON.stringify(res));
+        sessionStorage.setItem('calculatorTab', activeMainTab);
+        console.log('[NAV PERSISTENCE] Saved current results and tab');
+      } catch (e) {
+        console.error('[NAV PERSISTENCE] Failed to save state:', e);
+      }
+    }
+  }, [res, activeMainTab]);
 
   // Save current inputs and results as a scenario
   const saveScenario = useCallback(() => {
@@ -6326,36 +6384,32 @@ export default function App() {
                         tip="How much each person receives per year, adjusted for inflation"
                         onInputChange={handleInputChange}
                       />
-                      <Input
-                        label="Number of Children"
-                        value={numberOfChildren}
-                        setter={setNumberOfChildren}
-                        min={1}
-                        max={10}
-                        step={1}
-                        tip="How many children do you have (or expect to have)?"
-                        onInputChange={handleInputChange}
-                      />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1.5 text-foreground">
+                          Children's Current Ages
+                          <Tip text="Enter current ages of your children, separated by commas (e.g., 5, 3)" />
+                        </Label>
+                        <UIInput
+                          type="text"
+                          value={childrenCurrentAges}
+                          onChange={(e) => {
+                            setChildrenCurrentAges(e.target.value);
+                            handleInputChange?.();
+                          }}
+                          placeholder="5, 3"
+                          className="w-full"
+                        />
+                      </div>
                       <Input
-                        label="Your Age When First Child is Born"
-                        value={parentAgeAtFirstChild}
-                        setter={setParentAgeAtFirstChild}
-                        min={18}
-                        max={50}
-                        step={1}
-                        tip="Your age when your first (oldest) child is born"
-                        onInputChange={handleInputChange}
-                      />
-                      <Input
-                        label="Years Between Children"
-                        value={childSpacingYears}
-                        setter={setChildSpacingYears}
-                        min={1}
+                        label="Additional Children Expected"
+                        value={additionalChildrenExpected}
+                        setter={setAdditionalChildrenExpected}
+                        min={0}
                         max={10}
                         step={1}
-                        tip="Average spacing between children (e.g., 3 years)"
+                        tip="Number of children you plan to have in the future (will be born at 2-year intervals)"
                         onInputChange={handleInputChange}
                       />
                     </div>
@@ -6445,14 +6499,14 @@ export default function App() {
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-2 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
                       <Label className="flex items-center gap-1.5 text-foreground font-semibold">
-                        Children Ages at Your Death (Age {hypDeathAge})
-                        <Tip text={`Based on your inputs, your ${numberOfChildren} ${numberOfChildren === 1 ? 'child' : 'children'} will be these ages when you pass away. Only children within the fertility window (${fertilityWindowStart}-${fertilityWindowEnd}) will produce grandchildren in the simulation.`} />
+                        Calculated Beneficiaries at Age {hypDeathAge}
+                        <Tip text={`Based on your current children and additional children expected, these are the ages they will be when you pass away at age ${hypDeathAge}. Only children within the fertility window (${fertilityWindowStart}-${fertilityWindowEnd}) will produce grandchildren in the simulation.`} />
                       </Label>
                       <div className="text-sm text-foreground bg-white dark:bg-gray-900 p-3 rounded border border-blue-200 dark:border-blue-700 font-mono">
                         {hypBenAgesStr || 'No children specified'}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {hypStartBens} {hypStartBens === 1 ? 'beneficiary' : 'beneficiaries'} calculated
+                        {hypStartBens} {hypStartBens === 1 ? 'beneficiary' : 'beneficiaries'} calculated at age {hypDeathAge}
                       </p>
                     </div>
                   </div>
