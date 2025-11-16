@@ -1753,6 +1753,7 @@ export default function App() {
         const eolWealth = eolReal * Math.pow(1 + infl, yearsFrom2025);
         console.log('[CALC] Key metrics calculated - finReal:', finReal, 'eolWealth:', eolWealth);
 
+        console.log('[CALC] Starting RMD calculation, yrsToSim:', yrsToSim);
         // Calculate RMD data for trulyRandom mode based on median balances
         // Assume typical allocation: 50% pretax, 30% taxable, 20% roth
         const rmdData: { age: number; spending: number; rmd: number }[] = [];
@@ -1794,15 +1795,20 @@ export default function App() {
             }
           }
         }
+        console.log('[CALC] RMD calculation complete, rmdData length:', rmdData.length);
 
         // Calculate estate tax using median EOL
+        console.log('[CALC] Calculating estate tax...');
         const estateTax = calcEstateTax(eolWealth, marital);
         const netEstate = eolWealth - estateTax;
+        console.log('[CALC] Estate tax calculated - estateTax:', estateTax, 'netEstate:', netEstate);
 
         // Generational payout calculation (if enabled) - Monte Carlo version
+        console.log('[CALC] Checking generational payout, showGen:', showGen, 'netEstate > 0:', netEstate > 0);
         let genPayout: GenerationalPayout | null = null;
 
         if (showGen && netEstate > 0) {
+          console.log('[CALC] Starting generational payout calculation...');
           const benAges = hypBenAgesStr
             .split(',')
             .map(s => parseInt(s.trim(), 10))
@@ -1860,10 +1866,14 @@ export default function App() {
             probPerpetual: simP50.fundLeftReal > 0 ? 0.5 : 0
           };
         }
+        console.log('[CALC] Generational payout complete, genPayout:', genPayout ? 'exists' : 'null');
 
         // Determine if ruined (survived fewer years than expected)
+        console.log('[CALC] Calculating survYrs, probRuin:', batchSummary.probRuin);
         const survYrs = batchSummary.probRuin > 0.5 ? yrsToSim - 5 : yrsToSim;
+        console.log('[CALC] survYrs calculated:', survYrs);
 
+        console.log('[CALC] Building newRes object...');
         newRes = {
           finNom,
           finReal,
