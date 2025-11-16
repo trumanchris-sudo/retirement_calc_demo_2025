@@ -66,83 +66,155 @@
 }
 
 /* ==================
-   PLATINUM VARIANT
-   (Perpetual Legacy - Diamond White with Iridescence)
+   EXCELLENT VARIANT (80-100% success)
+   Deep Navy/Gold - "You won the game"
 ================== */
-.legacy-premium-card--platinum {
-  background:
-    radial-gradient(circle at 30% 20%, rgba(200, 210, 255, 0.15), transparent 50%),
-    radial-gradient(circle at 70% 80%, rgba(255, 200, 255, 0.12), transparent 50%),
-    linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #0d1117 100%);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    0 24px 64px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-.legacy-premium-card--platinum:hover {
-  box-shadow:
-    0 12px 48px rgba(0, 0, 0, 0.4),
-    0 32px 80px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-.legacy-premium-card--platinum .legacy-premium-card__glow {
-  background:
-    radial-gradient(circle at 30% 20%, rgba(200, 210, 255, 0.4), transparent 50%),
-    radial-gradient(circle at 70% 80%, rgba(255, 200, 255, 0.3), transparent 50%);
-}
-
-/* ==================
-   GOLD VARIANT
-   (High Duration - Navy/Gold Luxury)
-================== */
-.legacy-premium-card--gold {
+.legacy-premium-card--excellent {
   background:
     radial-gradient(circle at 30% 20%, rgba(218, 165, 32, 0.12), transparent 50%),
-    linear-gradient(145deg, #0a1628 0%, #1e3a5f 50%, #0f1e3a 100%);
+    linear-gradient(145deg, #1a2332 0%, #0f1419 50%, #0a1628 100%);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.3),
     0 24px 64px rgba(218, 165, 32, 0.15),
     inset 0 1px 0 rgba(218, 165, 32, 0.2);
 }
 
-.legacy-premium-card--gold:hover {
+.legacy-premium-card--excellent:hover {
   box-shadow:
     0 12px 48px rgba(0, 0, 0, 0.4),
     0 32px 80px rgba(218, 165, 32, 0.25),
     inset 0 1px 0 rgba(218, 165, 32, 0.3);
 }
 
-.legacy-premium-card--gold .legacy-premium-card__glow {
+.legacy-premium-card--excellent .legacy-premium-card__glow {
   background:
     radial-gradient(circle at 50% 0%, rgba(218, 165, 32, 0.3), transparent 60%);
 }
 
+.legacy-premium-card--excellent .premium-icon {
+  color: #d4af37;
+}
+
+.legacy-premium-card--excellent .legacy-premium-card__subheadline {
+  color: rgba(212, 175, 55, 0.9);
+}
+
+.legacy-premium-card--excellent .legacy-premium-card__accent {
+  background: linear-gradient(90deg, transparent, rgba(218, 165, 32, 0.5), transparent);
+}
+
 /* ==================
-   EMERALD VARIANT
-   (Moderate Duration - Forest Green/Silver)
+   GOOD VARIANT (50-79% success)
+   Slate Blue/Silver - "Solid outcome"
 ================== */
-.legacy-premium-card--emerald {
+.legacy-premium-card--good {
   background:
-    radial-gradient(circle at 30% 20%, rgba(52, 211, 153, 0.15), transparent 50%),
-    linear-gradient(145deg, #0c1810 0%, #1a3a2e 50%, #0d1f17 100%);
+    radial-gradient(circle at 30% 20%, rgba(192, 192, 192, 0.12), transparent 50%),
+    linear-gradient(145deg, #334155 0%, #1e293b 50%, #0f172a 100%);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.3),
-    0 24px 64px rgba(52, 211, 153, 0.15),
-    inset 0 1px 0 rgba(52, 211, 153, 0.2);
+    0 24px 64px rgba(192, 192, 192, 0.15),
+    inset 0 1px 0 rgba(192, 192, 192, 0.2);
 }
 
-.legacy-premium-card--emerald:hover {
+.legacy-premium-card--good:hover {
   box-shadow:
     0 12px 48px rgba(0, 0, 0, 0.4),
-    0 32px 80px rgba(52, 211, 153, 0.25),
-    inset 0 1px 0 rgba(52, 211, 153, 0.3);
+    0 32px 80px rgba(192, 192, 192, 0.25),
+    inset 0 1px 0 rgba(192, 192, 192, 0.3);
 }
 
-.legacy-premium-card--emerald .legacy-premium-card__glow {
+.legacy-premium-card--good .legacy-premium-card__glow {
   background:
-    radial-gradient(circle at 50% 0%, rgba(52, 211, 153, 0.3), transparent 60%);
+    radial-gradient(circle at 50% 0%, rgba(192, 192, 192, 0.3), transparent 60%);
+}
+
+.legacy-premium-card--good .premium-icon {
+  color: #c0c0c0;
+}
+
+.legacy-premium-card--good .legacy-premium-card__subheadline {
+  color: rgba(192, 192, 192, 0.9);
+}
+
+.legacy-premium-card--good .legacy-premium-card__accent {
+  background: linear-gradient(90deg, transparent, rgba(192, 192, 192, 0.5), transparent);
+}
+
+/* ==================
+   CONCERNING VARIANT (25-49% success)
+   Purple/Lavender - "Needs attention"
+================== */
+.legacy-premium-card--concerning {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(233, 213, 255, 0.15), transparent 50%),
+    linear-gradient(145deg, #6b21a8 0%, #581c87 50%, #4c1d95 100%);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 24px 64px rgba(233, 213, 255, 0.15),
+    inset 0 1px 0 rgba(233, 213, 255, 0.2);
+}
+
+.legacy-premium-card--concerning:hover {
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.4),
+    0 32px 80px rgba(233, 213, 255, 0.25),
+    inset 0 1px 0 rgba(233, 213, 255, 0.3);
+}
+
+.legacy-premium-card--concerning .legacy-premium-card__glow {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(233, 213, 255, 0.3), transparent 60%);
+}
+
+.legacy-premium-card--concerning .premium-icon {
+  color: #e9d5ff;
+}
+
+.legacy-premium-card--concerning .legacy-premium-card__subheadline {
+  color: rgba(233, 213, 255, 0.9);
+}
+
+.legacy-premium-card--concerning .legacy-premium-card__accent {
+  background: linear-gradient(90deg, transparent, rgba(233, 213, 255, 0.5), transparent);
+}
+
+/* ==================
+   WARNING VARIANT (0-24% success)
+   Burgundy/Copper - "Rethink your plan"
+================== */
+.legacy-premium-card--warning {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(184, 115, 51, 0.15), transparent 50%),
+    linear-gradient(145deg, #7c2d12 0%, #991b1b 50%, #450a0a 100%);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 24px 64px rgba(184, 115, 51, 0.15),
+    inset 0 1px 0 rgba(184, 115, 51, 0.2);
+}
+
+.legacy-premium-card--warning:hover {
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.4),
+    0 32px 80px rgba(184, 115, 51, 0.25),
+    inset 0 1px 0 rgba(184, 115, 51, 0.3);
+}
+
+.legacy-premium-card--warning .legacy-premium-card__glow {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(184, 115, 51, 0.3), transparent 60%);
+}
+
+.legacy-premium-card--warning .premium-icon {
+  color: #b87333;
+}
+
+.legacy-premium-card--warning .legacy-premium-card__subheadline {
+  color: rgba(184, 115, 51, 0.9);
+}
+
+.legacy-premium-card--warning .legacy-premium-card__accent {
+  background: linear-gradient(90deg, transparent, rgba(184, 115, 51, 0.5), transparent);
 }
 
 /* ==================
@@ -183,21 +255,6 @@
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
 }
 
-/* Platinum icon - Diamond white/purple */
-.legacy-premium-card--platinum .premium-icon {
-  color: #e5e7ff;
-}
-
-/* Gold icon - Rich gold */
-.legacy-premium-card--gold .premium-icon {
-  color: #daa520;
-}
-
-/* Emerald icon - Bright emerald */
-.legacy-premium-card--emerald .premium-icon {
-  color: #34d399;
-}
-
 /* ==================
    HEADER & TEXT
 ================== */
@@ -226,21 +283,6 @@
   margin: 0;
 }
 
-/* Platinum subheadline */
-.legacy-premium-card--platinum .legacy-premium-card__subheadline {
-  color: rgba(229, 231, 255, 0.8);
-}
-
-/* Gold subheadline */
-.legacy-premium-card--gold .legacy-premium-card__subheadline {
-  color: rgba(218, 165, 32, 0.9);
-}
-
-/* Emerald subheadline */
-.legacy-premium-card--emerald .legacy-premium-card__subheadline {
-  color: rgba(52, 211, 153, 0.9);
-}
-
 /* ==================
    DIVIDER
 ================== */
@@ -249,6 +291,36 @@
   height: 1px;
   margin: 20px 0;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+}
+
+/* ==================
+   SUCCESS RATE (HERO METRIC)
+================== */
+.legacy-premium-card__success {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.legacy-premium-card__success-percentage {
+  font-family: 'Crimson Pro', 'Georgia', serif;
+  font-size: clamp(48px, 8vw, 72px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.2);
+  margin-bottom: 8px;
+}
+
+.legacy-premium-card__success-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* ==================
@@ -338,26 +410,6 @@
   height: 1px;
   margin-top: 28px;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-}
-
-/* Platinum accent - iridescent */
-.legacy-premium-card--platinum .legacy-premium-card__accent {
-  background: linear-gradient(90deg,
-    transparent,
-    rgba(200, 210, 255, 0.5),
-    rgba(255, 200, 255, 0.4),
-    rgba(200, 210, 255, 0.5),
-    transparent);
-}
-
-/* Gold accent */
-.legacy-premium-card--gold .legacy-premium-card__accent {
-  background: linear-gradient(90deg, transparent, rgba(218, 165, 32, 0.5), transparent);
-}
-
-/* Emerald accent */
-.legacy-premium-card--emerald .legacy-premium-card__accent {
-  background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.5), transparent);
 }
 
 /* ==================

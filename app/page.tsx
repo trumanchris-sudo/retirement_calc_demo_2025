@@ -4633,6 +4633,7 @@ export default function App() {
                           payout={res.genPayout.perBenReal}
                           duration={res.genPayout.years}
                           isPerpetual={res.genPayout.p50?.isPerpetual === true}
+                          successRate={(res.genPayout.probPerpetual || 0) * 100}
                         />
                       </div>
                     </div>
@@ -6412,6 +6413,7 @@ export default function App() {
                                   payout={res.genPayout.perBenReal}
                                   duration={res.genPayout.years}
                                   isPerpetual={isPerpetual}
+                                  successRate={(res.genPayout.probPerpetual || 0) * 100}
                                 />
                               </div>
                             </div>
