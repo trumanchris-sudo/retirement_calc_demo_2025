@@ -30,6 +30,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FlippingCard } from "@/components/FlippingCard";
 import { GenerationalResultCard } from "@/components/GenerationalResultCard";
+import { LegacyResultCard } from "@/components/LegacyResultCard";
 import AddToWalletButton from "@/components/AddToWalletButton";
 import { LegacyResult } from "@/lib/walletPass";
 import UserInputsPrintSummary from "@/components/UserInputsPrintSummary";
@@ -1157,7 +1158,7 @@ export default function App() {
   const [res, setRes] = useState<CalculationResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-
+  const [legacyResult, setLegacyResult] = useState<LegacyResult | null>(null);
 
   const [aiInsight, setAiInsight] = useState<string>("");
   const [isLoadingAi, setIsLoadingAi] = useState<boolean>(false);
@@ -1689,6 +1690,32 @@ export default function App() {
     }, 50);
   }, [runComparison]);
 
+  /**
+   * Calculate legacy result from calculation results
+   * This generates the LegacyResult object for Apple Wallet pass and legacy cards
+   */
+  const calculateLegacyResult = useCallback((calcResult: CalculationResult | null): LegacyResult | null => {
+    if (!calcResult || !calcResult.genPayout) return null;
+
+    const isPerpetual =
+      calcResult.genPayout.p10?.isPerpetual === true &&
+      calcResult.genPayout.p50?.isPerpetual === true &&
+      calcResult.genPayout.p90?.isPerpetual === true;
+
+    const explanationText = isPerpetual
+      ? `Each beneficiary receives ${fmt(calcResult.genPayout.perBenReal)}/year (inflation-adjusted) from age ${hypMinDistAge} to ${hypDeathAge}—equivalent to a ${fmt(calcResult.genPayout.perBenReal * 25)} trust fund. This provides lifelong financial security and freedom to pursue any career path.`
+      : `Each beneficiary receives ${fmt(calcResult.genPayout.perBenReal)}/year (inflation-adjusted) for ${calcResult.genPayout.years} years, providing substantial financial support during their lifetime.`;
+
+    return {
+      legacyAmount: calcResult.genPayout.perBenReal,
+      legacyAmountDisplay: fmt(calcResult.genPayout.perBenReal),
+      legacyType: isPerpetual ? "Perpetual Legacy" : "Finite Legacy",
+      withdrawalRate: wdRate / 100, // Convert percentage to decimal
+      successProbability: calcResult.genPayout.probPerpetual || 0,
+      explanationText,
+    };
+  }, [hypMinDistAge, hypDeathAge, wdRate]);
+
   // Generational wealth preset configurations
   const applyGenerationalPreset = useCallback((preset: 'conservative' | 'moderate' | 'aggressive') => {
     switch (preset) {
@@ -2067,6 +2094,7 @@ export default function App() {
 
         console.log('[CALC] About to set result, newRes:', newRes);
         setRes(newRes);
+        setLegacyResult(calculateLegacyResult(newRes));
         console.log('[CALC] Result set successfully');
 
         // Track calculation for tab interface and auto-switch to results
@@ -2467,6 +2495,7 @@ export default function App() {
       };
 
       setRes(newRes);
+      setLegacyResult(calculateLegacyResult(newRes));
 
       // Track calculation for tab interface and auto-switch to results
       setLastCalculated(new Date());
@@ -4561,6 +4590,31 @@ export default function App() {
                 </Card>
             </div>
 
+            {/* Legacy Result Cards - Show if generational wealth enabled and calculated */}
+            {showGen && res.genPayout && legacyResult && (
+              <AnimatedSection animation="fade-in" delay={100}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Legacy Planning Results</CardTitle>
+                    <CardDescription>Generational wealth transfer analysis</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-col md:flex-row justify-center gap-6">
+                      <LegacyResultCard
+                        payout={res.genPayout.perBenReal}
+                        duration={res.genPayout.years}
+                        isPerpetual={res.genPayout.p50?.isPerpetual === true}
+                      />
+                    </div>
+                    <div className="mt-6 flex flex-col md:flex-row justify-center gap-3">
+                      <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
+                      <AddToWalletButton result={legacyResult} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+            )}
+
             <div className="print:hidden analysis-block">
             <Card>
               <CardHeader>
@@ -6264,19 +6318,10 @@ export default function App() {
                           ? `Each beneficiary receives ${fmt(res.genPayout.perBenReal)}/year (inflation-adjusted) from age ${hypMinDistAge} to ${hypDeathAge}—equivalent to a ${fmt(res.genPayout.perBenReal * 25)} trust fund. This provides lifelong financial security and freedom to pursue any career path.`
                           : `Each beneficiary receives ${fmt(res.genPayout.perBenReal)}/year (inflation-adjusted) for ${res.genPayout.years} years, providing substantial financial support during their lifetime.`;
 
-                        // Prepare data for Apple Wallet pass
-                        const legacyResult: LegacyResult = {
-                          legacyAmount: res.genPayout.perBenReal,
-                          legacyAmountDisplay: fmt(res.genPayout.perBenReal),
-                          legacyType: isPerpetual ? "Perpetual Legacy" : "Finite Legacy",
-                          withdrawalRate: 0.035, // Default withdrawal rate
-                          successProbability: res.genPayout.probPerpetual || 0,
-                          explanationText,
-                        };
-
                         return (
                           <>
-                            <div className="flex justify-center">
+                            {/* GenerationalResultCard for detailed Monte Carlo view */}
+                            <div className="flex justify-center mb-8">
                               <GenerationalResultCard
                                 variant={variant}
                                 amountPerBeneficiary={res.genPayout.perBenReal}
@@ -6288,6 +6333,17 @@ export default function App() {
                                 explanationText={explanationText}
                               />
                             </div>
+
+                            {/* LegacyResultCard for simpler visual */}
+                            <div className="flex justify-center mb-6">
+                              <LegacyResultCard
+                                payout={res.genPayout.perBenReal}
+                                duration={res.genPayout.years}
+                                isPerpetual={isPerpetual}
+                              />
+                            </div>
+
+                            {/* Action Buttons */}
                             <div className="mt-6 flex flex-col md:flex-row justify-center gap-3">
                               <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
                               <AddToWalletButton result={legacyResult} />
