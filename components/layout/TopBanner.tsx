@@ -29,7 +29,7 @@ export const TopBanner: React.FC<TopBannerProps> = ({ className = "" }) => {
             </div>
             <div>
               <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white flex items-center gap-2">
-                Tax-Aware Retirement Calculator
+                Work Die Retire
               </h1>
               <p className="text-xs sm:text-sm text-blue-100 hidden sm:block">
                 Plan your financial future with confidence
