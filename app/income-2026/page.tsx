@@ -345,7 +345,7 @@ export default function Income2026Page() {
           </CardContent>
         </Card>
 
-        {/* Income Sections - Side by side if married */}
+        {/* Income Sections - Stacked vertically */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Income Sources & Deductions</CardTitle>
@@ -354,45 +354,54 @@ export default function Income2026Page() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className={`grid grid-cols-1 ${isMarried ? 'lg:grid-cols-2' : ''} gap-8`}>
+            <div className="space-y-8">
               {/* Person 1 / Your Income */}
-              <IncomeSection
-                label={isMarried ? "Your Income" : "Income Details"}
-                nameValue={p1Name}
-                onNameChange={setP1Name}
-                baseIncome={p1BaseIncome}
-                onBaseIncomeChange={setP1BaseIncome}
-                bonus={p1Bonus}
-                onBonusChange={setP1Bonus}
-                bonusMonth={p1BonusMonth}
-                onBonusMonthChange={setP1BonusMonth}
-                overtime={p1OvertimeMonthly}
-                onOvertimeChange={setP1OvertimeMonthly}
-                preTax401k={p1PreTax401k}
-                onPreTax401kChange={setP1PreTax401k}
-                preTaxHealth={p1PreTaxHealthInsurance}
-                onPreTaxHealthChange={setP1PreTaxHealthInsurance}
-                preTaxHSA={p1PreTaxHSA}
-                onPreTaxHSAChange={setP1PreTaxHSA}
-                preTaxFSA={p1PreTaxFSA}
-                onPreTaxFSAChange={setP1PreTaxFSA}
-                rothContrib={p1RothContribution}
-                onRothContribChange={setP1RothContribution}
-                disability={p1DisabilityInsurance}
-                onDisabilityChange={setP1DisabilityInsurance}
-                life={p1LifeInsurance}
-                onLifeChange={setP1LifeInsurance}
-                idPrefix="p1"
-              />
+              <div>
+                <div className="mb-4 pb-2 border-b-2 border-border">
+                  <h3 className="text-lg font-heading font-semibold text-foreground uppercase tracking-wide">
+                    {isMarried ? "Your Income" : "Income Details"}
+                  </h3>
+                </div>
+                <IncomeSection
+                  label=""
+                  nameValue={p1Name}
+                  onNameChange={setP1Name}
+                  baseIncome={p1BaseIncome}
+                  onBaseIncomeChange={setP1BaseIncome}
+                  bonus={p1Bonus}
+                  onBonusChange={setP1Bonus}
+                  bonusMonth={p1BonusMonth}
+                  onBonusMonthChange={setP1BonusMonth}
+                  overtime={p1OvertimeMonthly}
+                  onOvertimeChange={setP1OvertimeMonthly}
+                  preTax401k={p1PreTax401k}
+                  onPreTax401kChange={setP1PreTax401k}
+                  preTaxHealth={p1PreTaxHealthInsurance}
+                  onPreTaxHealthChange={setP1PreTaxHealthInsurance}
+                  preTaxHSA={p1PreTaxHSA}
+                  onPreTaxHSAChange={setP1PreTaxHSA}
+                  preTaxFSA={p1PreTaxFSA}
+                  onPreTaxFSAChange={setP1PreTaxFSA}
+                  rothContrib={p1RothContribution}
+                  onRothContribChange={setP1RothContribution}
+                  disability={p1DisabilityInsurance}
+                  onDisabilityChange={setP1DisabilityInsurance}
+                  life={p1LifeInsurance}
+                  onLifeChange={setP1LifeInsurance}
+                  idPrefix="p1"
+                />
+              </div>
 
               {/* Person 2 / Spouse's Income (only if married) */}
               {isMarried && (
-                <>
-                  {/* Vertical divider on large screens */}
-                  <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-px bg-border" style={{ transform: 'translateX(-50%)' }} />
-
+                <div>
+                  <div className="mb-4 pb-2 border-b-2 border-border">
+                    <h3 className="text-lg font-heading font-semibold text-foreground uppercase tracking-wide">
+                      Spouse's Income
+                    </h3>
+                  </div>
                   <IncomeSection
-                    label="Spouse's Income"
+                    label=""
                     nameValue={p2Name}
                     onNameChange={setP2Name}
                     baseIncome={p2BaseIncome}
@@ -419,7 +428,7 @@ export default function Income2026Page() {
                     onLifeChange={setP2LifeInsurance}
                     idPrefix="p2"
                   />
-                </>
+                </div>
               )}
             </div>
           </CardContent>

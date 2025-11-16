@@ -6,7 +6,7 @@
   /* Removed min-height - let the content determine the height */
   perspective: 1000px; /* This creates the 3D effect */
   cursor: pointer;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans), Inter, -apple-system, sans-serif;
 }
 
 /* The inner container that holds both faces and does the actual flip */

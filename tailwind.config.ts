@@ -10,6 +10,12 @@ const config: Config = {
   ],
   theme: {
   	extend: {
+  		fontFamily: {
+  			sans: ['var(--font-sans)', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+  			serif: ['var(--font-serif)', 'Playfair Display', 'Georgia', 'serif'],
+  			heading: ['var(--font-serif)', 'Playfair Display', 'Georgia', 'serif'],
+  			body: ['var(--font-sans)', 'Inter', '-apple-system', 'sans-serif'],
+  		},
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
