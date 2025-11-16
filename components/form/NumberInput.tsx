@@ -62,12 +62,10 @@ export const NumberInput: React.FC<NumberInputProps> = ({
         )}
 
         <Input
-          type="number"
+          type="text"
+          inputMode="decimal"
           value={value}
           onChange={handleChange}
-          min={min}
-          max={max}
-          step={step}
           placeholder={placeholder}
           className={cn(
             "font-mono",

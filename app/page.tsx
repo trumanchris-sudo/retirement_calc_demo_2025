@@ -5442,24 +5442,28 @@ export default function App() {
                       <div className="space-y-2">
                         <label className="text-xs font-medium">Inflation Rate (%)</label>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={inflationShockRate}
-                          onChange={(e) => setInflationShockRate(Number(e.target.value))}
-                          min="0"
-                          max="20"
-                          step="0.5"
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val)) setInflationShockRate(Math.max(0, Math.min(20, val)));
+                            else if (e.target.value === '') setInflationShockRate(0);
+                          }}
                           className="w-full px-3 py-2 text-sm border rounded-md bg-background"
                         />
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-medium">Duration (years)</label>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
                           value={inflationShockDuration}
-                          onChange={(e) => setInflationShockDuration(Number(e.target.value))}
-                          min="1"
-                          max="10"
-                          step="1"
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val)) setInflationShockDuration(Math.max(1, Math.min(10, val)));
+                            else if (e.target.value === '') setInflationShockDuration(1);
+                          }}
                           className="w-full px-3 py-2 text-sm border rounded-md bg-background"
                         />
                       </div>
@@ -6956,8 +6960,8 @@ export default function App() {
                     <li>Simulation continues until funds are exhausted or 10,000 years (effectively perpetual)</li>
                   </ul>
                   <p className="text-gray-700 mt-2">
-                    In Monte Carlo mode, the model runs simulations at the P10, P50, and P90 estate values and reports
-                    perpetual success probability. This models a "dynasty trust" or "perpetual legacy" scenario and helps
+                    In Monte Carlo mode, the model runs simulations at the P25, P50, and P75 estate values and reports
+                    perpetual success probability (75%, 50%, or 25% success rate). This models a "dynasty trust" or "perpetual legacy" scenario and helps
                     you understand whether your wealth could support generations indefinitely. Quick presets
                     (Conservative/Moderate/Aggressive) provide starting points for different legacy goals.
                   </p>
@@ -7014,8 +7018,8 @@ export default function App() {
                 <li>
                   <strong>Sequence-of-Returns Risk:</strong> In Truly Random (Monte Carlo) mode with 1,000 simulations,
                   sequence risk is fully captured—bad early returns can deplete portfolios even if average returns are
-                  good. Fixed and Random Walk modes don't model this risk as thoroughly. The P10/P50/P90 percentile
-                  bands show the range of outcomes from sequence variation.
+                  good. Fixed and Random Walk modes don't model this risk as thoroughly. The percentile bands (10th, 50th, 90th for charts; 25th, 50th, 75th for success rates)
+                  show the range of outcomes from sequence variation.
                 </li>
                 <li>
                   <strong>Simplified Withdrawal Strategy:</strong> Uses proportional withdrawals from all accounts.
