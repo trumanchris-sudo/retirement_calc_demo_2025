@@ -23,10 +23,10 @@ export const SS_BEND_POINTS = {
 };
 
 /** Estate Tax (2025) */
-export const ESTATE_TAX_EXEMPTION = {
+export const ESTATE_TAX_EXEMPTION: Record<'single' | 'married', number> = {
   single: 13_990_000,   // $13.99M for individual
   married: 27_980_000,  // $27.98M for married couple (double)
-};
+} as const;
 export const ESTATE_TAX_RATE = 0.40; // 40% on amount over exemption
 
 /** Illustrative 2025 ordinary brackets + standard deductions */

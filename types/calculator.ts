@@ -135,6 +135,7 @@ export interface GenerationalPayout {
   totalFertilityRate: number;
   generationLength: number;
   deathAge: number;
+  benAges?: number[];
   p10?: {
     years: number;
     fundLeftReal: number;

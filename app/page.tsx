@@ -2315,6 +2315,12 @@ export default function App() {
     inflationShockRate, inflationShockDuration,
     includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2, hypBenAgesStr,
     activeMainTab, setActiveMainTab,
+    runMonteCarloViaWorker, fetchAiInsight,
+    includeMedicare, medicarePremium, medicalInflation,
+    irmaaThresholdSingle, irmaaThresholdMarried, irmaaSurcharge,
+    includeLTC, ltcAnnualCost, ltcProbability, ltcDuration, ltcOnsetAge,
+    ltcAgeRangeStart, ltcAgeRangeEnd,
+    totalFertilityRate, generationLength, fertilityWindowStart, fertilityWindowEnd,
   ]);
 
   // Calculate sensitivity analysis using mathematical approximations
