@@ -1270,7 +1270,7 @@ export default function App() {
     return analysis.trim();
   };
 
-  const fetchAiInsight = async (calcResult: CalculationResult, olderAge: number, customQuestion?: string) => {
+  const fetchAiInsight = useCallback(async (calcResult: CalculationResult, olderAge: number, customQuestion?: string) => {
     if (!calcResult) return;
 
     // Only use API for custom questions (Q&A feature)
@@ -1356,7 +1356,7 @@ export default function App() {
     } finally {
       setIsLoadingAi(false);
     }
-  };
+  }, [retAge, total, marital, wdRate, retRate, infRate, stateRate, includeSS, ssIncome, ssClaimAge, sTax, sPre, sPost, retMode]);
 
   const handleAskQuestion = async () => {
     if (!userQuestion.trim() || !res) {
