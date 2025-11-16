@@ -84,12 +84,10 @@ export const LegacyResultCard: React.FC<LegacyProps> = ({
 
   const icon = getIcon();
 
-  // Duration display: use ∞ symbol for perpetual, otherwise show number
-  const durationDisplay = isPerpetual
-    ? '∞'
-    : duration.toLocaleString('en-US');
-
-  const subheadline = isPerpetual ? '∞' : `${durationDisplay} YEAR DURATION`;
+  // Subheadline: "PERPETUAL LEGACY" for perpetual, duration for finite
+  const subheadline = isPerpetual
+    ? 'PERPETUAL LEGACY'
+    : `${duration.toLocaleString('en-US')} YEAR DURATION`;
 
   return (
     <div
@@ -103,59 +101,51 @@ export const LegacyResultCard: React.FC<LegacyProps> = ({
       {/* Ambient glow */}
       <div className="legacy-premium-card__glow" />
 
-      {/* Content Container */}
+      {/* Content Container - Horizontal Layout */}
       <div className="legacy-premium-card__content">
 
-        {/* Icon with elegant backdrop */}
-        <div className="legacy-premium-card__icon-container">
-          <div className="legacy-premium-card__icon-backdrop" />
-          {icon}
-        </div>
-
-        {/* Main headline */}
-        <div className="legacy-premium-card__header">
-          <h3 className="legacy-premium-card__headline">Generational Wealth</h3>
-          <p className="legacy-premium-card__subheadline">{subheadline}</p>
-        </div>
-
-        {/* Divider line */}
-        <div className="legacy-premium-card__divider" />
-
-        {/* SUCCESS RATE - The hero metric */}
-        <div className="legacy-premium-card__success">
-          <div className="legacy-premium-card__success-percentage">{Math.round(successRate)}%</div>
-          <div className="legacy-premium-card__success-label">
-            {isPerpetual ? 'PERPETUAL PROBABILITY' : 'SUCCESS RATE'}
+        {/* Left: Icon */}
+        <div className="legacy-premium-card__left">
+          <div className="legacy-premium-card__icon-container">
+            <div className="legacy-premium-card__icon-backdrop" />
+            {icon}
           </div>
         </div>
 
-        {/* Divider line */}
-        <div className="legacy-premium-card__divider" />
+        {/* Right: All content */}
+        <div className="legacy-premium-card__right">
 
-        {/* Dollar amount - Secondary metric */}
-        <div className="legacy-premium-card__value">
-          <div className="legacy-premium-card__currency">USD</div>
-          <div className="legacy-premium-card__amount">{fmtMoney(payout, currency)}</div>
-          <div className="legacy-premium-card__period">per beneficiary / year</div>
+          {/* Header */}
+          <div className="legacy-premium-card__header">
+            <h3 className="legacy-premium-card__headline">Generational Wealth</h3>
+            <p className="legacy-premium-card__subheadline">{subheadline}</p>
+          </div>
+
+          {/* Main metrics row */}
+          <div className="legacy-premium-card__metrics">
+
+            {/* SUCCESS RATE - The hero metric */}
+            <div className="legacy-premium-card__success">
+              <div className="legacy-premium-card__success-percentage">{Math.round(successRate)}%</div>
+              <div className="legacy-premium-card__success-label">
+                {isPerpetual ? 'PERPETUAL PROBABILITY' : 'SUCCESS RATE'}
+              </div>
+            </div>
+
+            {/* Dollar amount */}
+            <div className="legacy-premium-card__value">
+              <div className="legacy-premium-card__amount">{fmtMoney(payout, currency)}</div>
+              <div className="legacy-premium-card__period">per beneficiary / year</div>
+            </div>
+
+          </div>
+
+          {/* Footer */}
+          <div className="legacy-premium-card__footer">
+            <span className="legacy-premium-card__badge-text">≈ 2025 REAL DOLLARS</span>
+          </div>
+
         </div>
-
-        {/* Real dollar badge */}
-        <div className="legacy-premium-card__badge">
-          <svg className="legacy-premium-card__badge-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M6 1v10M3 3h6a1.5 1.5 0 010 3H3M3 6h6a1.5 1.5 0 010 3H3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-          </svg>
-          <span>≈ 2025 REAL DOLLARS</span>
-        </div>
-
-        {/* Detail text */}
-        <p className="legacy-premium-card__detail">
-          {label || (isPerpetual
-            ? `Portfolio maintains purchasing power across generations, delivering ${kOrM(payout)} annually in today's dollars, indefinitely.`
-            : `Supports ${durationDisplay} years of distributions, providing approximately ${kOrM(payout)} per beneficiary each year, inflation-adjusted.`)}
-        </p>
-
-        {/* Metallic accent line */}
-        <div className="legacy-premium-card__accent" />
       </div>
     </div>
   );
