@@ -157,16 +157,17 @@ function addPageHeader(doc: jsPDF, pageNum: number, reportDate: string) {
 }
 
 function addSectionTitle(doc: jsPDF, title: string, y: number): number {
-  doc.setFont('times', 'bold');
+  // Navy background bar (full width)
+  doc.setFillColor(26, 35, 50); // Navy blue
+  doc.rect(MARGIN - 5, y - 6, CONTENT_WIDTH + 10, 10, 'F');
+
+  // White text on navy background
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
-  doc.setTextColor(COLORS.primary);
+  doc.setTextColor(255, 255, 255); // White
   doc.text(title, MARGIN, y);
 
-  // Underline
-  doc.setDrawColor(COLORS.accent);
-  doc.setLineWidth(1);
-  doc.line(MARGIN, y + 2, MARGIN + 60, y + 2);
-
+  // Reset to black text
   doc.setTextColor(COLORS.text);
   doc.setFont('helvetica', 'normal');
 
@@ -176,20 +177,29 @@ function addSectionTitle(doc: jsPDF, title: string, y: number): number {
 function addSubsection(doc: jsPDF, title: string, y: number): number {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
+  doc.setTextColor(26, 35, 50); // Navy blue
   doc.text(title, MARGIN, y);
+
+  // Gold accent line below text
+  doc.setDrawColor(212, 175, 55); // Gold
+  doc.setLineWidth(0.5);
+  doc.line(MARGIN, y + 1.5, MARGIN + 50, y + 1.5);
+
+  // Reset to normal
+  doc.setTextColor(COLORS.text);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  return y + 6;
+  return y + 7;
 }
 
 function addKeyValue(doc: jsPDF, key: string, value: string, y: number, indent = 0): number {
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(COLORS.textLight);
-  doc.text('├─ ' + key + ':', MARGIN + indent, y);
+  doc.text(key + ':', MARGIN + indent + 2, y);
   doc.setTextColor(COLORS.text);
   doc.setFont('helvetica', 'bold');
-  doc.text(value, MARGIN + indent + 70, y);
+  doc.text(value, MARGIN + indent + 72, y);
   return y + 5;
 }
 
