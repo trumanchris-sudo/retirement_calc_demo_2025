@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowLeft, Calculator, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input as UIInput } from "@/components/ui/input";
+import { Input } from "@/components/calculator/InputHelpers";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -86,9 +87,58 @@ export default function Income2026Page() {
     "July", "August", "September", "October", "November", "December", "None"
   ];
 
+  // Pre-fill from calculator results if available
+  useEffect(() => {
+    try {
+      const savedResults = sessionStorage.getItem('calculatorResults');
+      if (savedResults) {
+        const results = JSON.parse(savedResults);
+        console.log('[2026 INCOME] Pre-filling from calculator results:', results);
+
+        // Pre-fill marital status from calculator
+        const savedMarital = sessionStorage.getItem('calculatorMarital');
+        if (savedMarital) {
+          setMaritalStatus(savedMarital as FilingStatus);
+        }
+
+        // Calculate rough monthly budget from after-tax withdrawal
+        // This is year 1 retirement withdrawal - we'll use it as a baseline for current income needs
+        if (results.wdAfter) {
+          const monthlyAfterTax = Math.round(results.wdAfter / 12);
+
+          // Distribute monthly budget across categories (rough heuristics)
+          // These are reasonable defaults the user can adjust
+          const mortgageGuess = Math.round(monthlyAfterTax * 0.30); // 30% housing
+          const householdGuess = Math.round(monthlyAfterTax * 0.20); // 20% household
+          const discretionaryGuess = Math.round(monthlyAfterTax * 0.15); // 15% discretionary
+          const surplusGuess = Math.round(monthlyAfterTax * 0.10); // 10% surplus/savings
+
+          // Only pre-fill if current values are 0 (haven't been set by user)
+          if (mortgagePayment === 0) setMortgagePayment(mortgageGuess);
+          if (householdExpenses === 0) setHouseholdExpenses(householdGuess);
+          if (discretionarySpending === 0) setDiscretionarySpending(discretionaryGuess);
+          if (surplusLiquidity === 0) setSurplusLiquidity(surplusGuess);
+
+          console.log('[2026 INCOME] Pre-filled budget estimates:', {
+            monthlyAfterTax,
+            mortgage: mortgageGuess,
+            household: householdGuess,
+            discretionary: discretionaryGuess,
+            surplus: surplusGuess
+          });
+        }
+      }
+    } catch (e) {
+      console.error('[2026 INCOME] Failed to pre-fill from calculator:', e);
+    }
+  }, []); // Only run once on mount
+
   const handleCalculate = () => {
     // TODO: Implement calculation logic
     console.log("Calculating 2026 income projections...");
+
+    // Save marital status to sessionStorage for next time
+    sessionStorage.setItem('calculatorMarital', maritalStatus);
   };
 
   const isMarried = maritalStatus === "married";
@@ -123,49 +173,33 @@ export default function Income2026Page() {
     onChange1,
     value2,
     onChange2,
-    placeholder = "0",
-    isNumeric = true
+    defaultValue = 0,
   }: {
     label: string;
     idPrefix: string;
-    value1: number | string;
-    onChange1: (v: any) => void;
-    value2: number | string;
-    onChange2: (v: any) => void;
-    placeholder?: string;
-    isNumeric?: boolean;
+    value1: number;
+    onChange1: (v: number) => void;
+    value2: number;
+    onChange2: (v: number) => void;
+    defaultValue?: number;
   }) => {
-    const handleChange = isNumeric ? handleNumericInput : (v: string, setter: any) => setter(v);
-
     return (
-      <>
-        <div className="space-y-2">
-          <Label htmlFor={`${idPrefix}-your`}>{label} (Your)</Label>
-          <Input
-            id={`${idPrefix}-your`}
-            type="text"
-            inputMode={isNumeric ? "numeric" : "text"}
-            pattern={isNumeric ? "[0-9]*" : undefined}
-            value={value1}
-            onChange={(e) => handleChange(e.target.value, onChange1)}
-            placeholder={placeholder}
-          />
-        </div>
+      <div className={isMarried ? "grid grid-cols-2 gap-4" : ""}>
+        <Input
+          label={`${label} (Your)`}
+          value={value1}
+          setter={onChange1}
+          defaultValue={defaultValue}
+        />
         {isMarried && (
-          <div className="space-y-2">
-            <Label htmlFor={`${idPrefix}-spouse`}>{label} (Spouse)</Label>
-            <Input
-              id={`${idPrefix}-spouse`}
-              type="text"
-              inputMode={isNumeric ? "numeric" : "text"}
-              pattern={isNumeric ? "[0-9]*" : undefined}
-              value={value2}
-              onChange={(e) => handleChange(e.target.value, onChange2)}
-              placeholder={placeholder}
-            />
-          </div>
+          <Input
+            label={`${label} (Spouse)`}
+            value={value2}
+            setter={onChange2}
+            defaultValue={defaultValue}
+          />
         )}
-      </>
+      </div>
     );
   };
 
@@ -298,7 +332,7 @@ export default function Income2026Page() {
                     onChange1={setP1BaseIncome}
                     value2={p2BaseIncome}
                     onChange2={setP2BaseIncome}
-                    placeholder="150000"
+                    defaultValue={0}
                   />
 
                   <DualInputField
@@ -308,7 +342,7 @@ export default function Income2026Page() {
                     onChange1={setP1Bonus}
                     value2={p2Bonus}
                     onChange2={setP2Bonus}
-                    placeholder="15000"
+                    defaultValue={0}
                   />
 
                   <DualSelectField
@@ -328,7 +362,7 @@ export default function Income2026Page() {
                     onChange1={setP1OvertimeMonthly}
                     value2={p2OvertimeMonthly}
                     onChange2={setP2OvertimeMonthly}
-                    placeholder="500"
+                    defaultValue={0}
                   />
                 </div>
               </div>
@@ -346,7 +380,7 @@ export default function Income2026Page() {
                     onChange1={setP1PreTax401k}
                     value2={p2PreTax401k}
                     onChange2={setP2PreTax401k}
-                    placeholder="750"
+                    defaultValue={0}
                   />
 
                   <DualInputField
@@ -356,7 +390,7 @@ export default function Income2026Page() {
                     onChange1={setP1PreTaxHealthInsurance}
                     value2={p2PreTaxHealthInsurance}
                     onChange2={setP2PreTaxHealthInsurance}
-                    placeholder="200"
+                    defaultValue={0}
                   />
 
                   <DualInputField
@@ -366,7 +400,7 @@ export default function Income2026Page() {
                     onChange1={setP1PreTaxHSA}
                     value2={p2PreTaxHSA}
                     onChange2={setP2PreTaxHSA}
-                    placeholder="300"
+                    defaultValue={0}
                   />
 
                   <DualInputField
@@ -376,7 +410,7 @@ export default function Income2026Page() {
                     onChange1={setP1PreTaxFSA}
                     value2={p2PreTaxFSA}
                     onChange2={setP2PreTaxFSA}
-                    placeholder="100"
+                    defaultValue={0}
                   />
                 </div>
               </div>
@@ -394,7 +428,7 @@ export default function Income2026Page() {
                     onChange1={setP1RothContribution}
                     value2={p2RothContribution}
                     onChange2={setP2RothContribution}
-                    placeholder="250"
+                    defaultValue={0}
                   />
 
                   <DualInputField
@@ -404,7 +438,7 @@ export default function Income2026Page() {
                     onChange1={setP1DisabilityInsurance}
                     value2={p2DisabilityInsurance}
                     onChange2={setP2DisabilityInsurance}
-                    placeholder="50"
+                    defaultValue={0}
                   />
 
                   <DualInputField
@@ -414,7 +448,7 @@ export default function Income2026Page() {
                     onChange1={setP1LifeInsurance}
                     value2={p2LifeInsurance}
                     onChange2={setP2LifeInsurance}
-                    placeholder="25"
+                    defaultValue={0}
                   />
                 </div>
               </div>
@@ -432,30 +466,18 @@ export default function Income2026Page() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="federal-extra">Extra Federal Withholding</Label>
-                <Input
-                  id="federal-extra"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={federalWithholdingExtra}
-                  onChange={(e) => handleNumericInput(e.target.value, setFederalWithholdingExtra)}
-                  placeholder="0"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="state-extra">Extra State Withholding</Label>
-                <Input
-                  id="state-extra"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={stateWithholdingExtra}
-                  onChange={(e) => handleNumericInput(e.target.value, setStateWithholdingExtra)}
-                  placeholder="0"
-                />
-              </div>
+              <Input
+                label="Extra Federal Withholding"
+                value={federalWithholdingExtra}
+                setter={setFederalWithholdingExtra}
+                defaultValue={0}
+              />
+              <Input
+                label="Extra State Withholding"
+                value={stateWithholdingExtra}
+                setter={setStateWithholdingExtra}
+                defaultValue={0}
+              />
             </div>
           </CardContent>
         </Card>
@@ -470,54 +492,30 @@ export default function Income2026Page() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="mortgage">Mortgage Payment</Label>
-                <Input
-                  id="mortgage"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={mortgagePayment}
-                  onChange={(e) => handleNumericInput(e.target.value, setMortgagePayment)}
-                  placeholder="2500"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="household">Household Expenses</Label>
-                <Input
-                  id="household"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={householdExpenses}
-                  onChange={(e) => handleNumericInput(e.target.value, setHouseholdExpenses)}
-                  placeholder="1500"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="discretionary">Discretionary Spending</Label>
-                <Input
-                  id="discretionary"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={discretionarySpending}
-                  onChange={(e) => handleNumericInput(e.target.value, setDiscretionarySpending)}
-                  placeholder="1000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="childcare">Childcare Costs</Label>
-                <Input
-                  id="childcare"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={childcareCosts}
-                  onChange={(e) => handleNumericInput(e.target.value, setChildcareCosts)}
-                  placeholder="2000"
-                />
-              </div>
+              <Input
+                label="Mortgage Payment"
+                value={mortgagePayment}
+                setter={setMortgagePayment}
+                defaultValue={0}
+              />
+              <Input
+                label="Household Expenses"
+                value={householdExpenses}
+                setter={setHouseholdExpenses}
+                defaultValue={0}
+              />
+              <Input
+                label="Discretionary Spending"
+                value={discretionarySpending}
+                setter={setDiscretionarySpending}
+                defaultValue={0}
+              />
+              <Input
+                label="Childcare Costs"
+                value={childcareCosts}
+                setter={setChildcareCosts}
+                defaultValue={0}
+              />
               <div className="space-y-2">
                 <Label htmlFor="childcare-dropoff">Childcare Dropoff Month</Label>
                 <select
@@ -531,30 +529,18 @@ export default function Income2026Page() {
                   ))}
                 </select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="investments">Non-Retirement Investments</Label>
-                <Input
-                  id="investments"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={nonRetirementInvestments}
-                  onChange={(e) => handleNumericInput(e.target.value, setNonRetirementInvestments)}
-                  placeholder="500"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="surplus">Surplus / Extra Liquidity</Label>
-                <Input
-                  id="surplus"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={surplusLiquidity}
-                  onChange={(e) => handleNumericInput(e.target.value, setSurplusLiquidity)}
-                  placeholder="1000"
-                />
-              </div>
+              <Input
+                label="Non-Retirement Investments"
+                value={nonRetirementInvestments}
+                setter={setNonRetirementInvestments}
+                defaultValue={0}
+              />
+              <Input
+                label="Surplus / Extra Liquidity"
+                value={surplusLiquidity}
+                setter={setSurplusLiquidity}
+                defaultValue={0}
+              />
             </div>
           </CardContent>
         </Card>
@@ -569,41 +555,25 @@ export default function Income2026Page() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="mortgage-balance">Mortgage Balance</Label>
-                <Input
-                  id="mortgage-balance"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={mortgageBalance}
-                  onChange={(e) => handleNumericInput(e.target.value, setMortgageBalance)}
-                  placeholder="400000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="mortgage-rate">Mortgage Interest Rate (%)</Label>
-                <Input
-                  id="mortgage-rate"
-                  type="text"
-                  inputMode="decimal"
-                  value={mortgageRate}
-                  onChange={(e) => handleDecimalInput(e.target.value, setMortgageRate)}
-                  placeholder="3.5"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="mortgage-interest">Monthly Interest Portion</Label>
-                <Input
-                  id="mortgage-interest"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={mortgageInterestMonthly}
-                  onChange={(e) => handleNumericInput(e.target.value, setMortgageInterestMonthly)}
-                  placeholder="1200"
-                />
-              </div>
+              <Input
+                label="Mortgage Balance"
+                value={mortgageBalance}
+                setter={setMortgageBalance}
+                defaultValue={0}
+              />
+              <Input
+                label="Mortgage Interest Rate (%)"
+                value={mortgageRate}
+                setter={setMortgageRate}
+                isRate
+                defaultValue={0}
+              />
+              <Input
+                label="Monthly Interest Portion"
+                value={mortgageInterestMonthly}
+                setter={setMortgageInterestMonthly}
+                defaultValue={0}
+              />
             </div>
           </CardContent>
         </Card>
@@ -618,54 +588,30 @@ export default function Income2026Page() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="car-fmv">Current Fair Market Value</Label>
-                <Input
-                  id="car-fmv"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={carFMV}
-                  onChange={(e) => handleNumericInput(e.target.value, setCarFMV)}
-                  placeholder="25000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="car-life">Useful Life (years)</Label>
-                <Input
-                  id="car-life"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={carUsefulLife}
-                  onChange={(e) => handleNumericInput(e.target.value, setCarUsefulLife)}
-                  placeholder="10"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="car-residual">Residual Value</Label>
-                <Input
-                  id="car-residual"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={carResidualValue}
-                  onChange={(e) => handleNumericInput(e.target.value, setCarResidualValue)}
-                  placeholder="5000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="car-discount">Fire Sale Discount (%)</Label>
-                <Input
-                  id="car-discount"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={carFiresaleDiscount}
-                  onChange={(e) => handleNumericInput(e.target.value, setCarFiresaleDiscount)}
-                  placeholder="30"
-                />
-              </div>
+              <Input
+                label="Current Fair Market Value"
+                value={carFMV}
+                setter={setCarFMV}
+                defaultValue={0}
+              />
+              <Input
+                label="Useful Life (years)"
+                value={carUsefulLife}
+                setter={setCarUsefulLife}
+                defaultValue={10}
+              />
+              <Input
+                label="Residual Value"
+                value={carResidualValue}
+                setter={setCarResidualValue}
+                defaultValue={0}
+              />
+              <Input
+                label="Fire Sale Discount (%)"
+                value={carFiresaleDiscount}
+                setter={setCarFiresaleDiscount}
+                defaultValue={30}
+              />
             </div>
           </CardContent>
         </Card>

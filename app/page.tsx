@@ -2927,12 +2927,13 @@ export default function App() {
       try {
         sessionStorage.setItem('calculatorResults', JSON.stringify(res));
         sessionStorage.setItem('calculatorTab', activeMainTab);
-        console.log('[NAV PERSISTENCE] Saved current results and tab');
+        sessionStorage.setItem('calculatorMarital', marital);
+        console.log('[NAV PERSISTENCE] Saved current results, tab, and marital status');
       } catch (e) {
         console.error('[NAV PERSISTENCE] Failed to save state:', e);
       }
     }
-  }, [res, activeMainTab]);
+  }, [res, activeMainTab, marital]);
 
   // Save current inputs and results as a scenario
   const saveScenario = useCallback(() => {
