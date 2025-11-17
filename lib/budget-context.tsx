@@ -36,6 +36,12 @@ export const BudgetProvider = ({
 
 export const useBudget = () => {
   const context = useContext(BudgetContext);
-  if (!context) throw new Error('useBudget must be used within BudgetProvider');
+  // During SSR, context might not be available - return null state
+  if (!context) {
+    if (typeof window === 'undefined') {
+      return { implied: null, setImplied: () => {} };
+    }
+    throw new Error('useBudget must be used within BudgetProvider');
+  }
   return context;
 };
