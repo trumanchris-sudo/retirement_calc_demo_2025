@@ -105,6 +105,7 @@ export type SimResult = {
   eolReal: number;
   y1AfterTaxReal: number;
   ruined: boolean;
+  survYrs: number;  // Year when portfolio failed (0 if never failed)
 };
 
 // Summary statistics from running multiple seeds for truly random simulations

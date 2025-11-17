@@ -54,6 +54,7 @@ import { TimelineView } from "@/components/calculator/TimelineView";
 import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
 import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
 import { CheckUsTab } from "@/components/calculator/CheckUsTab";
+import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
 
@@ -6032,6 +6033,17 @@ export default function App() {
                 />
               </AnimatedSection>
             </div> */}
+
+            {/* Sequence of Returns Risk Analysis */}
+            {batchSummary && (
+              <AnimatedSection animation="fade-in" delay={500}>
+                <SequenceRiskChart
+                  batchSummary={batchSummary}
+                  retAge={retAge}
+                  age1={age1}
+                />
+              </AnimatedSection>
+            )}
 
             </TabPanel>
           </div>

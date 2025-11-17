@@ -750,11 +750,12 @@ function runMonteCarloSimulation(params, baseSeed, N = 5000) {
   const probRuin = results.filter(r => r.ruined).length / N;
 
   // For legacy success rate calculation, return lightweight version of all runs
-  // (just eolReal and ruined status, not full balancesReal arrays)
+  // (just eolReal, ruined status, and survYrs for sequence of returns analysis)
   const allRunsLightweight = results.map(r => ({
     eolReal: r.eolReal,
     y1AfterTaxReal: r.y1AfterTaxReal,
-    ruined: r.ruined
+    ruined: r.ruined,
+    survYrs: r.survYrs  // Year when portfolio failed (0 if never failed)
   }));
 
   return {
