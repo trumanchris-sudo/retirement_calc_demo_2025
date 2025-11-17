@@ -141,6 +141,26 @@ if (SP500_YOY_NOMINAL.length !== EXPECTED_LENGTH) {
   );
 }
 
+/**
+ * Bond allocation and return parameters
+ * For MVP: Simplified bond return model based on historical averages
+ */
+export const BOND_NOMINAL_AVG = 4.5; // Historical average bond return (%)
+export const BOND_REAL_AVG = 2.0; // Historical average real bond return (%)
+export const BOND_VOLATILITY = 8.0; // Historical bond volatility (%)
+export const STOCK_BOND_CORRELATION = 0.1; // Low positive correlation
+
+/**
+ * Calculate bond return based on stock return (simplified model for MVP)
+ * Maintains low correlation with stocks while providing more stable returns
+ */
+export function calculateBondReturn(stockReturnPct: number): number {
+  // Base bond return + correlation factor
+  // This approximates the historical relationship between stocks and bonds
+  const bondReturn = BOND_NOMINAL_AVG + (stockReturnPct - 9.8) * 0.3;
+  return bondReturn;
+}
+
 /** Tailwind safe color map */
 export const COLOR = {
   blue: {

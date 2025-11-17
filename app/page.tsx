@@ -54,7 +54,7 @@ import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calcul
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 
 // Import types
-import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress } from "@/types/calculator";
+import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress, BondGlidePath } from "@/types/calculator";
 
 // Import from new modules
 import {
@@ -87,6 +87,16 @@ import {
   realReturn,
   mulberry32,
 } from "@/lib/utils";
+
+import {
+  calculateBondAllocation,
+  calculateBlendedReturn,
+  calculatePortfolioVolatility,
+  generateAllocationChart,
+  GLIDE_PATH_PRESETS,
+} from "@/lib/bondAllocation";
+
+import { calculateBondReturn, BOND_NOMINAL_AVG } from "@/lib/constants";
 
 import type { ReturnMode, WalkSeries, BatchSummary } from "@/types/planner";
 
@@ -141,6 +151,8 @@ export function buildReturnGenerator(options: {
   walkData?: number[];
   seed?: number;
   startYear?: number; // Historical year to start sequential playback (e.g., 1929)
+  bondGlidePath?: BondGlidePath | null; // Bond allocation glide path
+  currentAge?: number; // Current age for bond allocation calculation
 }) {
   const {
     mode,
@@ -151,12 +163,26 @@ export function buildReturnGenerator(options: {
     walkData = SP500_YOY_NOMINAL,
     seed = 12345,
     startYear,
+    bondGlidePath = null,
+    currentAge = 35,
   } = options;
 
   if (mode === "fixed") {
     const g = 1 + nominalPct / 100;
     return function* fixedGen() {
-      for (let i = 0; i < years; i++) yield g;
+      for (let i = 0; i < years; i++) {
+        let returnPct = nominalPct;
+
+        // Apply bond blending if glide path is configured
+        if (bondGlidePath) {
+          const age = currentAge + i;
+          const bondAlloc = calculateBondAllocation(age, bondGlidePath);
+          const bondReturnPct = BOND_NOMINAL_AVG;
+          returnPct = calculateBlendedReturn(nominalPct, bondReturnPct, bondAlloc);
+        }
+
+        yield 1 + returnPct / 100;
+      }
     };
   }
 
@@ -169,7 +195,18 @@ export function buildReturnGenerator(options: {
     return function* historicalGen() {
       for (let i = 0; i < years; i++) {
         const ix = (startIndex + i) % walkData.length; // Wrap around if we exceed data
-        let pct = walkData[ix];
+        let stockPct = walkData[ix];
+
+        // Calculate bond return correlated with stock return
+        const bondPct = calculateBondReturn(stockPct);
+
+        // Apply bond blending if glide path is configured
+        let pct = stockPct;
+        if (bondGlidePath) {
+          const age = currentAge + i;
+          const bondAlloc = calculateBondAllocation(age, bondGlidePath);
+          pct = calculateBlendedReturn(stockPct, bondPct, bondAlloc);
+        }
 
         if (walkSeries === "real") {
           const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
@@ -186,7 +223,18 @@ export function buildReturnGenerator(options: {
   return function* walkGen() {
     for (let i = 0; i < years; i++) {
       const ix = Math.floor(rnd() * walkData.length);
-      let pct = walkData[ix];
+      let stockPct = walkData[ix];
+
+      // Calculate bond return correlated with stock return
+      const bondPct = calculateBondReturn(stockPct);
+
+      // Apply bond blending if glide path is configured
+      let pct = stockPct;
+      if (bondGlidePath) {
+        const age = currentAge + i;
+        const bondAlloc = calculateBondAllocation(age, bondGlidePath);
+        pct = calculateBlendedReturn(stockPct, bondPct, bondAlloc);
+      }
 
       if (walkSeries === "real") {
         const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
@@ -1179,6 +1227,14 @@ export default function App() {
   const [seed, setSeed] = useState(42);
   const [walkSeries, setWalkSeries] = useState<"nominal" | "real" | "trulyRandom">("trulyRandom");
 
+  // Bond Glide Path Configuration
+  const [allocationStrategy, setAllocationStrategy] = useState<'aggressive' | 'ageBased' | 'custom'>('aggressive');
+  const [bondStartPct, setBondStartPct] = useState(10);
+  const [bondEndPct, setBondEndPct] = useState(60);
+  const [bondStartAge, setBondStartAge] = useState(age1); // Will update dynamically
+  const [bondEndAge, setBondEndAge] = useState(75);
+  const [glidePathShape, setGlidePathShape] = useState<'linear' | 'accelerated' | 'decelerated'>('linear');
+
   const [res, setRes] = useState<CalculationResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -1187,6 +1243,23 @@ export default function App() {
   // Refs for legacy card image download
   const legacyCardRefAllInOne = useRef<HTMLDivElement>(null);
   const legacyCardRefLegacy = useRef<HTMLDivElement>(null);
+
+  // Build bond glide path configuration object
+  const bondGlidePath: BondGlidePath | null = useMemo(() => {
+    if (allocationStrategy === 'aggressive') {
+      // 100% stocks, no bonds
+      return null;
+    }
+
+    return {
+      strategy: allocationStrategy,
+      startAge: bondStartAge,
+      endAge: bondEndAge,
+      startPct: bondStartPct,
+      endPct: bondEndPct,
+      shape: glidePathShape,
+    };
+  }, [allocationStrategy, bondStartAge, bondEndAge, bondStartPct, bondEndPct, glidePathShape]);
 
   // Auto-calculate beneficiary ages based on user's age and family structure
   const { hypBenAgesStr, hypStartBens } = useMemo(() => {
@@ -2301,6 +2374,8 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed,
+        bondGlidePath,
+        currentAge: younger, // Start from younger person's age
       })();
 
       const drawGen = buildReturnGenerator({
@@ -2310,6 +2385,8 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed + 1,
+        bondGlidePath,
+        currentAge: older + yrsToRet, // Start from retirement age
         // Bear market returns are injected directly in drawdown loop, not via generator
       })();
 
@@ -5989,6 +6066,141 @@ export default function App() {
                       <option value="randomWalk">Random Walk (S&P bootstrap)</option>
                     </select>
                   </div>
+                </div>
+
+                {/* Asset Allocation Strategy */}
+                <Separator className="my-6" />
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-semibold text-foreground">Asset Allocation Strategy</h4>
+                    <Tip text="Choose how your portfolio is allocated between stocks and bonds. Bonds reduce volatility but also lower expected returns." />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Allocation Type</Label>
+                    <select
+                      value={allocationStrategy}
+                      onChange={(e) => {
+                        const newStrategy = e.target.value as 'aggressive' | 'ageBased' | 'custom';
+                        setAllocationStrategy(newStrategy);
+                        setInputsModified(true);
+                      }}
+                      className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                    >
+                      <option value="aggressive">100% Stocks (Aggressive)</option>
+                      <option value="ageBased">Age-Based (Bond % = Your Age)</option>
+                      <option value="custom">Custom Glide Path</option>
+                    </select>
+                  </div>
+
+                  {allocationStrategy === 'custom' && (
+                    <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <h5 className="font-semibold text-sm">Custom Bond Glide Path</h5>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Starting Bond %</Label>
+                          <UIInput
+                            type="number"
+                            value={bondStartPct}
+                            onChange={(e) => {
+                              setBondStartPct(Number(e.target.value));
+                              setInputsModified(true);
+                            }}
+                            min={0}
+                            max={100}
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Ending Bond %</Label>
+                          <UIInput
+                            type="number"
+                            value={bondEndPct}
+                            onChange={(e) => {
+                              setBondEndPct(Number(e.target.value));
+                              setInputsModified(true);
+                            }}
+                            min={0}
+                            max={100}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Start at Age</Label>
+                          <UIInput
+                            type="number"
+                            value={bondStartAge}
+                            onChange={(e) => {
+                              setBondStartAge(Number(e.target.value));
+                              setInputsModified(true);
+                            }}
+                            min={age1}
+                            max={95}
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>End at Age</Label>
+                          <UIInput
+                            type="number"
+                            value={bondEndAge}
+                            onChange={(e) => {
+                              setBondEndAge(Number(e.target.value));
+                              setInputsModified(true);
+                            }}
+                            min={age1}
+                            max={95}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Transition Shape</Label>
+                        <select
+                          value={glidePathShape}
+                          onChange={(e) => {
+                            setGlidePathShape(e.target.value as 'linear' | 'accelerated' | 'decelerated');
+                            setInputsModified(true);
+                          }}
+                          className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                        >
+                          <option value="linear">Linear (steady increase)</option>
+                          <option value="accelerated">Accelerated (faster early)</option>
+                          <option value="decelerated">Decelerated (faster late)</option>
+                        </select>
+                      </div>
+
+                      <div className="text-xs text-muted-foreground mt-2">
+                        <p>
+                          Bond allocation will transition from {bondStartPct}% at age {bondStartAge} to {bondEndPct}% at age {bondEndAge}.
+                          Current allocation at age {age1}: {Math.round(calculateBondAllocation(age1, bondGlidePath || undefined as any))}% bonds.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {allocationStrategy === 'ageBased' && (
+                    <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800 text-sm">
+                      <p>
+                        Your bond allocation will equal your age (e.g., at age {age1}: {Math.min(age1, 95)}% bonds, {Math.max(100 - age1, 5)}% stocks).
+                        This is a traditional rule of thumb for conservative investors.
+                      </p>
+                    </div>
+                  )}
+
+                  {allocationStrategy === 'aggressive' && (
+                    <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800 text-sm">
+                      <p>
+                        Your portfolio will remain 100% stocks for maximum growth potential.
+                        This provides higher expected returns but with greater volatility.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
