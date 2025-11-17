@@ -202,7 +202,7 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
     }
 
     let frame = 0;
-    const maxPaths = 5000;
+    const maxPaths = 2000;
     let activePaths: Array<{ nodeIndex: number; progress: number; pathId: number }> = [];
     let completedPaths = 0;
 
@@ -345,7 +345,7 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
       animateSimulation();
     }
     // Note: Don't stop animation when isRunning becomes false
-    // Let the animation complete all 5000 paths naturally
+    // Let the animation complete all 2000 paths naturally
   }, [isRunning, animateSimulation]);
 
   return (
@@ -365,7 +365,7 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
           {isAnimating && (
             <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-border">
               <div className="text-xs font-mono text-muted-foreground">
-                Paths simulated: <span className="font-semibold text-foreground">{pathsCompleted}</span> / 5000
+                Paths simulated: <span className="font-semibold text-foreground">{pathsCompleted}</span> / 2000
               </div>
             </div>
           )}

@@ -1681,7 +1681,7 @@ export default function App() {
   };
 
   // Helper function to run Monte Carlo simulation via web worker
-  const runMonteCarloViaWorker = useCallback((inputs: Inputs, baseSeed: number, N: number = 5000): Promise<BatchSummary> => {
+  const runMonteCarloViaWorker = useCallback((inputs: Inputs, baseSeed: number, N: number = 2000): Promise<BatchSummary> => {
     return new Promise((resolve, reject) => {
       console.log('[WORKER] Starting runMonteCarloViaWorker...');
       if (!workerRef.current) {

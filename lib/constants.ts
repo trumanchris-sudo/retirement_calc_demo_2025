@@ -7,7 +7,7 @@ export const CURR_YEAR = new Date().getFullYear();
 export const RMD_START_AGE = 73; // 2023 SECURE Act 2.0
 
 /** Monte Carlo simulation paths for statistical confidence */
-export const MONTE_CARLO_PATHS = 5000; // Increased from 1,000 for better percentile accuracy
+export const MONTE_CARLO_PATHS = 2000; // Balanced for accuracy and performance
 
 /** RMD Divisor Table (IRS Uniform Lifetime Table) - Complete */
 export const RMD_DIVISORS: Record<number, number> = {

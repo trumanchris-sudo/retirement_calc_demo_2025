@@ -1,6 +1,6 @@
 /**
  * Web Worker for Monte Carlo Retirement Simulation
- * Runs N=5000 simulations off the main thread to prevent UI blocking
+ * Runs N=2000 simulations off the main thread to prevent UI blocking
  */
 
 // ===============================
@@ -696,7 +696,7 @@ function runSingleSimulation(params, seed) {
 // Monte Carlo Batch Runner
 // ===============================
 
-function runMonteCarloSimulation(params, baseSeed, N = 5000) {
+function runMonteCarloSimulation(params, baseSeed, N = 2000) {
   const results = [];
 
   // Generate N random seeds from the baseSeed
