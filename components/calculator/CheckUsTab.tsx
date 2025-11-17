@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -50,6 +50,7 @@ const GitHubLink: React.FC<GitHubLinkProps> = ({ path, line }) => {
 };
 
 interface LiveCalculationProps {
+  id: string;
   title: string;
   description: string;
   icon: React.ReactNode;
@@ -59,6 +60,7 @@ interface LiveCalculationProps {
 }
 
 const LiveCalculation: React.FC<LiveCalculationProps> = ({
+  id,
   title,
   description,
   icon,
@@ -67,7 +69,7 @@ const LiveCalculation: React.FC<LiveCalculationProps> = ({
   calculation
 }) => {
   return (
-    <Card className="mb-4">
+    <Card id={id} className="mb-4 scroll-mt-24">
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
@@ -91,6 +93,20 @@ export function CheckUsTab() {
   const [capGains, setCapGains] = useState(50000);
   const [rmdAge, setRmdAge] = useState(75);
   const [bondAge, setBondAge] = useState(45);
+
+  // Handle hash navigation for deep linking
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        const element = document.querySelector(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -119,6 +135,7 @@ export function CheckUsTab() {
 
           {/* Federal Income Tax */}
           <LiveCalculation
+            id="federal-income-tax"
             title="Federal Income Tax (Progressive Brackets)"
             description="Uses 2025 tax brackets with standard deduction. Progressive tax rate applied to income ranges."
             icon={<Calculator className="h-5 w-5 text-blue-600" />}
@@ -165,6 +182,7 @@ export function CheckUsTab() {
 
           {/* Long-Term Capital Gains */}
           <LiveCalculation
+            id="long-term-cap-gains"
             title="Long-Term Capital Gains Tax"
             description="Favorable tax rates (0%, 15%, 20%) for investments held over 1 year. Rate depends on income level."
             icon={<TrendingUp className="h-5 w-5 text-green-600" />}
@@ -209,6 +227,7 @@ export function CheckUsTab() {
 
           {/* Net Investment Income Tax */}
           <LiveCalculation
+            id="niit"
             title="Net Investment Income Tax (NIIT)"
             description="3.8% Medicare surtax on investment income for high earners. Applies when MAGI exceeds thresholds."
             icon={<Shield className="h-5 w-5 text-purple-600" />}
@@ -245,6 +264,7 @@ export function CheckUsTab() {
 
           {/* Required Minimum Distributions */}
           <LiveCalculation
+            id="rmd"
             title="Required Minimum Distributions (RMDs)"
             description="IRS mandates withdrawals from traditional IRAs/401(k)s starting at age 73 (SECURE 2.0 Act)."
             icon={<DollarSign className="h-5 w-5 text-orange-600" />}
@@ -286,6 +306,7 @@ export function CheckUsTab() {
 
           {/* Bond Allocation (Glide Path) */}
           <LiveCalculation
+            id="bond-allocation"
             title="Bond Allocation (Glide Path)"
             description="Age-based asset allocation strategy balancing growth potential with risk reduction."
             icon={<Percent className="h-5 w-5 text-indigo-600" />}
@@ -333,7 +354,7 @@ export function CheckUsTab() {
           />
 
           {/* Social Security Bend Points */}
-          <Card className="mb-4">
+          <Card id="ss-bend-points" className="mb-4 scroll-mt-24">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
@@ -367,7 +388,7 @@ export function CheckUsTab() {
         <TabsContent value="constants" className="space-y-4 mt-6">
 
           {/* Federal Tax Brackets */}
-          <Card>
+          <Card id="tax-brackets" className="scroll-mt-24">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <CardTitle>2025 Federal Income Tax Brackets</CardTitle>
@@ -410,7 +431,7 @@ export function CheckUsTab() {
           </Card>
 
           {/* LTCG Brackets */}
-          <Card>
+          <Card id="ltcg-brackets" className="scroll-mt-24">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <CardTitle>Long-Term Capital Gains Tax Brackets (2025)</CardTitle>
@@ -451,7 +472,7 @@ export function CheckUsTab() {
           </Card>
 
           {/* Estate Tax */}
-          <Card>
+          <Card id="estate-tax" className="scroll-mt-24">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <CardTitle>Estate Tax (2025)</CardTitle>
@@ -479,7 +500,7 @@ export function CheckUsTab() {
           </Card>
 
           {/* RMD Table */}
-          <Card>
+          <Card id="rmd-table" className="scroll-mt-24">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <CardTitle>IRS RMD Uniform Lifetime Table</CardTitle>
@@ -507,7 +528,7 @@ export function CheckUsTab() {
         {/* Historical Data Tab */}
         <TabsContent value="data" className="space-y-4 mt-6">
 
-          <Card>
+          <Card id="sp500-data" className="scroll-mt-24">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <CardTitle>S&P 500 Historical Returns ({SP500_START_YEAR}–{SP500_END_YEAR})</CardTitle>
@@ -566,7 +587,7 @@ export function CheckUsTab() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card id="data-integrity" className="scroll-mt-24">
             <CardHeader>
               <CardTitle>Data Integrity & Validation</CardTitle>
               <CardDescription>Built-in checks ensure calculation accuracy</CardDescription>

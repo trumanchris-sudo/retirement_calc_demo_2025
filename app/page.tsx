@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   LineChart,
   Line,
@@ -1344,6 +1345,15 @@ export default function App() {
   const [activeMainTab, setActiveMainTab] = useState<MainTabId>('all');
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [inputsModified, setInputsModified] = useState(false);
+
+  // Handle tab switching via URL query params
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['all', 'configure', 'results', 'stress', 'legacy', 'budget', 'math', 'checkUs'].includes(tab)) {
+      setActiveMainTab(tab as MainTabId);
+    }
+  }, [searchParams]);
 
   // Callback for tracking input changes
   const handleInputChange = useCallback(() => {
