@@ -136,6 +136,35 @@ export type GuardrailsResult = {
   improvement: number;  // Percentage point improvement
 };
 
+// Roth conversion optimizer result
+export type RothConversionResult = {
+  hasRecommendation: boolean;
+  reason?: string;  // Reason if no recommendation
+  conversions?: {
+    age: number;
+    conversionAmount: number;
+    tax: number;
+    pretaxBalanceBefore: number;
+  }[];
+  conversionWindow?: {
+    startAge: number;
+    endAge: number;
+    years: number;
+  };
+  totalConverted?: number;
+  avgAnnualConversion?: number;
+  lifetimeTaxSavings?: number;
+  baselineLifetimeTax?: number;
+  optimizedLifetimeTax?: number;
+  rmdReduction?: number;
+  rmdReductionPercent?: number;
+  effectiveRateImprovement?: number;
+  baselineRMDs?: { age: number; rmd: number; tax: number }[];
+  optimizedRMDs?: { age: number; rmd: number; tax: number }[];
+  targetBracket?: number;
+  targetBracketLimit?: number;
+};
+
 // The final result object displayed to user
 export type DisplayResult = {
   finNom: number;

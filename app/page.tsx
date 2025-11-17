@@ -56,6 +56,7 @@ import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calcul
 import { CheckUsTab } from "@/components/calculator/CheckUsTab";
 import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
 import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexibilityChart";
+import { RothConversionOptimizer } from "@/components/calculator/RothConversionOptimizer";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
 
@@ -104,7 +105,7 @@ import {
 
 import { calculateBondReturn, BOND_NOMINAL_AVG, MONTE_CARLO_PATHS } from "@/lib/constants";
 
-import type { ReturnMode, WalkSeries, BatchSummary, GuardrailsResult } from "@/types/planner";
+import type { ReturnMode, WalkSeries, BatchSummary, GuardrailsResult, RothConversionResult } from "@/types/planner";
 
 // Import calculation modules
 import {
@@ -1248,6 +1249,7 @@ export default function App() {
   const [legacyResult, setLegacyResult] = useState<LegacyResult | null>(null);
   const [batchSummary, setBatchSummary] = useState<BatchSummary | null>(null);
   const [guardrailsResult, setGuardrailsResult] = useState<GuardrailsResult | null>(null);
+  const [rothResult, setRothResult] = useState<RothConversionResult | null>(null);
 
   // Refs for legacy card image download
   const legacyCardRefAllInOne = useRef<HTMLDivElement>(null);
@@ -1837,6 +1839,81 @@ export default function App() {
       }
     });
   }, []);
+
+  /**
+   * Run Roth conversion optimizer analysis
+   * Calculates optimal Roth conversion strategy to minimize lifetime taxes
+   */
+  const runRothOptimizer = useCallback((result: CalculationResult) => {
+    if (!workerRef.current || !result) {
+      console.warn('[ROTH-OPT] Cannot run analysis - missing worker or data');
+      return;
+    }
+
+    // Only run if user has pre-tax balance and is below RMD age
+    const { finNom, eolAccounts } = result;
+    const pretaxBalance = eolAccounts?.pretax || 0;
+
+    if (pretaxBalance <= 0) {
+      console.log('[ROTH-OPT] Skipping - no pre-tax balance');
+      setRothResult(null);
+      return;
+    }
+
+    if (retAge >= RMD_START_AGE) {
+      console.log('[ROTH-OPT] Skipping - already at or past RMD age');
+      setRothResult(null);
+      return;
+    }
+
+    const worker = workerRef.current;
+
+    const handleMessage = (e: MessageEvent) => {
+      if (!e.data) return;
+
+      const { type, result: optimizerResult, error } = e.data;
+
+      if (type === 'roth-optimizer-complete') {
+        worker.removeEventListener('message', handleMessage);
+        worker.removeEventListener('error', handleError);
+        setRothResult(optimizerResult);
+        console.log('[ROTH-OPT] Analysis complete:', optimizerResult);
+      } else if (type === 'error') {
+        worker.removeEventListener('message', handleMessage);
+        worker.removeEventListener('error', handleError);
+        console.error('[ROTH-OPT] Error:', error);
+        setRothResult(null);
+      }
+    };
+
+    const handleError = (e: ErrorEvent) => {
+      worker.removeEventListener('message', handleMessage);
+      worker.removeEventListener('error', handleError);
+      console.error('[ROTH-OPT] Worker error:', e.message);
+      setRothResult(null);
+    };
+
+    // Calculate SS income for tax planning
+    const ssAnnualIncome = includeSS ? (ssIncome || 0) + (isMar ? (ssIncome2 || 0) : 0) : 0;
+
+    // Estimate annual withdrawal (use wdRate on retirement balance)
+    const annualWithdrawal = finNom * (wdRate / 100);
+
+    worker.addEventListener('message', handleMessage);
+    worker.addEventListener('error', handleError);
+    worker.postMessage({
+      type: 'roth-optimizer',
+      params: {
+        retAge,
+        pretaxBalance,
+        marital,
+        ssIncome: ssAnnualIncome,
+        annualWithdrawal,
+        targetBracket: 0.24,  // Default to 24% bracket
+        growthRate: retRate / 100,
+      }
+    });
+  }, [retAge, marital, includeSS, ssIncome, ssIncome2, isMar, wdRate, retRate]);
 
   /**
    * Run comparison between baseline and selected scenarios
@@ -2467,6 +2544,10 @@ export default function App() {
         } else {
           setGuardrailsResult(null); // Clear previous results if no failures
         }
+
+        // Run Roth conversion optimizer
+        console.log('[CALC] Running Roth conversion optimizer...');
+        runRothOptimizer(newRes);
 
         // Track calculation for tab interface
         const isFirstCalculation = !lastCalculated;
@@ -6109,6 +6190,15 @@ export default function App() {
               <AnimatedSection animation="fade-in" delay={600}>
                 <SpendingFlexibilityChart
                   guardrailsResult={guardrailsResult}
+                />
+              </AnimatedSection>
+            )}
+
+            {/* Roth Conversion Optimizer */}
+            {rothResult && (
+              <AnimatedSection animation="fade-in" delay={700}>
+                <RothConversionOptimizer
+                  rothResult={rothResult}
                 />
               </AnimatedSection>
             )}

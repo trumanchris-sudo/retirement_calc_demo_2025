@@ -1144,5 +1144,178 @@ self.onmessage = function(e) {
         error: error.message,
       });
     }
+  } else if (type === 'roth-optimizer') {
+    // Calculate optimal Roth conversion strategy
+    // Strategy: Convert pre-tax to Roth before RMDs start (age 73)
+    // Fill up lower tax brackets (22% or 24%) to minimize lifetime taxes
+    try {
+      const {
+        retAge,
+        pretaxBalance,
+        marital,
+        ssIncome = 0,
+        annualWithdrawal = 0,
+        targetBracket = 0.24,  // Default: fill 24% bracket
+        growthRate = 0.07,  // 7% annual growth assumption
+      } = params;
+
+      if (!pretaxBalance || pretaxBalance <= 0) {
+        self.postMessage({
+          type: 'roth-optimizer-complete',
+          result: {
+            hasRecommendation: false,
+            reason: 'No pre-tax balance to convert',
+          },
+        });
+        return;
+      }
+
+      // Age 73 is when RMDs start
+      const conversionYears = Math.max(0, RMD_START_AGE - retAge);
+
+      if (conversionYears <= 0) {
+        self.postMessage({
+          type: 'roth-optimizer-complete',
+          result: {
+            hasRecommendation: false,
+            reason: 'Already at or past RMD age',
+          },
+        });
+        return;
+      }
+
+      const status = marital === 'married' ? 'married' : 'single';
+      const brackets = TAX_BRACKETS[status];
+      const deduction = brackets.deduction;
+
+      // Find target bracket limit
+      let targetBracketLimit = 0;
+      for (const b of brackets.rates) {
+        if (b.rate === targetBracket) {
+          targetBracketLimit = b.limit;
+          break;
+        }
+      }
+
+      if (targetBracketLimit === 0) {
+        // Default to 24% bracket if not found
+        targetBracketLimit = marital === 'married' ? 394600 : 197300;
+      }
+
+      // ===== BASELINE SCENARIO: No Conversions =====
+      let baselinePretax = pretaxBalance;
+      let baselineLifetimeTax = 0;
+      const baselineRMDs = [];
+
+      for (let age = RMD_START_AGE; age <= LIFE_EXP; age++) {
+        const rmd = calcRMD(baselinePretax, age);
+        const totalIncome = rmd + ssIncome;
+        const tax = calcOrdinaryTax(totalIncome, status);
+
+        baselineRMDs.push({ age, rmd, tax });
+        baselineLifetimeTax += tax;
+
+        // Grow remaining balance
+        baselinePretax = (baselinePretax - rmd) * (1 + growthRate);
+      }
+
+      // ===== OPTIMIZED SCENARIO: Strategic Conversions =====
+      let optimizedPretax = pretaxBalance;
+      let optimizedLifetimeTax = 0;
+      const conversions = [];
+
+      // Phase 1: Conversions (retirement to age 72)
+      for (let age = retAge; age < RMD_START_AGE; age++) {
+        // Calculate baseline income (SS + withdrawals)
+        const baseIncome = ssIncome + annualWithdrawal;
+
+        // Calculate taxable income before deduction
+        const taxableBeforeConversion = Math.max(0, baseIncome - deduction);
+
+        // Calculate "room" in target bracket
+        const roomInBracket = Math.max(0, targetBracketLimit - taxableBeforeConversion);
+
+        // Convert up to the available room, but don't exceed pre-tax balance
+        const conversionAmount = Math.min(roomInBracket, optimizedPretax);
+
+        if (conversionAmount > 5000) {  // Only convert if meaningful ($5k+ threshold)
+          const totalIncome = baseIncome + conversionAmount;
+          const tax = calcOrdinaryTax(totalIncome, status);
+
+          conversions.push({
+            age,
+            conversionAmount,
+            tax,
+            pretaxBalanceBefore: optimizedPretax,
+          });
+
+          optimizedLifetimeTax += tax;
+          optimizedPretax -= conversionAmount;
+        }
+
+        // Grow remaining balance
+        optimizedPretax *= (1 + growthRate);
+      }
+
+      // Phase 2: RMDs on reduced balance (age 73 to 95)
+      const optimizedRMDs = [];
+      for (let age = RMD_START_AGE; age <= LIFE_EXP; age++) {
+        const rmd = calcRMD(optimizedPretax, age);
+        const totalIncome = rmd + ssIncome;
+        const tax = calcOrdinaryTax(totalIncome, status);
+
+        optimizedRMDs.push({ age, rmd, tax });
+        optimizedLifetimeTax += tax;
+
+        // Grow remaining balance
+        optimizedPretax = (optimizedPretax - rmd) * (1 + growthRate);
+      }
+
+      // ===== CALCULATE METRICS =====
+      const lifetimeTaxSavings = baselineLifetimeTax - optimizedLifetimeTax;
+      const totalConverted = conversions.reduce((sum, c) => sum + c.conversionAmount, 0);
+      const avgAnnualConversion = totalConverted / conversions.length;
+
+      // Calculate RMD reduction
+      const baselineTotalRMDs = baselineRMDs.reduce((sum, r) => sum + r.rmd, 0);
+      const optimizedTotalRMDs = optimizedRMDs.reduce((sum, r) => sum + r.rmd, 0);
+      const rmdReduction = baselineTotalRMDs - optimizedTotalRMDs;
+      const rmdReductionPercent = (rmdReduction / baselineTotalRMDs) * 100;
+
+      // Calculate effective tax rate improvement
+      const baselineAvgRate = baselineLifetimeTax / baselineTotalRMDs;
+      const optimizedAvgRate = optimizedLifetimeTax / (optimizedTotalRMDs + totalConverted);
+      const effectiveRateImprovement = (baselineAvgRate - optimizedAvgRate) * 100;
+
+      self.postMessage({
+        type: 'roth-optimizer-complete',
+        result: {
+          hasRecommendation: conversions.length > 0 && lifetimeTaxSavings > 0,
+          conversions,
+          conversionWindow: {
+            startAge: retAge,
+            endAge: RMD_START_AGE - 1,
+            years: conversionYears,
+          },
+          totalConverted,
+          avgAnnualConversion,
+          lifetimeTaxSavings,
+          baselineLifetimeTax,
+          optimizedLifetimeTax,
+          rmdReduction,
+          rmdReductionPercent,
+          effectiveRateImprovement,
+          baselineRMDs: baselineRMDs.slice(0, 10),  // First 10 years for display
+          optimizedRMDs: optimizedRMDs.slice(0, 10),
+          targetBracket,
+          targetBracketLimit,
+        },
+      });
+    } catch (error) {
+      self.postMessage({
+        type: 'error',
+        error: error.message,
+      });
+    }
   }
 };
