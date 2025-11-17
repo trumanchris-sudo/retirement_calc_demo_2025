@@ -55,6 +55,7 @@ import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualiz
 import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
 import { CheckUsTab } from "@/components/calculator/CheckUsTab";
 import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
+import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexibilityChart";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
 
@@ -103,7 +104,7 @@ import {
 
 import { calculateBondReturn, BOND_NOMINAL_AVG, MONTE_CARLO_PATHS } from "@/lib/constants";
 
-import type { ReturnMode, WalkSeries, BatchSummary } from "@/types/planner";
+import type { ReturnMode, WalkSeries, BatchSummary, GuardrailsResult } from "@/types/planner";
 
 // Import calculation modules
 import {
@@ -1245,6 +1246,8 @@ export default function App() {
   const [err, setErr] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [legacyResult, setLegacyResult] = useState<LegacyResult | null>(null);
+  const [batchSummary, setBatchSummary] = useState<BatchSummary | null>(null);
+  const [guardrailsResult, setGuardrailsResult] = useState<GuardrailsResult | null>(null);
 
   // Refs for legacy card image download
   const legacyCardRefAllInOne = useRef<HTMLDivElement>(null);
@@ -1785,6 +1788,53 @@ export default function App() {
       worker.addEventListener('message', handleMessage);
       worker.addEventListener('error', handleError);
       worker.postMessage({ type: 'legacy', params });
+    });
+  }, []);
+
+  /**
+   * Run guardrails analysis to show impact of spending flexibility
+   */
+  const runGuardrailsAnalysis = useCallback((batchData: BatchSummary, spendingReduction: number = 0.10) => {
+    if (!workerRef.current || !batchData || !batchData.allRuns) {
+      console.warn('[GUARDRAILS] Cannot run analysis - missing worker or data');
+      return;
+    }
+
+    const worker = workerRef.current;
+
+    const handleMessage = (e: MessageEvent) => {
+      if (!e.data) return;
+
+      const { type, result, error } = e.data;
+
+      if (type === 'guardrails-complete') {
+        worker.removeEventListener('message', handleMessage);
+        worker.removeEventListener('error', handleError);
+        setGuardrailsResult(result);
+        console.log('[GUARDRAILS] Analysis complete:', result);
+      } else if (type === 'error') {
+        worker.removeEventListener('message', handleMessage);
+        worker.removeEventListener('error', handleError);
+        console.error('[GUARDRAILS] Error:', error);
+        setGuardrailsResult(null);
+      }
+    };
+
+    const handleError = (e: ErrorEvent) => {
+      worker.removeEventListener('message', handleMessage);
+      worker.removeEventListener('error', handleError);
+      console.error('[GUARDRAILS] Worker error:', e.message);
+      setGuardrailsResult(null);
+    };
+
+    worker.addEventListener('message', handleMessage);
+    worker.addEventListener('error', handleError);
+    worker.postMessage({
+      type: 'guardrails',
+      params: {
+        allRuns: batchData.allRuns,
+        spendingReduction,
+      }
     });
   }, []);
 
@@ -2407,7 +2457,16 @@ export default function App() {
         console.log('[CALC] About to set result, newRes:', newRes);
         setRes(newRes);
         setLegacyResult(calculateLegacyResult(newRes));
+        setBatchSummary(batchSummary); // Store for sequence risk and guardrails analysis
         console.log('[CALC] Result set successfully');
+
+        // Run guardrails analysis if we have failures
+        if (batchSummary && batchSummary.probRuin > 0) {
+          console.log('[CALC] Running guardrails analysis...');
+          runGuardrailsAnalysis(batchSummary);
+        } else {
+          setGuardrailsResult(null); // Clear previous results if no failures
+        }
 
         // Track calculation for tab interface
         const isFirstCalculation = !lastCalculated;
@@ -6041,6 +6100,15 @@ export default function App() {
                   batchSummary={batchSummary}
                   retAge={retAge}
                   age1={age1}
+                />
+              </AnimatedSection>
+            )}
+
+            {/* Spending Flexibility Impact Analysis */}
+            {guardrailsResult && (
+              <AnimatedSection animation="fade-in" delay={600}>
+                <SpendingFlexibilityChart
+                  guardrailsResult={guardrailsResult}
                 />
               </AnimatedSection>
             )}

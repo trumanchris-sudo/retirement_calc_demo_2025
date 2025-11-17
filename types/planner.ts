@@ -127,6 +127,15 @@ export type BatchSummary = {
   allRuns: SimResult[];  // All simulation runs for empirical success rate calculation
 };
 
+// Guardrails analysis result showing impact of spending flexibility
+export type GuardrailsResult = {
+  totalFailures: number;
+  preventableFailures: number;
+  newSuccessRate: number;
+  baselineSuccessRate: number;
+  improvement: number;  // Percentage point improvement
+};
+
 // The final result object displayed to user
 export type DisplayResult = {
   finNom: number;
