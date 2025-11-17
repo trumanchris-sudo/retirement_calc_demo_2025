@@ -6505,7 +6505,11 @@ export default function App() {
 
             <div className="flex flex-col items-center pt-6 pb-2 no-print">
               <Button
-                onClick={calc}
+                onClick={() => {
+                  calc();
+                  // Auto-navigate to Results tab after clicking Calculate
+                  setActiveMainTab('results');
+                }}
                 disabled={isLoadingAi}
                 size="lg"
                 className="w-full md:w-auto text-lg px-16 py-7 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
