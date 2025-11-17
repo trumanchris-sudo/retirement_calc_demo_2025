@@ -105,6 +105,7 @@ export type SimResult = {
   eolReal: number;
   y1AfterTaxReal: number;
   ruined: boolean;
+  survYrs: number;  // Year when portfolio failed (0 if never failed)
 };
 
 // Summary statistics from running multiple seeds for truly random simulations
@@ -124,6 +125,44 @@ export type BatchSummary = {
   y1AfterTaxReal_p90?: number; // Optional for backward compatibility
   probRuin: number;
   allRuns: SimResult[];  // All simulation runs for empirical success rate calculation
+};
+
+// Guardrails analysis result showing impact of spending flexibility
+export type GuardrailsResult = {
+  totalFailures: number;
+  preventableFailures: number;
+  newSuccessRate: number;
+  baselineSuccessRate: number;
+  improvement: number;  // Percentage point improvement
+};
+
+// Roth conversion optimizer result
+export type RothConversionResult = {
+  hasRecommendation: boolean;
+  reason?: string;  // Reason if no recommendation
+  conversions?: {
+    age: number;
+    conversionAmount: number;
+    tax: number;
+    pretaxBalanceBefore: number;
+  }[];
+  conversionWindow?: {
+    startAge: number;
+    endAge: number;
+    years: number;
+  };
+  totalConverted?: number;
+  avgAnnualConversion?: number;
+  lifetimeTaxSavings?: number;
+  baselineLifetimeTax?: number;
+  optimizedLifetimeTax?: number;
+  rmdReduction?: number;
+  rmdReductionPercent?: number;
+  effectiveRateImprovement?: number;
+  baselineRMDs?: { age: number; rmd: number; tax: number }[];
+  optimizedRMDs?: { age: number; rmd: number; tax: number }[];
+  targetBracket?: number;
+  targetBracketLimit?: number;
 };
 
 // The final result object displayed to user

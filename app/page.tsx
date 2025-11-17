@@ -1,6 +1,8 @@
 "use client"
 
 import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   LineChart,
   Line,
@@ -51,7 +53,12 @@ import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
 import { TimelineView } from "@/components/calculator/TimelineView";
 import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
 import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
+import { CheckUsTab } from "@/components/calculator/CheckUsTab";
+import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
+import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexibilityChart";
+import { RothConversionOptimizer } from "@/components/calculator/RothConversionOptimizer";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
+import { useBudget } from "@/lib/budget-context";
 
 // Import types
 import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress, BondGlidePath } from "@/types/calculator";
@@ -96,9 +103,9 @@ import {
   GLIDE_PATH_PRESETS,
 } from "@/lib/bondAllocation";
 
-import { calculateBondReturn, BOND_NOMINAL_AVG } from "@/lib/constants";
+import { calculateBondReturn, BOND_NOMINAL_AVG, MONTE_CARLO_PATHS } from "@/lib/constants";
 
-import type { ReturnMode, WalkSeries, BatchSummary } from "@/types/planner";
+import type { ReturnMode, WalkSeries, BatchSummary, GuardrailsResult, RothConversionResult } from "@/types/planner";
 
 // Import calculation modules
 import {
@@ -1150,6 +1157,7 @@ ScenarioComparisonChart.displayName = 'ScenarioComparisonChart';
  * ================================ */
 
 export default function App() {
+  const { setImplied } = useBudget();
   const [marital, setMarital] = useState<FilingStatus>("single");
   const [age1, setAge1] = useState(35);
   const [age2, setAge2] = useState(33);
@@ -1239,6 +1247,9 @@ export default function App() {
   const [err, setErr] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [legacyResult, setLegacyResult] = useState<LegacyResult | null>(null);
+  const [batchSummary, setBatchSummary] = useState<BatchSummary | null>(null);
+  const [guardrailsResult, setGuardrailsResult] = useState<GuardrailsResult | null>(null);
+  const [rothResult, setRothResult] = useState<RothConversionResult | null>(null);
 
   // Refs for legacy card image download
   const legacyCardRefAllInOne = useRef<HTMLDivElement>(null);
@@ -1340,6 +1351,15 @@ export default function App() {
   const [activeMainTab, setActiveMainTab] = useState<MainTabId>('all');
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [inputsModified, setInputsModified] = useState(false);
+
+  // Handle tab switching via URL query params
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['all', 'configure', 'results', 'stress', 'legacy', 'budget', 'math', 'checkUs'].includes(tab)) {
+      setActiveMainTab(tab as MainTabId);
+    }
+  }, [searchParams]);
 
   // Callback for tracking input changes
   const handleInputChange = useCallback(() => {
@@ -1663,7 +1683,7 @@ export default function App() {
   };
 
   // Helper function to run Monte Carlo simulation via web worker
-  const runMonteCarloViaWorker = useCallback((inputs: Inputs, baseSeed: number, N: number = 1000): Promise<BatchSummary> => {
+  const runMonteCarloViaWorker = useCallback((inputs: Inputs, baseSeed: number, N: number = 2000): Promise<BatchSummary> => {
     return new Promise((resolve, reject) => {
       console.log('[WORKER] Starting runMonteCarloViaWorker...');
       if (!workerRef.current) {
@@ -1717,6 +1737,183 @@ export default function App() {
       worker.postMessage({ type: 'run', params: inputs, baseSeed, N });
     });
   }, []);
+
+  /**
+   * Run legacy simulation via web worker (offloads 10,000-year simulation)
+   */
+  const runLegacyViaWorker = useCallback((params: {
+    eolNominal: number;
+    yearsFrom2025: number;
+    nominalRet: number;
+    inflPct: number;
+    perBenReal: number;
+    startBens: number;
+    totalFertilityRate: number;
+    generationLength?: number;
+    deathAge?: number;
+    minDistAge?: number;
+    capYears?: number;
+    initialBenAges?: number[];
+    fertilityWindowStart?: number;
+    fertilityWindowEnd?: number;
+  }): Promise<{ years: number; fundLeftReal: number; lastLivingCount: number }> => {
+    return new Promise((resolve, reject) => {
+      if (!workerRef.current) {
+        reject(new Error("Worker not initialized"));
+        return;
+      }
+
+      const worker = workerRef.current;
+
+      const handleMessage = (e: MessageEvent) => {
+        if (!e.data) return;
+
+        const { type, result, error } = e.data;
+
+        if (type === 'legacy-complete') {
+          worker.removeEventListener('message', handleMessage);
+          worker.removeEventListener('error', handleError);
+          resolve(result);
+        } else if (type === 'error') {
+          worker.removeEventListener('message', handleMessage);
+          worker.removeEventListener('error', handleError);
+          reject(new Error(error));
+        }
+      };
+
+      const handleError = (e: ErrorEvent) => {
+        worker.removeEventListener('message', handleMessage);
+        worker.removeEventListener('error', handleError);
+        reject(new Error(`Worker error: ${e.message}`));
+      };
+
+      worker.addEventListener('message', handleMessage);
+      worker.addEventListener('error', handleError);
+      worker.postMessage({ type: 'legacy', params });
+    });
+  }, []);
+
+  /**
+   * Run guardrails analysis to show impact of spending flexibility
+   */
+  const runGuardrailsAnalysis = useCallback((batchData: BatchSummary, spendingReduction: number = 0.10) => {
+    if (!workerRef.current || !batchData || !batchData.allRuns) {
+      console.warn('[GUARDRAILS] Cannot run analysis - missing worker or data');
+      return;
+    }
+
+    const worker = workerRef.current;
+
+    const handleMessage = (e: MessageEvent) => {
+      if (!e.data) return;
+
+      const { type, result, error } = e.data;
+
+      if (type === 'guardrails-complete') {
+        worker.removeEventListener('message', handleMessage);
+        worker.removeEventListener('error', handleError);
+        setGuardrailsResult(result);
+        console.log('[GUARDRAILS] Analysis complete:', result);
+      } else if (type === 'error') {
+        worker.removeEventListener('message', handleMessage);
+        worker.removeEventListener('error', handleError);
+        console.error('[GUARDRAILS] Error:', error);
+        setGuardrailsResult(null);
+      }
+    };
+
+    const handleError = (e: ErrorEvent) => {
+      worker.removeEventListener('message', handleMessage);
+      worker.removeEventListener('error', handleError);
+      console.error('[GUARDRAILS] Worker error:', e.message);
+      setGuardrailsResult(null);
+    };
+
+    worker.addEventListener('message', handleMessage);
+    worker.addEventListener('error', handleError);
+    worker.postMessage({
+      type: 'guardrails',
+      params: {
+        allRuns: batchData.allRuns,
+        spendingReduction,
+      }
+    });
+  }, []);
+
+  /**
+   * Run Roth conversion optimizer analysis
+   * Calculates optimal Roth conversion strategy to minimize lifetime taxes
+   */
+  const runRothOptimizer = useCallback((result: CalculationResult) => {
+    if (!workerRef.current || !result) {
+      console.warn('[ROTH-OPT] Cannot run analysis - missing worker or data');
+      return;
+    }
+
+    // Only run if user has pre-tax balance and is below RMD age
+    const { finNom, eolAccounts } = result;
+    const pretaxBalance = eolAccounts?.pretax || 0;
+
+    if (pretaxBalance <= 0) {
+      console.log('[ROTH-OPT] Skipping - no pre-tax balance');
+      setRothResult(null);
+      return;
+    }
+
+    if (retAge >= RMD_START_AGE) {
+      console.log('[ROTH-OPT] Skipping - already at or past RMD age');
+      setRothResult(null);
+      return;
+    }
+
+    const worker = workerRef.current;
+
+    const handleMessage = (e: MessageEvent) => {
+      if (!e.data) return;
+
+      const { type, result: optimizerResult, error } = e.data;
+
+      if (type === 'roth-optimizer-complete') {
+        worker.removeEventListener('message', handleMessage);
+        worker.removeEventListener('error', handleError);
+        setRothResult(optimizerResult);
+        console.log('[ROTH-OPT] Analysis complete:', optimizerResult);
+      } else if (type === 'error') {
+        worker.removeEventListener('message', handleMessage);
+        worker.removeEventListener('error', handleError);
+        console.error('[ROTH-OPT] Error:', error);
+        setRothResult(null);
+      }
+    };
+
+    const handleError = (e: ErrorEvent) => {
+      worker.removeEventListener('message', handleMessage);
+      worker.removeEventListener('error', handleError);
+      console.error('[ROTH-OPT] Worker error:', e.message);
+      setRothResult(null);
+    };
+
+    // Calculate SS income for tax planning
+    const ssAnnualIncome = includeSS ? (ssIncome || 0) + (isMar ? (ssIncome2 || 0) : 0) : 0;
+
+    // Estimate annual withdrawal (use wdRate on retirement balance)
+    const annualWithdrawal = finNom * (wdRate / 100);
+
+    worker.addEventListener('message', handleMessage);
+    worker.addEventListener('error', handleError);
+    worker.postMessage({
+      type: 'roth-optimizer',
+      params: {
+        retAge,
+        pretaxBalance,
+        marital,
+        ssIncome: ssAnnualIncome,
+        annualWithdrawal,
+        targetBracket: 0.24,  // Default to 24% bracket
+        growthRate: retRate / 100,
+      }
+    });
+  }, [retAge, marital, includeSS, ssIncome, ssIncome2, isMar, wdRate, retRate]);
 
   /**
    * Run comparison between baseline and selected scenarios
@@ -2153,56 +2350,56 @@ export default function App() {
           console.log('[CALC] Running generational simulations for P25, P50, P75...');
           console.log('[CALC] Parameters - yearsFrom2025:', yearsFrom2025, 'retRate:', retRate);
 
-          const simP25 = simulateRealPerBeneficiaryPayout(
-            netEstateP25,
+          const simP25 = await runLegacyViaWorker({
+            eolNominal: netEstateP25,
             yearsFrom2025,
-            retRate,
-            infRate,
-            hypPerBen,
-            Math.max(1, hypStartBens),
+            nominalRet: retRate,
+            inflPct: infRate,
+            perBenReal: hypPerBen,
+            startBens: Math.max(1, hypStartBens),
             totalFertilityRate,
             generationLength,
-            Math.max(1, hypDeathAge),
-            Math.max(0, hypMinDistAge),
-            10000,  // Optimized simulation with early-exit and chunking
-            benAges.length > 0 ? benAges : [0],
+            deathAge: Math.max(1, hypDeathAge),
+            minDistAge: Math.max(0, hypMinDistAge),
+            capYears: 10000,  // Optimized simulation with early-exit and chunking
+            initialBenAges: benAges.length > 0 ? benAges : [0],
             fertilityWindowStart,
             fertilityWindowEnd
-          );
+          });
 
-          const simP50 = simulateRealPerBeneficiaryPayout(
-            netEstateP50,
+          const simP50 = await runLegacyViaWorker({
+            eolNominal: netEstateP50,
             yearsFrom2025,
-            retRate,
-            infRate,
-            hypPerBen,
-            Math.max(1, hypStartBens),
+            nominalRet: retRate,
+            inflPct: infRate,
+            perBenReal: hypPerBen,
+            startBens: Math.max(1, hypStartBens),
             totalFertilityRate,
             generationLength,
-            Math.max(1, hypDeathAge),
-            Math.max(0, hypMinDistAge),
-            10000,  // Optimized simulation with early-exit and chunking
-            benAges.length > 0 ? benAges : [0],
+            deathAge: Math.max(1, hypDeathAge),
+            minDistAge: Math.max(0, hypMinDistAge),
+            capYears: 10000,  // Optimized simulation with early-exit and chunking
+            initialBenAges: benAges.length > 0 ? benAges : [0],
             fertilityWindowStart,
             fertilityWindowEnd
-          );
+          });
 
-          const simP75 = simulateRealPerBeneficiaryPayout(
-            netEstateP75,
+          const simP75 = await runLegacyViaWorker({
+            eolNominal: netEstateP75,
             yearsFrom2025,
-            retRate,
-            infRate,
-            hypPerBen,
-            Math.max(1, hypStartBens),
+            nominalRet: retRate,
+            inflPct: infRate,
+            perBenReal: hypPerBen,
+            startBens: Math.max(1, hypStartBens),
             totalFertilityRate,
             generationLength,
-            Math.max(1, hypDeathAge),
-            Math.max(0, hypMinDistAge),
-            10000,  // Optimized simulation with early-exit and chunking
-            benAges.length > 0 ? benAges : [0],
+            deathAge: Math.max(1, hypDeathAge),
+            minDistAge: Math.max(0, hypMinDistAge),
+            capYears: 10000,  // Optimized simulation with early-exit and chunking
+            initialBenAges: benAges.length > 0 ? benAges : [0],
             fertilityWindowStart,
             fertilityWindowEnd
-          );
+          });
 
           console.log('[CALC] Generational simulations completed - P25:', simP25, 'P50:', simP50, 'P75:', simP75);
 
@@ -2337,7 +2534,20 @@ export default function App() {
         console.log('[CALC] About to set result, newRes:', newRes);
         setRes(newRes);
         setLegacyResult(calculateLegacyResult(newRes));
+        setBatchSummary(batchSummary); // Store for sequence risk and guardrails analysis
         console.log('[CALC] Result set successfully');
+
+        // Run guardrails analysis if we have failures
+        if (batchSummary && batchSummary.probRuin > 0) {
+          console.log('[CALC] Running guardrails analysis...');
+          runGuardrailsAnalysis(batchSummary);
+        } else {
+          setGuardrailsResult(null); // Clear previous results if no failures
+        }
+
+        // Run Roth conversion optimizer
+        console.log('[CALC] Running Roth conversion optimizer...');
+        runRothOptimizer(newRes);
 
         // Track calculation for tab interface
         const isFirstCalculation = !lastCalculated;
@@ -2671,22 +2881,22 @@ export default function App() {
           .map(s => parseInt(s.trim(), 10))
           .filter(n => !isNaN(n) && n >= 0 && n < 90);
 
-        const sim = simulateRealPerBeneficiaryPayout(
-          netEstate, // Use net estate after estate tax
+        const sim = await runLegacyViaWorker({
+          eolNominal: netEstate, // Use net estate after estate tax
           yearsFrom2025,
-          retRate,
-          infRate,
-          hypPerBen,
-          Math.max(1, hypStartBens),
+          nominalRet: retRate,
+          inflPct: infRate,
+          perBenReal: hypPerBen,
+          startBens: Math.max(1, hypStartBens),
           totalFertilityRate,
           generationLength,
-          Math.max(1, hypDeathAge),
-          Math.max(0, hypMinDistAge),
-          10000,  // Optimized simulation with early-exit and chunking
-          benAges.length > 0 ? benAges : [0],
+          deathAge: Math.max(1, hypDeathAge),
+          minDistAge: Math.max(0, hypMinDistAge),
+          capYears: 10000,  // Optimized simulation with early-exit and chunking
+          initialBenAges: benAges.length > 0 ? benAges : [0],
           fertilityWindowStart,
           fertilityWindowEnd
-        );
+        });
         genPayout = {
           perBenReal: hypPerBen,
           years: sim.years,
@@ -2929,11 +3139,29 @@ export default function App() {
         sessionStorage.setItem('calculatorTab', activeMainTab);
         sessionStorage.setItem('calculatorMarital', marital);
         console.log('[NAV PERSISTENCE] Saved current results, tab, and marital status');
+
+        // Also populate budget context for seamless navigation to income page
+        const totalContribs401k = cPre1 + cPre2;
+        const totalContribsRoth = cPost1 + cPost2;
+        const totalContribsTaxable = cTax1 + cTax2;
+        const estimatedGross = totalContribs401k > 0 ? totalContribs401k / 0.15 : 0;
+
+        setImplied({
+          grossIncome: estimatedGross,
+          taxes: estimatedGross * 0.30, // Rough estimate
+          housing: res.wdAfter ? (res.wdAfter / 12) * 0.30 * 12 : 0,
+          discretionary: res.wdAfter ? (res.wdAfter / 12) * 0.15 * 12 : 0,
+          contributions401k: totalContribs401k,
+          contributionsRoth: totalContribsRoth,
+          contributionsTaxable: totalContribsTaxable,
+          maritalStatus: marital,
+        });
+        console.log('[BUDGET CONTEXT] Populated implied budget for income page');
       } catch (e) {
         console.error('[NAV PERSISTENCE] Failed to save state:', e);
       }
     }
-  }, [res, activeMainTab, marital]);
+  }, [res, activeMainTab, marital, cPre1, cPre2, cPost1, cPost2, cTax1, cTax2, setImplied]);
 
   // Save current inputs and results as a scenario
   const saveScenario = useCallback(() => {
@@ -4935,6 +5163,33 @@ export default function App() {
             </Card>
             </div>
 
+            {/* 2026 Income Planner CTA */}
+            {res && (
+              <div className="print:hidden mt-6">
+                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-900">
+                      <TrendingUpIcon className="w-5 h-5" />
+                      Ready to Plan Your 2026 Income?
+                    </CardTitle>
+                    <CardDescription className="text-blue-700">
+                      Your retirement plan is complete! Now build a detailed 2026 income budget with pre-filled estimates from your calculations.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/income-2026">
+                      <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+                        View 2026 Income Planner →
+                      </Button>
+                    </Link>
+                    <p className="text-xs text-blue-600 mt-2">
+                      Fields will be pre-populated based on your {fmt(cPre1 + cPre2)} annual contributions
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
             {/* Sensitivity Analysis - Hide interactive UI from print */}
             <AnimatedSection animation="slide-up" delay={200}>
               <div className="print:hidden">
@@ -5918,6 +6173,35 @@ export default function App() {
                 />
               </AnimatedSection>
             </div> */}
+
+            {/* Sequence of Returns Risk Analysis */}
+            {batchSummary && (
+              <AnimatedSection animation="fade-in" delay={500}>
+                <SequenceRiskChart
+                  batchSummary={batchSummary}
+                  retAge={retAge}
+                  age1={age1}
+                />
+              </AnimatedSection>
+            )}
+
+            {/* Spending Flexibility Impact Analysis */}
+            {guardrailsResult && (
+              <AnimatedSection animation="fade-in" delay={600}>
+                <SpendingFlexibilityChart
+                  guardrailsResult={guardrailsResult}
+                />
+              </AnimatedSection>
+            )}
+
+            {/* Roth Conversion Optimizer */}
+            {rothResult && (
+              <AnimatedSection animation="fade-in" delay={700}>
+                <RothConversionOptimizer
+                  rothResult={rothResult}
+                />
+              </AnimatedSection>
+            )}
 
             </TabPanel>
           </div>
@@ -7342,6 +7626,11 @@ export default function App() {
                 </div>
             </CardContent>
           </Card>
+        </TabPanel>
+
+        {/* Check Us Tab - Transparency & Calculation Verification */}
+        <TabPanel id="checkUs" activeTab={activeMainTab}>
+          <CheckUsTab />
         </TabPanel>
       </div>
       </div>

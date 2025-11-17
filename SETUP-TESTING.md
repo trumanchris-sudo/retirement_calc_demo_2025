@@ -78,7 +78,7 @@ npm start  # Test in production mode
 1. **playwright.config.ts** - Playwright configuration
 2. **tests/e2e/retirement-calculator.spec.ts** - E2E test suite
 3. **scripts/qa-health-check.sh** - Automated health check script
-4. **QA-FINDINGS.md** - Comprehensive QA analysis and recommendations
+4. **docs/qa-findings.md** - Comprehensive QA analysis and recommendations
 
 ---
 
@@ -269,6 +269,6 @@ See existing tests in `tests/e2e/retirement-calculator.spec.ts` for examples.
 ---
 
 **Need Help?**
-- Check `QA-FINDINGS.md` for detailed analysis
+- Check `docs/qa-findings.md` for detailed analysis
 - Review existing tests in `tests/e2e/`
 - Run `npx playwright --help` for CLI options

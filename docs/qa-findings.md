@@ -56,7 +56,7 @@ npm run build
 
 ### Console.log Statements ✅ MINIMAL
 **Found:** 6 instances (all acceptable)
-- `wallet/scripts/generateManifest.ts` (3) - Build script logging
+- `features/wallet/scripts/generateManifest.ts` (3) - Build script logging
 - `app/api/wallet/legacy/route.ts` (3) - API logging
 
 **Recommendation:** These are acceptable for backend/build processes. No cleanup needed.

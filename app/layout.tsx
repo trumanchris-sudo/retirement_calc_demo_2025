@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { Providers } from '@/components/Providers'
 
 export const metadata: Metadata = {
   title: 'Tax-Aware Retirement Calculator - Plan your financial future with confidence',
@@ -50,7 +51,9 @@ export default function RootLayout({
         `}} />
       </head>
       <body>
-        {children}
+        <Providers>
+          {children}
+        </Providers>
         <Analytics />
         <SpeedInsights />
       </body>
