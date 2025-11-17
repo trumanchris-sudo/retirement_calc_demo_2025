@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import Link from "next/link";
 import {
   LineChart,
   Line,
@@ -52,6 +53,7 @@ import { TimelineView } from "@/components/calculator/TimelineView";
 import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
 import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
+import { useBudget } from "@/lib/budget-context";
 
 // Import types
 import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress, BondGlidePath } from "@/types/calculator";
@@ -1150,6 +1152,7 @@ ScenarioComparisonChart.displayName = 'ScenarioComparisonChart';
  * ================================ */
 
 export default function App() {
+  const { setImplied } = useBudget();
   const [marital, setMarital] = useState<FilingStatus>("single");
   const [age1, setAge1] = useState(35);
   const [age2, setAge2] = useState(33);
@@ -2929,11 +2932,29 @@ export default function App() {
         sessionStorage.setItem('calculatorTab', activeMainTab);
         sessionStorage.setItem('calculatorMarital', marital);
         console.log('[NAV PERSISTENCE] Saved current results, tab, and marital status');
+
+        // Also populate budget context for seamless navigation to income page
+        const totalContribs401k = cPre1 + cPre2;
+        const totalContribsRoth = cPost1 + cPost2;
+        const totalContribsTaxable = cTax1 + cTax2;
+        const estimatedGross = totalContribs401k > 0 ? totalContribs401k / 0.15 : 0;
+
+        setImplied({
+          grossIncome: estimatedGross,
+          taxes: estimatedGross * 0.30, // Rough estimate
+          housing: res.wdAfter ? (res.wdAfter / 12) * 0.30 * 12 : 0,
+          discretionary: res.wdAfter ? (res.wdAfter / 12) * 0.15 * 12 : 0,
+          contributions401k: totalContribs401k,
+          contributionsRoth: totalContribsRoth,
+          contributionsTaxable: totalContribsTaxable,
+          maritalStatus: marital,
+        });
+        console.log('[BUDGET CONTEXT] Populated implied budget for income page');
       } catch (e) {
         console.error('[NAV PERSISTENCE] Failed to save state:', e);
       }
     }
-  }, [res, activeMainTab, marital]);
+  }, [res, activeMainTab, marital, cPre1, cPre2, cPost1, cPost2, cTax1, cTax2, setImplied]);
 
   // Save current inputs and results as a scenario
   const saveScenario = useCallback(() => {
@@ -4934,6 +4955,33 @@ export default function App() {
               )}
             </Card>
             </div>
+
+            {/* 2026 Income Planner CTA */}
+            {res && (
+              <div className="print:hidden mt-6">
+                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-900">
+                      <TrendingUpIcon className="w-5 h-5" />
+                      Ready to Plan Your 2026 Income?
+                    </CardTitle>
+                    <CardDescription className="text-blue-700">
+                      Your retirement plan is complete! Now build a detailed 2026 income budget with pre-filled estimates from your calculations.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/income-2026">
+                      <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+                        View 2026 Income Planner →
+                      </Button>
+                    </Link>
+                    <p className="text-xs text-blue-600 mt-2">
+                      Fields will be pre-populated based on your {fmt(cPre1 + cPre2)} annual contributions
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Sensitivity Analysis - Hide interactive UI from print */}
             <AnimatedSection animation="slide-up" delay={200}>
