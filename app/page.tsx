@@ -100,7 +100,7 @@ import {
   GLIDE_PATH_PRESETS,
 } from "@/lib/bondAllocation";
 
-import { calculateBondReturn, BOND_NOMINAL_AVG } from "@/lib/constants";
+import { calculateBondReturn, BOND_NOMINAL_AVG, MONTE_CARLO_PATHS } from "@/lib/constants";
 
 import type { ReturnMode, WalkSeries, BatchSummary } from "@/types/planner";
 
@@ -1677,7 +1677,7 @@ export default function App() {
   };
 
   // Helper function to run Monte Carlo simulation via web worker
-  const runMonteCarloViaWorker = useCallback((inputs: Inputs, baseSeed: number, N: number = 1000): Promise<BatchSummary> => {
+  const runMonteCarloViaWorker = useCallback((inputs: Inputs, baseSeed: number, N: number = 5000): Promise<BatchSummary> => {
     return new Promise((resolve, reject) => {
       console.log('[WORKER] Starting runMonteCarloViaWorker...');
       if (!workerRef.current) {
