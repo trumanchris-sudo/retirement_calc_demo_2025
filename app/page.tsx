@@ -1996,6 +1996,8 @@ export default function App() {
           ltcOnsetAge,
           ltcAgeRangeStart,
           ltcAgeRangeEnd,
+          // Bond glide path
+          bondGlidePath,
         };
 
         console.log('[CALC] Calling web worker with inputs...');
@@ -6187,8 +6189,12 @@ export default function App() {
                   {allocationStrategy === 'ageBased' && (
                     <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800 text-sm">
                       <p>
-                        Your bond allocation will equal your age (e.g., at age {age1}: {Math.min(age1, 95)}% bonds, {Math.max(100 - age1, 5)}% stocks).
-                        This is a traditional rule of thumb for conservative investors.
+                        Conservative glide path: 10% bonds (age &lt;40), gradually increasing to 60% bonds (age 60+).
+                        {(() => {
+                          const tempGlidePath: BondGlidePath = { strategy: 'ageBased', startAge: age1, endAge: 95, startPct: 10, endPct: 60, shape: 'linear' };
+                          const bondPct = Math.round(calculateBondAllocation(age1, tempGlidePath));
+                          return ` At age ${age1}: ${bondPct}% bonds, ${100 - bondPct}% stocks.`;
+                        })()}
                       </p>
                     </div>
                   )}

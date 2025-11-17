@@ -19,9 +19,20 @@ export function calculateBondAllocation(age: number, glidePath: BondGlidePath | 
     return 0;
   }
 
-  // Age-based strategy: Bond % = Age (capped at 95%)
+  // Age-based strategy: Conservative glide path
+  // Age < 40: 10% bonds (conservative floor)
+  // Age 40-60: Linear increase from 10% to 60%
+  // Age > 60: 60% bonds (reasonable cap for retirees)
   if (glidePath.strategy === 'ageBased') {
-    return Math.min(age, 95);
+    if (age < 40) {
+      return 10;
+    } else if (age <= 60) {
+      // Linear interpolation from 10% at age 40 to 60% at age 60
+      const progress = (age - 40) / (60 - 40);
+      return 10 + (60 - 10) * progress;
+    } else {
+      return 60;
+    }
   }
 
   // Custom glide path
@@ -157,11 +168,11 @@ export const GLIDE_PATH_PRESETS = {
   },
 
   ageBased: {
-    name: "Age-Based (Traditional)",
-    description: "Bond allocation equals your age",
+    name: "Age-Based (Conservative)",
+    description: "10% bonds (age <40), gradually to 60% (age 60+)",
     strategy: 'ageBased' as AllocationStrategy,
-    startPct: 0,
-    endPct: 95,
+    startPct: 10,
+    endPct: 60,
     shape: 'linear' as GlidePathShape,
   },
 

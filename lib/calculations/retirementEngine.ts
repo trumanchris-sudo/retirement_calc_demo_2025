@@ -5,12 +5,14 @@
 
 import type { ReturnMode, WalkSeries } from "@/types/planner";
 import type { FilingStatus } from "./taxCalculations";
+import type { BondGlidePath } from "@/types/calculator";
 import { calcOrdinaryTax } from "./taxCalculations";
 import { computeWithdrawalTaxes } from "./withdrawalTax";
 import { getBearReturns } from "@/lib/simulation/bearMarkets";
 import { getEffectiveInflation } from "@/lib/simulation/inflationShocks";
-import { LIFE_EXP, RMD_START_AGE, RMD_DIVISORS, SP500_YOY_NOMINAL } from "@/lib/constants";
+import { LIFE_EXP, RMD_START_AGE, RMD_DIVISORS, SP500_YOY_NOMINAL, BOND_NOMINAL_AVG, calculateBondReturn } from "@/lib/constants";
 import { mulberry32 } from "@/lib/utils";
+import { calculateBondAllocation, calculateBlendedReturn } from "@/lib/bondAllocation";
 
 /**
  * Input parameters for a single simulation run
@@ -61,6 +63,8 @@ export type SimulationInputs = {
   ltcOnsetAge?: number;
   ltcAgeRangeStart?: number;
   ltcAgeRangeEnd?: number;
+  // Bond allocation
+  bondGlidePath?: BondGlidePath | null;
 };
 
 /**
@@ -87,6 +91,8 @@ function buildReturnGenerator(options: {
   walkData?: number[];
   seed?: number;
   startYear?: number;
+  bondGlidePath?: BondGlidePath | null;
+  currentAge?: number;
 }) {
   const {
     mode,
@@ -97,12 +103,26 @@ function buildReturnGenerator(options: {
     walkData = SP500_YOY_NOMINAL,
     seed = 12345,
     startYear,
+    bondGlidePath = null,
+    currentAge = 35,
   } = options;
 
   if (mode === "fixed") {
     const g = 1 + nominalPct / 100;
     return function* fixedGen() {
-      for (let i = 0; i < years; i++) yield g;
+      for (let i = 0; i < years; i++) {
+        let returnPct = nominalPct;
+
+        // Apply bond blending if glide path is configured
+        if (bondGlidePath) {
+          const age = currentAge + i;
+          const bondAlloc = calculateBondAllocation(age, bondGlidePath);
+          const bondReturnPct = BOND_NOMINAL_AVG;
+          returnPct = calculateBlendedReturn(nominalPct, bondReturnPct, bondAlloc);
+        }
+
+        yield 1 + returnPct / 100;
+      }
     };
   }
 
@@ -115,7 +135,18 @@ function buildReturnGenerator(options: {
     return function* historicalGen() {
       for (let i = 0; i < years; i++) {
         const ix = (startIndex + i) % walkData.length; // Wrap around if we exceed data
-        let pct = walkData[ix];
+        let stockPct = walkData[ix];
+
+        // Calculate bond return correlated with stock return
+        const bondPct = calculateBondReturn(stockPct);
+
+        // Apply bond blending if glide path is configured
+        let pct = stockPct;
+        if (bondGlidePath) {
+          const age = currentAge + i;
+          const bondAlloc = calculateBondAllocation(age, bondGlidePath);
+          pct = calculateBlendedReturn(stockPct, bondPct, bondAlloc);
+        }
 
         if (walkSeries === "real") {
           const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
@@ -132,7 +163,18 @@ function buildReturnGenerator(options: {
   return function* walkGen() {
     for (let i = 0; i < years; i++) {
       const ix = Math.floor(rnd() * walkData.length);
-      let pct = walkData[ix];
+      let stockPct = walkData[ix];
+
+      // Calculate bond return correlated with stock return
+      const bondPct = calculateBondReturn(stockPct);
+
+      // Apply bond blending if glide path is configured
+      let pct = stockPct;
+      if (bondGlidePath) {
+        const age = currentAge + i;
+        const bondAlloc = calculateBondAllocation(age, bondGlidePath);
+        pct = calculateBlendedReturn(stockPct, bondPct, bondAlloc);
+      }
 
       if (walkSeries === "real") {
         const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
@@ -235,6 +277,8 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     infPct: infRate,
     walkSeries,
     seed: seed,
+    bondGlidePath: params.bondGlidePath || null,
+    currentAge: younger,
   })();
 
   const drawGen = buildReturnGenerator({
@@ -244,6 +288,8 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     infPct: infRate,
     walkSeries,
     seed: seed + 1,
+    bondGlidePath: params.bondGlidePath || null,
+    currentAge: older + yrsToRet,
   })();
 
   let bTax = sTax;
