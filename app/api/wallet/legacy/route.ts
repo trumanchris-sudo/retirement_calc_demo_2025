@@ -88,17 +88,17 @@ async function signManifest(manifestPath: string, signatureOutputPath: string): 
 
     // 2. Load signing certificate and private key
     const certPem = await fs.promises.readFile(
-      path.join(process.cwd(), "wallet/certs/passcertificate.pem"),
+      path.join(process.cwd(), "features/wallet/certs/passcertificate.pem"),
       "utf8"
     );
     const keyPem = await fs.promises.readFile(
-      path.join(process.cwd(), "wallet/certs/passkey-unencrypted.pem"),
+      path.join(process.cwd(), "features/wallet/certs/passkey-unencrypted.pem"),
       "utf8"
     );
 
     // 3. Load Apple WWDR certificate chain
     const wwdrPem = await fs.promises.readFile(
-      path.join(process.cwd(), "wallet/certs/Apple_Wallet_CA_Chain.pem"),
+      path.join(process.cwd(), "features/wallet/certs/Apple_Wallet_CA_Chain.pem"),
       "utf8"
     );
 
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
     console.log(`Generating pass for serial: ${requestData.serialNumber}`);
 
     // 2. Load pass.json template
-    const templatePath = path.join(process.cwd(), "wallet/template/pass.json");
+    const templatePath = path.join(process.cwd(), "features/wallet/template/pass.json");
     const templateContent = await fs.promises.readFile(templatePath, "utf-8");
 
     // 3. Substitute placeholders
@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // 5. Copy static assets to temp directory
-      const templateDir = path.join(process.cwd(), "wallet/template");
+      const templateDir = path.join(process.cwd(), "features/wallet/template");
       const assetFiles = [
         "icon.png",
         "icon@2x.png",

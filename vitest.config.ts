@@ -33,7 +33,7 @@ export default defineConfig({
         'components.json',
         'app/**',
         'components/**',
-        'wallet/**',
+        'features/wallet/**',
         'hooks/**',
         'types/**',
         'scripts/**',
