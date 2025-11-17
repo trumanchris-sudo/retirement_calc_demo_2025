@@ -6715,24 +6715,6 @@ export default function App() {
                     </AccordionItem>
                   </Accordion>
 
-                  <Separator className="my-6" />
-
-                  {/* Auto-calculated beneficiary information */}
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="space-y-2 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                      <Label className="flex items-center gap-1.5 text-foreground font-semibold">
-                        Calculated Beneficiaries at Age {hypDeathAge}
-                        <Tip text={`Based on your current children and additional children expected, these are the ages they will be when you pass away at age ${hypDeathAge}. Only children within the fertility window (${fertilityWindowStart}-${fertilityWindowEnd}) will produce grandchildren in the simulation.`} />
-                      </Label>
-                      <div className="text-sm text-foreground bg-white dark:bg-gray-900 p-3 rounded border border-blue-200 dark:border-blue-700 font-mono">
-                        {hypBenAgesStr || 'No children specified'}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {hypStartBens} {hypStartBens === 1 ? 'beneficiary' : 'beneficiaries'} calculated at age {hypDeathAge}
-                      </p>
-                    </div>
-                  </div>
-
                   {/* Calculate Button */}
                   <div className="mt-8 flex justify-center">
                     <Button
