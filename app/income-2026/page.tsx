@@ -21,6 +21,7 @@ import { TopBanner } from "@/components/layout/TopBanner";
 type FilingStatus = "single" | "married";
 
 export default function Income2026Page() {
+  const { implied } = useBudget();
   // Marital status
   const [maritalStatus, setMaritalStatus] = useState<FilingStatus>("single");
 
@@ -90,6 +91,43 @@ export default function Income2026Page() {
   // Pre-fill from calculator results if available
   useEffect(() => {
     try {
+      // First try context
+      if (implied) {
+        console.log('[2026 INCOME] Pre-filling from context:', implied);
+        setMaritalStatus(implied.maritalStatus);
+
+        // Pre-fill income based on reverse calculation from contributions
+        // If they're contributing $42K pre-tax, they likely make ~$280K gross
+        const estimatedGross = implied.contributions401k > 0
+          ? Math.round(implied.contributions401k / 0.15) // Assume 15% savings rate
+          : 0;
+
+        if (estimatedGross > 0 && p1BaseIncome === 0) {
+          setP1BaseIncome(estimatedGross);
+        }
+
+        if (implied.contributions401k > 0 && p1PreTax401k === 0) {
+          setP1PreTax401k(implied.contributions401k);
+        }
+
+        if (implied.contributionsRoth > 0 && p1RothContribution === 0) {
+          setP1RothContribution(implied.contributionsRoth);
+        }
+
+        // For married, split 60/40
+        if (implied.maritalStatus === 'married') {
+          const spouse60Pct = Math.round(estimatedGross * 0.6);
+          if (spouse60Pct > 0 && p2BaseIncome === 0) {
+            setP2BaseIncome(spouse60Pct);
+          }
+          const spouseContrib = Math.round(implied.contributions401k * 0.6);
+          if (spouseContrib > 0 && p2PreTax401k === 0) {
+            setP2PreTax401k(spouseContrib);
+          }
+        }
+      }
+
+      // Fallback to sessionStorage
       const savedResults = sessionStorage.getItem('calculatorResults');
       if (savedResults) {
         const results = JSON.parse(savedResults);
@@ -97,7 +135,7 @@ export default function Income2026Page() {
 
         // Pre-fill marital status from calculator
         const savedMarital = sessionStorage.getItem('calculatorMarital');
-        if (savedMarital) {
+        if (savedMarital && maritalStatus === 'single') {
           setMaritalStatus(savedMarital as FilingStatus);
         }
 
@@ -131,7 +169,7 @@ export default function Income2026Page() {
     } catch (e) {
       console.error('[2026 INCOME] Failed to pre-fill from calculator:', e);
     }
-  }, []); // Only run once on mount
+  }, [implied]); // Re-run when implied changes
 
   const handleCalculate = () => {
     // TODO: Implement calculation logic
