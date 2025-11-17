@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TopBanner } from "@/components/layout/TopBanner";
+import { useBudget } from "@/lib/budget-context";
 
 type FilingStatus = "single" | "married";
 
