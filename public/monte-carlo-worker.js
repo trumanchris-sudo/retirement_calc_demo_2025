@@ -773,6 +773,228 @@ function runMonteCarloSimulation(params, baseSeed, N = 1000) {
 }
 
 // ===============================
+// Legacy Simulation Functions
+// ===============================
+
+/**
+ * Calculate real return rate from nominal and inflation
+ */
+function realReturn(nominalPct, inflPct) {
+  return (1 + nominalPct / 100) / (1 + inflPct / 100) - 1;
+}
+
+/**
+ * Cohort type (JSDoc):
+ * @typedef {Object} Cohort
+ * @property {number} size - Number of beneficiaries in this cohort
+ * @property {number} age - Current age of this cohort
+ * @property {boolean} canReproduce - Whether this cohort can reproduce
+ * @property {number} cumulativeBirths - Cumulative births per member so far
+ */
+
+/**
+ * Simulate N years of generational wealth with demographic changes
+ * Used internally by the optimized simulation for chunked processing
+ */
+function simulateYearsChunk(
+  cohorts,
+  fundReal,
+  realReturnRate,
+  perBenReal,
+  deathAge,
+  minDistAge,
+  totalFertilityRate,
+  fertilityWindowStart,
+  fertilityWindowEnd,
+  birthsPerYear,
+  numYears
+) {
+  let currentFund = fundReal;
+  let currentCohorts = cohorts;
+  let yearsSimulated = 0;
+
+  for (let i = 0; i < numYears; i++) {
+    // Filter out deceased
+    currentCohorts = currentCohorts.filter((c) => c.age < deathAge);
+
+    const living = currentCohorts.reduce((acc, c) => acc + c.size, 0);
+    if (living === 0) {
+      return { cohorts: currentCohorts, fundReal: currentFund, years: yearsSimulated, depleted: true };
+    }
+
+    // Apply growth
+    currentFund *= 1 + realReturnRate;
+
+    // Calculate and subtract payout
+    const eligible = currentCohorts
+      .filter(c => c.age >= minDistAge)
+      .reduce((acc, c) => acc + c.size, 0);
+    const payout = perBenReal * eligible;
+    currentFund -= payout;
+
+    if (currentFund < 0) {
+      return { cohorts: currentCohorts, fundReal: 0, years: yearsSimulated, depleted: true };
+    }
+
+    yearsSimulated += 1;
+
+    // Age all cohorts
+    currentCohorts.forEach((c) => (c.age += 1));
+
+    // Handle reproduction
+    currentCohorts.forEach((cohort) => {
+      if (cohort.canReproduce &&
+          cohort.age >= fertilityWindowStart &&
+          cohort.age <= fertilityWindowEnd &&
+          cohort.cumulativeBirths < totalFertilityRate) {
+
+        const remainingFertility = totalFertilityRate - cohort.cumulativeBirths;
+        const birthsThisYear = Math.min(birthsPerYear, remainingFertility);
+        const births = cohort.size * birthsThisYear;
+
+        if (births > 0) {
+          currentCohorts.push({ size: births, age: 0, canReproduce: true, cumulativeBirths: 0 });
+        }
+
+        cohort.cumulativeBirths += birthsThisYear;
+      }
+    });
+  }
+
+  return { cohorts: currentCohorts, fundReal: currentFund, years: yearsSimulated, depleted: false };
+}
+
+/**
+ * Check if portfolio is mathematically guaranteed to be perpetual
+ * Uses perpetual threshold formula: Sustainable Rate = Real Return - Population Growth Rate
+ */
+function checkPerpetualViability(
+  realReturnRate,
+  totalFertilityRate,
+  generationLength,
+  perBenReal,
+  initialFundReal,
+  startBens
+) {
+  const populationGrowthRate = (totalFertilityRate - 2.0) / generationLength;
+  const perpetualThreshold = realReturnRate - populationGrowthRate;
+  const annualDistribution = perBenReal * startBens;
+  const distributionRate = annualDistribution / initialFundReal;
+  const safeThreshold = perpetualThreshold * 0.95;
+
+  return distributionRate < safeThreshold;
+}
+
+/**
+ * Simulate constant real-dollar payout per beneficiary with births/deaths
+ * Up to 10,000 years of dynasty trust simulation
+ */
+function simulateRealPerBeneficiaryPayout(
+  eolNominal,
+  yearsFrom2025,
+  nominalRet,
+  inflPct,
+  perBenReal,
+  startBens,
+  totalFertilityRate,
+  generationLength,
+  deathAge,
+  minDistAge,
+  capYears,
+  initialBenAges,
+  fertilityWindowStart,
+  fertilityWindowEnd
+) {
+  let fundReal = eolNominal / Math.pow(1 + inflPct / 100, yearsFrom2025);
+  const r = realReturn(nominalRet, inflPct);
+
+  const fertilityWindowYears = fertilityWindowEnd - fertilityWindowStart;
+  const birthsPerYear = fertilityWindowYears > 0 ? totalFertilityRate / fertilityWindowYears : 0;
+
+  let cohorts = initialBenAges.length > 0
+    ? initialBenAges.map(age => ({
+        size: 1,
+        age,
+        canReproduce: age >= fertilityWindowStart && age <= fertilityWindowEnd,
+        cumulativeBirths: 0
+      }))
+    : startBens > 0
+    ? [{ size: startBens, age: 0, canReproduce: true, cumulativeBirths: 0 }]
+    : [];
+
+  // OPTIMIZATION 1: Early-exit for perpetual portfolios
+  const isPerpetual = checkPerpetualViability(
+    r,
+    totalFertilityRate,
+    generationLength,
+    perBenReal,
+    fundReal,
+    startBens
+  );
+
+  if (isPerpetual && capYears >= 10000) {
+    return { years: Infinity, fundLeftReal: fundReal, lastLivingCount: startBens };
+  }
+
+  let years = 0;
+  const CHUNK_SIZE = 10;
+  const EARLY_TERM_CHECK = 1000;
+
+  let fundAtYear100 = 0;
+  let fundAtYear1000 = 0;
+
+  // OPTIMIZATION 2: Chunked simulation
+  for (let t = 0; t < capYears; t += CHUNK_SIZE) {
+    const yearsToSimulate = Math.min(CHUNK_SIZE, capYears - t);
+
+    const result = simulateYearsChunk(
+      cohorts,
+      fundReal,
+      r,
+      perBenReal,
+      deathAge,
+      minDistAge,
+      totalFertilityRate,
+      fertilityWindowStart,
+      fertilityWindowEnd,
+      birthsPerYear,
+      yearsToSimulate
+    );
+
+    cohorts = result.cohorts;
+    fundReal = result.fundReal;
+    years += result.years;
+
+    if (result.depleted) {
+      const living = cohorts.reduce((acc, c) => acc + c.size, 0);
+      return { years, fundLeftReal: 0, lastLivingCount: living };
+    }
+
+    if (t === 100 && fundAtYear100 === 0) {
+      fundAtYear100 = fundReal;
+    }
+    if (t === EARLY_TERM_CHECK && fundAtYear1000 === 0) {
+      fundAtYear1000 = fundReal;
+    }
+
+    // OPTIMIZATION 3: Early termination for clearly perpetual portfolios
+    if (t >= EARLY_TERM_CHECK && capYears >= 10000) {
+      if (fundAtYear100 > 0 && fundReal > fundAtYear1000) {
+        const growthRate = Math.pow(fundReal / fundAtYear1000, 1 / (t - EARLY_TERM_CHECK)) - 1;
+
+        if (growthRate > 0.03) {
+          const living = cohorts.reduce((acc, c) => acc + c.size, 0);
+          return { years: Infinity, fundLeftReal: fundReal, lastLivingCount: living };
+        }
+      }
+    }
+  }
+
+  const lastLiving = cohorts.reduce((acc, c) => acc + c.size, 0);
+  return { years, fundLeftReal: fundReal, lastLivingCount: lastLiving };
+}
+
+// ===============================
 // Worker Message Handler
 // ===============================
 
@@ -784,6 +1006,52 @@ self.onmessage = function(e) {
       const result = runMonteCarloSimulation(params, baseSeed, N);
       self.postMessage({
         type: 'complete',
+        result,
+      });
+    } catch (error) {
+      self.postMessage({
+        type: 'error',
+        error: error.message,
+      });
+    }
+  } else if (type === 'legacy') {
+    try {
+      const {
+        eolNominal,
+        yearsFrom2025,
+        nominalRet,
+        inflPct,
+        perBenReal,
+        startBens,
+        totalFertilityRate,
+        generationLength = 30,
+        deathAge = 90,
+        minDistAge = 21,
+        capYears = 10000,
+        initialBenAges = [0],
+        fertilityWindowStart = 25,
+        fertilityWindowEnd = 35
+      } = params;
+
+      const result = simulateRealPerBeneficiaryPayout(
+        eolNominal,
+        yearsFrom2025,
+        nominalRet,
+        inflPct,
+        perBenReal,
+        startBens,
+        totalFertilityRate,
+        generationLength,
+        deathAge,
+        minDistAge,
+        capYears,
+        initialBenAges,
+        fertilityWindowStart,
+        fertilityWindowEnd
+      );
+
+      self.postMessage({
+        type: 'legacy-complete',
         result,
       });
     } catch (error) {

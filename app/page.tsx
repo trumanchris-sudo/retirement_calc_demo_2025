@@ -1733,6 +1733,61 @@ export default function App() {
   }, []);
 
   /**
+   * Run legacy simulation via web worker (offloads 10,000-year simulation)
+   */
+  const runLegacyViaWorker = useCallback((params: {
+    eolNominal: number;
+    yearsFrom2025: number;
+    nominalRet: number;
+    inflPct: number;
+    perBenReal: number;
+    startBens: number;
+    totalFertilityRate: number;
+    generationLength?: number;
+    deathAge?: number;
+    minDistAge?: number;
+    capYears?: number;
+    initialBenAges?: number[];
+    fertilityWindowStart?: number;
+    fertilityWindowEnd?: number;
+  }): Promise<{ years: number; fundLeftReal: number; lastLivingCount: number }> => {
+    return new Promise((resolve, reject) => {
+      if (!workerRef.current) {
+        reject(new Error("Worker not initialized"));
+        return;
+      }
+
+      const worker = workerRef.current;
+
+      const handleMessage = (e: MessageEvent) => {
+        if (!e.data) return;
+
+        const { type, result, error } = e.data;
+
+        if (type === 'legacy-complete') {
+          worker.removeEventListener('message', handleMessage);
+          worker.removeEventListener('error', handleError);
+          resolve(result);
+        } else if (type === 'error') {
+          worker.removeEventListener('message', handleMessage);
+          worker.removeEventListener('error', handleError);
+          reject(new Error(error));
+        }
+      };
+
+      const handleError = (e: ErrorEvent) => {
+        worker.removeEventListener('message', handleMessage);
+        worker.removeEventListener('error', handleError);
+        reject(new Error(`Worker error: ${e.message}`));
+      };
+
+      worker.addEventListener('message', handleMessage);
+      worker.addEventListener('error', handleError);
+      worker.postMessage({ type: 'legacy', params });
+    });
+  }, []);
+
+  /**
    * Run comparison between baseline and selected scenarios
    * Merges comparison data onto existing res.data to preserve bal, real, p10, p90 keys
    */
@@ -2167,56 +2222,56 @@ export default function App() {
           console.log('[CALC] Running generational simulations for P25, P50, P75...');
           console.log('[CALC] Parameters - yearsFrom2025:', yearsFrom2025, 'retRate:', retRate);
 
-          const simP25 = simulateRealPerBeneficiaryPayout(
-            netEstateP25,
+          const simP25 = await runLegacyViaWorker({
+            eolNominal: netEstateP25,
             yearsFrom2025,
-            retRate,
-            infRate,
-            hypPerBen,
-            Math.max(1, hypStartBens),
+            nominalRet: retRate,
+            inflPct: infRate,
+            perBenReal: hypPerBen,
+            startBens: Math.max(1, hypStartBens),
             totalFertilityRate,
             generationLength,
-            Math.max(1, hypDeathAge),
-            Math.max(0, hypMinDistAge),
-            10000,  // Optimized simulation with early-exit and chunking
-            benAges.length > 0 ? benAges : [0],
+            deathAge: Math.max(1, hypDeathAge),
+            minDistAge: Math.max(0, hypMinDistAge),
+            capYears: 10000,  // Optimized simulation with early-exit and chunking
+            initialBenAges: benAges.length > 0 ? benAges : [0],
             fertilityWindowStart,
             fertilityWindowEnd
-          );
+          });
 
-          const simP50 = simulateRealPerBeneficiaryPayout(
-            netEstateP50,
+          const simP50 = await runLegacyViaWorker({
+            eolNominal: netEstateP50,
             yearsFrom2025,
-            retRate,
-            infRate,
-            hypPerBen,
-            Math.max(1, hypStartBens),
+            nominalRet: retRate,
+            inflPct: infRate,
+            perBenReal: hypPerBen,
+            startBens: Math.max(1, hypStartBens),
             totalFertilityRate,
             generationLength,
-            Math.max(1, hypDeathAge),
-            Math.max(0, hypMinDistAge),
-            10000,  // Optimized simulation with early-exit and chunking
-            benAges.length > 0 ? benAges : [0],
+            deathAge: Math.max(1, hypDeathAge),
+            minDistAge: Math.max(0, hypMinDistAge),
+            capYears: 10000,  // Optimized simulation with early-exit and chunking
+            initialBenAges: benAges.length > 0 ? benAges : [0],
             fertilityWindowStart,
             fertilityWindowEnd
-          );
+          });
 
-          const simP75 = simulateRealPerBeneficiaryPayout(
-            netEstateP75,
+          const simP75 = await runLegacyViaWorker({
+            eolNominal: netEstateP75,
             yearsFrom2025,
-            retRate,
-            infRate,
-            hypPerBen,
-            Math.max(1, hypStartBens),
+            nominalRet: retRate,
+            inflPct: infRate,
+            perBenReal: hypPerBen,
+            startBens: Math.max(1, hypStartBens),
             totalFertilityRate,
             generationLength,
-            Math.max(1, hypDeathAge),
-            Math.max(0, hypMinDistAge),
-            10000,  // Optimized simulation with early-exit and chunking
-            benAges.length > 0 ? benAges : [0],
+            deathAge: Math.max(1, hypDeathAge),
+            minDistAge: Math.max(0, hypMinDistAge),
+            capYears: 10000,  // Optimized simulation with early-exit and chunking
+            initialBenAges: benAges.length > 0 ? benAges : [0],
             fertilityWindowStart,
             fertilityWindowEnd
-          );
+          });
 
           console.log('[CALC] Generational simulations completed - P25:', simP25, 'P50:', simP50, 'P75:', simP75);
 
@@ -2685,22 +2740,22 @@ export default function App() {
           .map(s => parseInt(s.trim(), 10))
           .filter(n => !isNaN(n) && n >= 0 && n < 90);
 
-        const sim = simulateRealPerBeneficiaryPayout(
-          netEstate, // Use net estate after estate tax
+        const sim = await runLegacyViaWorker({
+          eolNominal: netEstate, // Use net estate after estate tax
           yearsFrom2025,
-          retRate,
-          infRate,
-          hypPerBen,
-          Math.max(1, hypStartBens),
+          nominalRet: retRate,
+          inflPct: infRate,
+          perBenReal: hypPerBen,
+          startBens: Math.max(1, hypStartBens),
           totalFertilityRate,
           generationLength,
-          Math.max(1, hypDeathAge),
-          Math.max(0, hypMinDistAge),
-          10000,  // Optimized simulation with early-exit and chunking
-          benAges.length > 0 ? benAges : [0],
+          deathAge: Math.max(1, hypDeathAge),
+          minDistAge: Math.max(0, hypMinDistAge),
+          capYears: 10000,  // Optimized simulation with early-exit and chunking
+          initialBenAges: benAges.length > 0 ? benAges : [0],
           fertilityWindowStart,
           fertilityWindowEnd
-        );
+        });
         genPayout = {
           perBenReal: hypPerBen,
           years: sim.years,
