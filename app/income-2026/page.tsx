@@ -84,6 +84,27 @@ export default function Income2026Page() {
   const [carResidualValue, setCarResidualValue] = useState(0);
   const [carFiresaleDiscount, setCarFiresaleDiscount] = useState(30);
 
+  // Results state
+  const [results, setResults] = useState<{
+    grossIncome: number;
+    preTaxDeductions: number;
+    taxableIncome: number;
+    federalTax: number;
+    stateTax: number;
+    postTaxDeductions: number;
+    netMonthlyIncome: number;
+    totalMonthlyExpenses: number;
+    monthlySurplus: number;
+    annualSummary: {
+      grossAnnual: number;
+      netAnnual: number;
+      taxes: number;
+      retirement401k: number;
+      rothContributions: number;
+      investments: number;
+    };
+  } | null>(null);
+
   const months = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December", "None"
@@ -173,11 +194,93 @@ export default function Income2026Page() {
   }, [implied]); // Re-run when implied changes
 
   const handleCalculate = () => {
-    // TODO: Implement calculation logic
     console.log("Calculating 2026 income projections...");
+
+    // Calculate gross annual income
+    const p1Annual = p1BaseIncome + p1Bonus + (p1OvertimeMonthly * 12);
+    const p2Annual = isMarried ? p2BaseIncome + p2Bonus + (p2OvertimeMonthly * 12) : 0;
+    const grossAnnual = p1Annual + p2Annual;
+
+    // Calculate pre-tax deductions (annual)
+    const p1PreTaxAnnual = p1PreTax401k + p1PreTaxHealthInsurance + p1PreTaxHSA + p1PreTaxFSA;
+    const p2PreTaxAnnual = isMarried ? p2PreTax401k + p2PreTaxHealthInsurance + p2PreTaxHSA + p2PreTaxFSA : 0;
+    const totalPreTaxDeductions = p1PreTaxAnnual + p2PreTaxAnnual;
+
+    // Calculate taxable income
+    const taxableIncome = grossAnnual - totalPreTaxDeductions;
+
+    // Simplified tax estimation (rough approximation - not exact)
+    // Uses effective tax rates based on marital status and income level
+    let federalTaxRate = 0.12; // Default to 12% bracket
+    if (maritalStatus === 'single') {
+      if (taxableIncome > 250000) federalTaxRate = 0.32;
+      else if (taxableIncome > 197000) federalTaxRate = 0.24;
+      else if (taxableIncome > 103000) federalTaxRate = 0.22;
+      else if (taxableIncome > 48000) federalTaxRate = 0.12;
+      else federalTaxRate = 0.10;
+    } else {
+      if (taxableIncome > 500000) federalTaxRate = 0.32;
+      else if (taxableIncome > 394000) federalTaxRate = 0.24;
+      else if (taxableIncome > 206000) federalTaxRate = 0.22;
+      else if (taxableIncome > 96000) federalTaxRate = 0.12;
+      else federalTaxRate = 0.10;
+    }
+
+    // Estimate federal tax (simplified - does not account for progressive brackets exactly)
+    const estimatedFederalTax = Math.max(0, taxableIncome * federalTaxRate);
+
+    // Estimate state tax (7% average - user can adjust)
+    const estimatedStateTax = Math.max(0, taxableIncome * 0.05); // 5% default state rate
+
+    // Calculate post-tax deductions (annual)
+    const p1PostTaxAnnual = p1RothContribution + p1DisabilityInsurance + p1LifeInsurance;
+    const p2PostTaxAnnual = isMarried ? p2RothContribution + p2DisabilityInsurance + p2LifeInsurance : 0;
+    const totalPostTaxDeductions = p1PostTaxAnnual + p2PostTaxAnnual;
+
+    // Calculate net annual income
+    const netAnnual = grossAnnual - totalPreTaxDeductions - estimatedFederalTax - estimatedStateTax - totalPostTaxDeductions - (federalWithholdingExtra * 12) - (stateWithholdingExtra * 12);
+
+    // Convert to monthly
+    const netMonthly = netAnnual / 12;
+
+    // Calculate monthly expenses
+    const monthlyExpenses = mortgagePayment + householdExpenses + discretionarySpending +
+                           childcareCosts + nonRetirementInvestments + surplusLiquidity;
+
+    // Calculate monthly surplus/deficit
+    const monthlySurplus = netMonthly - monthlyExpenses;
+
+    // Set results
+    setResults({
+      grossIncome: grossAnnual / 12,
+      preTaxDeductions: totalPreTaxDeductions / 12,
+      taxableIncome: taxableIncome / 12,
+      federalTax: estimatedFederalTax / 12,
+      stateTax: estimatedStateTax / 12,
+      postTaxDeductions: totalPostTaxDeductions / 12,
+      netMonthlyIncome: netMonthly,
+      totalMonthlyExpenses: monthlyExpenses,
+      monthlySurplus: monthlySurplus,
+      annualSummary: {
+        grossAnnual,
+        netAnnual,
+        taxes: estimatedFederalTax + estimatedStateTax,
+        retirement401k: p1PreTax401k + (isMarried ? p2PreTax401k : 0),
+        rothContributions: p1RothContribution + (isMarried ? p2RothContribution : 0),
+        investments: nonRetirementInvestments * 12,
+      }
+    });
 
     // Save marital status to sessionStorage for next time
     sessionStorage.setItem('calculatorMarital', maritalStatus);
+
+    // Scroll to results
+    setTimeout(() => {
+      const resultsElement = document.getElementById('results-section');
+      if (resultsElement) {
+        resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   const isMarried = maritalStatus === "married";
@@ -662,6 +765,177 @@ export default function Income2026Page() {
             Calculate 2026 Projections
           </Button>
         </div>
+
+        {/* Results Section */}
+        {results && (
+          <div id="results-section" className="space-y-6 scroll-mt-20">
+            <Card className="border-2 border-primary">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  2026 Cash Flow Summary
+                </CardTitle>
+                <CardDescription>
+                  Monthly income, expenses, and surplus/deficit breakdown
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Monthly Income Waterfall */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Monthly Income Breakdown</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="font-medium">Gross Monthly Income</span>
+                      <span className="font-bold text-lg">
+                        ${results.grossIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b text-red-600">
+                      <span className="pl-4">- Pre-tax Deductions</span>
+                      <span>
+                        -${results.preTaxDeductions.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b text-red-600">
+                      <span className="pl-4">- Federal Tax (estimated)</span>
+                      <span>
+                        -${results.federalTax.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b text-red-600">
+                      <span className="pl-4">- State Tax (estimated)</span>
+                      <span>
+                        -${results.stateTax.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b text-red-600">
+                      <span className="pl-4">- Post-tax Deductions</span>
+                      <span>
+                        -${results.postTaxDeductions.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 bg-green-50 dark:bg-green-950/20 rounded-lg px-4">
+                      <span className="font-semibold text-green-900 dark:text-green-100">
+                        Net Monthly Income
+                      </span>
+                      <span className="font-bold text-xl text-green-900 dark:text-green-100">
+                        ${results.netMonthlyIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Monthly Expenses */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Monthly Expenses</h3>
+                  <div className="flex justify-between items-center py-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg px-4">
+                    <span className="font-semibold text-blue-900 dark:text-blue-100">
+                      Total Monthly Expenses
+                    </span>
+                    <span className="font-bold text-xl text-blue-900 dark:text-blue-100">
+                      ${results.totalMonthlyExpenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Monthly Surplus/Deficit */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Monthly Cash Flow</h3>
+                  <div className={`flex justify-between items-center py-4 rounded-lg px-4 ${
+                    results.monthlySurplus >= 0
+                      ? 'bg-emerald-50 dark:bg-emerald-950/20'
+                      : 'bg-red-50 dark:bg-red-950/20'
+                  }`}>
+                    <span className={`font-semibold text-lg ${
+                      results.monthlySurplus >= 0
+                        ? 'text-emerald-900 dark:text-emerald-100'
+                        : 'text-red-900 dark:text-red-100'
+                    }`}>
+                      {results.monthlySurplus >= 0 ? 'Monthly Surplus' : 'Monthly Deficit'}
+                    </span>
+                    <span className={`font-bold text-2xl ${
+                      results.monthlySurplus >= 0
+                        ? 'text-emerald-900 dark:text-emerald-100'
+                        : 'text-red-900 dark:text-red-100'
+                    }`}>
+                      {results.monthlySurplus >= 0 ? '+' : ''}
+                      ${results.monthlySurplus.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  {results.monthlySurplus < 0 && (
+                    <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        ⚠️ <strong>Warning:</strong> Your monthly expenses exceed your net income by{' '}
+                        <strong>${Math.abs(results.monthlySurplus).toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>.
+                        Consider reducing expenses or increasing income.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Annual Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>2026 Annual Summary</CardTitle>
+                <CardDescription>
+                  Projected totals for the full year
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+                    <div className="text-sm text-muted-foreground mb-1">Gross Annual Income</div>
+                    <div className="text-2xl font-bold">
+                      ${results.annualSummary.grossAnnual.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4">
+                    <div className="text-sm text-green-700 dark:text-green-400 mb-1">Net Annual Income</div>
+                    <div className="text-2xl font-bold text-green-900 dark:text-green-100">
+                      ${results.annualSummary.netAnnual.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                  <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-4">
+                    <div className="text-sm text-red-700 dark:text-red-400 mb-1">Total Taxes</div>
+                    <div className="text-2xl font-bold text-red-900 dark:text-red-100">
+                      ${results.annualSummary.taxes.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4">
+                    <div className="text-sm text-blue-700 dark:text-blue-400 mb-1">401(k) Contributions</div>
+                    <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                      ${results.annualSummary.retirement401k.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4">
+                    <div className="text-sm text-purple-700 dark:text-purple-400 mb-1">Roth Contributions</div>
+                    <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                      ${results.annualSummary.rothContributions.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                  <div className="bg-indigo-50 dark:bg-indigo-950/20 rounded-lg p-4">
+                    <div className="text-sm text-indigo-700 dark:text-indigo-400 mb-1">Taxable Investments</div>
+                    <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
+                      ${results.annualSummary.investments.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Disclaimer */}
+            <Card className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900">
+              <CardContent className="pt-6">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  <strong>Note:</strong> Tax estimates are simplified and approximate. Actual taxes depend on deductions,
+                  credits, and other factors. Consult a tax professional for accurate tax planning.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </main>
     </div>
   );
