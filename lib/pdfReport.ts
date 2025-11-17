@@ -142,7 +142,7 @@ function addPageHeader(doc: jsPDF, pageNum: number, reportDate: string) {
   doc.setFont('helvetica', 'normal');
 
   // Header text
-  doc.text('Work Die Retire - Financial Planning Report', MARGIN, 15);
+  doc.text('Tax-Aware Retirement Calculator - Financial Planning Report', MARGIN, 15);
   doc.text(reportDate, PAGE_WIDTH - MARGIN, 15, { align: 'right' });
 
   // Header line
@@ -157,16 +157,17 @@ function addPageHeader(doc: jsPDF, pageNum: number, reportDate: string) {
 }
 
 function addSectionTitle(doc: jsPDF, title: string, y: number): number {
-  doc.setFont('times', 'bold');
+  // Navy background bar (full width)
+  doc.setFillColor(26, 35, 50); // Navy blue
+  doc.rect(MARGIN - 5, y - 6, CONTENT_WIDTH + 10, 10, 'F');
+
+  // White text on navy background
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
-  doc.setTextColor(COLORS.primary);
+  doc.setTextColor(255, 255, 255); // White
   doc.text(title, MARGIN, y);
 
-  // Underline
-  doc.setDrawColor(COLORS.accent);
-  doc.setLineWidth(1);
-  doc.line(MARGIN, y + 2, MARGIN + 60, y + 2);
-
+  // Reset to black text
   doc.setTextColor(COLORS.text);
   doc.setFont('helvetica', 'normal');
 
@@ -176,20 +177,38 @@ function addSectionTitle(doc: jsPDF, title: string, y: number): number {
 function addSubsection(doc: jsPDF, title: string, y: number): number {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
+  doc.setTextColor(26, 35, 50); // Navy blue
   doc.text(title, MARGIN, y);
+
+  // Gold accent line below text
+  doc.setDrawColor(212, 175, 55); // Gold
+  doc.setLineWidth(0.5);
+  doc.line(MARGIN, y + 1.5, MARGIN + 50, y + 1.5);
+
+  // Reset to normal
+  doc.setTextColor(COLORS.text);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  return y + 6;
+  return y + 7;
 }
 
-function addKeyValue(doc: jsPDF, key: string, value: string, y: number, indent = 0): number {
+function addKeyValue(doc: jsPDF, key: string, value: string, y: number, indent = 0, isEvenRow = false): number {
+  // Add subtle alternating row background
+  if (isEvenRow) {
+    doc.setFillColor(247, 250, 252); // Light gray (#f7fafc)
+    doc.rect(MARGIN - 2, y - 4, CONTENT_WIDTH + 4, 6, 'F');
+  }
+
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(COLORS.textLight);
-  doc.text('├─ ' + key + ':', MARGIN + indent, y);
+  doc.text(key + ':', MARGIN + indent + 2, y);
+
+  // Right-align the value
   doc.setTextColor(COLORS.text);
   doc.setFont('helvetica', 'bold');
-  doc.text(value, MARGIN + indent + 70, y);
+  doc.text(value, PAGE_WIDTH - MARGIN - 2, y, { align: 'right' });
+
   return y + 5;
 }
 
@@ -292,24 +311,24 @@ function addExecutiveSummary(doc: jsPDF, data: PDFReportData, reportDate: string
 
   // Retirement Projection
   y = addSubsection(doc, 'Retirement Projection', y);
-  y = addKeyValue(doc, 'Retirement Age', String(inputs.retAge), y);
-  y = addKeyValue(doc, 'Planning Horizon', `To age 95 (${95 - inputs.retAge} years)`, y);
-  y = addKeyValue(doc, 'Probability of Success', formatPercent(successRate), y);
-  y = addKeyValue(doc, 'End-of-Life Wealth', formatCurrency(results.eolReal) + ' (2025 dollars)', y);
+  y = addKeyValue(doc, 'Retirement Age', String(inputs.retAge), y, 0, false);
+  y = addKeyValue(doc, 'Planning Horizon', `To age 95 (${95 - inputs.retAge} years)`, y, 0, true);
+  y = addKeyValue(doc, 'Probability of Success', formatPercent(successRate), y, 0, false);
+  y = addKeyValue(doc, 'End-of-Life Wealth', formatCurrency(results.eolReal) + ' (2025 dollars)', y, 0, true);
   y += 5;
 
   // Legacy Planning
   if (inputs.showGen && results.genPayout) {
     y = addSubsection(doc, 'Legacy Planning', y);
     const isPerpetual = results.genPayout.years >= 10000;
-    y = addKeyValue(doc, 'Generational Wealth Status', isPerpetual ? 'Perpetual Legacy' : `${results.genPayout.years} years`, y);
+    y = addKeyValue(doc, 'Generational Wealth Status', isPerpetual ? 'Perpetual Legacy' : `${results.genPayout.years} years`, y, 0, false);
 
     if (results.genPayout.probPerpetual !== undefined) {
-      y = addKeyValue(doc, 'Success Probability', formatPercent(results.genPayout.probPerpetual), y);
+      y = addKeyValue(doc, 'Success Probability', formatPercent(results.genPayout.probPerpetual), y, 0, true);
     }
 
-    y = addKeyValue(doc, 'Annual Beneficiary Distribution', formatCurrency(results.genPayout.perBenReal) + ' (real)', y);
-    y = addKeyValue(doc, 'Estimated Duration', isPerpetual ? 'Indefinite' : `${results.genPayout.years} years`, y);
+    y = addKeyValue(doc, 'Annual Beneficiary Distribution', formatCurrency(results.genPayout.perBenReal) + ' (real)', y, 0, false);
+    y = addKeyValue(doc, 'Estimated Duration', isPerpetual ? 'Indefinite' : `${results.genPayout.years} years`, y, 0, true);
     y += 5;
   }
 
@@ -339,10 +358,10 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
 
   // Section 1: Personal Information
   y = addSubsection(doc, 'CLIENT PROFILE', y);
-  y = addKeyValue(doc, 'Current Age', String(inputs.age1), y);
-  y = addKeyValue(doc, 'Retirement Age', String(inputs.retAge), y);
-  y = addKeyValue(doc, 'Life Expectancy', '95', y);
-  y = addKeyValue(doc, 'Filing Status', inputs.marital === 'single' ? 'Single' : 'Married', y);
+  y = addKeyValue(doc, 'Current Age', String(inputs.age1), y, 0, false);
+  y = addKeyValue(doc, 'Retirement Age', String(inputs.retAge), y, 0, true);
+  y = addKeyValue(doc, 'Life Expectancy', '95', y, 0, false);
+  y = addKeyValue(doc, 'Filing Status', inputs.marital === 'single' ? 'Single' : 'Married', y, 0, true);
   y += 5;
 
   if (inputs.marital === 'married') {
@@ -365,10 +384,10 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
   // Section 2: Financial Assumptions
   y = checkPageBreak(doc, y, 50, reportDate, pageNum);
   y = addSubsection(doc, 'ACCOUNT BALANCES (as of ' + new Date().toLocaleDateString() + ')', y);
-  y = addKeyValue(doc, 'Pre-Tax (401k/Traditional IRA)', formatCurrency(inputs.sPre), y);
-  y = addKeyValue(doc, 'Taxable (Brokerage)', formatCurrency(inputs.sTax), y);
-  y = addKeyValue(doc, 'Post-Tax (Roth IRA)', formatCurrency(inputs.sPost), y);
-  y = addKeyValue(doc, 'Total Portfolio', formatCurrency(inputs.sPre + inputs.sTax + inputs.sPost), y);
+  y = addKeyValue(doc, 'Pre-Tax (401k/Traditional IRA)', formatCurrency(inputs.sPre), y, 0, false);
+  y = addKeyValue(doc, 'Taxable (Brokerage)', formatCurrency(inputs.sTax), y, 0, true);
+  y = addKeyValue(doc, 'Post-Tax (Roth IRA)', formatCurrency(inputs.sPost), y, 0, false);
+  y = addKeyValue(doc, 'Total Portfolio', formatCurrency(inputs.sPre + inputs.sTax + inputs.sPost), y, 0, true);
   y += 5;
 
   y = checkPageBreak(doc, y, 50, reportDate, pageNum);
@@ -515,10 +534,10 @@ function addResultsAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string)
 
   // Wealth Accumulation
   y = addSubsection(doc, 'WEALTH ACCUMULATION (To Retirement)', y);
-  y = addKeyValue(doc, 'Years to Retirement', String(results.yrsToRet), y);
-  y = addKeyValue(doc, 'Total Contributions', formatCurrency(results.totC), y);
-  y = addKeyValue(doc, 'Portfolio at Retirement (Nominal)', formatCurrency(results.finNom), y);
-  y = addKeyValue(doc, 'Portfolio at Retirement (Real)', formatCurrency(results.finReal), y);
+  y = addKeyValue(doc, 'Years to Retirement', String(results.yrsToRet), y, 0, false);
+  y = addKeyValue(doc, 'Total Contributions', formatCurrency(results.totC), y, 0, true);
+  y = addKeyValue(doc, 'Portfolio at Retirement (Nominal)', formatCurrency(results.finNom), y, 0, false);
+  y = addKeyValue(doc, 'Portfolio at Retirement (Real)', formatCurrency(results.finReal), y, 0, true);
   y += 5;
 
   // Retirement Sustainability
@@ -526,14 +545,14 @@ function addResultsAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string)
   if (y === 30) pageNum++;
 
   y = addSubsection(doc, 'RETIREMENT SUSTAINABILITY', y);
-  y = addKeyValue(doc, 'Planning Horizon', `Age ${inputs.retAge}-95 (${95 - inputs.retAge} years)`, y);
-  y = addKeyValue(doc, 'Median End-of-Life Wealth (Nominal)', formatCurrency(results.eol), y);
-  y = addKeyValue(doc, 'Median End-of-Life Wealth (Real)', formatCurrency(results.eolReal), y);
+  y = addKeyValue(doc, 'Planning Horizon', `Age ${inputs.retAge}-95 (${95 - inputs.retAge} years)`, y, 0, false);
+  y = addKeyValue(doc, 'Median End-of-Life Wealth (Nominal)', formatCurrency(results.eol), y, 0, true);
+  y = addKeyValue(doc, 'Median End-of-Life Wealth (Real)', formatCurrency(results.eolReal), y, 0, false);
 
   if (results.probRuin !== undefined) {
     const successRate = 100 - results.probRuin;
-    y = addKeyValue(doc, 'Probability of Success', formatPercent(successRate), y);
-    y = addKeyValue(doc, 'Probability of Running Out', formatPercent(results.probRuin), y);
+    y = addKeyValue(doc, 'Probability of Success', formatPercent(successRate), y, 0, true);
+    y = addKeyValue(doc, 'Probability of Running Out', formatPercent(results.probRuin), y, 0, false);
   }
   y += 5;
 

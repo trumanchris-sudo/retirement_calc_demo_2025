@@ -70,6 +70,7 @@ export type InputProps = {
   isRate?: boolean;
   disabled?: boolean;
   onInputChange?: () => void; // Called when input value changes
+  defaultValue?: number; // If provided, auto-clear this value on focus
 };
 
 export const Input: React.FC<InputProps> = ({
@@ -83,6 +84,7 @@ export const Input: React.FC<InputProps> = ({
   isRate = false,
   disabled = false,
   onInputChange,
+  defaultValue,
 }) => {
   const [local, setLocal] = useState<string>(String(value ?? 0));
   const [isFocused, setIsFocused] = useState(false);
@@ -100,14 +102,28 @@ export const Input: React.FC<InputProps> = ({
 
   const onFocus = () => {
     setIsFocused(true);
-    // Remove commas for editing
-    setLocal(String(value ?? 0));
+    // If current value equals default value, clear the field for easy editing
+    if (defaultValue !== undefined && value === defaultValue) {
+      setLocal('');
+    } else {
+      // Remove commas for editing
+      setLocal(String(value ?? 0));
+    }
   };
 
   const onBlur = () => {
     setIsFocused(false);
     // Remove commas and parse
-    const cleanValue = local.replace(/,/g, '');
+    const cleanValue = local.replace(/,/g, '').trim();
+
+    // If field is empty and we have a default, restore default
+    if (cleanValue === '' && defaultValue !== undefined) {
+      setter(defaultValue);
+      onInputChange?.();
+      setLocal(isRate ? String(defaultValue) : defaultValue.toLocaleString('en-US'));
+      return;
+    }
+
     const num = toNumber(cleanValue, value ?? 0);
     let val = isRate ? parseFloat(String(num)) : Math.round(num);
     val = clampNum(val, min, max);

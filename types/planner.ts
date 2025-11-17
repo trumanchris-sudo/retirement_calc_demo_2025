@@ -1,6 +1,6 @@
 // types/planner.ts
 
-import type { GenerationalPayout } from "./calculator";
+import type { GenerationalPayout, BondGlidePath } from "./calculator";
 
 export type FilingStatus = "single" | "married";
 export type ReturnMode = "fixed" | "randomWalk";
@@ -95,6 +95,8 @@ export type Inputs = {
   ssClaimAge: number;
   ssIncome2: number;
   ssClaimAge2: number;
+  // Bond allocation
+  bondGlidePath?: BondGlidePath | null;
 };
 
 // Result from a single simulation

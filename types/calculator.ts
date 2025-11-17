@@ -5,6 +5,30 @@
 import type { FilingStatus } from "@/lib/calculations/taxCalculations";
 import type { ReturnMode, WalkSeries } from "./planner";
 
+// ==================== Bond Glide Path Types ====================
+
+/**
+ * Asset allocation strategy type
+ */
+export type AllocationStrategy = 'aggressive' | 'ageBased' | 'custom';
+
+/**
+ * Glide path transition shape
+ */
+export type GlidePathShape = 'linear' | 'accelerated' | 'decelerated';
+
+/**
+ * Bond glide path configuration
+ */
+export interface BondGlidePath {
+  strategy: AllocationStrategy;
+  startAge: number;
+  endAge: number;
+  startPct: number;  // Starting bond percentage (0-100)
+  endPct: number;    // Ending bond percentage (0-100)
+  shape: GlidePathShape;
+}
+
 // ==================== Progress Types ====================
 
 /**

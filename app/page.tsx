@@ -54,7 +54,7 @@ import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calcul
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 
 // Import types
-import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress } from "@/types/calculator";
+import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress, BondGlidePath } from "@/types/calculator";
 
 // Import from new modules
 import {
@@ -87,6 +87,16 @@ import {
   realReturn,
   mulberry32,
 } from "@/lib/utils";
+
+import {
+  calculateBondAllocation,
+  calculateBlendedReturn,
+  calculatePortfolioVolatility,
+  generateAllocationChart,
+  GLIDE_PATH_PRESETS,
+} from "@/lib/bondAllocation";
+
+import { calculateBondReturn, BOND_NOMINAL_AVG } from "@/lib/constants";
 
 import type { ReturnMode, WalkSeries, BatchSummary } from "@/types/planner";
 
@@ -141,6 +151,8 @@ export function buildReturnGenerator(options: {
   walkData?: number[];
   seed?: number;
   startYear?: number; // Historical year to start sequential playback (e.g., 1929)
+  bondGlidePath?: BondGlidePath | null; // Bond allocation glide path
+  currentAge?: number; // Current age for bond allocation calculation
 }) {
   const {
     mode,
@@ -151,12 +163,26 @@ export function buildReturnGenerator(options: {
     walkData = SP500_YOY_NOMINAL,
     seed = 12345,
     startYear,
+    bondGlidePath = null,
+    currentAge = 35,
   } = options;
 
   if (mode === "fixed") {
     const g = 1 + nominalPct / 100;
     return function* fixedGen() {
-      for (let i = 0; i < years; i++) yield g;
+      for (let i = 0; i < years; i++) {
+        let returnPct = nominalPct;
+
+        // Apply bond blending if glide path is configured
+        if (bondGlidePath) {
+          const age = currentAge + i;
+          const bondAlloc = calculateBondAllocation(age, bondGlidePath);
+          const bondReturnPct = BOND_NOMINAL_AVG;
+          returnPct = calculateBlendedReturn(nominalPct, bondReturnPct, bondAlloc);
+        }
+
+        yield 1 + returnPct / 100;
+      }
     };
   }
 
@@ -169,7 +195,18 @@ export function buildReturnGenerator(options: {
     return function* historicalGen() {
       for (let i = 0; i < years; i++) {
         const ix = (startIndex + i) % walkData.length; // Wrap around if we exceed data
-        let pct = walkData[ix];
+        let stockPct = walkData[ix];
+
+        // Calculate bond return correlated with stock return
+        const bondPct = calculateBondReturn(stockPct);
+
+        // Apply bond blending if glide path is configured
+        let pct = stockPct;
+        if (bondGlidePath) {
+          const age = currentAge + i;
+          const bondAlloc = calculateBondAllocation(age, bondGlidePath);
+          pct = calculateBlendedReturn(stockPct, bondPct, bondAlloc);
+        }
 
         if (walkSeries === "real") {
           const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
@@ -186,7 +223,18 @@ export function buildReturnGenerator(options: {
   return function* walkGen() {
     for (let i = 0; i < years; i++) {
       const ix = Math.floor(rnd() * walkData.length);
-      let pct = walkData[ix];
+      let stockPct = walkData[ix];
+
+      // Calculate bond return correlated with stock return
+      const bondPct = calculateBondReturn(stockPct);
+
+      // Apply bond blending if glide path is configured
+      let pct = stockPct;
+      if (bondGlidePath) {
+        const age = currentAge + i;
+        const bondAlloc = calculateBondAllocation(age, bondGlidePath);
+        pct = calculateBlendedReturn(stockPct, bondPct, bondAlloc);
+      }
 
       if (walkSeries === "real") {
         const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
@@ -1155,7 +1203,11 @@ export default function App() {
   // Generational wealth parameters (improved demographic model)
   const [hypPerBen, setHypPerBen] = useState(100_000);
 
-  // New intuitive beneficiary inputs
+  // New intuitive beneficiary inputs - UPDATED to ask for current ages
+  const [childrenCurrentAges, setChildrenCurrentAges] = useState("5, 3"); // Comma-separated current ages
+  const [additionalChildrenExpected, setAdditionalChildrenExpected] = useState(0); // Number of additional children
+
+  // Legacy inputs (kept for backward compatibility with presets)
   const [numberOfChildren, setNumberOfChildren] = useState(2);
   const [parentAgeAtFirstChild, setParentAgeAtFirstChild] = useState(30);
   const [childSpacingYears, setChildSpacingYears] = useState(3);
@@ -1175,6 +1227,14 @@ export default function App() {
   const [seed, setSeed] = useState(42);
   const [walkSeries, setWalkSeries] = useState<"nominal" | "real" | "trulyRandom">("trulyRandom");
 
+  // Bond Glide Path Configuration
+  const [allocationStrategy, setAllocationStrategy] = useState<'aggressive' | 'ageBased' | 'custom'>('aggressive');
+  const [bondStartPct, setBondStartPct] = useState(10);
+  const [bondEndPct, setBondEndPct] = useState(60);
+  const [bondStartAge, setBondStartAge] = useState(age1); // Will update dynamically
+  const [bondEndAge, setBondEndAge] = useState(75);
+  const [glidePathShape, setGlidePathShape] = useState<'linear' | 'accelerated' | 'decelerated'>('linear');
+
   const [res, setRes] = useState<CalculationResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -1184,25 +1244,56 @@ export default function App() {
   const legacyCardRefAllInOne = useRef<HTMLDivElement>(null);
   const legacyCardRefLegacy = useRef<HTMLDivElement>(null);
 
-  // Auto-calculate beneficiary ages based on user's age and family structure
-  const { hypBenAgesStr, hypStartBens } = useMemo(() => {
-    const olderAge = Math.max(age1, age2);
-
-    // Calculate ages of children at time of death
-    const childrenAges: number[] = [];
-    for (let i = 0; i < numberOfChildren; i++) {
-      const childAgeAtDeath = hypDeathAge - parentAgeAtFirstChild - (i * childSpacingYears);
-      // Only include children who would be alive at time of death (age < hypDeathAge)
-      if (childAgeAtDeath > 0 && childAgeAtDeath < hypDeathAge) {
-        childrenAges.push(childAgeAtDeath);
-      }
+  // Build bond glide path configuration object
+  const bondGlidePath: BondGlidePath | null = useMemo(() => {
+    if (allocationStrategy === 'aggressive') {
+      // 100% stocks, no bonds
+      return null;
     }
 
     return {
-      hypBenAgesStr: childrenAges.length > 0 ? childrenAges.join(', ') : '0',
-      hypStartBens: Math.max(1, childrenAges.length)
+      strategy: allocationStrategy,
+      startAge: bondStartAge,
+      endAge: bondEndAge,
+      startPct: bondStartPct,
+      endPct: bondEndPct,
+      shape: glidePathShape,
     };
-  }, [numberOfChildren, parentAgeAtFirstChild, childSpacingYears, hypDeathAge, age1, age2]);
+  }, [allocationStrategy, bondStartAge, bondEndAge, bondStartPct, bondEndPct, glidePathShape]);
+
+  // Auto-calculate beneficiary ages based on user's age and family structure
+  const { hypBenAgesStr, hypStartBens } = useMemo(() => {
+    const olderAge = Math.max(age1, age2);
+    const yearsUntilDeath = hypDeathAge - olderAge;
+
+    // Parse current children ages from comma-separated string
+    const currentAges = childrenCurrentAges
+      .split(',')
+      .map(s => parseInt(s.trim()))
+      .filter(n => !isNaN(n) && n >= 0);
+
+    // Calculate current children at time of death
+    const currentChildrenAtDeath = currentAges.map(age => age + yearsUntilDeath);
+
+    // Calculate additional children (assume 2-year birth intervals)
+    const additionalChildrenAtDeath: number[] = [];
+    for (let i = 0; i < additionalChildrenExpected; i++) {
+      const birthYear = (i + 1) * 2; // Born in 2, 4, 6 years, etc.
+      const ageAtDeath = yearsUntilDeath - birthYear;
+      if (ageAtDeath > 0 && ageAtDeath < hypDeathAge) {
+        additionalChildrenAtDeath.push(ageAtDeath);
+      }
+    }
+
+    // Combine all children ages at death
+    const allChildrenAges = [...currentChildrenAtDeath, ...additionalChildrenAtDeath]
+      .filter(age => age > 0 && age < hypDeathAge);
+
+    return {
+      hypBenAgesStr: allChildrenAges.length > 0 ? allChildrenAges.join(', ') : '0',
+      hypStartBens: Math.max(1, allChildrenAges.length)
+    };
+  }, [childrenCurrentAges, additionalChildrenExpected, hypDeathAge, age1, age2]);
 
   const [aiInsight, setAiInsight] = useState<string>("");
   const [isLoadingAi, setIsLoadingAi] = useState<boolean>(false);
@@ -1905,6 +1996,8 @@ export default function App() {
           ltcOnsetAge,
           ltcAgeRangeStart,
           ltcAgeRangeEnd,
+          // Bond glide path
+          bondGlidePath,
         };
 
         console.log('[CALC] Calling web worker with inputs...');
@@ -2283,6 +2376,8 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed,
+        bondGlidePath,
+        currentAge: younger, // Start from younger person's age
       })();
 
       const drawGen = buildReturnGenerator({
@@ -2292,6 +2387,8 @@ export default function App() {
         infPct: infRate,
         walkSeries,
         seed: currentSeed + 1,
+        bondGlidePath,
+        currentAge: older + yrsToRet, // Start from retirement age
         // Bear market returns are injected directly in drawdown loop, not via generator
       })();
 
@@ -2796,6 +2893,47 @@ export default function App() {
       console.error('Failed to load scenarios:', e);
     }
   }, []);
+
+  // Navigation State Persistence: Restore calculation results when returning from 2026 Income page
+  useEffect(() => {
+    try {
+      const savedResults = sessionStorage.getItem('calculatorResults');
+      const savedTab = sessionStorage.getItem('calculatorTab');
+
+      if (savedResults) {
+        const results = JSON.parse(savedResults);
+        console.log('[NAV PERSISTENCE] Restoring saved results');
+        setRes(results);
+        setLastCalculated(new Date());
+
+        // Clear the saved results after restoring
+        sessionStorage.removeItem('calculatorResults');
+      }
+
+      if (savedTab) {
+        const tab = savedTab as MainTabId;
+        console.log('[NAV PERSISTENCE] Restoring tab:', tab);
+        setActiveMainTab(tab);
+        sessionStorage.removeItem('calculatorTab');
+      }
+    } catch (e) {
+      console.error('[NAV PERSISTENCE] Failed to restore state:', e);
+    }
+  }, []);
+
+  // Save calculation results to sessionStorage when they change (for 2026 Income navigation)
+  useEffect(() => {
+    if (res) {
+      try {
+        sessionStorage.setItem('calculatorResults', JSON.stringify(res));
+        sessionStorage.setItem('calculatorTab', activeMainTab);
+        sessionStorage.setItem('calculatorMarital', marital);
+        console.log('[NAV PERSISTENCE] Saved current results, tab, and marital status');
+      } catch (e) {
+        console.error('[NAV PERSISTENCE] Failed to save state:', e);
+      }
+    }
+  }, [res, activeMainTab, marital]);
 
   // Save current inputs and results as a scenario
   const saveScenario = useCallback(() => {
@@ -5817,10 +5955,10 @@ export default function App() {
                           <option value="married">Married</option>
                         </select>
                       </div>
-                      <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} onInputChange={handleInputChange} />
-                      <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} onInputChange={handleInputChange} />
+                      <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} onInputChange={handleInputChange} defaultValue={35} />
+                      <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} onInputChange={handleInputChange} defaultValue={65} />
                       {isMar && (
-                        <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} onInputChange={handleInputChange} />
+                        <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} onInputChange={handleInputChange} defaultValue={33} />
                       )}
                     </div>
                   ),
@@ -5832,9 +5970,9 @@ export default function App() {
                   content: (
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} onInputChange={handleInputChange} />
-                        <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} onInputChange={handleInputChange} />
-                        <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} onInputChange={handleInputChange} />
+                        <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} onInputChange={handleInputChange} defaultValue={50000} />
+                        <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} onInputChange={handleInputChange} defaultValue={150000} />
+                        <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} onInputChange={handleInputChange} defaultValue={25000} />
                       </div>
                     </div>
                   ),
@@ -5849,20 +5987,20 @@ export default function App() {
                   <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
                     {marital === 'single' ? 'Your Contributions' : 'Your Contributions'}
                   </Badge>
-                  <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} onInputChange={handleInputChange} />
-                  <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} onInputChange={handleInputChange} />
-                  <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} onInputChange={handleInputChange} />
-                  <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} onInputChange={handleInputChange} />
+                  <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} onInputChange={handleInputChange} defaultValue={12000} />
+                  <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} onInputChange={handleInputChange} defaultValue={23000} />
+                  <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} onInputChange={handleInputChange} defaultValue={7000} />
+                  <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} onInputChange={handleInputChange} defaultValue={0} />
                 </div>
                 {isMar && (
                   <div className="space-y-4">
                     <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
                       Spouse's Contributions
                     </Badge>
-                    <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} onInputChange={handleInputChange} />
-                    <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} onInputChange={handleInputChange} />
-                    <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} onInputChange={handleInputChange} />
-                    <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} onInputChange={handleInputChange} />
+                    <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} onInputChange={handleInputChange} defaultValue={8000} />
+                    <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} onInputChange={handleInputChange} defaultValue={23000} />
+                    <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} onInputChange={handleInputChange} defaultValue={7000} />
+                    <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} onInputChange={handleInputChange} defaultValue={0} />
                   </div>
                 )}
                       </div>
@@ -5931,6 +6069,145 @@ export default function App() {
                       <option value="randomWalk">Random Walk (S&P bootstrap)</option>
                     </select>
                   </div>
+                </div>
+
+                {/* Asset Allocation Strategy */}
+                <Separator className="my-6" />
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-semibold text-foreground">Asset Allocation Strategy</h4>
+                    <Tip text="Choose how your portfolio is allocated between stocks and bonds. Bonds reduce volatility but also lower expected returns." />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Allocation Type</Label>
+                    <select
+                      value={allocationStrategy}
+                      onChange={(e) => {
+                        const newStrategy = e.target.value as 'aggressive' | 'ageBased' | 'custom';
+                        setAllocationStrategy(newStrategy);
+                        setInputsModified(true);
+                      }}
+                      className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                    >
+                      <option value="aggressive">100% Stocks (Aggressive)</option>
+                      <option value="ageBased">Age-Based (Bond % = Your Age)</option>
+                      <option value="custom">Custom Glide Path</option>
+                    </select>
+                  </div>
+
+                  {allocationStrategy === 'custom' && (
+                    <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <h5 className="font-semibold text-sm">Custom Bond Glide Path</h5>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Starting Bond %</Label>
+                          <UIInput
+                            type="number"
+                            value={bondStartPct}
+                            onChange={(e) => {
+                              setBondStartPct(Number(e.target.value));
+                              setInputsModified(true);
+                            }}
+                            min={0}
+                            max={100}
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Ending Bond %</Label>
+                          <UIInput
+                            type="number"
+                            value={bondEndPct}
+                            onChange={(e) => {
+                              setBondEndPct(Number(e.target.value));
+                              setInputsModified(true);
+                            }}
+                            min={0}
+                            max={100}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Start at Age</Label>
+                          <UIInput
+                            type="number"
+                            value={bondStartAge}
+                            onChange={(e) => {
+                              setBondStartAge(Number(e.target.value));
+                              setInputsModified(true);
+                            }}
+                            min={age1}
+                            max={95}
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>End at Age</Label>
+                          <UIInput
+                            type="number"
+                            value={bondEndAge}
+                            onChange={(e) => {
+                              setBondEndAge(Number(e.target.value));
+                              setInputsModified(true);
+                            }}
+                            min={age1}
+                            max={95}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Transition Shape</Label>
+                        <select
+                          value={glidePathShape}
+                          onChange={(e) => {
+                            setGlidePathShape(e.target.value as 'linear' | 'accelerated' | 'decelerated');
+                            setInputsModified(true);
+                          }}
+                          className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                        >
+                          <option value="linear">Linear (steady increase)</option>
+                          <option value="accelerated">Accelerated (faster early)</option>
+                          <option value="decelerated">Decelerated (faster late)</option>
+                        </select>
+                      </div>
+
+                      <div className="text-xs text-muted-foreground mt-2">
+                        <p>
+                          Bond allocation will transition from {bondStartPct}% at age {bondStartAge} to {bondEndPct}% at age {bondEndAge}.
+                          Current allocation at age {age1}: {Math.round(calculateBondAllocation(age1, bondGlidePath || undefined as any))}% bonds.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {allocationStrategy === 'ageBased' && (
+                    <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800 text-sm">
+                      <p>
+                        Conservative glide path: 10% bonds (age &lt;40), gradually increasing to 60% bonds (age 60+).
+                        {(() => {
+                          const tempGlidePath: BondGlidePath = { strategy: 'ageBased', startAge: age1, endAge: 95, startPct: 10, endPct: 60, shape: 'linear' };
+                          const bondPct = Math.round(calculateBondAllocation(age1, tempGlidePath));
+                          return ` At age ${age1}: ${bondPct}% bonds, ${100 - bondPct}% stocks.`;
+                        })()}
+                      </p>
+                    </div>
+                  )}
+
+                  {allocationStrategy === 'aggressive' && (
+                    <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800 text-sm">
+                      <p>
+                        Your portfolio will remain 100% stocks for maximum growth potential.
+                        This provides higher expected returns but with greater volatility.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -6229,7 +6506,11 @@ export default function App() {
 
             <div className="flex flex-col items-center pt-6 pb-2 no-print">
               <Button
-                onClick={calc}
+                onClick={() => {
+                  calc();
+                  // Auto-navigate to Results tab after clicking Calculate
+                  setActiveMainTab('results');
+                }}
                 disabled={isLoadingAi}
                 size="lg"
                 className="w-full md:w-auto text-lg px-16 py-7 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
@@ -6326,36 +6607,32 @@ export default function App() {
                         tip="How much each person receives per year, adjusted for inflation"
                         onInputChange={handleInputChange}
                       />
-                      <Input
-                        label="Number of Children"
-                        value={numberOfChildren}
-                        setter={setNumberOfChildren}
-                        min={1}
-                        max={10}
-                        step={1}
-                        tip="How many children do you have (or expect to have)?"
-                        onInputChange={handleInputChange}
-                      />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1.5 text-foreground">
+                          Children's Current Ages
+                          <Tip text="Enter current ages of your children, separated by commas (e.g., 5, 3)" />
+                        </Label>
+                        <UIInput
+                          type="text"
+                          value={childrenCurrentAges}
+                          onChange={(e) => {
+                            setChildrenCurrentAges(e.target.value);
+                            handleInputChange?.();
+                          }}
+                          placeholder="5, 3"
+                          className="w-full"
+                        />
+                      </div>
                       <Input
-                        label="Your Age When First Child is Born"
-                        value={parentAgeAtFirstChild}
-                        setter={setParentAgeAtFirstChild}
-                        min={18}
-                        max={50}
-                        step={1}
-                        tip="Your age when your first (oldest) child is born"
-                        onInputChange={handleInputChange}
-                      />
-                      <Input
-                        label="Years Between Children"
-                        value={childSpacingYears}
-                        setter={setChildSpacingYears}
-                        min={1}
+                        label="Additional Children Expected"
+                        value={additionalChildrenExpected}
+                        setter={setAdditionalChildrenExpected}
+                        min={0}
                         max={10}
                         step={1}
-                        tip="Average spacing between children (e.g., 3 years)"
+                        tip="Number of children you plan to have in the future (will be born at 2-year intervals)"
                         onInputChange={handleInputChange}
                       />
                     </div>
@@ -6438,24 +6715,6 @@ export default function App() {
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
-
-                  <Separator className="my-6" />
-
-                  {/* Auto-calculated beneficiary information */}
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="space-y-2 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                      <Label className="flex items-center gap-1.5 text-foreground font-semibold">
-                        Children Ages at Your Death (Age {hypDeathAge})
-                        <Tip text={`Based on your inputs, your ${numberOfChildren} ${numberOfChildren === 1 ? 'child' : 'children'} will be these ages when you pass away. Only children within the fertility window (${fertilityWindowStart}-${fertilityWindowEnd}) will produce grandchildren in the simulation.`} />
-                      </Label>
-                      <div className="text-sm text-foreground bg-white dark:bg-gray-900 p-3 rounded border border-blue-200 dark:border-blue-700 font-mono">
-                        {hypBenAgesStr || 'No children specified'}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {hypStartBens} {hypStartBens === 1 ? 'beneficiary' : 'beneficiaries'} calculated
-                      </p>
-                    </div>
-                  </div>
 
                   {/* Calculate Button */}
                   <div className="mt-8 flex justify-center">
