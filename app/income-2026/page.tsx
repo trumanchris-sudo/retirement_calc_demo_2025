@@ -147,33 +147,61 @@ export default function Income2026Page() {
         console.log('[2026 INCOME] Pre-filling from context:', implied);
         setMaritalStatus(implied.maritalStatus);
 
-        // Pre-fill income based on reverse calculation from contributions
-        // If they're contributing $42K pre-tax, they likely make ~$280K gross
-        const estimatedGross = implied.contributions401k > 0
-          ? Math.round(implied.contributions401k / 0.15) // Assume 15% savings rate
-          : 0;
+        // IRS limits for 2026
+        const MAX_401K_PER_PERSON = 24000;
+        const MAX_ROTH_PER_PERSON = 7000;
 
-        if (estimatedGross > 0 && p1BaseIncome === 0) {
-          setP1BaseIncome(estimatedGross);
-        }
-
-        if (implied.contributions401k > 0 && p1PreTax401k === 0) {
-          setP1PreTax401k(implied.contributions401k);
-        }
-
-        if (implied.contributionsRoth > 0 && p1RothContribution === 0) {
-          setP1RothContribution(implied.contributionsRoth);
-        }
-
-        // For married, split 60/40
+        // Split household contributions between two people if married
+        // Otherwise assign to person 1 only
         if (implied.maritalStatus === 'married') {
-          const spouse60Pct = Math.round(estimatedGross * 0.6);
-          if (spouse60Pct > 0 && p2BaseIncome === 0) {
-            setP2BaseIncome(spouse60Pct);
+          // For married couples, assume contributions are split between both people
+          // Cap each person at their individual IRS limit
+          const p1_401k = Math.min(implied.contributions401k / 2, MAX_401K_PER_PERSON);
+          const p2_401k = Math.min(implied.contributions401k / 2, MAX_401K_PER_PERSON);
+          const p1_roth = Math.min(implied.contributionsRoth / 2, MAX_ROTH_PER_PERSON);
+          const p2_roth = Math.min(implied.contributionsRoth / 2, MAX_ROTH_PER_PERSON);
+
+          // Estimate gross income from 401k contribution (assume 15% savings rate)
+          const p1EstimatedGross = p1_401k > 0 ? Math.round(p1_401k / 0.15) : 0;
+          const p2EstimatedGross = p2_401k > 0 ? Math.round(p2_401k / 0.15) : 0;
+
+          if (p1EstimatedGross > 0 && p1BaseIncome === 0) {
+            setP1BaseIncome(p1EstimatedGross);
           }
-          const spouseContrib = Math.round(implied.contributions401k * 0.6);
-          if (spouseContrib > 0 && p2PreTax401k === 0) {
-            setP2PreTax401k(spouseContrib);
+          if (p2EstimatedGross > 0 && p2BaseIncome === 0) {
+            setP2BaseIncome(p2EstimatedGross);
+          }
+
+          if (p1_401k > 0 && p1PreTax401k === 0) {
+            setP1PreTax401k(Math.round(p1_401k));
+          }
+          if (p2_401k > 0 && p2PreTax401k === 0) {
+            setP2PreTax401k(Math.round(p2_401k));
+          }
+
+          if (p1_roth > 0 && p1RothContribution === 0) {
+            setP1RothContribution(Math.round(p1_roth));
+          }
+          if (p2_roth > 0 && p2RothContribution === 0) {
+            setP2RothContribution(Math.round(p2_roth));
+          }
+        } else {
+          // Single - assign all to person 1, capped at individual limits
+          const p1_401k = Math.min(implied.contributions401k, MAX_401K_PER_PERSON);
+          const p1_roth = Math.min(implied.contributionsRoth, MAX_ROTH_PER_PERSON);
+
+          const estimatedGross = p1_401k > 0 ? Math.round(p1_401k / 0.15) : 0;
+
+          if (estimatedGross > 0 && p1BaseIncome === 0) {
+            setP1BaseIncome(estimatedGross);
+          }
+
+          if (p1_401k > 0 && p1PreTax401k === 0) {
+            setP1PreTax401k(Math.round(p1_401k));
+          }
+
+          if (p1_roth > 0 && p1RothContribution === 0) {
+            setP1RothContribution(Math.round(p1_roth));
           }
         }
       }
@@ -369,9 +397,9 @@ export default function Income2026Page() {
       const p2BonusMonthIdx = months.indexOf(p2BonusMonth);
       const p1HasBonus = p1BonusMonthIdx === monthOfPaycheck && p1PaysThisPeriod > 0;
       const p2HasBonus = p2BonusMonthIdx === monthOfPaycheck && p2PaysThisPeriod > 0;
-      const p1Bonus = p1HasBonus ? p1Bonus : 0;
-      const p2Bonus = p2HasBonus ? p2Bonus : 0;
-      const bonus = p1Bonus + p2Bonus;
+      const p1BonusAmount = p1HasBonus ? p1Bonus : 0;
+      const p2BonusAmount = p2HasBonus ? p2Bonus : 0;
+      const bonus = p1BonusAmount + p2BonusAmount;
 
       const baseGross = p1BaseGross + p2BaseGross;
       const totalGross = baseGross + bonus;
