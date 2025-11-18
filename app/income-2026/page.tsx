@@ -759,17 +759,42 @@ export default function Income2026Page() {
 
               {/* Pre-Tax Deductions */}
               <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Pre-Tax Deductions (per paycheck)</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Annual Pre-Tax Deductions</h4>
                 <div className="space-y-4">
-                  <DualInputField
-                    label="401(k) Contribution"
-                    idPrefix="401k"
-                    value1={p1PreTax401k}
-                    onChange1={setP1PreTax401k}
-                    value2={p2PreTax401k}
-                    onChange2={setP2PreTax401k}
-                    defaultValue={0}
-                  />
+                  <div className={isMarried ? "grid grid-cols-2 gap-4" : ""}>
+                    <div className="space-y-2">
+                      <Input
+                        label="401(k) Contribution (Annual) - Your"
+                        value={p1PreTax401k}
+                        setter={setP1PreTax401k}
+                        defaultValue={0}
+                      />
+                      {p1PreTax401k > 24000 && (
+                        <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg p-2 border border-amber-200 dark:border-amber-900">
+                          <p className="text-xs text-amber-800 dark:text-amber-200">
+                            <strong>Warning:</strong> 2026 IRS limit is $24,000 (or $31,000 if age 50+). Your contribution will be capped.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {isMarried && (
+                      <div className="space-y-2">
+                        <Input
+                          label="401(k) Contribution (Annual) - Spouse"
+                          value={p2PreTax401k}
+                          setter={setP2PreTax401k}
+                          defaultValue={0}
+                        />
+                        {p2PreTax401k > 24000 && (
+                          <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg p-2 border border-amber-200 dark:border-amber-900">
+                            <p className="text-xs text-amber-800 dark:text-amber-200">
+                              <strong>Warning:</strong> 2026 IRS limit is $24,000 (or $31,000 if age 50+). Contribution will be capped.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   <DualInputField
                     label="Health Insurance Premium"
@@ -807,17 +832,48 @@ export default function Income2026Page() {
 
               {/* Post-Tax Deductions */}
               <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Post-Tax Deductions (per paycheck)</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Annual Post-Tax Deductions</h4>
+                <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3 border border-blue-200 dark:border-blue-900 mb-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Note:</strong> 401(k) and IRA have separate contribution limits. For 2026: 401(k) limit is $24,000, IRA limit is $7,000 (separate).
+                    Total retirement savings capacity per person: $31,000/year ($39,000 if age 50+).
+                  </p>
+                </div>
                 <div className="space-y-4">
-                  <DualInputField
-                    label="Roth 401(k) Contribution"
-                    idPrefix="roth"
-                    value1={p1RothContribution}
-                    onChange1={setP1RothContribution}
-                    value2={p2RothContribution}
-                    onChange2={setP2RothContribution}
-                    defaultValue={0}
-                  />
+                  <div className={isMarried ? "grid grid-cols-2 gap-4" : ""}>
+                    <div className="space-y-2">
+                      <Input
+                        label="Roth IRA Contribution (Annual) - Your"
+                        value={p1RothContribution}
+                        setter={setP1RothContribution}
+                        defaultValue={0}
+                      />
+                      {p1RothContribution > 7000 && (
+                        <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg p-2 border border-amber-200 dark:border-amber-900">
+                          <p className="text-xs text-amber-800 dark:text-amber-200">
+                            <strong>Warning:</strong> 2026 IRS limit for IRA is $7,000 (or $8,000 if age 50+). Contribution exceeds limit.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {isMarried && (
+                      <div className="space-y-2">
+                        <Input
+                          label="Roth IRA Contribution (Annual) - Spouse"
+                          value={p2RothContribution}
+                          setter={setP2RothContribution}
+                          defaultValue={0}
+                        />
+                        {p2RothContribution > 7000 && (
+                          <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg p-2 border border-amber-200 dark:border-amber-900">
+                            <p className="text-xs text-amber-800 dark:text-amber-200">
+                              <strong>Warning:</strong> 2026 IRS limit for IRA is $7,000 (or $8,000 if age 50+). Contribution exceeds limit.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   <DualInputField
                     label="Disability Insurance"
