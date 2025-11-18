@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { useBudget } from "@/lib/budget-context";
+import { PaycheckFlowTable } from "@/components/income/PaycheckFlowTable";
 
 type FilingStatus = "single" | "married";
 
@@ -1318,7 +1319,10 @@ export default function Income2026Page() {
               </CardContent>
             </Card>
 
-            {/* Paycheck-by-Paycheck Table */}
+            {/* 24-Paycheck Linear Flow Table */}
+            <PaycheckFlowTable paychecks={results.paychecks as any} />
+
+            {/* Paycheck-by-Paycheck Table (Original View) */}
             <Card>
               <CardHeader>
                 <CardTitle>Paycheck-by-Paycheck Linear Flow</CardTitle>
