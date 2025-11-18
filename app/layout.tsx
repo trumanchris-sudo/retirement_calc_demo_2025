@@ -5,8 +5,8 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Providers } from '@/components/Providers'
 
 export const metadata: Metadata = {
-  title: 'Tax-Aware Retirement Calculator - Plan your financial future with confidence',
-  description: 'Advanced retirement planning tool with tax-aware projections, Monte Carlo simulations, and generational wealth modeling',
+  title: 'WORK DIE RETIRE - Free Retirement Calculator',
+  description: 'Free retirement planning tool with tax-aware projections and Monte Carlo simulations. No ads. No bullshit.',
 }
 
 export const viewport: Viewport = {

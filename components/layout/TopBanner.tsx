@@ -29,11 +29,8 @@ export const TopBanner: React.FC<TopBannerProps> = ({ className = "" }) => {
             </div>
             <div>
               <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white flex items-center gap-2">
-                Tax-Aware Retirement Calculator
+                WORK DIE RETIRE
               </h1>
-              <p className="text-xs sm:text-sm text-blue-100 hidden sm:block">
-                Plan your financial future with confidence
-              </p>
             </div>
           </div>
 
@@ -50,6 +47,16 @@ export const TopBanner: React.FC<TopBannerProps> = ({ className = "" }) => {
               <span className="sm:hidden">MC Sims</span>
             </Badge>
           </div>
+        </div>
+
+        {/* Tagline */}
+        <div className="relative text-center pt-2 border-t border-white/20">
+          <p className="text-xs sm:text-sm text-blue-100">
+            Free. No ads. No bullshit.
+          </p>
+          <p className="text-[10px] text-blue-100/60 mt-1">
+            We don&apos;t use cookies, link or store data. We only track visits, browser type, and country.
+          </p>
         </div>
       </div>
     </div>
