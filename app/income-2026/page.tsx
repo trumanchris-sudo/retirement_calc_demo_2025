@@ -64,14 +64,29 @@ export default function Income2026Page() {
   const [federalWithholdingExtra, setFederalWithholdingExtra] = useState(0);
   const [stateWithholdingExtra, setStateWithholdingExtra] = useState(0);
 
+  // Housing
+  const [housingType, setHousingType] = useState<"rent" | "own">("own");
+  const [rentPayment, setRentPayment] = useState(0);
+  const [mortgagePayment, setMortgagePayment] = useState(5859);
+  const [propertyTaxAnnual, setPropertyTaxAnnual] = useState(25000);
+  const [homeInsuranceAnnual, setHomeInsuranceAnnual] = useState(10000);
+  const [floodInsuranceAnnual, setFloodInsuranceAnnual] = useState(3500);
+
   // Spending Buckets
-  const [mortgagePayment, setMortgagePayment] = useState(0);
   const [householdExpenses, setHouseholdExpenses] = useState(0);
   const [discretionarySpending, setDiscretionarySpending] = useState(0);
-  const [childcareCosts, setChildcareCosts] = useState(0);
+  const [childcareCosts, setChildcareCosts] = useState(1550);
   const [childcareDropoffMonth, setChildcareDropoffMonth] = useState("None");
   const [nonRetirementInvestments, setNonRetirementInvestments] = useState(0);
   const [surplusLiquidity, setSurplusLiquidity] = useState(0);
+
+  // Life Insurance
+  const [p1LifeInsuranceAnnual, setP1LifeInsuranceAnnual] = useState(4500);
+  const [p1LifeInsuranceCoverage, setP1LifeInsuranceCoverage] = useState(3000000);
+  const [p1LifeInsuranceFrequency, setP1LifeInsuranceFrequency] = useState<"monthly" | "quarterly" | "semi-annually" | "annually">("annually");
+  const [p2LifeInsuranceAnnual, setP2LifeInsuranceAnnual] = useState(0);
+  const [p2LifeInsuranceCoverage, setP2LifeInsuranceCoverage] = useState(0);
+  const [p2LifeInsuranceFrequency, setP2LifeInsuranceFrequency] = useState<"monthly" | "quarterly" | "semi-annually" | "annually">("annually");
 
   // Mortgage Details (for wealth tracking)
   const [mortgageBalance, setMortgageBalance] = useState(0);
@@ -203,160 +218,310 @@ export default function Income2026Page() {
     }
   }, [implied]); // Re-run when implied changes
 
+  // Calculate recommended life insurance based on age and income
+  const calculateRecommendedLifeInsurance = (income: number, age?: number): number => {
+    if (income === 0) return 0;
+
+    // Rule of thumb: 10-15x annual income, adjusted for age
+    // Younger people need more coverage (15x), older people need less (10x)
+    const baseAge = age || 35; // Default to 35 if age not available
+
+    let multiplier = 15;
+    if (baseAge < 30) {
+      multiplier = 15;
+    } else if (baseAge < 40) {
+      multiplier = 14;
+    } else if (baseAge < 50) {
+      multiplier = 12;
+    } else if (baseAge < 60) {
+      multiplier = 10;
+    } else {
+      multiplier = 8;
+    }
+
+    return Math.round(income * multiplier / 100000) * 100000; // Round to nearest 100k
+  };
+
   const handleCalculate = () => {
-    console.log("Calculating 2026 cash flow forecast...");
+    console.log("Calculating 2026 paycheck-by-paycheck forecast...");
 
-    const monthNames = ["January", "February", "March", "April", "May", "June",
-                        "July", "August", "September", "October", "November", "December"];
+    // 2026 Tax Constants
+    const STANDARD_DEDUCTION = maritalStatus === 'married' ? 30000 : 15000;
+    const SS_WAGE_BASE = 176100;
+    const MEDICARE_THRESHOLD = 200000;
+    const MAX_401K = 24000; // 2026 limit
+    const MAX_DEP_FSA = 5000;
+    const MAX_MED_FSA = 3200;
 
-    // Calculate biweekly amounts (26 pay periods per year)
-    const p1BiweeklyGross = p1BaseIncome / 26;
-    const p2BiweeklyGross = isMarried ? p2BaseIncome / 26 : 0;
+    // Tax brackets for 2026 (estimated based on inflation adjustments)
+    const taxBrackets = maritalStatus === 'married'
+      ? [
+          { limit: 23850, rate: 0.10 },
+          { limit: 96950, rate: 0.12 },
+          { limit: 206700, rate: 0.22 },
+          { limit: 394600, rate: 0.24 },
+          { limit: 501050, rate: 0.32 },
+          { limit: 751600, rate: 0.35 },
+          { limit: Infinity, rate: 0.37 }
+        ]
+      : [
+          { limit: 11925, rate: 0.10 },
+          { limit: 48475, rate: 0.12 },
+          { limit: 103350, rate: 0.22 },
+          { limit: 197300, rate: 0.24 },
+          { limit: 250525, rate: 0.32 },
+          { limit: 626350, rate: 0.35 },
+          { limit: Infinity, rate: 0.37 }
+        ];
 
-    // Track which month bonuses occur
-    const p1BonusMonthIdx = months.indexOf(p1BonusMonth);
-    const p2BonusMonthIdx = months.indexOf(p2BonusMonth);
-    const childcareDropMonth = months.indexOf(childcareDropoffMonth);
+    // Calculate 24 paychecks (biweekly)
+    const paychecks = [];
 
-    let runningBalance = 0;
-    const monthlyData = [];
+    // Tracking variables for caps
+    let ytdWages = 0;
+    let ytdSS = 0;
+    let ytdMedicare = 0;
+    let ytd401k = 0;
+    let ytdDepFSA = 0;
+    let ytdMedFSA = 0;
+    let ytdHYSA = 0;
 
-    for (let m = 0; m < 12; m++) {
-      const month = monthNames[m];
-      const incomeEvents = [];
-      const expenseEvents = [];
+    for (let i = 0; i < 24; i++) {
+      const paycheckNum = i + 1;
 
-      // Income events - Biweekly paychecks (2 per month, some months 3)
-      // Simplified: assume 2 paychecks per month (15th and 30th)
-      const paycheckDates = [`2026-${String(m + 1).padStart(2, '0')}-15`, `2026-${String(m + 1).padStart(2, '0')}-${m === 1 ? '28' : '30'}`];
+      // Calculate paycheck date (biweekly starting 1/15/2026)
+      const startDate = new Date('2026-01-15');
+      const paycheckDate = new Date(startDate);
+      paycheckDate.setDate(startDate.getDate() + (i * 14));
 
-      paycheckDates.forEach(date => {
-        if (p1BaseIncome > 0) {
-          incomeEvents.push({
-            date,
-            description: "Paycheck (Your)",
-            amount: p1BiweeklyGross + p1OvertimeMonthly / 2,
-            type: 'salary' as const,
-            person: "Your"
-          });
+      // Gross income per paycheck
+      const baseGross = p1BaseIncome / 24;
+
+      // Bonus (if applicable)
+      const monthOfPaycheck = paycheckDate.getMonth();
+      const p1BonusMonthIdx = months.indexOf(p1BonusMonth);
+      const hasBonus = p1BonusMonthIdx === monthOfPaycheck && i % 2 === 0; // First paycheck of bonus month
+      const bonus = hasBonus ? p1Bonus : 0;
+
+      const totalGross = baseGross + bonus;
+
+      // Pre-tax deductions
+      const healthIns = p1PreTaxHealthInsurance / 2; // Per paycheck (assuming biweekly premium input is annual/2)
+
+      // Dep FSA - cap at annual max
+      let depFSA = 0;
+      if (p1PreTaxFSA > 0) {
+        const annualDepFSA = Math.min(p1PreTaxFSA, MAX_DEP_FSA);
+        const perPaycheck = annualDepFSA / 24;
+        depFSA = Math.min(perPaycheck, MAX_DEP_FSA - ytdDepFSA);
+      }
+
+      // Med FSA - cap at annual max
+      let medFSA = 0;
+      const annualMedFSA = Math.min(p1PreTaxHSA, MAX_MED_FSA); // Using HSA field for Med FSA
+      if (annualMedFSA > 0) {
+        const perPaycheck = annualMedFSA / 24;
+        medFSA = Math.min(perPaycheck, MAX_MED_FSA - ytdMedFSA);
+      }
+
+      // Dental (alternating paychecks) - placeholder
+      const dental = i % 2 === 0 ? 49.59 : 0;
+
+      // Vision (alternating paychecks) - placeholder
+      const vision = i % 2 === 0 ? 19.03 : 0;
+
+      const totalPreTax = healthIns + depFSA + dental + vision + medFSA;
+
+      // FIT Taxable Income
+      const fitTaxable = totalGross - totalPreTax - (STANDARD_DEDUCTION / 24);
+      const fitTaxableAnnual = fitTaxable * 24;
+
+      // Calculate FIT using progressive brackets
+      let fitBase = 0;
+      let remainingIncome = fitTaxableAnnual;
+      let previousLimit = 0;
+
+      for (const bracket of taxBrackets) {
+        if (remainingIncome <= 0) break;
+
+        const taxableInBracket = Math.min(
+          remainingIncome,
+          bracket.limit - previousLimit
+        );
+
+        fitBase += taxableInBracket * bracket.rate;
+        remainingIncome -= taxableInBracket;
+        previousLimit = bracket.limit;
+      }
+
+      // Divide annual FIT by 24 for per-paycheck withholding
+      fitBase = fitBase / 24;
+
+      // Extra FIT withholding
+      const extraFIT = federalWithholdingExtra;
+      const totalFIT = fitBase + extraFIT;
+
+      // FICA - Social Security (6.2% up to wage base)
+      let ss = 0;
+      if (ytdWages < SS_WAGE_BASE) {
+        const remainingSS = SS_WAGE_BASE - ytdWages;
+        const ssWages = Math.min(baseGross, remainingSS);
+        ss = ssWages * 0.062;
+      }
+
+      // FICA - Medicare (1.45% on all wages, 2.35% on wages over threshold)
+      let med145 = 0;
+      let med235 = 0;
+
+      if (ytdWages < MEDICARE_THRESHOLD) {
+        const wagesBeforeThreshold = Math.min(baseGross, MEDICARE_THRESHOLD - ytdWages);
+        med145 = wagesBeforeThreshold * 0.0145;
+
+        const wagesAfterThreshold = baseGross - wagesBeforeThreshold;
+        if (wagesAfterThreshold > 0) {
+          med235 = wagesAfterThreshold * 0.0235;
         }
-        if (isMarried && p2BaseIncome > 0) {
-          incomeEvents.push({
-            date,
-            description: "Paycheck (Spouse)",
-            amount: p2BiweeklyGross + p2OvertimeMonthly / 2,
-            type: 'salary' as const,
-            person: "Spouse"
-          });
+      } else {
+        med235 = baseGross * 0.0235;
+      }
+
+      const totalMed = med145 + med235;
+
+      // Fixed expenses per paycheck
+      const housingPayment = housingType === "rent" ? rentPayment : mortgagePayment;
+
+      // Life insurance - calculate per paycheck based on frequency
+      let p1LifeInsPerPaycheck = 0;
+      if (p1LifeInsuranceFrequency === "monthly") {
+        p1LifeInsPerPaycheck = (p1LifeInsuranceAnnual / 12) / 2; // Monthly payment split across 2 paychecks
+      } else if (p1LifeInsuranceFrequency === "quarterly") {
+        p1LifeInsPerPaycheck = i % 6 === 0 ? p1LifeInsuranceAnnual / 4 : 0; // Every 6 paychecks (quarterly)
+      } else if (p1LifeInsuranceFrequency === "semi-annually") {
+        p1LifeInsPerPaycheck = i % 12 === 0 ? p1LifeInsuranceAnnual / 2 : 0; // Every 12 paychecks (semi-annual)
+      } else {
+        p1LifeInsPerPaycheck = i === 0 ? p1LifeInsuranceAnnual : 0; // First paycheck (annual)
+      }
+
+      let p2LifeInsPerPaycheck = 0;
+      if (isMarried) {
+        if (p2LifeInsuranceFrequency === "monthly") {
+          p2LifeInsPerPaycheck = (p2LifeInsuranceAnnual / 12) / 2;
+        } else if (p2LifeInsuranceFrequency === "quarterly") {
+          p2LifeInsPerPaycheck = i % 6 === 0 ? p2LifeInsuranceAnnual / 4 : 0;
+        } else if (p2LifeInsuranceFrequency === "semi-annually") {
+          p2LifeInsPerPaycheck = i % 12 === 0 ? p2LifeInsuranceAnnual / 2 : 0;
+        } else {
+          p2LifeInsPerPaycheck = i === 0 ? p2LifeInsuranceAnnual : 0;
         }
-      });
-
-      // Bonus events
-      if (p1BonusMonthIdx === m && p1Bonus > 0) {
-        incomeEvents.push({
-          date: `2026-${String(m + 1).padStart(2, '0')}-15`,
-          description: "Annual Bonus (Your)",
-          amount: p1Bonus,
-          type: 'bonus' as const,
-          person: "Your"
-        });
-      }
-      if (p2BonusMonthIdx === m && p2Bonus > 0) {
-        incomeEvents.push({
-          date: `2026-${String(m + 1).padStart(2, '0')}-15`,
-          description: "Annual Bonus (Spouse)",
-          amount: p2Bonus,
-          type: 'bonus' as const,
-          person: "Spouse"
-        });
       }
 
-      // Expense events - Monthly recurring expenses (due on 1st of month)
-      if (mortgagePayment > 0) {
-        expenseEvents.push({
-          date: `2026-${String(m + 1).padStart(2, '0')}-01`,
-          description: "Mortgage Payment",
-          amount: -mortgagePayment,
-          type: "Housing"
-        });
-      }
-      if (householdExpenses > 0) {
-        expenseEvents.push({
-          date: `2026-${String(m + 1).padStart(2, '0')}-01`,
-          description: "Household Expenses",
-          amount: -householdExpenses,
-          type: "Living"
-        });
-      }
-      if (discretionarySpending > 0) {
-        expenseEvents.push({
-          date: `2026-${String(m + 1).padStart(2, '0')}-15`,
-          description: "Discretionary Spending",
-          amount: -discretionarySpending,
-          type: "Discretionary"
-        });
+      // EOY property expenses (only if own, and only on last paycheck)
+      let eoyPropertyExpenses = 0;
+      if (housingType === "own" && i === 23) {
+        eoyPropertyExpenses = propertyTaxAnnual + homeInsuranceAnnual + floodInsuranceAnnual;
       }
 
-      // Childcare - stop if dropoff month reached
-      const isBeforeDropoff = childcareDropMonth === -1 || m < childcareDropMonth;
-      if (childcareCosts > 0 && isBeforeDropoff) {
-        expenseEvents.push({
-          date: `2026-${String(m + 1).padStart(2, '0')}-01`,
-          description: "Childcare",
-          amount: -childcareCosts,
-          type: "Childcare"
-        });
+      const fixedExpenses = (
+        housingPayment +
+        householdExpenses +
+        discretionarySpending +
+        childcareCosts
+      ) / 2 + p1LifeInsPerPaycheck + p2LifeInsPerPaycheck + eoyPropertyExpenses; // Divide by 2 for biweekly
+
+      // Pre-investment remainder
+      const preInvRemainder = totalGross - totalPreTax - totalFIT - ss - totalMed - fixedExpenses;
+
+      // Investment allocations
+      // 401k - target percentage with annual cap
+      const max401kPercent = p1PreTax401k > 0 ? (p1PreTax401k / p1BaseIncome) : 0;
+      let contribution401k = totalGross * max401kPercent;
+
+      // Ensure we don't exceed annual cap
+      if (ytd401k + contribution401k > MAX_401K) {
+        contribution401k = Math.max(0, MAX_401K - ytd401k);
       }
 
-      if (nonRetirementInvestments > 0) {
-        expenseEvents.push({
-          date: `2026-${String(m + 1).padStart(2, '0')}-01`,
-          description: "Investment Contribution",
-          amount: -nonRetirementInvestments,
-          type: "Investment"
-        });
-      }
+      // Don't exceed available cash
+      contribution401k = Math.min(contribution401k, preInvRemainder);
 
-      if (surplusLiquidity > 0) {
-        expenseEvents.push({
-          date: `2026-${String(m + 1).padStart(2, '0')}-01`,
-          description: "Surplus Savings",
-          amount: -surplusLiquidity,
-          type: "Savings"
-        });
-      }
+      // HYSA for end-of-year expenses (placeholder logic)
+      const hysaContribution = 0; // Can be configured based on user input
 
-      // Calculate monthly totals
-      const monthlyIncome = incomeEvents.reduce((sum, e) => sum + e.amount, 0);
-      const monthlyExpenses = Math.abs(expenseEvents.reduce((sum, e) => sum + e.amount, 0));
-      const netCashFlow = monthlyIncome - monthlyExpenses;
-      runningBalance += netCashFlow;
+      // Brokerage gets the remainder
+      const brokerageContribution = preInvRemainder - contribution401k - hysaContribution;
 
-      monthlyData.push({
-        month,
-        monthNumber: m + 1,
-        incomeEvents,
-        expenseEvents,
-        monthlyIncome,
-        monthlyExpenses,
-        netCashFlow,
-        runningBalance
+      // Update YTD trackers
+      ytdWages += baseGross;
+      ytdSS += ss;
+      ytdMedicare += totalMed;
+      ytd401k += contribution401k;
+      ytdDepFSA += depFSA;
+      ytdMedFSA += medFSA;
+      ytdHYSA += hysaContribution;
+
+      paychecks.push({
+        paycheckNum,
+        date: paycheckDate.toISOString().split('T')[0],
+        baseGross,
+        bonus,
+        totalGross,
+        healthIns,
+        depFSA,
+        dental,
+        vision,
+        medFSA,
+        totalPreTax,
+        fitTaxable,
+        fitBase,
+        extraFIT,
+        totalFIT,
+        ss,
+        med145,
+        med235,
+        totalMed,
+        fixedExpenses,
+        preInvRemainder,
+        max401kPercent,
+        contribution401k,
+        hysaContribution,
+        brokerageContribution,
+        ytdWages,
+        ytdSS,
+        ytdMedicare,
+        ytd401k,
+        ytdDepFSA,
+        ytdMedFSA,
+        ytdHYSA
       });
     }
 
     // Calculate year summary
-    const totalIncome = monthlyData.reduce((sum, m) => sum + m.monthlyIncome, 0);
-    const totalExpenses = monthlyData.reduce((sum, m) => sum + m.monthlyExpenses, 0);
+    const totalIncome = paychecks.reduce((sum, p) => sum + p.totalGross, 0);
+    const totalFIT = paychecks.reduce((sum, p) => sum + p.totalFIT, 0);
+    const totalFICA = paychecks.reduce((sum, p) => sum + p.ss + p.totalMed, 0);
+    const totalPreTax = paychecks.reduce((sum, p) => sum + p.totalPreTax, 0);
+    const totalFixedExpenses = paychecks.reduce((sum, p) => sum + p.fixedExpenses, 0);
+    const total401k = paychecks.reduce((sum, p) => sum + p.contribution401k, 0);
+    const totalHYSA = paychecks.reduce((sum, p) => sum + p.hysaContribution, 0);
+    const totalBrokerage = paychecks.reduce((sum, p) => sum + p.brokerageContribution, 0);
+
+    const netTakeHome = totalIncome - totalPreTax - totalFIT - totalFICA - totalFixedExpenses - total401k - totalHYSA - totalBrokerage;
 
     setResults({
-      months: monthlyData,
+      paychecks,
       yearSummary: {
         totalIncome,
-        totalExpenses,
-        netCashFlow: totalIncome - totalExpenses,
-        endingBalance: runningBalance
+        totalPreTax,
+        totalFIT,
+        totalFICA,
+        totalFixedExpenses,
+        total401k,
+        totalHYSA,
+        totalBrokerage,
+        netTakeHome,
+        effectiveTaxRate: (totalFIT + totalFICA) / totalIncome
       }
-    });
+    } as any);
 
     // Save marital status to sessionStorage for next time
     sessionStorage.setItem('calculatorMarital', maritalStatus);
@@ -594,17 +759,42 @@ export default function Income2026Page() {
 
               {/* Pre-Tax Deductions */}
               <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Pre-Tax Deductions (per paycheck)</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Annual Pre-Tax Deductions</h4>
                 <div className="space-y-4">
-                  <DualInputField
-                    label="401(k) Contribution"
-                    idPrefix="401k"
-                    value1={p1PreTax401k}
-                    onChange1={setP1PreTax401k}
-                    value2={p2PreTax401k}
-                    onChange2={setP2PreTax401k}
-                    defaultValue={0}
-                  />
+                  <div className={isMarried ? "grid grid-cols-2 gap-4" : ""}>
+                    <div className="space-y-2">
+                      <Input
+                        label="401(k) Contribution (Annual) - Your"
+                        value={p1PreTax401k}
+                        setter={setP1PreTax401k}
+                        defaultValue={0}
+                      />
+                      {p1PreTax401k > 24000 && (
+                        <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg p-2 border border-amber-200 dark:border-amber-900">
+                          <p className="text-xs text-amber-800 dark:text-amber-200">
+                            <strong>Warning:</strong> 2026 IRS limit is $24,000 (or $31,000 if age 50+). Your contribution will be capped.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {isMarried && (
+                      <div className="space-y-2">
+                        <Input
+                          label="401(k) Contribution (Annual) - Spouse"
+                          value={p2PreTax401k}
+                          setter={setP2PreTax401k}
+                          defaultValue={0}
+                        />
+                        {p2PreTax401k > 24000 && (
+                          <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg p-2 border border-amber-200 dark:border-amber-900">
+                            <p className="text-xs text-amber-800 dark:text-amber-200">
+                              <strong>Warning:</strong> 2026 IRS limit is $24,000 (or $31,000 if age 50+). Contribution will be capped.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   <DualInputField
                     label="Health Insurance Premium"
@@ -642,17 +832,48 @@ export default function Income2026Page() {
 
               {/* Post-Tax Deductions */}
               <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Post-Tax Deductions (per paycheck)</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Annual Post-Tax Deductions</h4>
+                <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3 border border-blue-200 dark:border-blue-900 mb-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Note:</strong> 401(k) and IRA have separate contribution limits. For 2026: 401(k) limit is $24,000, IRA limit is $7,000 (separate).
+                    Total retirement savings capacity per person: $31,000/year ($39,000 if age 50+).
+                  </p>
+                </div>
                 <div className="space-y-4">
-                  <DualInputField
-                    label="Roth 401(k) Contribution"
-                    idPrefix="roth"
-                    value1={p1RothContribution}
-                    onChange1={setP1RothContribution}
-                    value2={p2RothContribution}
-                    onChange2={setP2RothContribution}
-                    defaultValue={0}
-                  />
+                  <div className={isMarried ? "grid grid-cols-2 gap-4" : ""}>
+                    <div className="space-y-2">
+                      <Input
+                        label="Roth IRA Contribution (Annual) - Your"
+                        value={p1RothContribution}
+                        setter={setP1RothContribution}
+                        defaultValue={0}
+                      />
+                      {p1RothContribution > 7000 && (
+                        <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg p-2 border border-amber-200 dark:border-amber-900">
+                          <p className="text-xs text-amber-800 dark:text-amber-200">
+                            <strong>Warning:</strong> 2026 IRS limit for IRA is $7,000 (or $8,000 if age 50+). Contribution exceeds limit.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {isMarried && (
+                      <div className="space-y-2">
+                        <Input
+                          label="Roth IRA Contribution (Annual) - Spouse"
+                          value={p2RothContribution}
+                          setter={setP2RothContribution}
+                          defaultValue={0}
+                        />
+                        {p2RothContribution > 7000 && (
+                          <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg p-2 border border-amber-200 dark:border-amber-900">
+                            <p className="text-xs text-amber-800 dark:text-amber-200">
+                              <strong>Warning:</strong> 2026 IRS limit for IRA is $7,000 (or $8,000 if age 50+). Contribution exceeds limit.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   <DualInputField
                     label="Disability Insurance"
@@ -705,6 +926,174 @@ export default function Income2026Page() {
           </CardContent>
         </Card>
 
+        {/* Housing */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Housing</CardTitle>
+            <CardDescription>
+              Define whether you rent or own your home
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="housing-type">Housing Type</Label>
+                <Select value={housingType} onValueChange={(value: "rent" | "own") => setHousingType(value)}>
+                  <SelectTrigger id="housing-type">
+                    <SelectValue placeholder="Select housing type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rent">Rent</SelectItem>
+                    <SelectItem value="own">Own</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {housingType === "rent" ? (
+                <Input
+                  label="Monthly Rent Payment"
+                  value={rentPayment}
+                  setter={setRentPayment}
+                  defaultValue={0}
+                />
+              ) : (
+                <>
+                  <Input
+                    label="Monthly Mortgage Payment"
+                    value={mortgagePayment}
+                    setter={setMortgagePayment}
+                    defaultValue={5859}
+                  />
+                  <Separator />
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">End-of-Year Property Expenses</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Input
+                      label="Property Tax (Annual)"
+                      value={propertyTaxAnnual}
+                      setter={setPropertyTaxAnnual}
+                      defaultValue={25000}
+                    />
+                    <Input
+                      label="Home Insurance (Annual)"
+                      value={homeInsuranceAnnual}
+                      setter={setHomeInsuranceAnnual}
+                      defaultValue={10000}
+                    />
+                    <Input
+                      label="Flood Insurance (Annual)"
+                      value={floodInsuranceAnnual}
+                      setter={setFloodInsuranceAnnual}
+                      defaultValue={3500}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Life Insurance */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Life Insurance</CardTitle>
+            <CardDescription>
+              Define your life insurance coverage and payment schedule
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* Person 1 Life Insurance */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  {isMarried ? "Your Life Insurance" : "Life Insurance"}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Input
+                    label="Annual Premium"
+                    value={p1LifeInsuranceAnnual}
+                    setter={setP1LifeInsuranceAnnual}
+                    defaultValue={4500}
+                  />
+                  <Input
+                    label="Coverage Amount"
+                    value={p1LifeInsuranceCoverage}
+                    setter={setP1LifeInsuranceCoverage}
+                    defaultValue={3000000}
+                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="p1-life-frequency">Payment Frequency</Label>
+                    <Select value={p1LifeInsuranceFrequency} onValueChange={(value: any) => setP1LifeInsuranceFrequency(value)}>
+                      <SelectTrigger id="p1-life-frequency">
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="quarterly">Quarterly</SelectItem>
+                        <SelectItem value="semi-annually">Semi-Annually</SelectItem>
+                        <SelectItem value="annually">Annually</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {p1BaseIncome > 0 && (
+                  <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3 border border-blue-200 dark:border-blue-900">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Recommendation:</strong> Based on your income of ${p1BaseIncome.toLocaleString()},
+                      we recommend life insurance coverage of approximately ${calculateRecommendedLifeInsurance(p1BaseIncome, implied?.age).toLocaleString()}.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Person 2 Life Insurance (if married) */}
+              {isMarried && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Spouse Life Insurance</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Input
+                        label="Annual Premium"
+                        value={p2LifeInsuranceAnnual}
+                        setter={setP2LifeInsuranceAnnual}
+                        defaultValue={0}
+                      />
+                      <Input
+                        label="Coverage Amount"
+                        value={p2LifeInsuranceCoverage}
+                        setter={setP2LifeInsuranceCoverage}
+                        defaultValue={0}
+                      />
+                      <div className="space-y-2">
+                        <Label htmlFor="p2-life-frequency">Payment Frequency</Label>
+                        <Select value={p2LifeInsuranceFrequency} onValueChange={(value: any) => setP2LifeInsuranceFrequency(value)}>
+                          <SelectTrigger id="p2-life-frequency">
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="quarterly">Quarterly</SelectItem>
+                            <SelectItem value="semi-annually">Semi-Annually</SelectItem>
+                            <SelectItem value="annually">Annually</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    {p2BaseIncome > 0 && (
+                      <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3 border border-blue-200 dark:border-blue-900">
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                          <strong>Recommendation:</strong> Based on spouse income of ${p2BaseIncome.toLocaleString()},
+                          we recommend life insurance coverage of approximately ${calculateRecommendedLifeInsurance(p2BaseIncome, implied?.spouseAge).toLocaleString()}.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Spending Buckets */}
         <Card className="mb-6">
           <CardHeader>
@@ -715,12 +1104,6 @@ export default function Income2026Page() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Mortgage Payment"
-                value={mortgagePayment}
-                setter={setMortgagePayment}
-                defaultValue={0}
-              />
               <Input
                 label="Household Expenses"
                 value={householdExpenses}
@@ -734,10 +1117,10 @@ export default function Income2026Page() {
                 defaultValue={0}
               />
               <Input
-                label="Childcare Costs"
+                label="Childcare Costs (Monthly)"
                 value={childcareCosts}
                 setter={setChildcareCosts}
-                defaultValue={0}
+                defaultValue={1550}
               />
               <div className="space-y-2">
                 <Label htmlFor="childcare-dropoff">Childcare Dropoff Month</Label>
@@ -848,7 +1231,7 @@ export default function Income2026Page() {
         </div>
 
         {/* Results Section */}
-        {results && (
+        {results && results.paychecks && (
           <div id="results-section" className="space-y-6 scroll-mt-20">
             {/* Year Summary */}
             <Card className="border-2 border-primary">
@@ -858,146 +1241,425 @@ export default function Income2026Page() {
                   2026 Annual Summary
                 </CardTitle>
                 <CardDescription>
-                  Complete cash flow forecast for the year
+                  Complete paycheck-by-paycheck forecast with tax calculations
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4 border border-green-200 dark:border-green-900">
                     <div className="text-sm text-green-700 dark:text-green-400 mb-1">Total Income</div>
                     <div className="text-2xl font-bold text-green-900 dark:text-green-100">
                       ${results.yearSummary.totalIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                   </div>
-                  <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-4 border border-red-200 dark:border-red-900">
-                    <div className="text-sm text-red-700 dark:text-red-400 mb-1">Total Expenses</div>
-                    <div className="text-2xl font-bold text-red-900 dark:text-red-100">
-                      ${results.yearSummary.totalExpenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  <div className="bg-orange-50 dark:bg-orange-950/20 rounded-lg p-4 border border-orange-200 dark:border-orange-900">
+                    <div className="text-sm text-orange-700 dark:text-orange-400 mb-1">Pre-Tax Deductions</div>
+                    <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+                      ${results.yearSummary.totalPreTax.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                   </div>
-                  <div className={`rounded-lg p-4 border ${
-                    results.yearSummary.netCashFlow >= 0
-                      ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900'
-                      : 'bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900'
-                  }`}>
-                    <div className={`text-sm mb-1 ${
-                      results.yearSummary.netCashFlow >= 0
-                        ? 'text-emerald-700 dark:text-emerald-400'
-                        : 'text-orange-700 dark:text-orange-400'
-                    }`}>
-                      Net Cash Flow
+                  <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-4 border border-red-200 dark:border-red-900">
+                    <div className="text-sm text-red-700 dark:text-red-400 mb-1">Federal Tax</div>
+                    <div className="text-2xl font-bold text-red-900 dark:text-red-100">
+                      ${results.yearSummary.totalFIT.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
-                    <div className={`text-2xl font-bold ${
-                      results.yearSummary.netCashFlow >= 0
-                        ? 'text-emerald-900 dark:text-emerald-100'
-                        : 'text-orange-900 dark:text-orange-100'
-                    }`}>
-                      {results.yearSummary.netCashFlow >= 0 ? '+' : ''}
-                      ${results.yearSummary.netCashFlow.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </div>
+                  <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4 border border-purple-200 dark:border-purple-900">
+                    <div className="text-sm text-purple-700 dark:text-purple-400 mb-1">FICA</div>
+                    <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                      ${results.yearSummary.totalFICA.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                   </div>
                   <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-900">
-                    <div className="text-sm text-blue-700 dark:text-blue-400 mb-1">Ending Balance</div>
+                    <div className="text-sm text-blue-700 dark:text-blue-400 mb-1">401k Invested</div>
                     <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                      ${results.yearSummary.endingBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      ${results.yearSummary.total401k.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                  <div className="bg-cyan-50 dark:bg-cyan-950/20 rounded-lg p-4 border border-cyan-200 dark:border-cyan-900">
+                    <div className="text-sm text-cyan-700 dark:text-cyan-400 mb-1">Brokerage</div>
+                    <div className="text-2xl font-bold text-cyan-900 dark:text-cyan-100">
+                      ${results.yearSummary.totalBrokerage.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-950/20 rounded-lg p-4 border border-slate-200 dark:border-slate-900">
+                    <div className="text-sm text-slate-700 dark:text-slate-400 mb-1">Fixed Expenses</div>
+                    <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                      ${results.yearSummary.totalFixedExpenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                  <div className={`rounded-lg p-4 border ${
+                    results.yearSummary.netTakeHome >= 0
+                      ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900'
+                      : 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900'
+                  }`}>
+                    <div className={`text-sm mb-1 ${
+                      results.yearSummary.netTakeHome >= 0
+                        ? 'text-emerald-700 dark:text-emerald-400'
+                        : 'text-rose-700 dark:text-rose-400'
+                    }`}>
+                      Net Remainder
+                    </div>
+                    <div className={`text-2xl font-bold ${
+                      results.yearSummary.netTakeHome >= 0
+                        ? 'text-emerald-900 dark:text-emerald-100'
+                        : 'text-rose-900 dark:text-rose-100'
+                    }`}>
+                      ${Math.abs(results.yearSummary.netTakeHome).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                  <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg p-4 border border-amber-200 dark:border-amber-900">
+                    <div className="text-sm text-amber-700 dark:text-amber-400 mb-1">Effective Tax Rate</div>
+                    <div className="text-2xl font-bold text-amber-900 dark:text-amber-100">
+                      {(results.yearSummary.effectiveTaxRate * 100).toFixed(1)}%
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Monthly Breakdown */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">Month-by-Month Cash Flow</h3>
+            {/* Paycheck-by-Paycheck Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Paycheck-by-Paycheck Linear Flow</CardTitle>
+                <CardDescription>
+                  Complete waterfall from gross pay through all deductions to final investment allocation (24 paychecks)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs border-collapse">
+                    <thead className="sticky top-0 bg-background">
+                      <tr className="border-b-2">
+                        <th className="text-left py-2 px-2 font-semibold min-w-[180px]">Description</th>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <th key={p.paycheckNum} className="text-right py-2 px-2 font-semibold min-w-[90px] border-l">
+                            #{p.paycheckNum}
+                          </th>
+                        ))}
+                      </tr>
+                      <tr className="border-b">
+                        <th className="text-left py-1 px-2 text-muted-foreground">Payment Date</th>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <th key={p.paycheckNum} className="text-right py-1 px-2 text-muted-foreground border-l">
+                            {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* Gross Income Section */}
+                      <tr className="bg-muted/30">
+                        <td colSpan={13} className="py-2 px-2 font-semibold">GROSS INCOME</td>
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2">Base Salary</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
+                            ${p.baseGross.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2">Bonus</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
+                            {p.bonus > 0 ? `$${p.bonus.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="border-b font-semibold bg-green-50 dark:bg-green-950/20">
+                        <td className="py-1 px-2">Total Gross</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
+                            ${p.totalGross.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </td>
+                        ))}
+                      </tr>
 
-              {results.months.map((monthData) => {
-                // Combine all events and sort by date
-                const allEvents = [
-                  ...monthData.incomeEvents.map(e => ({ ...e, isIncome: true })),
-                  ...monthData.expenseEvents.map(e => ({ ...e, isIncome: false })),
-                ].sort((a, b) => a.date.localeCompare(b.date));
+                      {/* Pre-Tax Deductions */}
+                      <tr className="bg-muted/30">
+                        <td colSpan={13} className="py-2 px-2 font-semibold">PRE-TAX DEDUCTIONS</td>
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2 pl-4">Health Insurance</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                            {p.healthIns > 0 ? `-$${p.healthIns.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2 pl-4">Dependent FSA</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                            {p.depFSA > 0 ? `-$${p.depFSA.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2 pl-4">Dental</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                            {p.dental > 0 ? `-$${p.dental.toFixed(2)}` : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2 pl-4">Vision</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                            {p.vision > 0 ? `-$${p.vision.toFixed(2)}` : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2 pl-4">Medical FSA</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                            {p.medFSA > 0 ? `-$${p.medFSA.toFixed(2)}` : '-'}
+                          </td>
+                        ))}
+                      </tr>
 
-                let runningBalance = monthData.monthNumber === 1 ? 0 : results.months[monthData.monthNumber - 2].runningBalance;
+                      {/* Federal Income Tax */}
+                      <tr className="bg-muted/30">
+                        <td colSpan={13} className="py-2 px-2 font-semibold">FEDERAL INCOME TAX</td>
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2">FIT Taxable Income</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
+                            ${p.fitTaxable.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2">FIT Base Withholding</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                            -${p.fitBase.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2">Extra FIT Withholding</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                            {p.extraFIT > 0 ? `-$${p.extraFIT.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="border-b font-semibold">
+                        <td className="py-1 px-2">Total FIT</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                            -${p.totalFIT.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </td>
+                        ))}
+                      </tr>
 
-                return (
-                  <Card key={monthData.monthNumber}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <CardTitle className="text-lg">{monthData.month} 2026</CardTitle>
-                        <div className="flex items-center gap-4 text-sm">
-                          <div className="text-green-700 dark:text-green-400">
-                            Income: ${monthData.monthlyIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </div>
-                          <div className="text-red-700 dark:text-red-400">
-                            Expenses: ${monthData.monthlyExpenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </div>
-                          <div className={monthData.netCashFlow >= 0 ? 'text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-orange-700 dark:text-orange-400 font-semibold'}>
-                            Net: {monthData.netCashFlow >= 0 ? '+' : ''}${monthData.netCashFlow.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left py-2 px-2">Date</th>
-                              <th className="text-left py-2 px-2">Description</th>
-                              <th className="text-right py-2 px-2">Amount</th>
-                              <th className="text-right py-2 px-2">Balance</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {allEvents.map((event, idx) => {
-                              const amount = event.isIncome ? event.amount : event.amount;
-                              runningBalance += amount;
+                      {/* FICA Taxes */}
+                      <tr className="bg-muted/30">
+                        <td colSpan={13} className="py-2 px-2 font-semibold">FICA TAXES</td>
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2">Social Security (6.2%)</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                            {p.ss > 0 ? `-$${p.ss.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2">Medicare (1.45%)</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                            {p.med145 > 0 ? `-$${p.med145.toFixed(2)}` : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2">Medicare (2.35% over $200k)</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                            {p.med235 > 0 ? `-$${p.med235.toFixed(2)}` : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="border-b font-semibold">
+                        <td className="py-1 px-2">Total FICA</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                            -${(p.ss + p.totalMed).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </td>
+                        ))}
+                      </tr>
 
-                              return (
-                                <tr key={idx} className="border-b last:border-0 hover:bg-muted/50">
-                                  <td className="py-2 px-2">
-                                    {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                  </td>
-                                  <td className="py-2 px-2">
-                                    {event.description}
-                                  </td>
-                                  <td className={`py-2 px-2 text-right font-medium ${
-                                    event.isIncome ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
-                                  }`}>
-                                    {event.isIncome ? '+' : ''}${Math.abs(amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                  </td>
-                                  <td className="py-2 px-2 text-right font-mono">
-                                    ${runningBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                            <tr className="bg-muted/30 font-semibold">
-                              <td colSpan={2} className="py-2 px-2">
-                                End of {monthData.month}
-                              </td>
-                              <td className="py-2 px-2 text-right">
-                                {monthData.netCashFlow >= 0 ? '+' : ''}${monthData.netCashFlow.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                              </td>
-                              <td className="py-2 px-2 text-right font-mono">
-                                ${monthData.runningBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                      {/* Fixed Expenses */}
+                      <tr className="bg-muted/30">
+                        <td colSpan={13} className="py-2 px-2 font-semibold">FIXED EXPENSES</td>
+                      </tr>
+                      <tr className="border-b hover:bg-muted/50">
+                        <td className="py-1 px-2">Fixed Expenses (Biweekly)</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                            -${p.fixedExpenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </td>
+                        ))}
+                      </tr>
+
+                      {/* Pre-Investment Remainder */}
+                      <tr className="bg-blue-50 dark:bg-blue-950/20 font-semibold border-b-2">
+                        <td className="py-2 px-2">Pre-Investment Remainder</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-2 px-2 font-mono border-l">
+                            ${p.preInvRemainder.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </td>
+                        ))}
+                      </tr>
+
+                      {/* Investment Allocations */}
+                      <tr className="bg-muted/30">
+                        <td colSpan={13} className="py-2 px-2 font-semibold">INVESTMENT ALLOCATIONS</td>
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2">401k Contribution</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-blue-700 dark:text-blue-400">
+                            {p.contribution401k > 0 ? `$${p.contribution401k.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2">HYSA (EOY Expenses)</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-blue-700 dark:text-blue-400">
+                            {p.hysaContribution > 0 ? `$${p.hysaContribution.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2">Brokerage (Remainder)</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-blue-700 dark:text-blue-400">
+                            ${p.brokerageContribution.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </td>
+                        ))}
+                      </tr>
+
+                      {/* YTD Aggregates */}
+                      <tr className="bg-muted/30">
+                        <td colSpan={13} className="py-2 px-2 font-semibold">YEAR-TO-DATE TOTALS</td>
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2">YTD 401k</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
+                            ${p.ytd401k.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-muted/50">
+                        <td className="py-1 px-2">YTD Wages (SS Base)</td>
+                        {results.paychecks.slice(0, 12).map((p: any) => (
+                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
+                            ${p.ytdWages.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  {/* Second Half of Paychecks (13-24) */}
+                  <div className="mt-8">
+                    <h4 className="font-semibold mb-4">Paychecks 13-24</h4>
+                    <table className="w-full text-xs border-collapse">
+                      <thead className="sticky top-0 bg-background">
+                        <tr className="border-b-2">
+                          <th className="text-left py-2 px-2 font-semibold min-w-[180px]">Description</th>
+                          {results.paychecks.slice(12, 24).map((p: any) => (
+                            <th key={p.paycheckNum} className="text-right py-2 px-2 font-semibold min-w-[90px] border-l">
+                              #{p.paycheckNum}
+                            </th>
+                          ))}
+                        </tr>
+                        <tr className="border-b">
+                          <th className="text-left py-1 px-2 text-muted-foreground">Payment Date</th>
+                          {results.paychecks.slice(12, 24).map((p: any) => (
+                            <th key={p.paycheckNum} className="text-right py-1 px-2 text-muted-foreground border-l">
+                              {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* Repeat same structure for paychecks 13-24 */}
+                        <tr className="bg-muted/30">
+                          <td colSpan={13} className="py-2 px-2 font-semibold">GROSS INCOME</td>
+                        </tr>
+                        <tr className="hover:bg-muted/50">
+                          <td className="py-1 px-2">Base Salary</td>
+                          {results.paychecks.slice(12, 24).map((p: any) => (
+                            <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
+                              ${p.baseGross.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </td>
+                          ))}
+                        </tr>
+                        <tr className="hover:bg-muted/50 border-b">
+                          <td className="py-1 px-2">Total Gross</td>
+                          {results.paychecks.slice(12, 24).map((p: any) => (
+                            <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l bg-green-50 dark:bg-green-950/20 font-semibold">
+                              ${p.totalGross.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </td>
+                          ))}
+                        </tr>
+                        <tr className="bg-blue-50 dark:bg-blue-950/20 font-semibold">
+                          <td className="py-2 px-2">Pre-Investment Remainder</td>
+                          {results.paychecks.slice(12, 24).map((p: any) => (
+                            <td key={p.paycheckNum} className="text-right py-2 px-2 font-mono border-l">
+                              ${p.preInvRemainder.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </td>
+                          ))}
+                        </tr>
+                        <tr className="hover:bg-muted/50">
+                          <td className="py-1 px-2">401k Contribution</td>
+                          {results.paychecks.slice(12, 24).map((p: any) => (
+                            <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-blue-700 dark:text-blue-400">
+                              {p.contribution401k > 0 ? `$${p.contribution401k.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
+                            </td>
+                          ))}
+                        </tr>
+                        <tr className="hover:bg-muted/50">
+                          <td className="py-1 px-2">Brokerage (Remainder)</td>
+                          {results.paychecks.slice(12, 24).map((p: any) => (
+                            <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-blue-700 dark:text-blue-400">
+                              ${p.brokerageContribution.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </td>
+                          ))}
+                        </tr>
+                        <tr className="hover:bg-muted/50">
+                          <td className="py-1 px-2">YTD 401k</td>
+                          {results.paychecks.slice(12, 24).map((p: any) => (
+                            <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
+                              ${p.ytd401k.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </td>
+                          ))}
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Disclaimer */}
-            <Card className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900">
+            <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
               <CardContent className="pt-6">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  <strong>Note:</strong> This forecast shows gross income and expenses. Actual take-home pay will be lower after taxes and deductions.
-                  Use this as a planning tool to understand your 2026 cash flow patterns.
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  <strong>Note:</strong> This paycheck-by-paycheck forecast shows the complete waterfall from gross income through all deductions, taxes, and investment allocations.
+                  All calculations include proper tracking of annual caps (Social Security wage base, Medicare thresholds, 401k limits, FSA caps).
+                  Use this as a detailed planning tool to understand your 2026 cash flow and tax optimization opportunities.
                 </p>
               </CardContent>
             </Card>

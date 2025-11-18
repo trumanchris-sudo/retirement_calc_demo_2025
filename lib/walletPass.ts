@@ -79,6 +79,12 @@ export function buildWalletPassRequest(result: LegacyResult): WalletPassRequest 
 
 /**
  * Calls the backend to generate the pass and triggers download
+ *
+ * iOS Safari Fix:
+ * - iOS Safari blocks programmatic downloads (a.click()) for security
+ * - Instead, we open the blob URL directly which Safari allows
+ * - This triggers the native "Add to Wallet" flow on iOS
+ * - Desktop browsers will still download the .pkpass file normally
  */
 export async function requestLegacyPass(req: WalletPassRequest): Promise<void> {
   const res = await fetch("/api/wallet/legacy", {
@@ -94,11 +100,28 @@ export async function requestLegacyPass(req: WalletPassRequest): Promise<void> {
 
   const blob = await res.blob();
   const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "LegacyCard.pkpass";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
+
+  // Detect if we're on iOS
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  if (isIOS) {
+    // iOS Safari: Open in new window to trigger "Add to Wallet" dialog
+    // Using window.open() instead of location.href keeps the user on the current page
+    const newWindow = window.open(url, "_blank");
+    if (!newWindow) {
+      // Fallback if popup was blocked: navigate in same tab
+      window.location.href = url;
+    }
+    // Clean up blob URL after a delay
+    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+  } else {
+    // Desktop/Android: Use traditional download approach
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `LegacyCard-${req.serialNumber}.pkpass`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }
 }

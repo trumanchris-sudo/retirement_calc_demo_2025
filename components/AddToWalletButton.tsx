@@ -78,7 +78,9 @@ export default function AddToWalletButton({ result }: AddToWalletButtonProps) {
       )}
       {success && (
         <p className="text-xs text-green-600 dark:text-green-400">
-          Pass downloaded! Open the file to add to Wallet.
+          {typeof window !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent)
+            ? "Opening Wallet pass... Tap 'Add' when prompted."
+            : "Pass downloaded! Open the file to add to Wallet."}
         </p>
       )}
       {!result && !error && (

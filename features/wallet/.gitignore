@@ -1,5 +1,8 @@
 # Certificates and private keys - NEVER commit these
-certs/
+certs/*.pem
+certs/*.p12
+certs/*.cer
+certs/*.key
 *.pem
 *.p12
 *.cer
