@@ -86,21 +86,24 @@ async function signManifest(manifestPath: string, signatureOutputPath: string): 
     // 1. Read the manifest content
     const manifestBuffer = await fs.promises.readFile(manifestPath);
 
-    // 2. Load signing certificate and private key
-    const certPem = await fs.promises.readFile(
-      path.join(process.cwd(), "features/wallet/certs/passcertificate.pem"),
-      "utf8"
-    );
-    const keyPem = await fs.promises.readFile(
-      path.join(process.cwd(), "features/wallet/certs/passkey-unencrypted.pem"),
-      "utf8"
-    );
+    // 2. Check if certificate files exist
+    const certsPath = path.join(process.cwd(), "features/wallet/certs");
+    const certPath = path.join(certsPath, "passcertificate.pem");
+    const keyPath = path.join(certsPath, "passkey-unencrypted.pem");
+    const wwdrPath = path.join(certsPath, "Apple_Wallet_CA_Chain.pem");
 
-    // 3. Load Apple WWDR certificate chain
-    const wwdrPem = await fs.promises.readFile(
-      path.join(process.cwd(), "features/wallet/certs/Apple_Wallet_CA_Chain.pem"),
-      "utf8"
-    );
+    if (!fs.existsSync(certPath) || !fs.existsSync(keyPath) || !fs.existsSync(wwdrPath)) {
+      throw new Error(
+        "Apple Wallet certificates not found. Please see features/wallet/certs/README.md for setup instructions."
+      );
+    }
+
+    // 3. Load signing certificate and private key
+    const certPem = await fs.promises.readFile(certPath, "utf8");
+    const keyPem = await fs.promises.readFile(keyPath, "utf8");
+
+    // 4. Load Apple WWDR certificate chain
+    const wwdrPem = await fs.promises.readFile(wwdrPath, "utf8");
 
     // 4. Parse certificates and key
     const certificate = forge.pki.certificateFromPem(certPem);
