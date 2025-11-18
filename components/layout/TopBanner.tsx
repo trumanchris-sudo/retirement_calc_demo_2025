@@ -31,9 +31,6 @@ export const TopBanner: React.FC<TopBannerProps> = ({ className = "" }) => {
               <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white flex items-center gap-2">
                 WORK DIE RETIRE
               </h1>
-              <p className="text-xs sm:text-sm text-blue-100 hidden sm:block">
-                Free. No ads. No bullshit.
-              </p>
             </div>
           </div>
 
@@ -52,10 +49,13 @@ export const TopBanner: React.FC<TopBannerProps> = ({ className = "" }) => {
           </div>
         </div>
 
-        {/* Privacy notice */}
+        {/* Tagline */}
         <div className="relative text-center pt-2 border-t border-white/20">
-          <p className="text-xs text-blue-100/80">
-            We don&apos;t use cookies, link or store data. The only thing we know is how many users visit the site, from which browser and from which country.
+          <p className="text-xs sm:text-sm text-blue-100">
+            Free. No ads. No bullshit.
+          </p>
+          <p className="text-[10px] text-blue-100/60 mt-1">
+            We don&apos;t use cookies, link or store data. We only track visits, browser type, and country.
           </p>
         </div>
       </div>
