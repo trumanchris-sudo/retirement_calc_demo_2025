@@ -34,6 +34,7 @@ export default function Income2026Page() {
   const [p1BonusMonth, setP1BonusMonth] = useState("December");
   const [p1OvertimeMonthly, setP1OvertimeMonthly] = useState(0);
   const [p1PayFrequency, setP1PayFrequency] = useState<PayFrequency>("biweekly");
+  const [p1FirstPayDate, setP1FirstPayDate] = useState("2026-01-15");
 
   // Person 1 Pre-tax Deductions
   const [p1PreTax401k, setP1PreTax401k] = useState(0);
@@ -52,6 +53,7 @@ export default function Income2026Page() {
   const [p2BonusMonth, setP2BonusMonth] = useState("December");
   const [p2OvertimeMonthly, setP2OvertimeMonthly] = useState(0);
   const [p2PayFrequency, setP2PayFrequency] = useState<PayFrequency>("biweekly");
+  const [p2FirstPayDate, setP2FirstPayDate] = useState("2026-01-15");
 
   // Person 2 Pre-tax Deductions
   const [p2PreTax401k, setP2PreTax401k] = useState(0);
@@ -288,33 +290,62 @@ export default function Income2026Page() {
     }
   };
 
+  // Helper function to adjust for weekends (move to Friday if weekend)
+  const adjustForWeekend = (date: Date): Date => {
+    const dayOfWeek = date.getDay();
+    const adjusted = new Date(date);
+
+    if (dayOfWeek === 0) { // Sunday
+      adjusted.setDate(date.getDate() - 2); // Move to Friday
+    } else if (dayOfWeek === 6) { // Saturday
+      adjusted.setDate(date.getDate() - 1); // Move to Friday
+    }
+
+    return adjusted;
+  };
+
   // Helper function to generate paycheck dates for a given frequency
-  const generatePaycheckDates = (frequency: PayFrequency, startDate: Date = new Date('2026-01-15')): Date[] => {
+  const generatePaycheckDates = (frequency: PayFrequency, firstPayDate: string): Date[] => {
     const dates: Date[] = [];
-    const numPaychecks = getPaychecksPerYear(frequency);
+    const startDate = new Date(firstPayDate);
 
     if (frequency === 'semimonthly') {
-      // Semi-monthly: 15th and last day of each month
+      // Semi-monthly: 15th and last day of each month, adjusted for weekends
       for (let month = 0; month < 12; month++) {
-        dates.push(new Date(2026, month, 15));
-        dates.push(new Date(2026, month + 1, 0)); // Last day of month
+        // 15th of month
+        const fifteenth = adjustForWeekend(new Date(2026, month, 15));
+        dates.push(fifteenth);
+
+        // Last day of month (adjusted for February and weekends)
+        const lastDay = adjustForWeekend(new Date(2026, month + 1, 0));
+        dates.push(lastDay);
       }
     } else if (frequency === 'monthly') {
-      // Monthly: 15th of each month
+      // Monthly: use the day from firstPayDate
+      const dayOfMonth = startDate.getDate();
       for (let month = 0; month < 12; month++) {
-        dates.push(new Date(2026, month, 15));
+        // Get the last day of this month
+        const lastDayOfMonth = new Date(2026, month + 1, 0).getDate();
+        // Use the specified day, or last day if month is too short
+        const actualDay = Math.min(dayOfMonth, lastDayOfMonth);
+        const payDate = adjustForWeekend(new Date(2026, month, actualDay));
+        dates.push(payDate);
       }
     } else {
-      // Weekly or biweekly: regular intervals
+      // Weekly or biweekly: regular intervals from start date
       const daysInterval = frequency === 'weekly' ? 7 : 14;
+      const numPaychecks = getPaychecksPerYear(frequency);
+
       for (let i = 0; i < numPaychecks; i++) {
         const date = new Date(startDate);
         date.setDate(startDate.getDate() + (i * daysInterval));
-        dates.push(date);
+        if (date.getFullYear() === 2026) {
+          dates.push(date);
+        }
       }
     }
 
-    return dates.filter(d => d.getFullYear() === 2026); // Only 2026 dates
+    return dates.filter(d => d.getFullYear() === 2026).sort((a, b) => a.getTime() - b.getTime());
   };
 
   const handleCalculate = () => {
@@ -353,13 +384,11 @@ export default function Income2026Page() {
         ];
 
     // Generate paycheck dates for each person
-    const p1Dates = generatePaycheckDates(p1PayFrequency);
-    const p2Dates = isMarried && p2BaseIncome > 0 ? generatePaycheckDates(p2PayFrequency) : [];
+    const p1Dates = generatePaycheckDates(p1PayFrequency, p1FirstPayDate);
+    const p2Dates = isMarried && p2BaseIncome > 0 ? generatePaycheckDates(p2PayFrequency, p2FirstPayDate) : [];
 
-    // Combine and sort all paycheck dates
-    const allDates = [...p1Dates, ...p2Dates].sort((a, b) => a.getTime() - b.getTime());
-
-    // Calculate 24 household cash flow periods (biweekly)
+    // Use person 1's paychecks as the primary schedule
+    const numPaychecks = p1Dates.length;
     const paychecks = [];
 
     // Tracking variables for caps (per person)
@@ -373,36 +402,36 @@ export default function Income2026Page() {
     let ytdBrokerage = 0;
 
     // Calculate income per paycheck for each person
-    const p1PayPerCheck = p1BaseIncome / getPaychecksPerYear(p1PayFrequency);
-    const p2PayPerCheck = p2BaseIncome / getPaychecksPerYear(p2PayFrequency);
+    const p1PayPerCheck = p1BaseIncome / p1Dates.length;
+    const p2PayPerCheck = p2BaseIncome / Math.max(1, p2Dates.length);
 
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < numPaychecks; i++) {
       const paycheckNum = i + 1;
 
-      // Calculate household paycheck date (biweekly starting 1/15/2026)
-      const startDate = new Date('2026-01-15');
-      const paycheckDate = new Date(startDate);
-      paycheckDate.setDate(startDate.getDate() + (i * 14));
+      // Person 1's paycheck date (primary schedule)
+      const paycheckDate = p1Dates[i];
 
-      // Determine which person(s) get paid in this period
-      const periodStart = new Date(paycheckDate);
-      periodStart.setDate(paycheckDate.getDate() - 7); // Look back 7 days
-      const periodEnd = new Date(paycheckDate);
-      periodEnd.setDate(paycheckDate.getDate() + 7); // Look ahead 7 days
+      // Determine if person 2 also gets paid on this date (within same week)
+      const weekStart = new Date(paycheckDate);
+      weekStart.setDate(paycheckDate.getDate() - 3); // 3 days before
+      const weekEnd = new Date(paycheckDate);
+      weekEnd.setDate(paycheckDate.getDate() + 3); // 3 days after
 
-      const p1PaysThisPeriod = p1Dates.filter(d => d >= periodStart && d <= periodEnd).length;
-      const p2PaysThisPeriod = p2Dates.filter(d => d >= periodStart && d <= periodEnd).length;
+      const p2PaysThisWeek = p2Dates.filter(d => d >= weekStart && d <= weekEnd).length;
 
-      // Calculate gross income for this period
-      const p1BaseGross = p1PayPerCheck * p1PaysThisPeriod;
-      const p2BaseGross = p2PayPerCheck * p2PaysThisPeriod;
+      // Calculate gross income for this paycheck
+      const p1BaseGross = p1PayPerCheck;
+      const p2BaseGross = p2PayPerCheck * p2PaysThisWeek;
 
-      // Bonuses (if applicable)
+      // Bonuses (if applicable - first paycheck of the bonus month)
       const monthOfPaycheck = paycheckDate.getMonth();
       const p1BonusMonthIdx = months.indexOf(p1BonusMonth);
       const p2BonusMonthIdx = months.indexOf(p2BonusMonth);
-      const p1HasBonus = p1BonusMonthIdx === monthOfPaycheck && p1PaysThisPeriod > 0;
-      const p2HasBonus = p2BonusMonthIdx === monthOfPaycheck && p2PaysThisPeriod > 0;
+
+      // Check if this is the first paycheck in the bonus month for each person
+      const p1HasBonus = p1BonusMonthIdx === monthOfPaycheck && (i === 0 || p1Dates[i - 1].getMonth() !== monthOfPaycheck);
+      const p2HasBonus = p2BonusMonthIdx === monthOfPaycheck && p2PaysThisWeek > 0;
+
       const p1BonusAmount = p1HasBonus ? p1Bonus : 0;
       const p2BonusAmount = p2HasBonus ? p2Bonus : 0;
       const bonus = p1BonusAmount + p2BonusAmount;
@@ -410,40 +439,40 @@ export default function Income2026Page() {
       const baseGross = p1BaseGross + p2BaseGross;
       const totalGross = baseGross + bonus;
 
-      // Pre-tax deductions - Person 1
-      const p1NumPaychecks = getPaychecksPerYear(p1PayFrequency);
-      const p1HealthIns = (p1PreTaxHealthInsurance / p1NumPaychecks) * p1PaysThisPeriod;
+      // Pre-tax deductions - Person 1 (gets paid every paycheck in this loop)
+      const p1NumPaychecks = p1Dates.length;
+      const p1HealthIns = p1PreTaxHealthInsurance / p1NumPaychecks;
 
       let p1DepFSA = 0;
-      if (p1PreTaxFSA > 0 && p1PaysThisPeriod > 0) {
+      if (p1PreTaxFSA > 0) {
         const annualDepFSA = Math.min(p1PreTaxFSA, MAX_DEP_FSA);
         const perPaycheck = annualDepFSA / p1NumPaychecks;
-        p1DepFSA = Math.min(perPaycheck * p1PaysThisPeriod, MAX_DEP_FSA - p1YtdDepFSA);
+        p1DepFSA = Math.min(perPaycheck, MAX_DEP_FSA - p1YtdDepFSA);
       }
 
       let p1MedFSA = 0;
       const p1AnnualMedFSA = Math.min(p1PreTaxHSA, MAX_MED_FSA);
-      if (p1AnnualMedFSA > 0 && p1PaysThisPeriod > 0) {
+      if (p1AnnualMedFSA > 0) {
         const perPaycheck = p1AnnualMedFSA / p1NumPaychecks;
-        p1MedFSA = Math.min(perPaycheck * p1PaysThisPeriod, MAX_MED_FSA - p1YtdMedFSA);
+        p1MedFSA = Math.min(perPaycheck, MAX_MED_FSA - p1YtdMedFSA);
       }
 
-      // Pre-tax deductions - Person 2
-      const p2NumPaychecks = getPaychecksPerYear(p2PayFrequency);
-      const p2HealthIns = (p2PreTaxHealthInsurance / p2NumPaychecks) * p2PaysThisPeriod;
+      // Pre-tax deductions - Person 2 (only if they get paid this week)
+      const p2NumPaychecks = Math.max(1, p2Dates.length);
+      const p2HealthIns = (p2PreTaxHealthInsurance / p2NumPaychecks) * p2PaysThisWeek;
 
       let p2DepFSA = 0;
-      if (p2PreTaxFSA > 0 && p2PaysThisPeriod > 0) {
+      if (p2PreTaxFSA > 0 && p2PaysThisWeek > 0) {
         const annualDepFSA = Math.min(p2PreTaxFSA, MAX_DEP_FSA);
         const perPaycheck = annualDepFSA / p2NumPaychecks;
-        p2DepFSA = Math.min(perPaycheck * p2PaysThisPeriod, MAX_DEP_FSA - p2YtdDepFSA);
+        p2DepFSA = Math.min(perPaycheck * p2PaysThisWeek, MAX_DEP_FSA - p2YtdDepFSA);
       }
 
       let p2MedFSA = 0;
       const p2AnnualMedFSA = Math.min(p2PreTaxHSA, MAX_MED_FSA);
-      if (p2AnnualMedFSA > 0 && p2PaysThisPeriod > 0) {
+      if (p2AnnualMedFSA > 0 && p2PaysThisWeek > 0) {
         const perPaycheck = p2AnnualMedFSA / p2NumPaychecks;
-        p2MedFSA = Math.min(perPaycheck * p2PaysThisPeriod, MAX_MED_FSA - p2YtdMedFSA);
+        p2MedFSA = Math.min(perPaycheck * p2PaysThisWeek, MAX_MED_FSA - p2YtdMedFSA);
       }
 
       // Dental/Vision (alternating paychecks) - simplified to person 1 only
@@ -942,6 +971,44 @@ export default function Income2026Page() {
                     onChange2={(v) => setP2PayFrequency(v as PayFrequency)}
                     options={["biweekly", "semimonthly", "monthly", "weekly"]}
                   />
+
+                  {/* First Pay Date */}
+                  <div className={isMarried ? "grid grid-cols-2 gap-4" : ""}>
+                    <div className="space-y-2">
+                      <Label htmlFor="p1-first-pay-date">First Pay Date (Your)</Label>
+                      <UIInput
+                        id="p1-first-pay-date"
+                        type="date"
+                        value={p1FirstPayDate}
+                        onChange={(e) => setP1FirstPayDate(e.target.value)}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {p1PayFrequency === 'biweekly' && 'Biweekly: Every 14 days from this date (26 paychecks)'}
+                        {p1PayFrequency === 'semimonthly' && 'Semi-monthly: 15th and last day of each month (24 paychecks)'}
+                        {p1PayFrequency === 'monthly' && 'Monthly: Same day each month (12 paychecks)'}
+                        {p1PayFrequency === 'weekly' && 'Weekly: Every 7 days from this date (52 paychecks)'}
+                      </p>
+                    </div>
+                    {isMarried && (
+                      <div className="space-y-2">
+                        <Label htmlFor="p2-first-pay-date">First Pay Date (Spouse)</Label>
+                        <UIInput
+                          id="p2-first-pay-date"
+                          type="date"
+                          value={p2FirstPayDate}
+                          onChange={(e) => setP2FirstPayDate(e.target.value)}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {p2PayFrequency === 'biweekly' && 'Biweekly: Every 14 days from this date (26 paychecks)'}
+                          {p2PayFrequency === 'semimonthly' && 'Semi-monthly: 15th and last day of each month (24 paychecks)'}
+                          {p2PayFrequency === 'monthly' && 'Monthly: Same day each month (12 paychecks)'}
+                          {p2PayFrequency === 'weekly' && 'Weekly: Every 7 days from this date (52 paychecks)'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
