@@ -134,6 +134,9 @@ export default function Income2026Page() {
     };
   } | null>(null);
 
+  // Calculation key to force re-render of table when inputs change
+  const [calculationKey, setCalculationKey] = useState(0);
+
   const months = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December", "None"
@@ -316,6 +319,9 @@ export default function Income2026Page() {
 
   const handleCalculate = () => {
     console.log("Calculating 2026 paycheck-by-paycheck forecast...");
+
+    // Increment calculation key to force component re-render
+    setCalculationKey(prev => prev + 1);
 
     // 2026 Tax Constants
     const STANDARD_DEDUCTION = maritalStatus === 'married' ? 30000 : 15000;
@@ -1503,7 +1509,7 @@ export default function Income2026Page() {
             </Card>
 
             {/* 24-Paycheck Linear Flow Table */}
-            <PaycheckFlowTable paychecks={results.paychecks as any} />
+            <PaycheckFlowTable key={calculationKey} paychecks={results.paychecks as any} />
 
             {/* Paycheck-by-Paycheck Table (Original View) */}
             <Card>
