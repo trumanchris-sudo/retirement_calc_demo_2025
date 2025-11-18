@@ -64,14 +64,29 @@ export default function Income2026Page() {
   const [federalWithholdingExtra, setFederalWithholdingExtra] = useState(0);
   const [stateWithholdingExtra, setStateWithholdingExtra] = useState(0);
 
+  // Housing
+  const [housingType, setHousingType] = useState<"rent" | "own">("own");
+  const [rentPayment, setRentPayment] = useState(0);
+  const [mortgagePayment, setMortgagePayment] = useState(5859);
+  const [propertyTaxAnnual, setPropertyTaxAnnual] = useState(25000);
+  const [homeInsuranceAnnual, setHomeInsuranceAnnual] = useState(10000);
+  const [floodInsuranceAnnual, setFloodInsuranceAnnual] = useState(3500);
+
   // Spending Buckets
-  const [mortgagePayment, setMortgagePayment] = useState(0);
   const [householdExpenses, setHouseholdExpenses] = useState(0);
   const [discretionarySpending, setDiscretionarySpending] = useState(0);
-  const [childcareCosts, setChildcareCosts] = useState(0);
+  const [childcareCosts, setChildcareCosts] = useState(1550);
   const [childcareDropoffMonth, setChildcareDropoffMonth] = useState("None");
   const [nonRetirementInvestments, setNonRetirementInvestments] = useState(0);
   const [surplusLiquidity, setSurplusLiquidity] = useState(0);
+
+  // Life Insurance
+  const [p1LifeInsuranceAnnual, setP1LifeInsuranceAnnual] = useState(4500);
+  const [p1LifeInsuranceCoverage, setP1LifeInsuranceCoverage] = useState(3000000);
+  const [p1LifeInsuranceFrequency, setP1LifeInsuranceFrequency] = useState<"monthly" | "quarterly" | "semi-annually" | "annually">("annually");
+  const [p2LifeInsuranceAnnual, setP2LifeInsuranceAnnual] = useState(0);
+  const [p2LifeInsuranceCoverage, setP2LifeInsuranceCoverage] = useState(0);
+  const [p2LifeInsuranceFrequency, setP2LifeInsuranceFrequency] = useState<"monthly" | "quarterly" | "semi-annually" | "annually">("annually");
 
   // Mortgage Details (for wealth tracking)
   const [mortgageBalance, setMortgageBalance] = useState(0);
@@ -202,6 +217,30 @@ export default function Income2026Page() {
       console.error('[2026 INCOME] Failed to pre-fill from calculator:', e);
     }
   }, [implied]); // Re-run when implied changes
+
+  // Calculate recommended life insurance based on age and income
+  const calculateRecommendedLifeInsurance = (income: number, age?: number): number => {
+    if (income === 0) return 0;
+
+    // Rule of thumb: 10-15x annual income, adjusted for age
+    // Younger people need more coverage (15x), older people need less (10x)
+    const baseAge = age || 35; // Default to 35 if age not available
+
+    let multiplier = 15;
+    if (baseAge < 30) {
+      multiplier = 15;
+    } else if (baseAge < 40) {
+      multiplier = 14;
+    } else if (baseAge < 50) {
+      multiplier = 12;
+    } else if (baseAge < 60) {
+      multiplier = 10;
+    } else {
+      multiplier = 8;
+    }
+
+    return Math.round(income * multiplier / 100000) * 100000; // Round to nearest 100k
+  };
 
   const handleCalculate = () => {
     console.log("Calculating 2026 paycheck-by-paycheck forecast...");
@@ -349,12 +388,45 @@ export default function Income2026Page() {
       const totalMed = med145 + med235;
 
       // Fixed expenses per paycheck
+      const housingPayment = housingType === "rent" ? rentPayment : mortgagePayment;
+
+      // Life insurance - calculate per paycheck based on frequency
+      let p1LifeInsPerPaycheck = 0;
+      if (p1LifeInsuranceFrequency === "monthly") {
+        p1LifeInsPerPaycheck = (p1LifeInsuranceAnnual / 12) / 2; // Monthly payment split across 2 paychecks
+      } else if (p1LifeInsuranceFrequency === "quarterly") {
+        p1LifeInsPerPaycheck = i % 6 === 0 ? p1LifeInsuranceAnnual / 4 : 0; // Every 6 paychecks (quarterly)
+      } else if (p1LifeInsuranceFrequency === "semi-annually") {
+        p1LifeInsPerPaycheck = i % 12 === 0 ? p1LifeInsuranceAnnual / 2 : 0; // Every 12 paychecks (semi-annual)
+      } else {
+        p1LifeInsPerPaycheck = i === 0 ? p1LifeInsuranceAnnual : 0; // First paycheck (annual)
+      }
+
+      let p2LifeInsPerPaycheck = 0;
+      if (isMarried) {
+        if (p2LifeInsuranceFrequency === "monthly") {
+          p2LifeInsPerPaycheck = (p2LifeInsuranceAnnual / 12) / 2;
+        } else if (p2LifeInsuranceFrequency === "quarterly") {
+          p2LifeInsPerPaycheck = i % 6 === 0 ? p2LifeInsuranceAnnual / 4 : 0;
+        } else if (p2LifeInsuranceFrequency === "semi-annually") {
+          p2LifeInsPerPaycheck = i % 12 === 0 ? p2LifeInsuranceAnnual / 2 : 0;
+        } else {
+          p2LifeInsPerPaycheck = i === 0 ? p2LifeInsuranceAnnual : 0;
+        }
+      }
+
+      // EOY property expenses (only if own, and only on last paycheck)
+      let eoyPropertyExpenses = 0;
+      if (housingType === "own" && i === 23) {
+        eoyPropertyExpenses = propertyTaxAnnual + homeInsuranceAnnual + floodInsuranceAnnual;
+      }
+
       const fixedExpenses = (
-        mortgagePayment +
+        housingPayment +
         householdExpenses +
         discretionarySpending +
         childcareCosts
-      ) / 2; // Divide by 2 for biweekly
+      ) / 2 + p1LifeInsPerPaycheck + p2LifeInsPerPaycheck + eoyPropertyExpenses; // Divide by 2 for biweekly
 
       // Pre-investment remainder
       const preInvRemainder = totalGross - totalPreTax - totalFIT - ss - totalMed - fixedExpenses;
@@ -798,6 +870,174 @@ export default function Income2026Page() {
           </CardContent>
         </Card>
 
+        {/* Housing */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Housing</CardTitle>
+            <CardDescription>
+              Define whether you rent or own your home
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="housing-type">Housing Type</Label>
+                <Select value={housingType} onValueChange={(value: "rent" | "own") => setHousingType(value)}>
+                  <SelectTrigger id="housing-type">
+                    <SelectValue placeholder="Select housing type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rent">Rent</SelectItem>
+                    <SelectItem value="own">Own</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {housingType === "rent" ? (
+                <Input
+                  label="Monthly Rent Payment"
+                  value={rentPayment}
+                  setter={setRentPayment}
+                  defaultValue={0}
+                />
+              ) : (
+                <>
+                  <Input
+                    label="Monthly Mortgage Payment"
+                    value={mortgagePayment}
+                    setter={setMortgagePayment}
+                    defaultValue={5859}
+                  />
+                  <Separator />
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">End-of-Year Property Expenses</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Input
+                      label="Property Tax (Annual)"
+                      value={propertyTaxAnnual}
+                      setter={setPropertyTaxAnnual}
+                      defaultValue={25000}
+                    />
+                    <Input
+                      label="Home Insurance (Annual)"
+                      value={homeInsuranceAnnual}
+                      setter={setHomeInsuranceAnnual}
+                      defaultValue={10000}
+                    />
+                    <Input
+                      label="Flood Insurance (Annual)"
+                      value={floodInsuranceAnnual}
+                      setter={setFloodInsuranceAnnual}
+                      defaultValue={3500}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Life Insurance */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Life Insurance</CardTitle>
+            <CardDescription>
+              Define your life insurance coverage and payment schedule
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* Person 1 Life Insurance */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  {isMarried ? "Your Life Insurance" : "Life Insurance"}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Input
+                    label="Annual Premium"
+                    value={p1LifeInsuranceAnnual}
+                    setter={setP1LifeInsuranceAnnual}
+                    defaultValue={4500}
+                  />
+                  <Input
+                    label="Coverage Amount"
+                    value={p1LifeInsuranceCoverage}
+                    setter={setP1LifeInsuranceCoverage}
+                    defaultValue={3000000}
+                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="p1-life-frequency">Payment Frequency</Label>
+                    <Select value={p1LifeInsuranceFrequency} onValueChange={(value: any) => setP1LifeInsuranceFrequency(value)}>
+                      <SelectTrigger id="p1-life-frequency">
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="quarterly">Quarterly</SelectItem>
+                        <SelectItem value="semi-annually">Semi-Annually</SelectItem>
+                        <SelectItem value="annually">Annually</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {p1BaseIncome > 0 && (
+                  <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3 border border-blue-200 dark:border-blue-900">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Recommendation:</strong> Based on your income of ${p1BaseIncome.toLocaleString()},
+                      we recommend life insurance coverage of approximately ${calculateRecommendedLifeInsurance(p1BaseIncome, implied?.age).toLocaleString()}.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Person 2 Life Insurance (if married) */}
+              {isMarried && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Spouse Life Insurance</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Input
+                        label="Annual Premium"
+                        value={p2LifeInsuranceAnnual}
+                        setter={setP2LifeInsuranceAnnual}
+                        defaultValue={0}
+                      />
+                      <Input
+                        label="Coverage Amount"
+                        value={p2LifeInsuranceCoverage}
+                        setter={setP2LifeInsuranceCoverage}
+                        defaultValue={0}
+                      />
+                      <div className="space-y-2">
+                        <Label htmlFor="p2-life-frequency">Payment Frequency</Label>
+                        <Select value={p2LifeInsuranceFrequency} onValueChange={(value: any) => setP2LifeInsuranceFrequency(value)}>
+                          <SelectTrigger id="p2-life-frequency">
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="quarterly">Quarterly</SelectItem>
+                            <SelectItem value="semi-annually">Semi-Annually</SelectItem>
+                            <SelectItem value="annually">Annually</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    {p2BaseIncome > 0 && (
+                      <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3 border border-blue-200 dark:border-blue-900">
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                          <strong>Recommendation:</strong> Based on spouse income of ${p2BaseIncome.toLocaleString()},
+                          we recommend life insurance coverage of approximately ${calculateRecommendedLifeInsurance(p2BaseIncome, implied?.spouseAge).toLocaleString()}.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Spending Buckets */}
         <Card className="mb-6">
           <CardHeader>
@@ -808,12 +1048,6 @@ export default function Income2026Page() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Mortgage Payment"
-                value={mortgagePayment}
-                setter={setMortgagePayment}
-                defaultValue={0}
-              />
               <Input
                 label="Household Expenses"
                 value={householdExpenses}
@@ -827,10 +1061,10 @@ export default function Income2026Page() {
                 defaultValue={0}
               />
               <Input
-                label="Childcare Costs"
+                label="Childcare Costs (Monthly)"
                 value={childcareCosts}
                 setter={setChildcareCosts}
-                defaultValue={0}
+                defaultValue={1550}
               />
               <div className="space-y-2">
                 <Label htmlFor="childcare-dropoff">Childcare Dropoff Month</Label>
