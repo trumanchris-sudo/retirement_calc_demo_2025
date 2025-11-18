@@ -36,6 +36,11 @@ interface Paycheck {
   ytdDepFSA: number;
   ytdMedFSA: number;
   ytdHYSA: number;
+  // Individual tracking
+  p1YtdWages?: number;
+  p2YtdWages?: number;
+  p1Ytd401k?: number;
+  p2Ytd401k?: number;
 }
 
 interface PaycheckFlowTableProps {
@@ -358,14 +363,32 @@ export function PaycheckFlowTable({ paychecks }: PaycheckFlowTableProps) {
               <TableRow label="LIMIT MARKERS" values={[]} isSection />
 
               <TableRow
-                label="401(k) Room Remaining"
-                values={paychecks.map(p => Math.max(0, MAX_401K - p.ytd401k))}
+                label="401(k) Room Remaining (Combined)"
+                values={paychecks.map(p => Math.max(0, (MAX_401K * 2) - p.ytd401k))}
                 className="bg-amber-50 dark:bg-amber-950/10"
               />
 
               <TableRow
-                label="SS Wage Room Remaining"
-                values={paychecks.map(p => Math.max(0, SS_WAGE_BASE - p.ytdWages))}
+                label="P1 401(k) Room"
+                values={paychecks.map(p => Math.max(0, MAX_401K - (p.p1Ytd401k || 0)))}
+                className="bg-amber-50 dark:bg-amber-950/10"
+              />
+
+              <TableRow
+                label="P2 401(k) Room"
+                values={paychecks.map(p => Math.max(0, MAX_401K - (p.p2Ytd401k || 0)))}
+                className="bg-amber-50 dark:bg-amber-950/10"
+              />
+
+              <TableRow
+                label="P1 SS Wage Room"
+                values={paychecks.map(p => Math.max(0, SS_WAGE_BASE - (p.p1YtdWages || 0)))}
+                className="bg-amber-50 dark:bg-amber-950/10"
+              />
+
+              <TableRow
+                label="P2 SS Wage Room"
+                values={paychecks.map(p => Math.max(0, SS_WAGE_BASE - (p.p2YtdWages || 0)))}
                 className="bg-amber-50 dark:bg-amber-950/10"
               />
 

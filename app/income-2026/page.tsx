@@ -21,6 +21,7 @@ import { useBudget } from "@/lib/budget-context";
 import { PaycheckFlowTable } from "@/components/income/PaycheckFlowTable";
 
 type FilingStatus = "single" | "married";
+type PayFrequency = "biweekly" | "semimonthly" | "monthly" | "weekly";
 
 export default function Income2026Page() {
   const { implied } = useBudget();
@@ -32,6 +33,7 @@ export default function Income2026Page() {
   const [p1Bonus, setP1Bonus] = useState(0);
   const [p1BonusMonth, setP1BonusMonth] = useState("December");
   const [p1OvertimeMonthly, setP1OvertimeMonthly] = useState(0);
+  const [p1PayFrequency, setP1PayFrequency] = useState<PayFrequency>("biweekly");
 
   // Person 1 Pre-tax Deductions
   const [p1PreTax401k, setP1PreTax401k] = useState(0);
@@ -49,6 +51,7 @@ export default function Income2026Page() {
   const [p2Bonus, setP2Bonus] = useState(0);
   const [p2BonusMonth, setP2BonusMonth] = useState("December");
   const [p2OvertimeMonthly, setP2OvertimeMonthly] = useState(0);
+  const [p2PayFrequency, setP2PayFrequency] = useState<PayFrequency>("biweekly");
 
   // Person 2 Pre-tax Deductions
   const [p2PreTax401k, setP2PreTax401k] = useState(0);
@@ -243,6 +246,46 @@ export default function Income2026Page() {
     return Math.round(income * multiplier / 100000) * 100000; // Round to nearest 100k
   };
 
+  // Helper function to get number of paychecks per year based on frequency
+  const getPaychecksPerYear = (frequency: PayFrequency): number => {
+    switch (frequency) {
+      case 'weekly': return 52;
+      case 'biweekly': return 26;
+      case 'semimonthly': return 24;
+      case 'monthly': return 12;
+      default: return 26;
+    }
+  };
+
+  // Helper function to generate paycheck dates for a given frequency
+  const generatePaycheckDates = (frequency: PayFrequency, startDate: Date = new Date('2026-01-15')): Date[] => {
+    const dates: Date[] = [];
+    const numPaychecks = getPaychecksPerYear(frequency);
+
+    if (frequency === 'semimonthly') {
+      // Semi-monthly: 15th and last day of each month
+      for (let month = 0; month < 12; month++) {
+        dates.push(new Date(2026, month, 15));
+        dates.push(new Date(2026, month + 1, 0)); // Last day of month
+      }
+    } else if (frequency === 'monthly') {
+      // Monthly: 15th of each month
+      for (let month = 0; month < 12; month++) {
+        dates.push(new Date(2026, month, 15));
+      }
+    } else {
+      // Weekly or biweekly: regular intervals
+      const daysInterval = frequency === 'weekly' ? 7 : 14;
+      for (let i = 0; i < numPaychecks; i++) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + (i * daysInterval));
+        dates.push(date);
+      }
+    }
+
+    return dates.filter(d => d.getFullYear() === 2026); // Only 2026 dates
+  };
+
   const handleCalculate = () => {
     console.log("Calculating 2026 paycheck-by-paycheck forecast...");
 
@@ -275,62 +318,108 @@ export default function Income2026Page() {
           { limit: Infinity, rate: 0.37 }
         ];
 
-    // Calculate 24 paychecks (biweekly)
+    // Generate paycheck dates for each person
+    const p1Dates = generatePaycheckDates(p1PayFrequency);
+    const p2Dates = isMarried && p2BaseIncome > 0 ? generatePaycheckDates(p2PayFrequency) : [];
+
+    // Combine and sort all paycheck dates
+    const allDates = [...p1Dates, ...p2Dates].sort((a, b) => a.getTime() - b.getTime());
+
+    // Calculate 24 household cash flow periods (biweekly)
     const paychecks = [];
 
-    // Tracking variables for caps
-    let ytdWages = 0;
-    let ytdSS = 0;
-    let ytdMedicare = 0;
-    let ytd401k = 0;
-    let ytdDepFSA = 0;
-    let ytdMedFSA = 0;
+    // Tracking variables for caps (per person)
+    let p1YtdWages = 0, p2YtdWages = 0;
+    let p1YtdSS = 0, p2YtdSS = 0;
+    let p1YtdMedicare = 0, p2YtdMedicare = 0;
+    let p1Ytd401k = 0, p2Ytd401k = 0;
+    let p1YtdDepFSA = 0, p2YtdDepFSA = 0;
+    let p1YtdMedFSA = 0, p2YtdMedFSA = 0;
     let ytdHYSA = 0;
+    let ytdBrokerage = 0;
+
+    // Calculate income per paycheck for each person
+    const p1PayPerCheck = p1BaseIncome / getPaychecksPerYear(p1PayFrequency);
+    const p2PayPerCheck = p2BaseIncome / getPaychecksPerYear(p2PayFrequency);
 
     for (let i = 0; i < 24; i++) {
       const paycheckNum = i + 1;
 
-      // Calculate paycheck date (biweekly starting 1/15/2026)
+      // Calculate household paycheck date (biweekly starting 1/15/2026)
       const startDate = new Date('2026-01-15');
       const paycheckDate = new Date(startDate);
       paycheckDate.setDate(startDate.getDate() + (i * 14));
 
-      // Gross income per paycheck
-      const baseGross = p1BaseIncome / 24;
+      // Determine which person(s) get paid in this period
+      const periodStart = new Date(paycheckDate);
+      periodStart.setDate(paycheckDate.getDate() - 7); // Look back 7 days
+      const periodEnd = new Date(paycheckDate);
+      periodEnd.setDate(paycheckDate.getDate() + 7); // Look ahead 7 days
 
-      // Bonus (if applicable)
+      const p1PaysThisPeriod = p1Dates.filter(d => d >= periodStart && d <= periodEnd).length;
+      const p2PaysThisPeriod = p2Dates.filter(d => d >= periodStart && d <= periodEnd).length;
+
+      // Calculate gross income for this period
+      const p1BaseGross = p1PayPerCheck * p1PaysThisPeriod;
+      const p2BaseGross = p2PayPerCheck * p2PaysThisPeriod;
+
+      // Bonuses (if applicable)
       const monthOfPaycheck = paycheckDate.getMonth();
       const p1BonusMonthIdx = months.indexOf(p1BonusMonth);
-      const hasBonus = p1BonusMonthIdx === monthOfPaycheck && i % 2 === 0; // First paycheck of bonus month
-      const bonus = hasBonus ? p1Bonus : 0;
+      const p2BonusMonthIdx = months.indexOf(p2BonusMonth);
+      const p1HasBonus = p1BonusMonthIdx === monthOfPaycheck && p1PaysThisPeriod > 0;
+      const p2HasBonus = p2BonusMonthIdx === monthOfPaycheck && p2PaysThisPeriod > 0;
+      const p1Bonus = p1HasBonus ? p1Bonus : 0;
+      const p2Bonus = p2HasBonus ? p2Bonus : 0;
+      const bonus = p1Bonus + p2Bonus;
 
+      const baseGross = p1BaseGross + p2BaseGross;
       const totalGross = baseGross + bonus;
 
-      // Pre-tax deductions
-      const healthIns = p1PreTaxHealthInsurance / 2; // Per paycheck (assuming biweekly premium input is annual/2)
+      // Pre-tax deductions - Person 1
+      const p1NumPaychecks = getPaychecksPerYear(p1PayFrequency);
+      const p1HealthIns = (p1PreTaxHealthInsurance / p1NumPaychecks) * p1PaysThisPeriod;
 
-      // Dep FSA - cap at annual max
-      let depFSA = 0;
-      if (p1PreTaxFSA > 0) {
+      let p1DepFSA = 0;
+      if (p1PreTaxFSA > 0 && p1PaysThisPeriod > 0) {
         const annualDepFSA = Math.min(p1PreTaxFSA, MAX_DEP_FSA);
-        const perPaycheck = annualDepFSA / 24;
-        depFSA = Math.min(perPaycheck, MAX_DEP_FSA - ytdDepFSA);
+        const perPaycheck = annualDepFSA / p1NumPaychecks;
+        p1DepFSA = Math.min(perPaycheck * p1PaysThisPeriod, MAX_DEP_FSA - p1YtdDepFSA);
       }
 
-      // Med FSA - cap at annual max
-      let medFSA = 0;
-      const annualMedFSA = Math.min(p1PreTaxHSA, MAX_MED_FSA); // Using HSA field for Med FSA
-      if (annualMedFSA > 0) {
-        const perPaycheck = annualMedFSA / 24;
-        medFSA = Math.min(perPaycheck, MAX_MED_FSA - ytdMedFSA);
+      let p1MedFSA = 0;
+      const p1AnnualMedFSA = Math.min(p1PreTaxHSA, MAX_MED_FSA);
+      if (p1AnnualMedFSA > 0 && p1PaysThisPeriod > 0) {
+        const perPaycheck = p1AnnualMedFSA / p1NumPaychecks;
+        p1MedFSA = Math.min(perPaycheck * p1PaysThisPeriod, MAX_MED_FSA - p1YtdMedFSA);
       }
 
-      // Dental (alternating paychecks) - placeholder
+      // Pre-tax deductions - Person 2
+      const p2NumPaychecks = getPaychecksPerYear(p2PayFrequency);
+      const p2HealthIns = (p2PreTaxHealthInsurance / p2NumPaychecks) * p2PaysThisPeriod;
+
+      let p2DepFSA = 0;
+      if (p2PreTaxFSA > 0 && p2PaysThisPeriod > 0) {
+        const annualDepFSA = Math.min(p2PreTaxFSA, MAX_DEP_FSA);
+        const perPaycheck = annualDepFSA / p2NumPaychecks;
+        p2DepFSA = Math.min(perPaycheck * p2PaysThisPeriod, MAX_DEP_FSA - p2YtdDepFSA);
+      }
+
+      let p2MedFSA = 0;
+      const p2AnnualMedFSA = Math.min(p2PreTaxHSA, MAX_MED_FSA);
+      if (p2AnnualMedFSA > 0 && p2PaysThisPeriod > 0) {
+        const perPaycheck = p2AnnualMedFSA / p2NumPaychecks;
+        p2MedFSA = Math.min(perPaycheck * p2PaysThisPeriod, MAX_MED_FSA - p2YtdMedFSA);
+      }
+
+      // Dental/Vision (alternating paychecks) - simplified to person 1 only
       const dental = i % 2 === 0 ? 49.59 : 0;
-
-      // Vision (alternating paychecks) - placeholder
       const vision = i % 2 === 0 ? 19.03 : 0;
 
+      // Combined household pre-tax deductions
+      const healthIns = p1HealthIns + p2HealthIns;
+      const depFSA = p1DepFSA + p2DepFSA;
+      const medFSA = p1MedFSA + p2MedFSA;
       const totalPreTax = healthIns + depFSA + dental + vision + medFSA;
 
       // FIT Taxable Income
@@ -362,30 +451,56 @@ export default function Income2026Page() {
       const extraFIT = federalWithholdingExtra;
       const totalFIT = fitBase + extraFIT;
 
-      // FICA - Social Security (6.2% up to wage base)
-      let ss = 0;
-      if (ytdWages < SS_WAGE_BASE) {
-        const remainingSS = SS_WAGE_BASE - ytdWages;
-        const ssWages = Math.min(baseGross, remainingSS);
-        ss = ssWages * 0.062;
+      // FICA - Social Security (6.2% up to wage base) - calculated per person
+      let p1SS = 0;
+      if (p1YtdWages < SS_WAGE_BASE && p1BaseGross > 0) {
+        const remainingSS = SS_WAGE_BASE - p1YtdWages;
+        const ssWages = Math.min(p1BaseGross, remainingSS);
+        p1SS = ssWages * 0.062;
       }
 
-      // FICA - Medicare (1.45% on all wages, 2.35% on wages over threshold)
-      let med145 = 0;
-      let med235 = 0;
+      let p2SS = 0;
+      if (p2YtdWages < SS_WAGE_BASE && p2BaseGross > 0) {
+        const remainingSS = SS_WAGE_BASE - p2YtdWages;
+        const ssWages = Math.min(p2BaseGross, remainingSS);
+        p2SS = ssWages * 0.062;
+      }
 
-      if (ytdWages < MEDICARE_THRESHOLD) {
-        const wagesBeforeThreshold = Math.min(baseGross, MEDICARE_THRESHOLD - ytdWages);
-        med145 = wagesBeforeThreshold * 0.0145;
+      const ss = p1SS + p2SS;
 
-        const wagesAfterThreshold = baseGross - wagesBeforeThreshold;
-        if (wagesAfterThreshold > 0) {
-          med235 = wagesAfterThreshold * 0.0235;
+      // FICA - Medicare (1.45% on all wages, 2.35% on wages over threshold) - calculated per person
+      let p1Med145 = 0, p1Med235 = 0;
+      if (p1BaseGross > 0) {
+        if (p1YtdWages < MEDICARE_THRESHOLD) {
+          const wagesBeforeThreshold = Math.min(p1BaseGross, MEDICARE_THRESHOLD - p1YtdWages);
+          p1Med145 = wagesBeforeThreshold * 0.0145;
+
+          const wagesAfterThreshold = p1BaseGross - wagesBeforeThreshold;
+          if (wagesAfterThreshold > 0) {
+            p1Med235 = wagesAfterThreshold * 0.0235;
+          }
+        } else {
+          p1Med235 = p1BaseGross * 0.0235;
         }
-      } else {
-        med235 = baseGross * 0.0235;
       }
 
+      let p2Med145 = 0, p2Med235 = 0;
+      if (p2BaseGross > 0) {
+        if (p2YtdWages < MEDICARE_THRESHOLD) {
+          const wagesBeforeThreshold = Math.min(p2BaseGross, MEDICARE_THRESHOLD - p2YtdWages);
+          p2Med145 = wagesBeforeThreshold * 0.0145;
+
+          const wagesAfterThreshold = p2BaseGross - wagesAfterThreshold;
+          if (wagesAfterThreshold > 0) {
+            p2Med235 = wagesAfterThreshold * 0.0235;
+          }
+        } else {
+          p2Med235 = p2BaseGross * 0.0235;
+        }
+      }
+
+      const med145 = p1Med145 + p2Med145;
+      const med235 = p1Med235 + p2Med235;
       const totalMed = med145 + med235;
 
       // Fixed expenses per paycheck
@@ -432,18 +547,36 @@ export default function Income2026Page() {
       // Pre-investment remainder
       const preInvRemainder = totalGross - totalPreTax - totalFIT - ss - totalMed - fixedExpenses;
 
-      // Investment allocations
-      // 401k - target percentage with annual cap
-      const max401kPercent = p1PreTax401k > 0 ? (p1PreTax401k / p1BaseIncome) : 0;
-      let contribution401k = totalGross * max401kPercent;
+      // Investment allocations - 401k calculated per person
+      const p1Max401kPercent = p1PreTax401k > 0 && p1BaseIncome > 0 ? (p1PreTax401k / p1BaseIncome) : 0;
+      let p1Contribution401k = p1BaseGross * p1Max401kPercent;
 
-      // Ensure we don't exceed annual cap
-      if (ytd401k + contribution401k > MAX_401K) {
-        contribution401k = Math.max(0, MAX_401K - ytd401k);
+      if (p1Ytd401k + p1Contribution401k > MAX_401K) {
+        p1Contribution401k = Math.max(0, MAX_401K - p1Ytd401k);
       }
+
+      const p2Max401kPercent = p2PreTax401k > 0 && p2BaseIncome > 0 ? (p2PreTax401k / p2BaseIncome) : 0;
+      let p2Contribution401k = p2BaseGross * p2Max401kPercent;
+
+      if (p2Ytd401k + p2Contribution401k > MAX_401K) {
+        p2Contribution401k = Math.max(0, MAX_401K - p2Ytd401k);
+      }
+
+      let contribution401k = p1Contribution401k + p2Contribution401k;
 
       // Don't exceed available cash
       contribution401k = Math.min(contribution401k, preInvRemainder);
+
+      // Proportionally reduce if needed
+      if (contribution401k < p1Contribution401k + p2Contribution401k) {
+        const total = p1Contribution401k + p2Contribution401k;
+        if (total > 0) {
+          p1Contribution401k = contribution401k * (p1Contribution401k / total);
+          p2Contribution401k = contribution401k * (p2Contribution401k / total);
+        }
+      }
+
+      const max401kPercent = (p1Max401kPercent + p2Max401kPercent) / 2; // Average for display
 
       // HYSA for end-of-year expenses (placeholder logic)
       const hysaContribution = 0; // Can be configured based on user input
@@ -451,14 +584,21 @@ export default function Income2026Page() {
       // Brokerage gets the remainder
       const brokerageContribution = preInvRemainder - contribution401k - hysaContribution;
 
-      // Update YTD trackers
-      ytdWages += baseGross;
-      ytdSS += ss;
-      ytdMedicare += totalMed;
-      ytd401k += contribution401k;
-      ytdDepFSA += depFSA;
-      ytdMedFSA += medFSA;
+      // Update YTD trackers - per person
+      p1YtdWages += p1BaseGross;
+      p2YtdWages += p2BaseGross;
+      p1YtdSS += p1SS;
+      p2YtdSS += p2SS;
+      p1YtdMedicare += (p1Med145 + p1Med235);
+      p2YtdMedicare += (p2Med145 + p2Med235);
+      p1Ytd401k += p1Contribution401k;
+      p2Ytd401k += p2Contribution401k;
+      p1YtdDepFSA += p1DepFSA;
+      p2YtdDepFSA += p2DepFSA;
+      p1YtdMedFSA += p1MedFSA;
+      p2YtdMedFSA += p2MedFSA;
       ytdHYSA += hysaContribution;
+      ytdBrokerage += brokerageContribution;
 
       paychecks.push({
         paycheckNum,
@@ -486,13 +626,18 @@ export default function Income2026Page() {
         contribution401k,
         hysaContribution,
         brokerageContribution,
-        ytdWages,
-        ytdSS,
-        ytdMedicare,
-        ytd401k,
-        ytdDepFSA,
-        ytdMedFSA,
-        ytdHYSA
+        ytdWages: p1YtdWages + p2YtdWages, // Combined household wages
+        ytdSS: p1YtdSS + p2YtdSS,
+        ytdMedicare: p1YtdMedicare + p2YtdMedicare,
+        ytd401k: p1Ytd401k + p2Ytd401k,
+        ytdDepFSA: p1YtdDepFSA + p2YtdDepFSA,
+        ytdMedFSA: p1YtdMedFSA + p2YtdMedFSA,
+        ytdHYSA,
+        // Individual tracking for limit calculations
+        p1YtdWages,
+        p2YtdWages,
+        p1Ytd401k,
+        p2Ytd401k,
       });
     }
 
@@ -752,6 +897,16 @@ export default function Income2026Page() {
                     value2={p2OvertimeMonthly}
                     onChange2={setP2OvertimeMonthly}
                     defaultValue={0}
+                  />
+
+                  <DualSelectField
+                    label="Pay Frequency"
+                    idPrefix="pay-frequency"
+                    value1={p1PayFrequency}
+                    onChange1={(v) => setP1PayFrequency(v as PayFrequency)}
+                    value2={p2PayFrequency}
+                    onChange2={(v) => setP2PayFrequency(v as PayFrequency)}
+                    options={["biweekly", "semimonthly", "monthly", "weekly"]}
                   />
                 </div>
               </div>
