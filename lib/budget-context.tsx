@@ -10,6 +10,8 @@ type ImpliedBudget = {
   contributionsRoth: number;
   contributionsTaxable: number;
   maritalStatus: 'single' | 'married';
+  age?: number;
+  spouseAge?: number;
 };
 
 type BudgetContextType = {
