@@ -2441,6 +2441,30 @@ export default function App() {
           console.log('[SUCCESS RATE DEBUG] Initial beneficiaries:', hypStartBens);
           console.log('[SUCCESS RATE DEBUG] Total annual distribution: $' + (hypPerBen * hypStartBens).toLocaleString());
 
+          // ========================================
+          // Calculate Implied CAGR for Legacy Simulations
+          // ========================================
+          // P25 and P75 need to use the ACTUAL growth rates they achieved during accumulation
+          // (not the user's static retRate), to properly model volatility drag effects.
+          // P50 uses the user's nominal retRate as the "expected" scenario.
+
+          const startingBalance = sTax + sPre + sPost;
+          const yearsTotal = yrsToRet + yrsToSim;
+
+          // P25: Calculate implied real CAGR from unlucky accumulation outcome
+          const totalGrowthP25 = batchSummary.eolReal_p25 / startingBalance;
+          const impliedRealCAGR_P25 = Math.pow(totalGrowthP25, 1 / yearsTotal) - 1;
+          const impliedNominal_P25 = ((1 + impliedRealCAGR_P25) * (1 + infRate / 100) - 1) * 100;
+
+          // P75: Calculate implied real CAGR from lucky accumulation outcome
+          const totalGrowthP75 = batchSummary.eolReal_p75 / startingBalance;
+          const impliedRealCAGR_P75 = Math.pow(totalGrowthP75, 1 / yearsTotal) - 1;
+          const impliedNominal_P75 = ((1 + impliedRealCAGR_P75) * (1 + infRate / 100) - 1) * 100;
+
+          console.log('[CALC] Implied CAGR - P25 Real:', (impliedRealCAGR_P25 * 100).toFixed(2) + '%, Nominal:', impliedNominal_P25.toFixed(2) + '%');
+          console.log('[CALC] Implied CAGR - P50: Using user retRate:', retRate + '%');
+          console.log('[CALC] Implied CAGR - P75 Real:', (impliedRealCAGR_P75 * 100).toFixed(2) + '%, Nominal:', impliedNominal_P75.toFixed(2) + '%');
+
           // Run generational wealth simulation for all three percentiles (P25, P50, P75)
           // This allows us to calculate actual success rate based on which percentiles are perpetual
           console.log('[CALC] Running generational simulations for P25, P50, P75...');
@@ -2449,7 +2473,7 @@ export default function App() {
           const simP25 = await runLegacyViaWorker({
             eolNominal: netEstateP25,
             yearsFrom2025,
-            nominalRet: retRate,
+            nominalRet: impliedNominal_P25,
             inflPct: infRate,
             perBenReal: hypPerBen,
             startBens: Math.max(1, hypStartBens),
@@ -2483,7 +2507,7 @@ export default function App() {
           const simP75 = await runLegacyViaWorker({
             eolNominal: netEstateP75,
             yearsFrom2025,
-            nominalRet: retRate,
+            nominalRet: impliedNominal_P75,
             inflPct: infRate,
             perBenReal: hypPerBen,
             startBens: Math.max(1, hypStartBens),
