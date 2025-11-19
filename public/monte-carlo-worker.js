@@ -1424,5 +1424,121 @@ self.onmessage = function(e) {
         error: error.message,
       });
     }
+  } else if (type === 'optimize') {
+    // Optimization Engine: Goal Seeking Calculations
+    // Performs three optimizations: oversaving, splurge capacity, and freedom date
+    try {
+      const { params: baseParams, baseSeed } = e.data;
+      const SUCCESS_THRESHOLD = 0.95; // 95% success rate required
+      const TEST_RUNS = 100; // Monte Carlo runs for optimization tests
+
+      // Helper: Check if a configuration meets success criteria
+      const testSuccess = (testParams) => {
+        const result = runMonteCarloSimulation(testParams, baseSeed, TEST_RUNS);
+        // Success if probability of ruin < 5% (success rate > 95%)
+        return result.probRuin < (1 - SUCCESS_THRESHOLD);
+      };
+
+      // ===== 1. CALCULATE OVERSAVING (Monthly Surplus) =====
+      // Find minimum contribution needed to maintain >95% success rate
+      let surplusAnnual = 0;
+      const currentTotalContrib = baseParams.cTax1 + baseParams.cPre1 + baseParams.cPost1 +
+                                   baseParams.cTax2 + baseParams.cPre2 + baseParams.cPost2 +
+                                   baseParams.cMatch1 + baseParams.cMatch2;
+
+      if (currentTotalContrib > 0) {
+        let low = 0;
+        let high = currentTotalContrib;
+        let minContrib = currentTotalContrib;
+
+        // Binary search for minimum contribution
+        for (let i = 0; i < 10; i++) { // 10 iterations gives ~0.1% precision
+          const mid = (low + high) / 2;
+          const scaleFactor = mid / currentTotalContrib;
+
+          const testParams = {
+            ...baseParams,
+            cTax1: baseParams.cTax1 * scaleFactor,
+            cPre1: baseParams.cPre1 * scaleFactor,
+            cPost1: baseParams.cPost1 * scaleFactor,
+            cMatch1: baseParams.cMatch1 * scaleFactor,
+            cTax2: baseParams.cTax2 * scaleFactor,
+            cPre2: baseParams.cPre2 * scaleFactor,
+            cPost2: baseParams.cPost2 * scaleFactor,
+            cMatch2: baseParams.cMatch2 * scaleFactor,
+          };
+
+          if (testSuccess(testParams)) {
+            minContrib = mid;
+            high = mid; // Try lower
+          } else {
+            low = mid; // Need more
+          }
+        }
+
+        surplusAnnual = currentTotalContrib - minContrib;
+      }
+
+      // ===== 2. CALCULATE SPLURGE CAPACITY (One-Time Purchase) =====
+      // Find maximum one-time expense that maintains >95% success
+      let maxSplurge = 0;
+      let splurgeLow = 0;
+      let splurgeHigh = 5000000; // Max $5M test
+
+      for (let i = 0; i < 20; i++) { // 20 iterations for precision
+        const mid = (splurgeLow + splurgeHigh) / 2;
+
+        const testParams = {
+          ...baseParams,
+          sTax: Math.max(0, baseParams.sTax - mid), // Reduce taxable balance
+        };
+
+        if (testSuccess(testParams)) {
+          maxSplurge = mid;
+          splurgeLow = mid; // Try higher
+        } else {
+          splurgeHigh = mid; // Too much
+        }
+
+        // Early exit if we've narrowed down enough
+        if (splurgeHigh - splurgeLow < 1000) break;
+      }
+
+      // ===== 3. CALCULATE FREEDOM DATE (Earliest Retirement) =====
+      // Find earliest retirement age with >95% success
+      const currentAge = Math.min(baseParams.age1, baseParams.age2 || baseParams.age1);
+      let earliestRetirementAge = baseParams.retAge;
+
+      // Test progressively earlier retirement ages
+      for (let testRetAge = baseParams.retAge - 1; testRetAge >= currentAge + 1; testRetAge--) {
+        const testParams = {
+          ...baseParams,
+          retAge: testRetAge,
+        };
+
+        if (testSuccess(testParams)) {
+          earliestRetirementAge = testRetAge;
+        } else {
+          break; // Stop when success rate drops
+        }
+      }
+
+      // Send results
+      self.postMessage({
+        type: 'optimize-complete',
+        result: {
+          surplusAnnual: Math.max(0, surplusAnnual),
+          surplusMonthly: Math.max(0, surplusAnnual / 12),
+          maxSplurge: Math.max(0, maxSplurge),
+          earliestRetirementAge,
+          yearsEarlier: Math.max(0, baseParams.retAge - earliestRetirementAge),
+        },
+      });
+    } catch (error) {
+      self.postMessage({
+        type: 'error',
+        error: error.message,
+      });
+    }
   }
 };
