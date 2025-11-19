@@ -428,8 +428,8 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
 
   y = addSubsection(doc, 'RETURN ASSUMPTIONS', y);
 
-  const modelType = inputs.retMode === 'mc' ? 'Monte Carlo Bootstrap' :
-                    inputs.retMode === 'randomWalk' ? 'Random Walk' : 'Fixed Return';
+  const modelType = inputs.walkSeries === 'trulyRandom' ? 'Monte Carlo Bootstrap' :
+                    inputs.retMode === 'randomWalk' ? 'Historical Bootstrap' : 'Fixed Return';
 
   y = addKeyValue(doc, 'Model Type', modelType, y);
 
@@ -731,7 +731,7 @@ function addRiskFactorsAndMethodology(doc: jsPDF, data: PDFReportData, reportDat
   y = addSectionTitle(doc, 'CALCULATION METHODOLOGY', y);
 
   y = addSubsection(doc, 'Accumulation Phase', y);
-  y = addWrappedText(doc, 'Portfolio growth modeled using ' + (inputs.retMode === 'mc' ? 'Monte Carlo bootstrap sampling from 97 years of S&P 500 total return data (1928-2024)' : 'deterministic return assumptions') + '. Annual contributions assumed mid-year with half-year growth adjustment.', y, 10);
+  y = addWrappedText(doc, 'Portfolio growth modeled using ' + (inputs.walkSeries === 'trulyRandom' ? 'Monte Carlo bootstrap sampling from 97 years of S&P 500 total return data (1928-2024)' : 'deterministic return assumptions') + '. Annual contributions assumed mid-year with half-year growth adjustment.', y, 10);
   y += 5;
 
   y = addSubsection(doc, 'Account-Specific Treatment', y);
@@ -747,7 +747,7 @@ function addRiskFactorsAndMethodology(doc: jsPDF, data: PDFReportData, reportDat
   y = addBulletPoint(doc, 'Tax-free (Roth qualified distributions)', y, 5);
   y += 5;
 
-  if (inputs.retMode === 'mc' || inputs.retMode === 'randomWalk') {
+  if (inputs.walkSeries === 'trulyRandom' || inputs.retMode === 'randomWalk') {
     y = checkPageBreak(doc, y, 40, reportDate, pageNum);
     if (y === 30) pageNum++;
 

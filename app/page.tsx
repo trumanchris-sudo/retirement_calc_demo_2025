@@ -3136,6 +3136,7 @@ export default function App() {
       wdRate: inp.wdRate ?? 4,
       incContrib: inp.incContrib ?? false,
       incRate: inp.incRate ?? 4.5,
+      dividendYield: inp.dividendYield ?? 2.0,
     });
   }, []);
 
