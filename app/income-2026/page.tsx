@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/select";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { useBudget } from "@/lib/budget-context";
-import { PaycheckFlowTable } from "@/components/income/PaycheckFlowTable";
 
 type FilingStatus = "single" | "married";
 type PayFrequency = "biweekly" | "semimonthly" | "monthly" | "weekly";
@@ -100,16 +99,15 @@ export default function Income2026Page() {
   const [p2LifeInsuranceCoverage, setP2LifeInsuranceCoverage] = useState(0);
   const [p2LifeInsuranceFrequency, setP2LifeInsuranceFrequency] = useState<"monthly" | "quarterly" | "semi-annually" | "annually">("annually");
 
-  // Mortgage Details (for wealth tracking)
-  const [mortgageBalance, setMortgageBalance] = useState(0);
-  const [mortgageRate, setMortgageRate] = useState(0);
-  const [mortgageInterestMonthly, setMortgageInterestMonthly] = useState(0);
-
-  // Tangible Personal Property (Car)
-  const [carFMV, setCarFMV] = useState(0);
-  const [carUsefulLife, setCarUsefulLife] = useState(10);
-  const [carResidualValue, setCarResidualValue] = useState(0);
-  const [carFiresaleDiscount, setCarFiresaleDiscount] = useState(30);
+  // TODO: Net Worth Tracking Feature (Not Yet Implemented)
+  // Uncomment these when implementing net worth tracking functionality
+  // const [mortgageBalance, setMortgageBalance] = useState(0);
+  // const [mortgageRate, setMortgageRate] = useState(0);
+  // const [mortgageInterestMonthly, setMortgageInterestMonthly] = useState(0);
+  // const [carFMV, setCarFMV] = useState(0);
+  // const [carUsefulLife, setCarUsefulLife] = useState(10);
+  // const [carResidualValue, setCarResidualValue] = useState(0);
+  // const [carFiresaleDiscount, setCarFiresaleDiscount] = useState(30);
 
   // Results state
   const [results, setResults] = useState<{
@@ -490,7 +488,15 @@ export default function Income2026Page() {
     const totalFixedExpenses = paychecks.reduce((sum, p) => sum + p.fixedExpenses, 0);
     const total401k = paychecks.reduce((sum, p) => sum + p.contribution401k, 0);
     const totalBrokerage = paychecks.reduce((sum, p) => sum + p.brokerageContribution, 0);
-    const netTakeHome = totalIncome - totalPreTax - totalFIT - totalFICA - totalFixedExpenses - total401k - totalBrokerage;
+
+    // Calculate annual post-tax deductions
+    const totalPostTaxDeductions =
+      p1RothContribution +
+      (isMarried ? p2RothContribution : 0) +
+      p1DisabilityInsurance +
+      p1LifeInsurance;
+
+    const netTakeHome = totalIncome - totalPreTax - totalFIT - totalFICA - totalFixedExpenses - total401k - totalBrokerage - totalPostTaxDeductions;
 
     setResults({
       paychecks,
