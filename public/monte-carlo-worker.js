@@ -1433,7 +1433,7 @@ self.onmessage = function(e) {
     try {
       const { params: baseParams, baseSeed } = e.data;
       const SUCCESS_THRESHOLD = 0.95; // 95% success rate required
-      const TEST_RUNS = 100; // Monte Carlo runs for optimization tests
+      const TEST_RUNS = 400; // Monte Carlo runs for optimization tests
       const SAFETY_MAX_ITERATIONS = 50; // Safety brake: prevent infinite loops
 
       // Helper: Check if a configuration meets success criteria
@@ -1459,7 +1459,7 @@ self.onmessage = function(e) {
         // Binary search for minimum contribution with safety brake
         while (low < high && iterations < SAFETY_MAX_ITERATIONS) {
           iterations++;
-          const mid = (low + high) / 2;
+          const mid = low + (high - low) / 2;
           const scaleFactor = mid / currentTotalContrib;
 
           const testParams = {
@@ -1498,7 +1498,7 @@ self.onmessage = function(e) {
       // Binary search with safety brake
       while (splurgeLow < splurgeHigh && splurgeIterations < SAFETY_MAX_ITERATIONS) {
         splurgeIterations++;
-        const mid = (splurgeLow + splurgeHigh) / 2;
+        const mid = splurgeLow + (splurgeHigh - splurgeLow) / 2;
 
         const testParams = {
           ...baseParams,
