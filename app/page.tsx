@@ -320,12 +320,39 @@ const calcRMD = (pretaxBalance: number, age: number): number => {
 };
 
 /**
- * Calculate Estate Tax (2025 law)
+ * Calculate Estate Tax with TCJA sunset handling
+ * After 2025, exemptions drop to ~$7M/$14M (inflation-adjusted) unless tax cuts extended
  * @param totalEstate - Total estate value (all accounts)
  * @param status - Filing status (single or married)
+ * @param year - Year of death (defaults to current year)
+ * @param assumeExtended - Whether to assume TCJA extended beyond 2025 (defaults to false)
  */
-const calcEstateTax = (totalEstate: number, status: FilingStatus = "single"): number => {
-  const exemption = ESTATE_TAX_EXEMPTION[status];
+const calcEstateTax = (
+  totalEstate: number,
+  status: FilingStatus = "single",
+  year: number = CURR_YEAR,
+  assumeExtended: boolean = false
+): number => {
+  let exemption: number;
+
+  // Check if we need to apply post-2025 sunset rules
+  if (year > 2025 && !assumeExtended) {
+    // Post-TCJA sunset: exemptions drop to approximately $7M/$14M (2026 baseline)
+    // Apply inflation adjustment from 2026 to death year
+    const yearsAfter2026 = Math.max(0, year - 2026);
+    const inflationFactor = Math.pow(1.026, yearsAfter2026); // ~2.6% annual inflation
+
+    const baseSunsetExemption = {
+      single: 7_000_000,
+      married: 14_000_000,
+    };
+
+    exemption = baseSunsetExemption[status] * inflationFactor;
+  } else {
+    // Use current TCJA exemptions (2025 levels or extended)
+    exemption = ESTATE_TAX_EXEMPTION[status];
+  }
+
   if (totalEstate <= exemption) return 0;
   const taxableEstate = totalEstate - exemption;
   return taxableEstate * ESTATE_TAX_RATE;
@@ -1158,37 +1185,91 @@ ScenarioComparisonChart.displayName = 'ScenarioComparisonChart';
 
 export default function App() {
   const { setImplied } = useBudget();
-  const [marital, setMarital] = useState<FilingStatus>("single");
-  const [age1, setAge1] = useState(35);
-  const [age2, setAge2] = useState(33);
-  const [retAge, setRetAge] = useState(65);
 
-  const [sTax, setSTax] = useState(50000);
-  const [sPre, setSPre] = useState(150000);
-  const [sPost, setSPost] = useState(25000);
+  // Personal Information
+  const [personalInfo, setPersonalInfo] = useState({
+    marital: "single" as FilingStatus,
+    age1: 35,
+    age2: 33,
+    retAge: 65,
+  });
 
-  const [cTax1, setCTax1] = useState(12000);
-  const [cPre1, setCPre1] = useState(23000);
-  const [cPost1, setCPost1] = useState(7000);
-  const [cMatch1, setCMatch1] = useState(0);
+  // Current Account Balances
+  const [currentBalances, setCurrentBalances] = useState({
+    sTax: 50000,
+    sPre: 150000,
+    sPost: 25000,
+  });
 
-  const [cTax2, setCTax2] = useState(8000);
-  const [cPre2, setCPre2] = useState(23000);
-  const [cPost2, setCPost2] = useState(7000);
-  const [cMatch2, setCMatch2] = useState(0);
+  // Annual Contributions
+  const [contributions, setContributions] = useState({
+    cTax1: 12000,
+    cPre1: 23000,
+    cPost1: 7000,
+    cMatch1: 0,
+    cTax2: 8000,
+    cPre2: 23000,
+    cPost2: 7000,
+    cMatch2: 0,
+  });
 
-  const [retRate, setRetRate] = useState(9.8);
-  const [infRate, setInfRate] = useState(2.6);
-  const [stateRate, setStateRate] = useState(0);
-  const [incContrib, setIncContrib] = useState(false); // Changed from true to false
-  const [incRate, setIncRate] = useState(4.5);
-  const [wdRate, setWdRate] = useState(3.5);
+  // Return and Withdrawal Assumptions
+  const [assumptions, setAssumptions] = useState({
+    retRate: 9.8,
+    infRate: 2.6,
+    stateRate: 0,
+    incContrib: false, // Changed from true to false
+    incRate: 4.5,
+    wdRate: 3.5,
+  });
 
-  const [includeSS, setIncludeSS] = useState(true);
-  const [ssIncome, setSSIncome] = useState(75000); // Primary - Avg career earnings for SS calc
-  const [ssClaimAge, setSSClaimAge] = useState(67); // Primary - Full retirement age
-  const [ssIncome2, setSSIncome2] = useState(75000); // Spouse - Avg career earnings for SS calc
-  const [ssClaimAge2, setSSClaimAge2] = useState(67); // Spouse - Full retirement age
+  // Social Security Benefits
+  const [socialSecurity, setSocialSecurity] = useState({
+    includeSS: true,
+    ssIncome: 75000, // Primary - Avg career earnings for SS calc
+    ssClaimAge: 67, // Primary - Full retirement age
+    ssIncome2: 75000, // Spouse - Avg career earnings for SS calc
+    ssClaimAge2: 67, // Spouse - Full retirement age
+  });
+
+  // Destructure for backward compatibility with existing code
+  const { marital, age1, age2, retAge } = personalInfo;
+  const { sTax, sPre, sPost } = currentBalances;
+  const { cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2 } = contributions;
+  const { retRate, infRate, stateRate, incContrib, incRate, wdRate } = assumptions;
+  const { includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2 } = socialSecurity;
+
+  // Helper setter functions for grouped state objects
+  const setMarital = (value: FilingStatus) => setPersonalInfo(prev => ({ ...prev, marital: value }));
+  const setAge1 = (value: number) => setPersonalInfo(prev => ({ ...prev, age1: value }));
+  const setAge2 = (value: number) => setPersonalInfo(prev => ({ ...prev, age2: value }));
+  const setRetAge = (value: number) => setPersonalInfo(prev => ({ ...prev, retAge: value }));
+
+  const setSTax = (value: number) => setCurrentBalances(prev => ({ ...prev, sTax: value }));
+  const setSPre = (value: number) => setCurrentBalances(prev => ({ ...prev, sPre: value }));
+  const setSPost = (value: number) => setCurrentBalances(prev => ({ ...prev, sPost: value }));
+
+  const setCTax1 = (value: number) => setContributions(prev => ({ ...prev, cTax1: value }));
+  const setCPre1 = (value: number) => setContributions(prev => ({ ...prev, cPre1: value }));
+  const setCPost1 = (value: number) => setContributions(prev => ({ ...prev, cPost1: value }));
+  const setCMatch1 = (value: number) => setContributions(prev => ({ ...prev, cMatch1: value }));
+  const setCTax2 = (value: number) => setContributions(prev => ({ ...prev, cTax2: value }));
+  const setCPre2 = (value: number) => setContributions(prev => ({ ...prev, cPre2: value }));
+  const setCPost2 = (value: number) => setContributions(prev => ({ ...prev, cPost2: value }));
+  const setCMatch2 = (value: number) => setContributions(prev => ({ ...prev, cMatch2: value }));
+
+  const setRetRate = (value: number) => setAssumptions(prev => ({ ...prev, retRate: value }));
+  const setInfRate = (value: number) => setAssumptions(prev => ({ ...prev, infRate: value }));
+  const setStateRate = (value: number) => setAssumptions(prev => ({ ...prev, stateRate: value }));
+  const setIncContrib = (value: boolean) => setAssumptions(prev => ({ ...prev, incContrib: value }));
+  const setIncRate = (value: number) => setAssumptions(prev => ({ ...prev, incRate: value }));
+  const setWdRate = (value: number) => setAssumptions(prev => ({ ...prev, wdRate: value }));
+
+  const setIncludeSS = (value: boolean) => setSocialSecurity(prev => ({ ...prev, includeSS: value }));
+  const setSSIncome = (value: number) => setSocialSecurity(prev => ({ ...prev, ssIncome: value }));
+  const setSSClaimAge = (value: number) => setSocialSecurity(prev => ({ ...prev, ssClaimAge: value }));
+  const setSSIncome2 = (value: number) => setSocialSecurity(prev => ({ ...prev, ssIncome2: value }));
+  const setSSClaimAge2 = (value: number) => setSocialSecurity(prev => ({ ...prev, ssClaimAge2: value }));
 
   // Healthcare costs (post-retirement)
   const [includeMedicare, setIncludeMedicare] = useState(true);
@@ -1210,6 +1291,7 @@ export default function App() {
 
   // Generational wealth parameters (improved demographic model)
   const [hypPerBen, setHypPerBen] = useState(100_000);
+  const [hypStartBens, setHypStartBens] = useState(2);
 
   // New intuitive beneficiary inputs - UPDATED to ask for current ages
   const [childrenCurrentAges, setChildrenCurrentAges] = useState("5, 3"); // Comma-separated current ages
@@ -1273,7 +1355,7 @@ export default function App() {
   }, [allocationStrategy, bondStartAge, bondEndAge, bondStartPct, bondEndPct, glidePathShape]);
 
   // Auto-calculate beneficiary ages based on user's age and family structure
-  const { hypBenAgesStr, hypStartBens } = useMemo(() => {
+  const hypBenAgesStr = useMemo(() => {
     const olderAge = Math.max(age1, age2);
     const yearsUntilDeath = hypDeathAge - olderAge;
 
@@ -1300,10 +1382,7 @@ export default function App() {
     const allChildrenAges = [...currentChildrenAtDeath, ...additionalChildrenAtDeath]
       .filter(age => age > 0 && age < hypDeathAge);
 
-    return {
-      hypBenAgesStr: allChildrenAges.length > 0 ? allChildrenAges.join(', ') : '0',
-      hypStartBens: Math.max(1, allChildrenAges.length)
-    };
+    return allChildrenAges.length > 0 ? allChildrenAges.join(', ') : '0';
   }, [childrenCurrentAges, additionalChildrenExpected, hypDeathAge, age1, age2]);
 
   const [aiInsight, setAiInsight] = useState<string>("");
@@ -1327,6 +1406,9 @@ export default function App() {
   const [showInflationShock, setShowInflationShock] = useState(false);
   const [inflationShockRate, setInflationShockRate] = useState<number>(0); // elevated inflation % - default 0 means no shock
   const [inflationShockDuration, setInflationShockDuration] = useState<number>(5); // years
+
+  // Estate tax sunset assumption (TCJA expires after 2025)
+  const [assumeTaxCutsExtended, setAssumeTaxCutsExtended] = useState(false); // Default: assume sunset happens
 
   // Scenario comparison mode
   const [comparisonMode, setComparisonMode] = useState(false);
@@ -1365,6 +1447,14 @@ export default function App() {
   const handleInputChange = useCallback(() => {
     setInputsModified(true);
   }, []);
+
+  // Fix #4: Input Consistency - Auto-update fertility windows when generation length changes
+  const handleGenerationLengthChange = useCallback((newGenLen: number) => {
+    setGenerationLength(newGenLen);
+    setFertilityWindowStart(newGenLen - 5);
+    setFertilityWindowEnd(newGenLen + 5);
+    handleInputChange(); // Mark inputs as modified
+  }, [handleInputChange]);
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
@@ -2161,46 +2251,59 @@ export default function App() {
       olderAgeForAI = older;
 
       const yrsToRet = retAge - younger;
-      const g_fixed = 1 + retRate / 100;
       const infl = infRate / 100;
-      const infl_factor = 1 + infl;
 
       const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
 
-      // If truly random mode, run Monte Carlo simulation via web worker (N=1000)
-      if (walkSeries === 'trulyRandom') {
-        console.log('[CALC] Running Monte Carlo via web worker...');
-        console.log('[CALC] Worker ref exists:', !!workerRef.current);
-        const inputs: Inputs = {
-          marital, age1, age2, retAge, sTax, sPre, sPost,
-          cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-          retRate, infRate, stateRate, incContrib, incRate, wdRate,
-          retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
-          historicalYear: historicalYear || undefined,
-          inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
-          inflationShockDuration,
-          // Healthcare costs
-          includeMedicare,
-          medicarePremium,
-          medicalInflation,
-          irmaaThresholdSingle,
-          irmaaThresholdMarried,
-          irmaaSurcharge,
-          includeLTC,
-          ltcAnnualCost,
-          ltcProbability,
-          ltcDuration,
-          ltcOnsetAge,
-          ltcAgeRangeStart,
-          ltcAgeRangeEnd,
-          // Bond glide path
-          bondGlidePath,
-        };
+      // ========================================
+      // UNIFIED CALCULATION ENGINE
+      // All modes now use the web worker for consistency
+      // Monte Carlo: N=1000, Deterministic: N=1
+      // ========================================
 
-        console.log('[CALC] Calling web worker with inputs...');
-        let batchSummary;
-        try {
-          batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, 1000);
+      // Calculate initial asset allocation ratios for accurate RMD estimation
+      const initialTotal = sTax + sPre + sPost;
+      const initialPretaxRatio = initialTotal > 0 ? sPre / initialTotal : 0.5; // Default to 50% if no savings
+      const initialTaxableRatio = initialTotal > 0 ? sTax / initialTotal : 0.3;
+      const initialRothRatio = initialTotal > 0 ? sPost / initialTotal : 0.2;
+      console.log('[CALC] Initial asset allocation ratios - Pretax:', initialPretaxRatio.toFixed(2),
+                  'Taxable:', initialTaxableRatio.toFixed(2), 'Roth:', initialRothRatio.toFixed(2));
+
+      // Determine simulation count based on mode
+      const simCount = walkSeries === 'trulyRandom' ? 1000 : 1;
+      console.log('[CALC] Running', simCount, 'simulation(s) via web worker for mode:', walkSeries);
+
+      console.log('[CALC] Worker ref exists:', !!workerRef.current);
+      const inputs: Inputs = {
+        marital, age1, age2, retAge, sTax, sPre, sPost,
+        cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+        retRate, infRate, stateRate, incContrib, incRate, wdRate,
+        retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+        historicalYear: historicalYear || undefined,
+        inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
+        inflationShockDuration,
+        // Healthcare costs
+        includeMedicare,
+        medicarePremium,
+        medicalInflation,
+        irmaaThresholdSingle,
+        irmaaThresholdMarried,
+        irmaaSurcharge,
+        includeLTC,
+        ltcAnnualCost,
+        ltcProbability,
+        ltcDuration,
+        ltcOnsetAge,
+        ltcAgeRangeStart,
+        ltcAgeRangeEnd,
+        // Bond glide path
+        bondGlidePath,
+      };
+
+      console.log('[CALC] Calling web worker with inputs...');
+      let batchSummary;
+      try {
+        batchSummary = await runMonteCarloViaWorker(inputs, currentSeed, simCount);
           console.log('[CALC] Web worker completed successfully, batch summary:', batchSummary);
           console.log('[CALC] p50BalancesReal length:', batchSummary?.p50BalancesReal?.length);
           console.log('[CALC] p10BalancesReal length:', batchSummary?.p10BalancesReal?.length);
@@ -2260,8 +2363,8 @@ export default function App() {
         console.log('[CALC] Key metrics calculated - finReal:', finReal, 'eolWealth:', eolWealth);
 
         console.log('[CALC] Starting RMD calculation, yrsToSim:', yrsToSim);
-        // Calculate RMD data for trulyRandom mode based on median balances
-        // Assume typical allocation: 50% pretax, 30% taxable, 20% roth
+        // Calculate RMD data based on median balances
+        // Use actual user's initial asset allocation ratios instead of assuming 50/30/20
         const rmdData: { age: number; spending: number; rmd: number }[] = [];
         for (let y = 1; y <= yrsToSim; y++) {
           const currentAge = age1 + yrsToRet + y;
@@ -2270,7 +2373,7 @@ export default function App() {
             if (yearIndex < batchSummary.p50BalancesReal.length) {
               const totalBalReal = batchSummary.p50BalancesReal[yearIndex];
               const totalBalNom = totalBalReal * Math.pow(1 + infl, yearIndex);
-              const estimatedPretaxBal = totalBalNom * 0.5; // Assume 50% in pretax
+              const estimatedPretaxBal = totalBalNom * initialPretaxRatio; // Use actual user's pretax ratio
 
               // Calculate RMD
               const requiredRMD = calcRMD(estimatedPretaxBal, currentAge);
@@ -2305,9 +2408,10 @@ export default function App() {
 
         // Calculate estate tax using median EOL
         console.log('[CALC] Calculating estate tax...');
-        const estateTax = calcEstateTax(eolWealth, marital);
+        const yearOfDeath = CURR_YEAR + (LIFE_EXP - older); // Death at LIFE_EXP age
+        const estateTax = calcEstateTax(eolWealth, marital, yearOfDeath, assumeTaxCutsExtended);
         const netEstate = eolWealth - estateTax;
-        console.log('[CALC] Estate tax calculated - estateTax:', estateTax, 'netEstate:', netEstate);
+        console.log('[CALC] Estate tax calculated - year:', yearOfDeath, 'estateTax:', estateTax, 'netEstate:', netEstate);
 
         // Generational payout calculation (if enabled) - Monte Carlo version
         // NOW OPTIMIZED: Uses early-exit, decade chunking, and early termination for 90-99% speedup
@@ -2333,9 +2437,9 @@ export default function App() {
 
           // Calculate estate tax and net estate for each percentile
           console.log('[CALC] Calculating estate taxes for percentiles...');
-          const estateTaxP25 = calcEstateTax(eolP25, marital);
-          const estateTaxP50 = calcEstateTax(eolP50, marital);
-          const estateTaxP75 = calcEstateTax(eolP75, marital);
+          const estateTaxP25 = calcEstateTax(eolP25, marital, yearOfDeath, assumeTaxCutsExtended);
+          const estateTaxP50 = calcEstateTax(eolP50, marital, yearOfDeath, assumeTaxCutsExtended);
+          const estateTaxP75 = calcEstateTax(eolP75, marital, yearOfDeath, assumeTaxCutsExtended);
 
           const netEstateP25 = eolP25 - estateTaxP25;
           const netEstateP50 = eolP50 - estateTaxP50;
@@ -2345,6 +2449,130 @@ export default function App() {
           console.log('[SUCCESS RATE DEBUG] Initial beneficiaries:', hypStartBens);
           console.log('[SUCCESS RATE DEBUG] Total annual distribution: $' + (hypPerBen * hypStartBens).toLocaleString());
 
+          // ========================================
+          // Calculate Implied CAGR for Legacy Simulations
+          // ========================================
+          // P25 and P75 need to use the ACTUAL growth rates they achieved during accumulation
+          // (not the user's static retRate), to properly model volatility drag effects.
+          // P50 uses the user's nominal retRate as the "expected" scenario.
+
+          const startingBalance = sTax + sPre + sPost;
+          const yearsTotal = yrsToRet + yrsToSim;
+
+          // P25: Calculate implied real CAGR from unlucky accumulation outcome
+          const totalGrowthP25 = batchSummary.eolReal_p25 / startingBalance;
+          const impliedRealCAGR_P25 = Math.pow(totalGrowthP25, 1 / yearsTotal) - 1;
+          const impliedNominal_P25 = ((1 + impliedRealCAGR_P25) * (1 + infRate / 100) - 1) * 100;
+
+          // P75: Calculate implied real CAGR from lucky accumulation outcome
+          const totalGrowthP75 = batchSummary.eolReal_p75 / startingBalance;
+          const impliedRealCAGR_P75 = Math.pow(totalGrowthP75, 1 / yearsTotal) - 1;
+          const impliedNominal_P75 = ((1 + impliedRealCAGR_P75) * (1 + infRate / 100) - 1) * 100;
+
+          console.log('[CALC] Implied CAGR - P25 Real:', (impliedRealCAGR_P25 * 100).toFixed(2) + '%, Nominal:', impliedNominal_P25.toFixed(2) + '%');
+          console.log('[CALC] Implied CAGR - P50: Using user retRate:', retRate + '%');
+          console.log('[CALC] Implied CAGR - P75 Real:', (impliedRealCAGR_P75 * 100).toFixed(2) + '%, Nominal:', impliedNominal_P75.toFixed(2) + '%');
+
+          // ========================================
+          // Fix: "Missing Grandchildren" - Recursive Backfill
+          // ========================================
+          // If initial beneficiaries are too old to have children (age > fertilityWindowEnd),
+          // we need to backfill younger generations to prevent immediate dynasty failure.
+          //
+          // Example: User dies at 95, child is 65. If fertility window is 25-35, the 65-year-old
+          // child cannot have offspring. We need to create implied grandchildren at appropriate ages.
+
+          interface BackfilledBeneficiary {
+            age: number;
+            size: number;
+            generation: number; // 0 = original beneficiaries, 1 = children, 2 = grandchildren, etc.
+          }
+
+          const backfillYoungerGenerations = (
+            initialAges: number[],
+            numBeneficiaries: number,
+            fertilityWindowEnd: number,
+            generationLength: number,
+            totalFertilityRate: number
+          ): BackfilledBeneficiary[] => {
+            const result: BackfilledBeneficiary[] = [];
+
+            // Process each initial beneficiary
+            for (const age of initialAges) {
+              if (age <= fertilityWindowEnd) {
+                // This beneficiary can have children - add them as-is
+                result.push({
+                  age,
+                  size: numBeneficiaries / initialAges.length, // Distribute total beneficiaries evenly
+                  generation: 0
+                });
+              } else {
+                // This beneficiary is too old - backfill younger generations
+                let currentAge = age;
+                let currentSize = numBeneficiaries / initialAges.length;
+                let generation = 0;
+
+                // Recursively create younger generations until we find one within fertility window
+                while (currentAge > fertilityWindowEnd) {
+                  // Calculate implied child age
+                  const childAge = currentAge - generationLength;
+
+                  // Calculate child cohort size using TFR
+                  const childSize = currentSize * totalFertilityRate;
+
+                  // Move to the child generation
+                  currentAge = childAge;
+                  currentSize = childSize;
+                  generation++;
+
+                  console.log(`[BACKFILL] Gen ${generation}: Parent age ${currentAge + generationLength} → Child age ${childAge}, size ${childSize.toFixed(2)}`);
+                }
+
+                // Add the youngest fertile generation we found
+                result.push({
+                  age: currentAge,
+                  size: currentSize,
+                  generation
+                });
+
+                console.log(`[BACKFILL] Final: Added beneficiary at age ${currentAge}, size ${currentSize.toFixed(2)}, generation ${generation}`);
+              }
+            }
+
+            return result;
+          };
+
+          // Apply backfill logic
+          const backfilledBeneficiaries = backfillYoungerGenerations(
+            benAges,
+            hypStartBens,
+            fertilityWindowEnd,
+            generationLength,
+            totalFertilityRate
+          );
+
+          // Convert backfilled beneficiaries to the format expected by the worker
+          // The worker expects initialBenAges array, so we need to expand the cohorts
+          const adjustedBenAges: number[] = [];
+          const adjustedStartBens = backfilledBeneficiaries.reduce((sum, b) => sum + b.size, 0);
+
+          console.log('[BACKFILL] Summary:');
+          console.log('[BACKFILL] Original beneficiaries:', hypStartBens, 'at ages', benAges);
+          console.log('[BACKFILL] Backfilled cohorts:', backfilledBeneficiaries.map(b => `Gen${b.generation}(age=${b.age}, size=${b.size.toFixed(2)})`).join(', '));
+          console.log('[BACKFILL] Adjusted total beneficiaries:', adjustedStartBens.toFixed(2));
+
+          // For the worker, we'll use the youngest generation's ages
+          // and adjust the starting beneficiary count
+          const finalBenAges = backfilledBeneficiaries.length > 0
+            ? backfilledBeneficiaries.map(b => b.age)
+            : benAges.length > 0 ? benAges : [0];
+
+          const finalStartBens = Math.max(1, Math.round(adjustedStartBens));
+
+          console.log('[BACKFILL] Final parameters for worker:');
+          console.log('[BACKFILL] - initialBenAges:', finalBenAges);
+          console.log('[BACKFILL] - startBens:', finalStartBens);
+
           // Run generational wealth simulation for all three percentiles (P25, P50, P75)
           // This allows us to calculate actual success rate based on which percentiles are perpetual
           console.log('[CALC] Running generational simulations for P25, P50, P75...');
@@ -2353,16 +2581,16 @@ export default function App() {
           const simP25 = await runLegacyViaWorker({
             eolNominal: netEstateP25,
             yearsFrom2025,
-            nominalRet: retRate,
+            nominalRet: impliedNominal_P25,
             inflPct: infRate,
             perBenReal: hypPerBen,
-            startBens: Math.max(1, hypStartBens),
+            startBens: finalStartBens,
             totalFertilityRate,
             generationLength,
             deathAge: Math.max(1, hypDeathAge),
             minDistAge: Math.max(0, hypMinDistAge),
             capYears: 10000,  // Optimized simulation with early-exit and chunking
-            initialBenAges: benAges.length > 0 ? benAges : [0],
+            initialBenAges: finalBenAges,
             fertilityWindowStart,
             fertilityWindowEnd
           });
@@ -2373,13 +2601,13 @@ export default function App() {
             nominalRet: retRate,
             inflPct: infRate,
             perBenReal: hypPerBen,
-            startBens: Math.max(1, hypStartBens),
+            startBens: finalStartBens,
             totalFertilityRate,
             generationLength,
             deathAge: Math.max(1, hypDeathAge),
             minDistAge: Math.max(0, hypMinDistAge),
             capYears: 10000,  // Optimized simulation with early-exit and chunking
-            initialBenAges: benAges.length > 0 ? benAges : [0],
+            initialBenAges: finalBenAges,
             fertilityWindowStart,
             fertilityWindowEnd
           });
@@ -2387,16 +2615,16 @@ export default function App() {
           const simP75 = await runLegacyViaWorker({
             eolNominal: netEstateP75,
             yearsFrom2025,
-            nominalRet: retRate,
+            nominalRet: impliedNominal_P75,
             inflPct: infRate,
             perBenReal: hypPerBen,
-            startBens: Math.max(1, hypStartBens),
+            startBens: finalStartBens,
             totalFertilityRate,
             generationLength,
             deathAge: Math.max(1, hypDeathAge),
             minDistAge: Math.max(0, hypMinDistAge),
             capYears: 10000,  // Optimized simulation with early-exit and chunking
-            initialBenAges: benAges.length > 0 ? benAges : [0],
+            initialBenAges: finalBenAges,
             fertilityWindowStart,
             fertilityWindowEnd
           });
@@ -2431,7 +2659,7 @@ export default function App() {
           // Step 3: Convert to nominal terms and apply estate tax
           const allEstatesAfterTax = allEstatesReal.map(eolReal => {
             const eolNominal = eolReal * Math.pow(1 + infl, yearsFrom2025);
-            const estateTax = calcEstateTax(eolNominal, marital);
+            const estateTax = calcEstateTax(eolNominal, marital, yearOfDeath, assumeTaxCutsExtended);
             return eolNominal - estateTax;
           });
 
@@ -2514,9 +2742,9 @@ export default function App() {
           estateTax,
           netEstate,
           eolAccounts: {
-            taxable: eolWealth * 0.3,  // rough estimates for display
-            pretax: eolWealth * 0.5,
-            roth: eolWealth * 0.2,
+            taxable: eolWealth * initialTaxableRatio,  // Use actual user's ratios
+            pretax: eolWealth * initialPretaxRatio,
+            roth: eolWealth * initialRothRatio,
           },
           totalRMDs: 0,
           genPayout,
@@ -2549,433 +2777,31 @@ export default function App() {
         console.log('[CALC] Running Roth conversion optimizer...');
         runRothOptimizer(newRes);
 
-        // Track calculation for tab interface
-        const isFirstCalculation = !lastCalculated;
-        setLastCalculated(new Date());
-        setInputsModified(false);
+        console.log('[CALC] Calculation complete');
 
-        // NAVIGATION BEHAVIOR FIX:
-        // - First calculation from Configure tab → Navigate to Results tab and scroll to top
-        // - Recalculate from ANY other location → Stay on current tab, don't scroll
-        const shouldNavigate = isFirstCalculation && activeMainTab === 'configure';
-
-        if (shouldNavigate) {
-          // First calculation from Configure tab: switch to Results and scroll
-          setActiveMainTab('results');
-          setTimeout(() => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            setOlderAgeForAnalysis(olderAgeForAI);
-            setIsLoadingAi(false);
-          }, 100);
-        } else {
-          // Recalculate: stay put, no navigation or scrolling
-          setOlderAgeForAnalysis(olderAgeForAI);
-          setIsLoadingAi(false);
-        }
-
-        console.log('[CALC] Monte Carlo calculation complete, exiting early');
-        return; // Exit early, we're done with batch mode
-      }
-
-      // Original single-run simulation code continues below...
-
-      const accGen = buildReturnGenerator({
-        mode: retMode,
-        years: yrsToRet + 1,
-        nominalPct: retRate,
-        infPct: infRate,
-        walkSeries,
-        seed: currentSeed,
-        bondGlidePath,
-        currentAge: younger, // Start from younger person's age
-      })();
-
-      const drawGen = buildReturnGenerator({
-        mode: retMode,
-        years: yrsToSim,
-        nominalPct: retRate,
-        infPct: infRate,
-        walkSeries,
-        seed: currentSeed + 1,
-        bondGlidePath,
-        currentAge: older + yrsToRet, // Start from retirement age
-        // Bear market returns are injected directly in drawdown loop, not via generator
-      })();
-
-      let bTax = sTax;
-      let bPre = sPre;
-      let bPost = sPost;
-      let basisTax = sTax;
-
-      const data: { year: number; a1: number; a2: number | null; bal: number; real: number }[] = [];
-      let totC = total;
-
-      let c = {
-        p: { tax: cTax1, pre: cPre1, post: cPost1, match: cMatch1 },
-        s: { tax: cTax2, pre: cPre2, post: cPost2, match: cMatch2 },
-      };
-
-      // Get bear market returns if applicable
-      const bearReturns3 = historicalYear ? getBearReturns(historicalYear) : null;
-
-      for (let y = 0; y <= yrsToRet; y++) {
-        let g: number;
-
-        // Apply FIRST bear return in the retirement year itself (y == yrsToRet)
-        if (bearReturns3 && y === yrsToRet) {
-          const pct = bearReturns3[0]; // First bear year
-          if (walkSeries === "real") {
-            const realRate = (1 + pct / 100) / (1 + infl) - 1;
-            g = 1 + realRate;
-          } else {
-            g = 1 + pct / 100;
-          }
-        } else {
-          g = retMode === "fixed" ? g_fixed : (accGen.next().value as number);
-        }
-
-        const yr = CURR_YEAR + y;
-        const a1 = age1 + y;
-        const a2 = isMar ? age2 + y : null;
-
-        if (y > 0) {
-          bTax *= g;
-          bPre *= g;
-          bPost *= g;
-        }
-
-        if (y > 0 && incContrib) {
-          const f = 1 + incRate / 100;
-          (Object.keys(c.p) as (keyof typeof c.p)[]).forEach((k) => (c.p[k] *= f));
-          if (isMar)
-            (Object.keys(c.s) as (keyof typeof c.s)[]).forEach((k) => (c.s[k] *= f));
-        }
-
-        const addMidYear = (amt: number) => amt * (1 + (g - 1) * 0.5);
-
-        if (a1 < retAge) {
-          bTax += addMidYear(c.p.tax);
-          bPre += addMidYear(c.p.pre + c.p.match);
-          bPost += addMidYear(c.p.post);
-          basisTax += c.p.tax;
-          totC += c.p.tax + c.p.pre + c.p.match + c.p.post;
-        }
-        if (isMar && a2! < retAge) {
-          bTax += addMidYear(c.s.tax);
-          bPre += addMidYear(c.s.pre + c.s.match);
-          bPost += addMidYear(c.s.post);
-          basisTax += c.s.tax;
-          totC += c.s.tax + c.s.pre + c.s.match + c.s.post;
-        }
-
-        const bal = bTax + bPre + bPost;
-        data.push({
-          year: yr,
-          a1,
-          a2,
-          bal,
-          real: bal / Math.pow(1 + infl, y),
-        });
-      }
-
-      const finNom = bTax + bPre + bPost;
-      const infAdj = Math.pow(1 + infl, yrsToRet);
-      const finReal = finNom / infAdj;
-
-      const wdGrossY1 = finNom * (wdRate / 100);
-
-      // Use imported tax calculation function
-      const y1 = computeWithdrawalTaxes(
-        wdGrossY1,
-        marital,
-        bTax,
-        bPre,
-        bPost,
-        basisTax,
-        stateRate
-      );
-
-      const wdAfterY1 = wdGrossY1 - y1.tax;
-      const wdRealY1 = wdAfterY1 / infAdj;
-
-      let retBalTax = bTax;
-      let retBalPre = bPre;
-      let retBalRoth = bPost;
-      let currBasis = basisTax;
-      let currWdGross = wdGrossY1;
-      let survYrs = 0;
-      let ruined = false;
-      let totalRMDs = 0; // Track cumulative RMDs
-      const rmdData: { age: number; spending: number; rmd: number }[] = []; // Track RMD vs spending
-
-      // Bear market returns already applied: bearReturns3[0] was used in retirement year
-      // Now apply bearReturns3[1] and bearReturns3[2] in years 1-2 of drawdown
-
-      for (let y = 1; y <= yrsToSim; y++) {
-        let g_retire: number;
-
-        // Inject remaining bear market returns in years 1-2 after retirement
-        if (bearReturns3 && y >= 1 && y <= 2) {
-          const pct = bearReturns3[y]; // y=1 uses bearReturns3[1], y=2 uses bearReturns3[2]
-          if (walkSeries === "real") {
-            const realRate = (1 + pct / 100) / (1 + infl) - 1;
-            g_retire = 1 + realRate;
-          } else {
-            g_retire = 1 + pct / 100;
-          }
-        } else {
-          g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
-        }
-
-        retBalTax *= g_retire;
-        retBalPre *= g_retire;
-        retBalRoth *= g_retire;
-
-        // Calculate current age and check for RMD requirement
-        const currentAge = age1 + yrsToRet + y;
-        const currentAge2 = isMar ? age2 + yrsToRet + y : 0;
-        const requiredRMD = calcRMD(retBalPre, currentAge);
-
-        // Calculate Social Security benefit if applicable
-        let ssAnnualBenefit = 0;
-        if (includeSS) {
-          // Primary spouse
-          if (currentAge >= ssClaimAge) {
-            ssAnnualBenefit += calcSocialSecurity(ssIncome, ssClaimAge);
-          }
-          // Spouse (if married)
-          if (isMar && currentAge2 >= ssClaimAge2) {
-            ssAnnualBenefit += calcSocialSecurity(ssIncome2, ssClaimAge2);
-          }
-        }
-
-        // Calculate healthcare costs
-        let healthcareCosts = 0;
-
-        // Medicare premiums (age 65+)
-        if (includeMedicare && currentAge >= 65) {
-          const medInflationFactor = Math.pow(1 + medicalInflation / 100, y);
-          healthcareCosts += medicarePremium * 12 * medInflationFactor;
-
-          // IRMAA surcharge if high income
-          const totalIncome = ssAnnualBenefit + requiredRMD;
-          const irmaaThreshold = marital === "married" ? irmaaThresholdMarried : irmaaThresholdSingle;
-          if (totalIncome > irmaaThreshold) {
-            healthcareCosts += irmaaSurcharge * 12 * medInflationFactor;
-          }
-        }
-
-        // Long-term care costs (deterministic mode: averaged over probability and duration)
-        if (includeLTC && currentAge >= ltcAgeRangeStart && currentAge <= ltcAgeRangeEnd) {
-          // Average annual LTC cost = (total cost) × (probability) × (fraction of years in range)
-          const yearsInRange = ltcAgeRangeEnd - ltcAgeRangeStart + 1;
-          const avgAnnualLTC = (ltcAnnualCost * (ltcProbability / 100) * ltcDuration) / yearsInRange;
-          const medInflationFactor = Math.pow(1 + medicalInflation / 100, y);
-          healthcareCosts += avgAnnualLTC * medInflationFactor;
-        }
-
-        // Determine actual withdrawal amount needed from portfolio
-        // SS reduces the amount we need to withdraw (but can't go below RMD)
-        // Healthcare costs increase the amount we need to withdraw
-        let netSpendingNeed = Math.max(0, currWdGross + healthcareCosts - ssAnnualBenefit);
-        let actualWithdrawal = netSpendingNeed;
-        let rmdExcess = 0;
-
-        if (requiredRMD > 0) {
-          // RMD is mandatory - must withdraw at least this much from pre-tax
-          totalRMDs += requiredRMD;
-
-          if (requiredRMD > netSpendingNeed) {
-            // RMD exceeds spending needs (after SS)
-            actualWithdrawal = requiredRMD;
-            rmdExcess = requiredRMD - netSpendingNeed;
-          }
-        }
-
-        // Track RMD vs spending for tax bomb visualization
-        if (currentAge >= RMD_START_AGE) {
-          rmdData.push({
-            age: currentAge,
-            spending: netSpendingNeed,
-            rmd: requiredRMD,
-          });
-        }
-
-        const taxes = computeWithdrawalTaxes(
-          actualWithdrawal,
-          marital,
-          retBalTax,
-          retBalPre,
-          retBalRoth,
-          currBasis,
-          stateRate
-        );
-
-        retBalTax -= taxes.draw.t;
-        retBalPre -= taxes.draw.p;
-        retBalRoth -= taxes.draw.r;
-        currBasis = taxes.newBasis;
-
-        // Handle excess RMD: deposit back into taxable after taxes
-        if (rmdExcess > 0) {
-          const excessTax = calcOrdinaryTax(rmdExcess, marital);
-          const excessAfterTax = rmdExcess - excessTax;
-          retBalTax += excessAfterTax;
-          currBasis += excessAfterTax; // Excess is now basis in taxable
-        }
-
-        if (retBalTax < 0) retBalTax = 0;
-        if (retBalPre < 0) retBalPre = 0;
-        if (retBalRoth < 0) retBalRoth = 0;
-
-        const totalNow = retBalTax + retBalPre + retBalRoth;
-
-        // Add retirement year data points to chart
-        const yr = CURR_YEAR + yrsToRet + y;
-        const a1 = age1 + yrsToRet + y;
-        const a2 = isMar ? age2 + yrsToRet + y : null;
-        data.push({
-          year: yr,
-          a1,
-          a2,
-          bal: totalNow,
-          real: totalNow / Math.pow(1 + infl, yrsToRet + y),
-        });
-
-        if (totalNow <= 0) {
-          if (!ruined) {
-            survYrs = y - 1;
-            ruined = true;
-          }
-          retBalTax = retBalPre = retBalRoth = 0;
-          // Continue loop to maintain chart data through age 95
-        } else {
-          survYrs = y;
-        }
-
-        currWdGross *= infl_factor;
-      }
-
-      const eolWealth = Math.max(0, retBalTax + retBalPre + retBalRoth);
-
-      // Calculate estate tax
-      const estateTax = calcEstateTax(eolWealth, marital);
-      const netEstate = eolWealth - estateTax;
-
-      // Calculate real (inflation-adjusted) EOL wealth for comparisons
-      const yearsFrom2025 = yrsToRet + yrsToSim;
-      const eolReal = eolWealth / Math.pow(1 + infl, yearsFrom2025);
-
-      // Track account balances at end of life
-      const eolAccounts = {
-        taxable: retBalTax,
-        pretax: retBalPre,
-        roth: retBalRoth,
-      };
-      let genPayout: GenerationalPayout | null = null;
-
-      if (showGen && netEstate > 0) {
-        // Parse beneficiary ages from comma-separated string
-        const benAges = hypBenAgesStr
-          .split(',')
-          .map(s => parseInt(s.trim(), 10))
-          .filter(n => !isNaN(n) && n >= 0 && n < 90);
-
-        const sim = await runLegacyViaWorker({
-          eolNominal: netEstate, // Use net estate after estate tax
-          yearsFrom2025,
-          nominalRet: retRate,
-          inflPct: infRate,
-          perBenReal: hypPerBen,
-          startBens: Math.max(1, hypStartBens),
-          totalFertilityRate,
-          generationLength,
-          deathAge: Math.max(1, hypDeathAge),
-          minDistAge: Math.max(0, hypMinDistAge),
-          capYears: 10000,  // Optimized simulation with early-exit and chunking
-          initialBenAges: benAges.length > 0 ? benAges : [0],
-          fertilityWindowStart,
-          fertilityWindowEnd
-        });
-        genPayout = {
-          perBenReal: hypPerBen,
-          years: sim.years,
-          fundLeftReal: sim.fundLeftReal,
-          startBeneficiaries: Math.max(1, hypStartBens),
-          lastLivingCount: sim.lastLivingCount,
-          totalFertilityRate,
-          generationLength,
-          deathAge: Math.max(1, hypDeathAge),
-        };
-      }
-
-      newRes = {
-        finNom,
-        finReal,
-        totC,
-        data,
-        yrsToRet,
-        wd: wdGrossY1,
-        wdAfter: wdAfterY1,
-        wdReal: wdRealY1,
-        survYrs,
-        yrsToSim,
-        eol: eolWealth,
-        eolReal,  // Real (inflation-adjusted) EOL wealth for comparisons
-        estateTax,
-        netEstate,
-        eolAccounts,
-        totalRMDs,
-        genPayout,
-        rmdData, // Add RMD vs spending data for tax bomb chart
-        tax: {
-          fedOrd: calcOrdinaryTax(y1.draw.p, marital),
-          fedCap: calcLTCGTax(
-            y1.draw.t * (Math.max(0, bTax - basisTax) / Math.max(1, bTax)),
-            marital,
-            y1.draw.p
-          ),
-          niit: calcNIIT(
-            y1.draw.t * (Math.max(0, bTax - basisTax) / Math.max(1, bTax)),
-            marital,
-            y1.draw.p +
-              y1.draw.t * (Math.max(0, bTax - basisTax) / Math.max(1, bTax))
-          ),
-          state: (y1.draw.p +
-            y1.draw.t * (Math.max(0, bTax - basisTax) / Math.max(1, bTax))) *
-            (stateRate / 100),
-          tot: y1.tax,
-        },
-      };
-
-      setRes(newRes);
-      setLegacyResult(calculateLegacyResult(newRes));
-
-      // Track calculation for tab interface and auto-switch to results
+      // Track calculation for tab interface
+      const isFirstCalculation = !lastCalculated;
       setLastCalculated(new Date());
       setInputsModified(false);
 
-      // Auto-switch from Configure tab to Results tab
-      if (activeMainTab === 'configure') {
-        setActiveMainTab('results');
-      }
+      // NAVIGATION BEHAVIOR:
+      // - First calculation from Configure tab → Navigate to Results tab and scroll to top
+      // - Recalculate from ANY other location → Stay on current tab, don't scroll
+      const shouldNavigate = isFirstCalculation && activeMainTab === 'configure';
 
-      setTimeout(() => {
-        // In All-in-One tab, scroll to top of page
-        if (activeMainTab === 'all') {
+      if (shouldNavigate) {
+        // First calculation from Configure tab: switch to Results and scroll
+        setActiveMainTab('results');
+        setTimeout(() => {
           window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else if (showGen && genPayout) {
-          genRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-        } else if ((walkSeries as string) === 'trulyRandom') {
-          // Scroll to Monte Carlo visualizer when using Monte Carlo simulation
-          monteCarloRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-        } else {
-          resRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-        // AI insight will be generated on demand when user clicks button
+          setOlderAgeForAnalysis(olderAgeForAI);
+          setIsLoadingAi(false);
+        }, 100);
+      } else {
+        // Recalculate: stay put, no navigation or scrolling
         setOlderAgeForAnalysis(olderAgeForAI);
         setIsLoadingAi(false);
-      }, 100);
+      }
 
     } catch (e: unknown) {
       console.error('[CALC] Calculation error:', e);
@@ -3004,93 +2830,152 @@ export default function App() {
     totalFertilityRate, generationLength, fertilityWindowStart, fertilityWindowEnd,
   ]);
 
-  // Calculate sensitivity analysis using mathematical approximations
+  // Calculate sensitivity analysis using ACTUAL simulations (not approximations)
   const calculateSensitivity = useCallback(() => {
     if (!res) return null;
 
-    const baselineEOL = res.eol;
-    const retirementBalance = res.finNom;
+    // Base inputs for simulations
+    const baseInputs: SimulationInputs = {
+      marital, age1, age2, retAge, sTax, sPre, sPost,
+      cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+      retRate, infRate, stateRate, incContrib, incRate, wdRate,
+      retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+      historicalYear: historicalYear || undefined,
+      inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
+      inflationShockDuration,
+      includeMedicare, medicarePremium, medicalInflation,
+      irmaaThresholdSingle, irmaaThresholdMarried, irmaaSurcharge,
+      includeLTC, ltcAnnualCost, ltcProbability, ltcDuration,
+      ltcOnsetAge, ltcAgeRangeStart, ltcAgeRangeEnd,
+      bondGlidePath,
+    };
+
+    // Run baseline simulation
+    const baselineSim = runSingleSimulation(baseInputs, seed);
+    const baselineEOL = baselineSim.eolReal;
+    const infl = infRate / 100;
     const younger = Math.min(age1, isMar ? age2 : age1);
+    const older = Math.max(age1, isMar ? age2 : age1);
     const yrsToRet = retAge - younger;
-    const yrsToSim = Math.max(0, LIFE_EXP - (Math.max(age1, isMar ? age2 : age1) + yrsToRet));
+    const yearsFrom2025 = (LIFE_EXP - older);
+    const baselineNominal = baselineEOL * Math.pow(1 + infl, yearsFrom2025);
+
     const variations = [];
 
-    // Return Rate impact: Use compound growth sensitivity
-    // ±2% over 30 years ≈ ±60% impact on accumulation, ±40% on total EOL
-    const returnDelta = 0.02;
-    const accumulationYears = yrsToRet;
-    const drawdownYears = yrsToSim;
-    const totalYears = accumulationYears + drawdownYears;
-    const returnImpact = baselineEOL * (Math.pow(1 + retRate/100 + returnDelta, totalYears) / Math.pow(1 + retRate/100, totalYears) - 1);
+    // 1. Return Rate: ±2%
+    const highReturnSim = runSingleSimulation({ ...baseInputs, retRate: retRate + 2 }, seed);
+    const lowReturnSim = runSingleSimulation({ ...baseInputs, retRate: retRate - 2 }, seed);
     variations.push({
       label: "Return Rate",
-      high: returnImpact,
-      low: -returnImpact * 0.95, // Slightly asymmetric
-      range: Math.abs(returnImpact) * 1.95,
+      high: (highReturnSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      low: (lowReturnSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      range: Math.abs((highReturnSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - (lowReturnSim.eolReal * Math.pow(1 + infl, yearsFrom2025))),
     });
 
-    // Retirement Age: Each year delays retirement adds ~1 year of contributions + growth, saves 1 year of withdrawals
-    const annualContrib = (cTax1 + cPre1 + cPost1 + cMatch1 + cTax2 + cPre2 + cPost2 + cMatch2);
-    const growthFactor = Math.pow(1 + retRate/100, yrsToRet / 2); // Mid-point growth
-    const retAgeImpact = (annualContrib * growthFactor * 2) + (res.wd * 2); // 2 years of contributions + savings from not withdrawing
+    // 2. Retirement Age: ±2 years
+    const highRetAgeSim = runSingleSimulation({ ...baseInputs, retAge: retAge + 2 }, seed);
+    const lowRetAgeSim = runSingleSimulation({ ...baseInputs, retAge: Math.max(younger + 5, retAge - 2) }, seed); // Don't retire before age younger+5
     variations.push({
       label: "Retirement Age",
-      high: retAgeImpact * 2, // +2 years
-      low: -retAgeImpact * 2, // -2 years
-      range: retAgeImpact * 4,
+      high: (highRetAgeSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      low: (lowRetAgeSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      range: Math.abs((highRetAgeSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - (lowRetAgeSim.eolReal * Math.pow(1 + infl, yearsFrom2025))),
     });
 
-    // Withdrawal Rate: Direct impact on EOL wealth
-    // ±0.5% over yrsToSim years with compound effects
-    const avgBalance = (retirementBalance + baselineEOL) / 2;
-    const wdImpact = avgBalance * 0.005 * yrsToSim * 1.2; // 1.2 factor for compound effects
+    // 3. Withdrawal Rate: ±0.5%
+    const highWdSim = runSingleSimulation({ ...baseInputs, wdRate: wdRate + 0.5 }, seed);
+    const lowWdSim = runSingleSimulation({ ...baseInputs, wdRate: wdRate - 0.5 }, seed);
     variations.push({
       label: "Withdrawal Rate",
-      high: -wdImpact, // Higher withdrawal = lower EOL (negative impact)
-      low: wdImpact, // Lower withdrawal = higher EOL (positive impact)
-      range: wdImpact * 2,
+      high: (lowWdSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal, // Lower withdrawal = higher EOL
+      low: (highWdSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal, // Higher withdrawal = lower EOL
+      range: Math.abs((lowWdSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - (highWdSim.eolReal * Math.pow(1 + infl, yearsFrom2025))),
     });
 
-    // Starting Savings: ±15% with growth over entire period
-    const savingsGrowthFactor = Math.pow(1 + retRate/100, totalYears);
-    const savingsImpact = (sTax + sPre + sPost) * 0.15 * savingsGrowthFactor;
+    // 4. Starting Savings: ±15%
+    const savingsFactor = 0.15;
+    const highSavingsSim = runSingleSimulation({
+      ...baseInputs,
+      sTax: sTax * (1 + savingsFactor),
+      sPre: sPre * (1 + savingsFactor),
+      sPost: sPost * (1 + savingsFactor),
+    }, seed);
+    const lowSavingsSim = runSingleSimulation({
+      ...baseInputs,
+      sTax: sTax * (1 - savingsFactor),
+      sPre: sPre * (1 - savingsFactor),
+      sPost: sPost * (1 - savingsFactor),
+    }, seed);
     variations.push({
       label: "Starting Savings",
-      high: savingsImpact,
-      low: -savingsImpact,
-      range: savingsImpact * 2,
+      high: (highSavingsSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      low: (lowSavingsSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      range: Math.abs((highSavingsSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - (lowSavingsSim.eolReal * Math.pow(1 + infl, yearsFrom2025))),
     });
 
-    // Annual Contributions: ±15% over yrsToRet with growth
-    // Future value of annuity with geometric growth
-    const fvFactor = ((Math.pow(1 + retRate/100, yrsToRet) - 1) / (retRate/100)) * (1 + retRate/100);
-    const contribImpact = annualContrib * 0.15 * fvFactor * Math.pow(1 + retRate/100, yrsToSim);
+    // 5. Annual Contributions: ±15%
+    const contribFactor = 0.15;
+    const highContribSim = runSingleSimulation({
+      ...baseInputs,
+      cTax1: cTax1 * (1 + contribFactor),
+      cPre1: cPre1 * (1 + contribFactor),
+      cPost1: cPost1 * (1 + contribFactor),
+      cMatch1: cMatch1 * (1 + contribFactor),
+      cTax2: cTax2 * (1 + contribFactor),
+      cPre2: cPre2 * (1 + contribFactor),
+      cPost2: cPost2 * (1 + contribFactor),
+      cMatch2: cMatch2 * (1 + contribFactor),
+    }, seed);
+    const lowContribSim = runSingleSimulation({
+      ...baseInputs,
+      cTax1: cTax1 * (1 - contribFactor),
+      cPre1: cPre1 * (1 - contribFactor),
+      cPost1: cPost1 * (1 - contribFactor),
+      cMatch1: cMatch1 * (1 - contribFactor),
+      cTax2: cTax2 * (1 - contribFactor),
+      cPre2: cPre2 * (1 - contribFactor),
+      cPost2: cPost2 * (1 - contribFactor),
+      cMatch2: cMatch2 * (1 - contribFactor),
+    }, seed);
     variations.push({
       label: "Annual Contributions",
-      high: contribImpact,
-      low: -contribImpact,
-      range: contribImpact * 2,
+      high: (highContribSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      low: (lowContribSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      range: Math.abs((highContribSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - (lowContribSim.eolReal * Math.pow(1 + infl, yearsFrom2025))),
     });
 
-    // Inflation: ±0.5% affects both accumulation and purchasing power
-    // Impact is approximately ±0.5% * totalYears on real value
-    const inflationDelta = 0.005;
-    const inflationImpact = baselineEOL * inflationDelta * totalYears * 0.5; // Conservative linear approximation
+    // 6. Inflation Rate: ±0.5%
+    const highInflSim = runSingleSimulation({ ...baseInputs, infRate: infRate + 0.5 }, seed);
+    const lowInflSim = runSingleSimulation({ ...baseInputs, infRate: infRate - 0.5 }, seed);
+    // Higher inflation reduces real purchasing power, lower inflation increases it
+    const highInflNominal = highInflSim.eolReal * Math.pow(1 + (infRate + 0.5) / 100, yearsFrom2025);
+    const lowInflNominal = lowInflSim.eolReal * Math.pow(1 + (infRate - 0.5) / 100, yearsFrom2025);
     variations.push({
       label: "Inflation Rate",
-      high: -inflationImpact, // Higher inflation = lower real value
-      low: inflationImpact, // Lower inflation = higher real value
-      range: inflationImpact * 2,
+      high: lowInflNominal - baselineNominal, // Lower inflation = higher real purchasing power
+      low: highInflNominal - baselineNominal, // Higher inflation = lower real purchasing power
+      range: Math.abs(lowInflNominal - highInflNominal),
     });
 
     // Sort by range (impact magnitude)
     variations.sort((a, b) => b.range - a.range);
 
     return {
-      baseline: baselineEOL,
+      baseline: baselineNominal,
       variations,
     };
-  }, [res, retRate, retAge, wdRate, sTax, sPre, sPost, cTax1, cPre1, cPost1, cTax2, cPre2, cPost2, age1, age2, isMar, infRate]);
+  }, [
+    res, marital, age1, age2, retAge, sTax, sPre, sPost,
+    cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+    retRate, infRate, stateRate, incContrib, incRate, wdRate,
+    retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+    historicalYear, inflationShockRate, inflationShockDuration,
+    includeMedicare, medicarePremium, medicalInflation,
+    irmaaThresholdSingle, irmaaThresholdMarried, irmaaSurcharge,
+    includeLTC, ltcAnnualCost, ltcProbability, ltcDuration,
+    ltcOnsetAge, ltcAgeRangeStart, ltcAgeRangeEnd,
+    bondGlidePath, isMar, seed,
+  ]);
 
   // Load scenarios from localStorage on mount
   useEffect(() => {
@@ -3172,11 +3057,10 @@ export default function App() {
       name: scenarioName.trim(),
       timestamp: Date.now(),
       inputs: {
-        age1, age2, retAge, marital,
-        sTax, sPre, sPost,
-        cTax1, cPre1, cPost1, cMatch1,
-        cTax2, cPre2, cPost2, cMatch2,
-        retRate, infRate, stateRate, wdRate, incContrib, incRate,
+        ...personalInfo,
+        ...currentBalances,
+        ...contributions,
+        ...assumptions,
       },
       results: {
         finNom: res.finNom,
@@ -3195,7 +3079,7 @@ export default function App() {
     setSavedScenarios(updated);
     localStorage.setItem('retirement-scenarios', JSON.stringify(updated));
     setScenarioName("");
-  }, [res, scenarioName, savedScenarios, age1, age2, retAge, marital, sTax, sPre, sPost, cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2, retRate, infRate, stateRate, wdRate, incContrib, incRate]);
+  }, [res, scenarioName, savedScenarios, personalInfo, currentBalances, contributions, assumptions]);
 
   // Delete a scenario
   const deleteScenario = useCallback((id: string) => {
@@ -3204,30 +3088,43 @@ export default function App() {
     localStorage.setItem('retirement-scenarios', JSON.stringify(updated));
   }, [savedScenarios]);
 
-  // Load a scenario (restore inputs)
+  // Load a scenario (restore inputs) - Optimized with grouped state updates
   const loadScenario = useCallback((scenario: SavedScenario) => {
     const inp = scenario.inputs;
-    setAge1(inp.age1 ?? 30);
-    setAge2(inp.age2 ?? 30);
-    setRetAge(inp.retAge ?? 65);
-    setMarital(inp.marital ?? 'single');
-    setSTax(inp.sTax ?? 0);
-    setSPre(inp.sPre ?? 0);
-    setSPost(inp.sPost ?? 0);
-    setCTax1(inp.cTax1 ?? 0);
-    setCPre1(inp.cPre1 ?? 0);
-    setCPost1(inp.cPost1 ?? 0);
-    setCMatch1(inp.cMatch1 ?? 0);
-    setCTax2(inp.cTax2 ?? 0);
-    setCPre2(inp.cPre2 ?? 0);
-    setCPost2(inp.cPost2 ?? 0);
-    setCMatch2(inp.cMatch2 ?? 0);
-    setRetRate(inp.retRate ?? 7);
-    setInfRate(inp.infRate ?? 3);
-    setStateRate(inp.stateRate ?? 0);
-    setWdRate(inp.wdRate ?? 4);
-    setIncContrib(inp.incContrib ?? false);
-    setIncRate(inp.incRate ?? 4.5);
+
+    // Update all grouped state objects in one operation each
+    setPersonalInfo({
+      age1: inp.age1 ?? 30,
+      age2: inp.age2 ?? 30,
+      retAge: inp.retAge ?? 65,
+      marital: inp.marital ?? 'single',
+    });
+
+    setCurrentBalances({
+      sTax: inp.sTax ?? 0,
+      sPre: inp.sPre ?? 0,
+      sPost: inp.sPost ?? 0,
+    });
+
+    setContributions({
+      cTax1: inp.cTax1 ?? 0,
+      cPre1: inp.cPre1 ?? 0,
+      cPost1: inp.cPost1 ?? 0,
+      cMatch1: inp.cMatch1 ?? 0,
+      cTax2: inp.cTax2 ?? 0,
+      cPre2: inp.cPre2 ?? 0,
+      cPost2: inp.cPost2 ?? 0,
+      cMatch2: inp.cMatch2 ?? 0,
+    });
+
+    setAssumptions({
+      retRate: inp.retRate ?? 7,
+      infRate: inp.infRate ?? 3,
+      stateRate: inp.stateRate ?? 0,
+      wdRate: inp.wdRate ?? 4,
+      incContrib: inp.incContrib ?? false,
+      incRate: inp.incRate ?? 4.5,
+    });
   }, []);
 
   return (
@@ -6935,7 +6832,7 @@ export default function App() {
                       <Input
                         label="Generation Length (years)"
                         value={generationLength}
-                        setter={setGenerationLength}
+                        setter={handleGenerationLengthChange}
                         min={20}
                         max={40}
                         onInputChange={handleInputChange}

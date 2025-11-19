@@ -75,6 +75,7 @@ export type SimulationResult = {
   eolReal: number;            // end-of-life wealth (real)
   y1AfterTaxReal: number;     // year-1 after-tax withdrawal (real)
   ruined: boolean;            // true if ran out of money before age 95
+  survYrs?: number;           // year when portfolio failed (0 if never failed)
 };
 
 /**

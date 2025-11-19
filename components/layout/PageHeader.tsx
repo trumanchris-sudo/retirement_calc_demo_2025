@@ -13,6 +13,7 @@ interface PageHeaderProps {
   isDarkMode?: boolean;
   onToggleDarkMode: () => void;
   onDownloadPDF?: () => void;
+  onPrint?: () => void;
   onShare?: () => void;
   onAdjust?: (deltas: AdjustmentDeltas) => void;
   cubeAppended?: boolean;
@@ -28,6 +29,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   isDarkMode = false,
   onToggleDarkMode,
   onDownloadPDF,
+  onPrint,
   onShare,
   onAdjust,
   cubeAppended = false
