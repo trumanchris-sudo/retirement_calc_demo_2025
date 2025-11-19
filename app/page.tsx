@@ -1290,6 +1290,10 @@ export default function App() {
   const [ltcAgeRangeStart, setLtcAgeRangeStart] = useState(75); // Earliest possible LTC onset
   const [ltcAgeRangeEnd, setLtcAgeRangeEnd] = useState(90); // Latest possible LTC onset
 
+  // Roth Conversion Strategy
+  const [enableRothConversions, setEnableRothConversions] = useState(false);
+  const [targetConversionBracket, setTargetConversionBracket] = useState(0.24); // 24% bracket default
+
   const [showGen, setShowGen] = useState(true);
 
   // Generational wealth parameters (improved demographic model)
@@ -2300,6 +2304,9 @@ export default function App() {
         ltcOnsetAge,
         ltcAgeRangeStart,
         ltcAgeRangeEnd,
+        // Roth conversion strategy
+        enableRothConversions,
+        targetConversionBracket,
         // Bond glide path
         bondGlidePath,
       };
@@ -6677,6 +6684,57 @@ export default function App() {
                                   tip="Latest age LTC might begin (for Monte Carlo distribution)"
                                   onInputChange={handleInputChange}
                                 />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <Separator />
+
+                        {/* Roth Conversion Strategy Section */}
+                        <div className="space-y-4">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="enable-roth-conversions"
+                              checked={enableRothConversions}
+                              onChange={(e) => { setEnableRothConversions(e.target.checked); setInputsModified(true); }}
+                              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
+                            />
+                            <Label htmlFor="enable-roth-conversions" className="text-base font-semibold cursor-pointer">
+                              Enable Automatic Roth Conversions {enableRothConversions && <span className="print-only">✓</span>}
+                            </Label>
+                          </div>
+
+                          {enableRothConversions && (
+                            <div className="space-y-4 pl-7">
+                              <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  <strong>Automatic Roth conversions can reduce lifetime taxes.</strong> Before RMDs begin (age 73), convert pre-tax to Roth up to your target tax bracket each year. Taxes are paid from your taxable account.
+                                </p>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Target Tax Bracket</Label>
+                                <select
+                                  value={targetConversionBracket}
+                                  onChange={(e) => {
+                                    setTargetConversionBracket(parseFloat(e.target.value));
+                                    setInputsModified(true);
+                                  }}
+                                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                                >
+                                  <option value={0.10}>10% - Low income bracket</option>
+                                  <option value={0.12}>12% - Lower-middle bracket (default for many retirees)</option>
+                                  <option value={0.22}>22% - Middle bracket</option>
+                                  <option value={0.24}>24% - Upper-middle bracket (recommended)</option>
+                                  <option value={0.32}>32% - High bracket</option>
+                                  <option value={0.35}>35% - Very high bracket</option>
+                                  <option value={0.37}>37% - Top bracket</option>
+                                </select>
+                                <p className="text-xs text-muted-foreground">
+                                  Convert pre-tax to Roth each year to fill up to this tax bracket. Higher brackets mean more conversions but higher taxes paid upfront.
+                                </p>
                               </div>
                             </div>
                           )}

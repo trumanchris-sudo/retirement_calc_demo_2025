@@ -351,6 +351,8 @@ function runSingleSimulation(params, seed) {
     inflationShockRate,
     inflationShockDuration = 5,
     dividendYield = 2.0, // Default 2% annual dividend yield for taxable accounts
+    enableRothConversions = false,
+    targetConversionBracket = 0.24, // Default to 24% bracket
     // Healthcare costs
     includeMedicare = true,
     medicarePremium = 400,
@@ -590,6 +592,10 @@ function runSingleSimulation(params, seed) {
   let survYrs = 0;
   let ruined = false;
 
+  // Roth conversion tracking
+  let totalRothConversions = 0;
+  let conversionTaxesPaid = 0;
+
   // Drawdown phase
   for (let y = 1; y <= yrsToSim; y++) {
     // Generator handles historical sequences naturally via startYear
@@ -625,6 +631,52 @@ function runSingleSimulation(params, seed) {
       }
       if (isMar && currentAge2 >= ssClaimAge2) {
         ssAnnualBenefit += calcSocialSecurity(ssIncome2, ssClaimAge2);
+      }
+    }
+
+    // Roth Conversion Strategy: Convert pre-tax to Roth before RMD age
+    if (enableRothConversions && currentAge < RMD_START_AGE && retBalPre > 0 && retBalTax > 0) {
+      // Find the bracket threshold for the target bracket rate
+      const brackets = TAX_BRACKETS[marital];
+      const targetBracket = brackets.rates.find(b => b.rate === targetConversionBracket);
+
+      if (targetBracket) {
+        // Calculate taxable ordinary income available before hitting target bracket
+        // Current ordinary income = Social Security
+        const currentOrdinaryIncome = ssAnnualBenefit;
+
+        // Headroom = (bracket limit) - (standard deduction + current ordinary income)
+        // This is how much more ordinary income we can add while staying in the target bracket
+        const bracketThreshold = targetBracket.limit + brackets.deduction;
+        const headroom = Math.max(0, bracketThreshold - currentOrdinaryIncome);
+
+        if (headroom > 0) {
+          // Conversion creates ordinary income, so convert up to headroom
+          const maxConversion = Math.min(headroom, retBalPre);
+
+          // Calculate tax on the conversion (it's taxed as ordinary income)
+          const conversionTax = calcOrdinaryTax(currentOrdinaryIncome + maxConversion, marital) -
+                                calcOrdinaryTax(currentOrdinaryIncome, marital);
+
+          // Can only convert what we can afford to pay tax on from taxable account
+          const affordableConversion = conversionTax > 0 ?
+            Math.min(maxConversion, retBalTax / conversionTax * maxConversion) :
+            maxConversion;
+
+          if (affordableConversion > 0) {
+            // Perform the conversion
+            const actualConversion = Math.min(affordableConversion, retBalPre);
+            const actualTax = calcOrdinaryTax(currentOrdinaryIncome + actualConversion, marital) -
+                             calcOrdinaryTax(currentOrdinaryIncome, marital);
+
+            retBalPre -= actualConversion;
+            retBalRoth += actualConversion;
+            retBalTax -= actualTax;
+
+            totalRothConversions += actualConversion;
+            conversionTaxesPaid += actualTax;
+          }
+        }
       }
     }
 
@@ -726,6 +778,8 @@ function runSingleSimulation(params, seed) {
     eolReal,
     y1AfterTaxReal: wdRealY1,
     ruined,
+    totalRothConversions,
+    conversionTaxesPaid,
   };
 }
 

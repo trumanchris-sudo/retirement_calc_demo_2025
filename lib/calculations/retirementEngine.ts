@@ -10,7 +10,7 @@ import { calcOrdinaryTax, calcLTCGTax } from "./taxCalculations";
 import { computeWithdrawalTaxes } from "./withdrawalTax";
 import { getBearReturns } from "@/lib/simulation/bearMarkets";
 import { getEffectiveInflation } from "@/lib/simulation/inflationShocks";
-import { LIFE_EXP, RMD_START_AGE, RMD_DIVISORS, SP500_YOY_NOMINAL, BOND_NOMINAL_AVG, calculateBondReturn } from "@/lib/constants";
+import { LIFE_EXP, RMD_START_AGE, RMD_DIVISORS, SP500_YOY_NOMINAL, BOND_NOMINAL_AVG, calculateBondReturn, TAX_BRACKETS } from "@/lib/constants";
 import { mulberry32 } from "@/lib/utils";
 import { calculateBondAllocation, calculateBlendedReturn } from "@/lib/bondAllocation";
 
@@ -67,6 +67,9 @@ export type SimulationInputs = {
   bondGlidePath?: BondGlidePath | null;
   // Yield drag (annual tax on dividends/interest in taxable accounts)
   dividendYield?: number; // Annual dividend/interest yield % (default 2.0)
+  // Roth conversion strategy
+  enableRothConversions?: boolean;
+  targetConversionBracket?: number; // e.g., 0.24 for 24% bracket
 };
 
 /**
@@ -79,6 +82,8 @@ export type SimulationResult = {
   y1AfterTaxReal: number;     // year-1 after-tax withdrawal (real)
   ruined: boolean;            // true if ran out of money before age 95
   survYrs?: number;           // year when portfolio failed (0 if never failed)
+  totalRothConversions?: number; // cumulative Roth conversions (pre-tax)
+  conversionTaxesPaid?: number;  // cumulative conversion taxes paid
 };
 
 /**
@@ -255,6 +260,8 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     inflationShockRate,
     inflationShockDuration = 5,
     dividendYield = 2.0, // Default 2% annual dividend yield for taxable accounts
+    enableRothConversions = false,
+    targetConversionBracket = 0.24, // Default to 24% bracket
   } = params;
 
   const isMar = marital === "married";
@@ -399,6 +406,10 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   let survYrs = 0;
   let ruined = false;
 
+  // Roth conversion tracking
+  let totalRothConversions = 0;
+  let conversionTaxesPaid = 0;
+
   // Drawdown phase
   for (let y = 1; y <= yrsToSim; y++) {
     // Generator handles historical sequences naturally via startYear
@@ -434,6 +445,52 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
       }
       if (isMar && currentAge2 >= ssClaimAge2) {
         ssAnnualBenefit += calcSocialSecurity(ssIncome2, ssClaimAge2);
+      }
+    }
+
+    // Roth Conversion Strategy: Convert pre-tax to Roth before RMD age
+    if (enableRothConversions && currentAge < RMD_START_AGE && retBalPre > 0 && retBalTax > 0) {
+      // Find the bracket threshold for the target bracket rate
+      const brackets = TAX_BRACKETS[marital];
+      const targetBracket = brackets.rates.find(b => b.rate === targetConversionBracket);
+
+      if (targetBracket) {
+        // Calculate taxable ordinary income available before hitting target bracket
+        // Current ordinary income = Social Security
+        const currentOrdinaryIncome = ssAnnualBenefit;
+
+        // Headroom = (bracket limit) - (standard deduction + current ordinary income)
+        // This is how much more ordinary income we can add while staying in the target bracket
+        const bracketThreshold = targetBracket.limit + brackets.deduction;
+        const headroom = Math.max(0, bracketThreshold - currentOrdinaryIncome);
+
+        if (headroom > 0) {
+          // Conversion creates ordinary income, so convert up to headroom
+          const maxConversion = Math.min(headroom, retBalPre);
+
+          // Calculate tax on the conversion (it's taxed as ordinary income)
+          const conversionTax = calcOrdinaryTax(currentOrdinaryIncome + maxConversion, marital) -
+                                calcOrdinaryTax(currentOrdinaryIncome, marital);
+
+          // Can only convert what we can afford to pay tax on from taxable account
+          const affordableConversion = conversionTax > 0 ?
+            Math.min(maxConversion, retBalTax / conversionTax * maxConversion) :
+            maxConversion;
+
+          if (affordableConversion > 0) {
+            // Perform the conversion
+            const actualConversion = Math.min(affordableConversion, retBalPre);
+            const actualTax = calcOrdinaryTax(currentOrdinaryIncome + actualConversion, marital) -
+                             calcOrdinaryTax(currentOrdinaryIncome, marital);
+
+            retBalPre -= actualConversion;
+            retBalRoth += actualConversion;
+            retBalTax -= actualTax;
+
+            totalRothConversions += actualConversion;
+            conversionTaxesPaid += actualTax;
+          }
+        }
       }
     }
 
@@ -507,5 +564,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     eolReal,
     y1AfterTaxReal: wdRealY1,
     ruined,
+    totalRothConversions,
+    conversionTaxesPaid,
   };
 }
