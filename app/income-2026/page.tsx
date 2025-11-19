@@ -128,11 +128,18 @@ export default function Income2026Page() {
       netCashFlow: number;
       runningBalance: number;
     }>;
+    paychecks?: Array<any>;
     yearSummary: {
       totalIncome: number;
-      totalExpenses: number;
-      netCashFlow: number;
-      endingBalance: number;
+      totalPreTax: number;
+      totalFIT: number;
+      totalFICA: number;
+      total401k: number;
+      totalHYSA: number;
+      totalBrokerage: number;
+      totalFixedExpenses: number;
+      netTakeHome: number;
+      effectiveTaxRate: number;
     };
   } | null>(null);
 
@@ -553,7 +560,7 @@ export default function Income2026Page() {
           const wagesBeforeThreshold = Math.min(p2BaseGross, MEDICARE_THRESHOLD - p2YtdWages);
           p2Med145 = wagesBeforeThreshold * 0.0145;
 
-          const wagesAfterThreshold = p2BaseGross - wagesAfterThreshold;
+          const wagesAfterThreshold = p2BaseGross - wagesBeforeThreshold;
           if (wagesAfterThreshold > 0) {
             p2Med235 = wagesAfterThreshold * 0.0235;
           }
