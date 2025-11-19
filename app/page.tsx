@@ -3283,33 +3283,81 @@ export default function App() {
 
                 {/* 4 Key Metric Cards - Prominent placement on Page 1 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  {/* Future Balance */}
-                  <div className="border-2 border-blue-300 bg-blue-50 p-4">
-                    <div className="text-xs uppercase text-blue-800 font-semibold mb-1">Future Balance</div>
-                    <div className="text-3xl font-bold text-blue-900 mb-1">{fmt(res.finNom)}</div>
-                    <div className="text-sm text-blue-700">At age {retAge} (nominal)</div>
-                  </div>
+                  {walkSeries === 'trulyRandom' ? (
+                    <>
+                      {/* Monte Carlo Mode - "The Odds View" */}
+                      {/* Card 1: Probability of Success */}
+                      <div className="border-2 border-green-300 bg-green-50 p-4">
+                        <div className="text-xs uppercase text-green-800 font-semibold mb-1">Probability of Success</div>
+                        <div className="text-3xl font-bold text-green-900 mb-1">
+                          {res.probRuin !== undefined ? `${((1 - res.probRuin) * 100).toFixed(1)}%` : '100%'}
+                        </div>
+                        <div className="text-sm text-green-700">Based on 1,000 market simulations</div>
+                      </div>
 
-                  {/* Today's Dollars */}
-                  <div className="border-2 border-green-300 bg-green-50 p-4">
-                    <div className="text-xs uppercase text-green-800 font-semibold mb-1">Today's Dollars</div>
-                    <div className="text-3xl font-bold text-green-900 mb-1">{fmt(res.finReal)}</div>
-                    <div className="text-sm text-green-700">At age {retAge} (inflation-adjusted)</div>
-                  </div>
+                      {/* Card 2: Worst-Case Wealth (P10) */}
+                      <div className="border-2 border-red-300 bg-red-50 p-4">
+                        <div className="text-xs uppercase text-red-800 font-semibold mb-1">Worst-Case Wealth (P10)</div>
+                        <div className="text-3xl font-bold text-red-900 mb-1">
+                          {batchSummary && batchSummary.p10BalancesReal ?
+                            fmt(batchSummary.p10BalancesReal[batchSummary.p10BalancesReal.length - 1] * Math.pow(1 + infRate / 100, batchSummary.p10BalancesReal.length - 1))
+                            : fmt(res.eol * 0.3)}
+                        </div>
+                        <div className="text-sm text-red-700">Bottom 10% outcome</div>
+                      </div>
 
-                  {/* Annual Withdrawal */}
-                  <div className="border-2 border-purple-300 bg-purple-50 p-4">
-                    <div className="text-xs uppercase text-purple-800 font-semibold mb-1">Annual Withdrawal</div>
-                    <div className="text-3xl font-bold text-purple-900 mb-1">{fmt(res.wd)}</div>
-                    <div className="text-sm text-purple-700">{wdRate}% of balance (Year 1)</div>
-                  </div>
+                      {/* Card 3: Median Wealth (P50) */}
+                      <div className="border-2 border-blue-300 bg-blue-50 p-4">
+                        <div className="text-xs uppercase text-blue-800 font-semibold mb-1">Median Wealth (P50)</div>
+                        <div className="text-3xl font-bold text-blue-900 mb-1">{fmt(res.eol)}</div>
+                        <div className="text-sm text-blue-700">Expected outcome</div>
+                      </div>
 
-                  {/* After-Tax Income */}
-                  <div className="border-2 border-orange-300 bg-orange-50 p-4">
-                    <div className="text-xs uppercase text-orange-800 font-semibold mb-1">After-Tax Income</div>
-                    <div className="text-3xl font-bold text-orange-900 mb-1">{fmt(res.wdReal)}</div>
-                    <div className="text-sm text-orange-700">Spendable (after all taxes)</div>
-                  </div>
+                      {/* Card 4: Best-Case Wealth (P90) */}
+                      <div className="border-2 border-purple-300 bg-purple-50 p-4">
+                        <div className="text-xs uppercase text-purple-800 font-semibold mb-1">Best-Case Wealth (P90)</div>
+                        <div className="text-3xl font-bold text-purple-900 mb-1">
+                          {batchSummary && batchSummary.p90BalancesReal ?
+                            fmt(batchSummary.p90BalancesReal[batchSummary.p90BalancesReal.length - 1] * Math.pow(1 + infRate / 100, batchSummary.p90BalancesReal.length - 1))
+                            : fmt(res.eol * 1.8)}
+                        </div>
+                        <div className="text-sm text-purple-700">Top 10% outcome</div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Fixed/Deterministic Mode - "The Projection View" */}
+                      {/* Card 1: Projected Ending Wealth */}
+                      <div className="border-2 border-blue-300 bg-blue-50 p-4">
+                        <div className="text-xs uppercase text-blue-800 font-semibold mb-1">Projected Ending Wealth</div>
+                        <div className="text-3xl font-bold text-blue-900 mb-1">{fmt(res.eol)}</div>
+                        <div className="text-sm text-blue-700">At age {LIFE_EXP}</div>
+                      </div>
+
+                      {/* Card 2: Annual Safe Income */}
+                      <div className="border-2 border-green-300 bg-green-50 p-4">
+                        <div className="text-xs uppercase text-green-800 font-semibold mb-1">Annual Safe Income</div>
+                        <div className="text-3xl font-bold text-green-900 mb-1">{fmt(res.wdReal)}</div>
+                        <div className="text-sm text-green-700">Year 1 (inflation-adjusted)</div>
+                      </div>
+
+                      {/* Card 3: Est. Lifetime Tax Rate */}
+                      <div className="border-2 border-orange-300 bg-orange-50 p-4">
+                        <div className="text-xs uppercase text-orange-800 font-semibold mb-1">Est. Lifetime Tax Rate</div>
+                        <div className="text-3xl font-bold text-orange-900 mb-1">
+                          {res.wd > 0 ? `${((res.tax.tot / res.wd) * 100).toFixed(1)}%` : '0%'}
+                        </div>
+                        <div className="text-sm text-orange-700">First year effective rate</div>
+                      </div>
+
+                      {/* Card 4: Net Estate After Tax */}
+                      <div className="border-2 border-purple-300 bg-purple-50 p-4">
+                        <div className="text-xs uppercase text-purple-800 font-semibold mb-1">Net Estate After Tax</div>
+                        <div className="text-3xl font-bold text-purple-900 mb-1">{fmt(res.netEstate || res.eol)}</div>
+                        <div className="text-sm text-purple-700">To heirs (after {fmt(res.estateTax || 0)} tax)</div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Additional Metrics - Smaller cards */}
@@ -3523,12 +3571,18 @@ export default function App() {
                   <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Return & Risk Assumptions</h3>
                   <table className="w-full text-xs border border-gray-200">
                     <tbody>
+                      <tr className="bg-gray-50">
+                        <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Market Simulation Model</th>
+                        <td className="px-3 py-2 text-right text-black">
+                          {walkSeries === 'trulyRandom'
+                            ? 'Stochastic Monte Carlo (1,000 Iterations)'
+                            : retMode === 'fixed'
+                            ? `Linear Projection (${retRate}% Constant)`
+                            : 'Historical Bootstrap (Deterministic)'}
+                        </td>
+                      </tr>
                       {retMode === 'fixed' ? (
                         <>
-                          <tr className="bg-gray-50">
-                            <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Return Model</th>
-                            <td className="px-3 py-2 text-right text-black">Fixed Annual Return</td>
-                          </tr>
                           <tr>
                             <th className="px-3 py-2 text-left font-semibold text-black">Nominal Expected Return</th>
                             <td className="px-3 py-2 text-right text-black">{retRate}%</td>
@@ -3540,10 +3594,6 @@ export default function App() {
                         </>
                       ) : (
                         <>
-                          <tr className="bg-gray-50">
-                            <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Return Model</th>
-                            <td className="px-3 py-2 text-right text-black">Historical S&P 500 Bootstrap</td>
-                          </tr>
                           <tr>
                             <th className="px-3 py-2 text-left font-semibold text-black">Historical Data Period</th>
                             <td className="px-3 py-2 text-right text-black">1928-2024 Total Returns</td>
@@ -3556,14 +3606,8 @@ export default function App() {
                           </tr>
                         </>
                       )}
-                      <tr>
-                        <th className="px-3 py-2 text-left font-semibold text-black">Monte Carlo Runs</th>
-                        <td className="px-3 py-2 text-right text-black">
-                          {walkSeries === 'trulyRandom' ? '1,000' : '1 (deterministic)'}
-                        </td>
-                      </tr>
                       {retMode === 'randomWalk' && (
-                        <tr className="bg-gray-50">
+                        <tr className={retMode === 'fixed' ? '' : 'bg-gray-50'}>
                           <th className="px-3 py-2 text-left font-semibold text-black">Sequence-of-Returns Risk</th>
                           <td className="px-3 py-2 text-right text-black">Modeled (historical variability)</td>
                         </tr>
@@ -3678,8 +3722,8 @@ export default function App() {
                   <h2 className="text-xl font-bold text-black">Wealth Accumulation Projection</h2>
                   <p className="text-xs text-gray-700 mt-1">
                     {walkSeries === 'trulyRandom'
-                      ? 'Median (50th percentile) projection with percentile bands'
-                      : 'Deterministic projection based on assumptions'}
+                      ? 'Monte Carlo Simulation: Showing median (P50) outcome with "cone of uncertainty" (P10-P90 range). The shaded area represents the range of 80% of possible outcomes across 1,000 simulations.'
+                      : 'Deterministic projection based on fixed return assumptions'}
                   </p>
                 </header>
 
@@ -3727,7 +3771,7 @@ export default function App() {
                           dot={false}
                           name="Real Balance (Today's $)"
                         />
-                        {showP10 && (
+                        {(showP10 || walkSeries === 'trulyRandom') && (
                           <Line
                             type="monotone"
                             dataKey="p10"
@@ -3735,10 +3779,10 @@ export default function App() {
                             strokeWidth={2}
                             strokeDasharray="3 3"
                             dot={false}
-                            name="10th Percentile (Nominal)"
+                            name="10th Percentile - Worst Case (Nominal)"
                           />
                         )}
-                        {showP90 && (
+                        {(showP90 || walkSeries === 'trulyRandom') && (
                           <Line
                             type="monotone"
                             dataKey="p90"
@@ -3746,7 +3790,7 @@ export default function App() {
                             strokeWidth={2}
                             strokeDasharray="3 3"
                             dot={false}
-                            name="90th Percentile (Nominal)"
+                            name="90th Percentile - Best Case (Nominal)"
                           />
                         )}
                       </ComposedChart>
