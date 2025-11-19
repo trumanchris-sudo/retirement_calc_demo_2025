@@ -99,8 +99,6 @@ import {
 import {
   calculateBondAllocation,
   calculateBlendedReturn,
-  calculatePortfolioVolatility,
-  generateAllocationChart,
   GLIDE_PATH_PRESETS,
 } from "@/lib/bondAllocation";
 
@@ -110,13 +108,8 @@ import type { ReturnMode, WalkSeries, BatchSummary, GuardrailsResult, RothConver
 
 // Import calculation modules
 import {
-  calcOrdinaryTax,
-  calcLTCGTax,
-  calcNIIT,
   type FilingStatus,
 } from "@/lib/calculations/taxCalculations";
-
-import { computeWithdrawalTaxes } from "@/lib/calculations/withdrawalTax";
 
 // Import retirement engine
 import {
@@ -2840,6 +2833,8 @@ export default function App() {
     includeLTC, ltcAnnualCost, ltcProbability, ltcDuration, ltcOnsetAge,
     ltcAgeRangeStart, ltcAgeRangeEnd,
     totalFertilityRate, generationLength, fertilityWindowStart, fertilityWindowEnd,
+    calculateLegacyResult, dividendYield, lastCalculated, runGuardrailsAnalysis,
+    runRothOptimizer, enableRothConversions, targetConversionBracket, bondGlidePath,
   ]);
 
   // Calculate sensitivity analysis using ACTUAL simulations (not approximations)
