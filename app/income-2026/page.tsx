@@ -80,6 +80,12 @@ export default function Income2026Page() {
 
   // Life Insurance
   const [p1LifeInsuranceAnnual] = useState(4500);
+  const [p2LifeInsuranceAnnual] = useState(0);
+
+  // Post-tax Deductions (Not Yet Implemented)
+  const [p1RothContribution] = useState(0);
+  const [p2RothContribution] = useState(0);
+  const [p1DisabilityInsurance] = useState(0);
 
   // TODO: Net Worth Tracking Feature (Not Yet Implemented)
   // Uncomment these when implementing net worth tracking functionality
@@ -476,7 +482,7 @@ export default function Income2026Page() {
       p1RothContribution +
       (isMarried ? p2RothContribution : 0) +
       p1DisabilityInsurance +
-      p1LifeInsurance;
+      p1LifeInsuranceAnnual;
 
     const netTakeHome = totalIncome - totalPreTax - totalFIT - totalFICA - totalFixedExpenses - total401k - totalBrokerage - totalPostTaxDeductions;
 
