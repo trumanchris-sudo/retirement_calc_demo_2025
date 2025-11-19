@@ -86,26 +86,46 @@ async function signManifest(manifestPath: string, signatureOutputPath: string): 
     // 1. Read the manifest content
     const manifestBuffer = await fs.promises.readFile(manifestPath);
 
-    // 2. Check if certificate files exist
-    const certsPath = path.join(process.cwd(), "features/wallet/certs");
-    const certPath = path.join(certsPath, "passcertificate.pem");
-    const keyPath = path.join(certsPath, "passkey-unencrypted.pem");
-    const wwdrPath = path.join(certsPath, "Apple_Wallet_CA_Chain.pem");
+    // 2. Load certificates (Priority: Environment Variables -> Disk)
+    let certPem: string;
+    let keyPem: string;
+    let wwdrPem: string;
 
-    if (!fs.existsSync(certPath) || !fs.existsSync(keyPath) || !fs.existsSync(wwdrPath)) {
-      throw new Error(
-        "Apple Wallet certificates not found. Please see features/wallet/certs/README.md for setup instructions."
-      );
+    // Try environment variables first (recommended for production/serverless)
+    if (
+      process.env.WALLET_CERT_PEM &&
+      process.env.WALLET_KEY_PEM &&
+      process.env.WALLET_WWDR_PEM
+    ) {
+      console.log("✓ Using Apple Wallet certificates from environment variables");
+      certPem = process.env.WALLET_CERT_PEM;
+      keyPem = process.env.WALLET_KEY_PEM;
+      wwdrPem = process.env.WALLET_WWDR_PEM;
+    } else {
+      // Fall back to reading from disk (local development)
+      const certsPath = path.join(process.cwd(), "features/wallet/certs");
+      const certPath = path.join(certsPath, "passcertificate.pem");
+      const keyPath = path.join(certsPath, "passkey-unencrypted.pem");
+      const wwdrPath = path.join(certsPath, "Apple_Wallet_CA_Chain.pem");
+
+      console.log(`✓ Using Apple Wallet certificates from disk: ${certsPath}`);
+
+      // Check if certificate files exist
+      if (!fs.existsSync(certPath) || !fs.existsSync(keyPath) || !fs.existsSync(wwdrPath)) {
+        throw new Error(
+          "Apple Wallet certificates not found in environment variables or on disk. " +
+          "Please set WALLET_CERT_PEM, WALLET_KEY_PEM, WALLET_WWDR_PEM environment variables " +
+          "or see features/wallet/certs/README.md for setup instructions."
+        );
+      }
+
+      // Load signing certificate and private key from disk
+      certPem = await fs.promises.readFile(certPath, "utf8");
+      keyPem = await fs.promises.readFile(keyPath, "utf8");
+      wwdrPem = await fs.promises.readFile(wwdrPath, "utf8");
     }
 
-    // 3. Load signing certificate and private key
-    const certPem = await fs.promises.readFile(certPath, "utf8");
-    const keyPem = await fs.promises.readFile(keyPath, "utf8");
-
-    // 4. Load Apple WWDR certificate chain
-    const wwdrPem = await fs.promises.readFile(wwdrPath, "utf8");
-
-    // 4. Parse certificates and key
+    // 3. Parse certificates and key
     const certificate = forge.pki.certificateFromPem(certPem);
     const privateKey = forge.pki.privateKeyFromPem(keyPem);
 
@@ -118,13 +138,13 @@ async function signManifest(manifestPath: string, signatureOutputPath: string): 
       });
     }
 
-    // 5. Create PKCS#7 signed data
+    // 4. Create PKCS#7 signed data
     const p7 = forge.pkcs7.createSignedData();
 
     // Set content to be signed (manifest.json)
     p7.content = forge.util.createBuffer(manifestBuffer.toString("binary"));
 
-    // 6. Add signer with certificate and private key
+    // 5. Add signer with certificate and private key
     p7.addCertificate(certificate);
 
     // Add WWDR certificates to the chain
@@ -140,16 +160,16 @@ async function signManifest(manifestPath: string, signatureOutputPath: string): 
       authenticatedAttributes: [] // No authenticated attributes (equivalent to -noattr)
     });
 
-    // 7. Sign the data (detached mode)
+    // 6. Sign the data (detached mode)
     p7.sign({ detached: true });
 
-    // 8. Convert to DER format
+    // 7. Convert to DER format
     const derBuffer = Buffer.from(
       forge.asn1.toDer(p7.toAsn1()).getBytes(),
       "binary"
     );
 
-    // 9. Write signature file
+    // 8. Write signature file
     await fs.promises.writeFile(signatureOutputPath, derBuffer);
 
     console.log("✓ Manifest signed successfully using node-forge");
@@ -210,6 +230,12 @@ export async function POST(request: NextRequest) {
 
     // 2. Load pass.json template
     const templatePath = path.join(process.cwd(), "features/wallet/template/pass.json");
+
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(`Pass template not found at: ${templatePath}`);
+    }
+
+    console.log(`Loading pass template from: ${templatePath}`);
     const templateContent = await fs.promises.readFile(templatePath, "utf-8");
 
     // 3. Substitute placeholders
@@ -238,6 +264,8 @@ export async function POST(request: NextRequest) {
         "background.png",
       ];
 
+      console.log(`Loading wallet assets from: ${templateDir}`);
+
       for (const asset of assetFiles) {
         const srcPath = path.join(templateDir, asset);
         const destPath = path.join(tempDir, asset);
@@ -245,6 +273,9 @@ export async function POST(request: NextRequest) {
         // Only copy if file exists (background.png is optional)
         if (fs.existsSync(srcPath)) {
           await copyFile(srcPath, destPath);
+          console.log(`  ✓ Copied asset: ${asset}`);
+        } else {
+          console.warn(`  ⚠ Asset not found (skipping): ${asset}`);
         }
       }
 

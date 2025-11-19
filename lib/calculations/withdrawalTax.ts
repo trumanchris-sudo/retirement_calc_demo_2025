@@ -41,6 +41,8 @@ export interface WithdrawalResult {
  * @param rothBal - Current Roth account balance
  * @param taxableBasis - Cost basis in taxable account (for capital gains calc)
  * @param statePct - State tax rate percentage (e.g., 5 for 5%)
+ * @param minPretaxDraw - Optional minimum required pre-tax withdrawal (RMD)
+ * @param baseOrdinaryIncome - Optional base ordinary income (e.g., Social Security) that fills lower tax brackets
  * @returns Detailed tax breakdown and withdrawal amounts by account
  */
 export function computeWithdrawalTaxes(
@@ -50,21 +52,39 @@ export function computeWithdrawalTaxes(
   pretaxBal: number,
   rothBal: number,
   taxableBasis: number,
-  statePct: number
+  statePct: number,
+  minPretaxDraw: number = 0,
+  baseOrdinaryIncome: number = 0
 ): WithdrawalResult {
   const totalBal = taxableBal + pretaxBal + rothBal;
   if (totalBal <= 0 || gross <= 0)
     return { tax: 0, ordinary: 0, capgain: 0, niit: 0, state: 0, draw: { t: 0, p: 0, r: 0 }, newBasis: taxableBasis };
 
-  // Calculate pro-rata shares
-  const shareT = totalBal > 0 ? taxableBal / totalBal : 0;
-  const shareP = totalBal > 0 ? pretaxBal / totalBal : 0;
-  const shareR = totalBal > 0 ? rothBal / totalBal : 0;
+  // RMD Logic: Force drawP to be at least minPretaxDraw before pro-rata distribution
+  let drawP = Math.min(minPretaxDraw, pretaxBal); // Can't withdraw more than available
+  let remainingNeed = gross - drawP;
 
-  // Initial pro-rata withdrawal amounts
-  let drawT = gross * shareT;
-  let drawP = gross * shareP;
-  let drawR = gross * shareR;
+  let drawT = 0;
+  let drawR = 0;
+
+  // If there's a remaining need after RMD, distribute it pro-rata
+  if (remainingNeed > 0) {
+    const availableBal = taxableBal + (pretaxBal - drawP) + rothBal;
+
+    if (availableBal > 0) {
+      const shareT = taxableBal / availableBal;
+      const shareP = (pretaxBal - drawP) / availableBal;
+      const shareR = rothBal / availableBal;
+
+      drawT = remainingNeed * shareT;
+      drawP += remainingNeed * shareP;
+      drawR = remainingNeed * shareR;
+    }
+  } else if (remainingNeed < 0) {
+    // RMD exceeds gross need - excess will be reinvested in taxable
+    // This is handled by allowing drawP to exceed gross
+    // The excess will be dealt with in the calling code
+  }
 
   // Handle shortfalls by cascading to next account type
   const fixShortfall = (want: number, have: number) => Math.min(want, have);
@@ -92,10 +112,15 @@ export function computeWithdrawalTaxes(
   const ordinaryIncome = drawP; // Pre-tax withdrawals are ordinary income
   const capGains = drawT_Gain; // Only gains from taxable account
 
-  // Calculate federal taxes
-  const fedOrd = calcOrdinaryTax(ordinaryIncome, status);
-  const fedCap = calcLTCGTax(capGains, status, ordinaryIncome);
-  const magi = ordinaryIncome + capGains;
+  // Calculate federal taxes using marginal bracket approach
+  // Add baseOrdinaryIncome (e.g., Social Security) to ensure withdrawal is taxed at marginal rate
+  const totalOrdinaryIncome = baseOrdinaryIncome + ordinaryIncome;
+  const taxOnTotal = calcOrdinaryTax(totalOrdinaryIncome, status);
+  const taxOnBase = calcOrdinaryTax(baseOrdinaryIncome, status);
+  const fedOrd = taxOnTotal - taxOnBase; // Tax attributable to withdrawal only
+
+  const fedCap = calcLTCGTax(capGains, status, totalOrdinaryIncome);
+  const magi = totalOrdinaryIncome + capGains;
   const niit = calcNIIT(capGains, status, magi);
   const stateTax = (ordinaryIncome + capGains) * (statePct / 100);
 

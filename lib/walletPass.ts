@@ -81,10 +81,10 @@ export function buildWalletPassRequest(result: LegacyResult): WalletPassRequest 
  * Calls the backend to generate the pass and triggers download
  *
  * iOS Safari Fix:
- * - iOS Safari blocks programmatic downloads (a.click()) for security
- * - Instead, we open the blob URL directly which Safari allows
- * - This triggers the native "Add to Wallet" flow on iOS
- * - Desktop browsers will still download the .pkpass file normally
+ * - window.open() after await triggers popup blockers on iOS
+ * - Instead, we use window.location.href which allows PassKit to handle the .pkpass file
+ * - This slides up the "Add to Wallet" sheet without leaving the page
+ * - Desktop/Android uses traditional download link method
  */
 export async function requestLegacyPass(req: WalletPassRequest): Promise<void> {
   const res = await fetch("/api/wallet/legacy", {
@@ -101,19 +101,17 @@ export async function requestLegacyPass(req: WalletPassRequest): Promise<void> {
   const blob = await res.blob();
   const url = window.URL.createObjectURL(blob);
 
-  // Detect if we're on iOS
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  // Robust iOS detection (iPhone, iPad, iPod)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad on iOS 13+
 
   if (isIOS) {
-    // iOS Safari: Open in new window to trigger "Add to Wallet" dialog
-    // Using window.open() instead of location.href keeps the user on the current page
-    const newWindow = window.open(url, "_blank");
-    if (!newWindow) {
-      // Fallback if popup was blocked: navigate in same tab
-      window.location.href = url;
-    }
-    // Clean up blob URL after a delay
-    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+    // iOS: Use location.href to let PassKit handle the .pkpass file natively
+    // This triggers the "Add to Wallet" sheet without popup blockers
+    window.location.href = url;
+
+    // Clean up blob URL after delay to allow iOS to register the navigation
+    setTimeout(() => window.URL.revokeObjectURL(url), 100000); // 100 seconds
   } else {
     // Desktop/Android: Use traditional download approach
     const a = document.createElement("a");

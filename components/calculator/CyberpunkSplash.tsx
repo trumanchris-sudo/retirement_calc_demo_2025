@@ -6,6 +6,10 @@ export interface CyberpunkSplashHandle {
   play: () => void;
 }
 
+interface CyberpunkSplashProps {
+  className?: string;
+}
+
 // Purple color matching UI theme
 const PURPLE = "rgb(168, 85, 247)";
 
@@ -22,7 +26,7 @@ const PURPLE = "rgb(168, 85, 247)";
  * Imperative API:
  * - play(): Starts the animation sequence
  */
-const CyberpunkSplash = forwardRef<CyberpunkSplashHandle>((props, ref) => {
+const CyberpunkSplash = forwardRef<CyberpunkSplashHandle, CyberpunkSplashProps>((props, ref) => {
   const [animationPhase, setAnimationPhase] = useState<"idle" | "barsIn" | "logoVisible" | "logoFade" | "barsOut">("idle");
   const timeoutsRef = useRef<number[]>([]);
 

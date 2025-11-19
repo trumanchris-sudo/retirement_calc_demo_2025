@@ -26,7 +26,7 @@ export function SequenceRiskChart({ batchSummary, retAge, age1 }: SequenceRiskCh
     if (!batchSummary || !batchSummary.allRuns) return null;
 
     // Extract failure years from ruined paths
-    const failedPaths = batchSummary.allRuns.filter(r => r.ruined && r.survYrs > 0);
+    const failedPaths = batchSummary.allRuns.filter(r => r.ruined && (r.survYrs ?? 0) > 0);
 
     if (failedPaths.length === 0) {
       return { totalFailures: 0, buckets: [], criticalWindow: null };
@@ -45,7 +45,7 @@ export function SequenceRiskChart({ batchSummary, retAge, age1 }: SequenceRiskCh
 
     // Count failures in each bucket
     failedPaths.forEach(path => {
-      const year = path.survYrs;
+      const year = path.survYrs ?? 0; // Default to 0 if undefined
       const bucket = buckets.find(b => year >= b.minYear && year <= b.maxYear);
       if (bucket) {
         bucket.count++;

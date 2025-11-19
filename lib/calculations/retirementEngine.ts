@@ -6,11 +6,11 @@
 import type { ReturnMode, WalkSeries } from "@/types/planner";
 import type { FilingStatus } from "./taxCalculations";
 import type { BondGlidePath } from "@/types/calculator";
-import { calcOrdinaryTax } from "./taxCalculations";
+import { calcOrdinaryTax, calcLTCGTax } from "./taxCalculations";
 import { computeWithdrawalTaxes } from "./withdrawalTax";
 import { getBearReturns } from "@/lib/simulation/bearMarkets";
 import { getEffectiveInflation } from "@/lib/simulation/inflationShocks";
-import { LIFE_EXP, RMD_START_AGE, RMD_DIVISORS, SP500_YOY_NOMINAL, BOND_NOMINAL_AVG, calculateBondReturn } from "@/lib/constants";
+import { LIFE_EXP, RMD_START_AGE, RMD_DIVISORS, SP500_YOY_NOMINAL, BOND_NOMINAL_AVG, calculateBondReturn, TAX_BRACKETS } from "@/lib/constants";
 import { mulberry32 } from "@/lib/utils";
 import { calculateBondAllocation, calculateBlendedReturn } from "@/lib/bondAllocation";
 
@@ -65,6 +65,11 @@ export type SimulationInputs = {
   ltcAgeRangeEnd?: number;
   // Bond allocation
   bondGlidePath?: BondGlidePath | null;
+  // Yield drag (annual tax on dividends/interest in taxable accounts)
+  dividendYield?: number; // Annual dividend/interest yield % (default 2.0)
+  // Roth conversion strategy
+  enableRothConversions?: boolean;
+  targetConversionBracket?: number; // e.g., 0.24 for 24% bracket
 };
 
 /**
@@ -72,10 +77,13 @@ export type SimulationInputs = {
  */
 export type SimulationResult = {
   balancesReal: number[];      // real balance per year
+  balancesNominal: number[];   // nominal balance per year (needed for UI)
   eolReal: number;            // end-of-life wealth (real)
   y1AfterTaxReal: number;     // year-1 after-tax withdrawal (real)
   ruined: boolean;            // true if ran out of money before age 95
   survYrs?: number;           // year when portfolio failed (0 if never failed)
+  totalRothConversions?: number; // cumulative Roth conversions (pre-tax)
+  conversionTaxesPaid?: number;  // cumulative conversion taxes paid
 };
 
 /**
@@ -251,6 +259,9 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     historicalYear,
     inflationShockRate,
     inflationShockDuration = 5,
+    dividendYield = 2.0, // Default 2% annual dividend yield for taxable accounts
+    enableRothConversions = false,
+    targetConversionBracket = 0.24, // Default to 24% bracket
   } = params;
 
   const isMar = marital === "married";
@@ -278,6 +289,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     infPct: infRate,
     walkSeries,
     seed: seed,
+    startYear: historicalYear, // Pass historicalYear to handle bear market sequences naturally
     bondGlidePath: params.bondGlidePath || null,
     currentAge: younger,
   })();
@@ -289,6 +301,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     infPct: infRate,
     walkSeries,
     seed: seed + 1,
+    startYear: historicalYear ? historicalYear + yrsToRet : undefined, // Continue from retirement year
     bondGlidePath: params.bondGlidePath || null,
     currentAge: older + yrsToRet,
   })();
@@ -299,38 +312,40 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   let basisTax = sTax;
 
   const balancesReal: number[] = [];
+  const balancesNominal: number[] = [];
   let c = {
     p: { tax: cTax1, pre: cPre1, post: cPost1, match: cMatch1 },
     s: { tax: cTax2, pre: cPre2, post: cPost2, match: cMatch2 },
   };
 
-  // Get bear market returns if applicable
-  const bearReturns = historicalYear ? getBearReturns(historicalYear) : null;
-
   // Accumulation phase
   for (let y = 0; y <= yrsToRet; y++) {
-    let g: number;
-
-    // Apply FIRST bear return in the retirement year itself (y == yrsToRet)
-    if (bearReturns && y === yrsToRet) {
-      const pct = bearReturns[0];
-      if (walkSeries === "real") {
-        const realRate = (1 + pct / 100) / (1 + infl) - 1;
-        g = 1 + realRate;
-      } else {
-        g = 1 + pct / 100;
-      }
-    } else {
-      g = retMode === "fixed" ? g_fixed : (accGen.next().value as number);
-    }
+    // Generator handles historical sequences naturally via startYear
+    const g = retMode === "fixed" ? g_fixed : (accGen.next().value as number);
 
     const a1 = age1 + y;
     const a2 = isMar ? age2 + y : null;
 
     if (y > 0) {
+      // Apply growth to all accounts
       bTax *= g;
       bPre *= g;
       bPost *= g;
+
+      // Yield Drag: Tax annual dividends/interest in taxable account
+      // Only applies to taxable brokerage account (bTax), not tax-advantaged accounts
+      if (bTax > 0 && dividendYield > 0) {
+        // Calculate annual yield income (dividends + interest)
+        const yieldIncome = bTax * (dividendYield / 100);
+
+        // Tax the yield income at qualified dividend/LTCG rates (assume all dividends are qualified)
+        // Use 0 for ordinary income since this is just the dividend taxation
+        const yieldTax = calcLTCGTax(yieldIncome, marital, 0);
+
+        // Reduce taxable balance by the tax paid (yield drag)
+        // The yield income itself stays in the balance (already counted in bTax)
+        bTax -= yieldTax;
+      }
     }
 
     if (y > 0 && incContrib) {
@@ -361,6 +376,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     const yearInflation = getEffectiveInflation(y, yrsToRet, infRate, inflationShockRate ?? null, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
     balancesReal.push(bal / cumulativeInflation);
+    balancesNominal.push(bal);
   }
 
   const finNom = bTax + bPre + bPost;
@@ -374,7 +390,9 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     bPre,
     bPost,
     basisTax,
-    stateRate
+    stateRate,
+    0, // No RMD for first year
+    0  // No base ordinary income for first year
   );
 
   const wdAfterY1 = wdGrossY1 - y1.tax;
@@ -388,26 +406,33 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   let survYrs = 0;
   let ruined = false;
 
+  // Roth conversion tracking
+  let totalRothConversions = 0;
+  let conversionTaxesPaid = 0;
+
   // Drawdown phase
   for (let y = 1; y <= yrsToSim; y++) {
-    let g_retire: number;
-
-    // Inject remaining bear market returns in years 1-2 after retirement
-    if (bearReturns && y >= 1 && y <= 2) {
-      const pct = bearReturns[y];
-      if (walkSeries === "real") {
-        const realRate = (1 + pct / 100) / (1 + infl) - 1;
-        g_retire = 1 + realRate;
-      } else {
-        g_retire = 1 + pct / 100;
-      }
-    } else {
-      g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
-    }
+    // Generator handles historical sequences naturally via startYear
+    const g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
 
     retBalTax *= g_retire;
     retBalPre *= g_retire;
     retBalRoth *= g_retire;
+
+    // Yield Drag: Tax annual dividends/interest in taxable account
+    // Only applies to taxable brokerage account (retBalTax), not tax-advantaged accounts
+    if (retBalTax > 0 && dividendYield > 0) {
+      // Calculate annual yield income (dividends + interest)
+      const yieldIncome = retBalTax * (dividendYield / 100);
+
+      // Tax the yield income at qualified dividend/LTCG rates (assume all dividends are qualified)
+      // Use 0 for ordinary income since this is just the dividend taxation
+      const yieldTax = calcLTCGTax(yieldIncome, marital, 0);
+
+      // Reduce taxable balance by the tax paid (yield drag)
+      // The yield income itself stays in the balance (already counted in retBalTax)
+      retBalTax -= yieldTax;
+    }
 
     const currentAge = age1 + yrsToRet + y;
     const currentAge2 = isMar ? age2 + yrsToRet + y : 0;
@@ -420,6 +445,52 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
       }
       if (isMar && currentAge2 >= ssClaimAge2) {
         ssAnnualBenefit += calcSocialSecurity(ssIncome2, ssClaimAge2);
+      }
+    }
+
+    // Roth Conversion Strategy: Convert pre-tax to Roth before RMD age
+    if (enableRothConversions && currentAge < RMD_START_AGE && retBalPre > 0 && retBalTax > 0) {
+      // Find the bracket threshold for the target bracket rate
+      const brackets = TAX_BRACKETS[marital];
+      const targetBracket = brackets.rates.find(b => b.rate === targetConversionBracket);
+
+      if (targetBracket) {
+        // Calculate taxable ordinary income available before hitting target bracket
+        // Current ordinary income = Social Security
+        const currentOrdinaryIncome = ssAnnualBenefit;
+
+        // Headroom = (bracket limit) - (standard deduction + current ordinary income)
+        // This is how much more ordinary income we can add while staying in the target bracket
+        const bracketThreshold = targetBracket.limit + brackets.deduction;
+        const headroom = Math.max(0, bracketThreshold - currentOrdinaryIncome);
+
+        if (headroom > 0) {
+          // Conversion creates ordinary income, so convert up to headroom
+          const maxConversion = Math.min(headroom, retBalPre);
+
+          // Calculate tax on the conversion (it's taxed as ordinary income)
+          const conversionTax = calcOrdinaryTax(currentOrdinaryIncome + maxConversion, marital) -
+                                calcOrdinaryTax(currentOrdinaryIncome, marital);
+
+          // Can only convert what we can afford to pay tax on from taxable account
+          const affordableConversion = conversionTax > 0 ?
+            Math.min(maxConversion, retBalTax / conversionTax * maxConversion) :
+            maxConversion;
+
+          if (affordableConversion > 0) {
+            // Perform the conversion
+            const actualConversion = Math.min(affordableConversion, retBalPre);
+            const actualTax = calcOrdinaryTax(currentOrdinaryIncome + actualConversion, marital) -
+                             calcOrdinaryTax(currentOrdinaryIncome, marital);
+
+            retBalPre -= actualConversion;
+            retBalRoth += actualConversion;
+            retBalTax -= actualTax;
+
+            totalRothConversions += actualConversion;
+            conversionTaxesPaid += actualTax;
+          }
+        }
       }
     }
 
@@ -441,7 +512,9 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
       retBalPre,
       retBalRoth,
       currBasis,
-      stateRate
+      stateRate,
+      requiredRMD,      // Pass RMD as minimum pre-tax draw
+      ssAnnualBenefit   // Pass Social Security as base ordinary income
     );
 
     retBalTax -= taxes.draw.t;
@@ -466,6 +539,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, infRate, inflationShockRate ?? null, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
     balancesReal.push(totalNow / cumulativeInflation);
+    balancesNominal.push(totalNow);
 
     if (totalNow <= 0) {
       if (!ruined) {
@@ -486,8 +560,11 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
 
   return {
     balancesReal,
+    balancesNominal,
     eolReal,
     y1AfterTaxReal: wdRealY1,
     ruined,
+    totalRothConversions,
+    conversionTaxesPaid,
   };
 }

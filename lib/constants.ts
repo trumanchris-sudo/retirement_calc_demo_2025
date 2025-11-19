@@ -25,10 +25,10 @@ export const SS_BEND_POINTS = {
   second: 7391, // 32% of AIME between first and second, 15% above
 };
 
-/** Estate Tax (2025) */
+/** Estate Tax (2025 OBBBA - One Big Beautiful Bill Act) */
 export const ESTATE_TAX_EXEMPTION: Record<'single' | 'married', number> = {
-  single: 13_990_000,   // $13.99M for individual
-  married: 27_980_000,  // $27.98M for married couple (double)
+  single: 15_000_000,   // $15M for individual (OBBBA permanent, effective Jan 1, 2026)
+  married: 30_000_000,  // $30M for married couple (double)
 } as const;
 export const ESTATE_TAX_RATE = 0.40; // 40% on amount over exemption
 

@@ -54,6 +54,7 @@ import { TimelineView } from "@/components/calculator/TimelineView";
 import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
 import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
 import { CheckUsTab } from "@/components/calculator/CheckUsTab";
+import OptimizationTab from "@/components/calculator/OptimizationTab";
 import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
 import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexibilityChart";
 import { RothConversionOptimizer } from "@/components/calculator/RothConversionOptimizer";
@@ -837,12 +838,13 @@ function simulateRealPerBeneficiaryPayout(
   const birthsPerYear = fertilityWindowYears > 0 ? totalFertilityRate / fertilityWindowYears : 0;
 
   // Initialize cohorts with specified ages
-  // Only beneficiaries within fertility window at death can reproduce
+  // Beneficiaries can reproduce if they are young enough to eventually reach the fertility window
+  // Fix: Don't sterilize young children (e.g., age 5) who aren't fertile YET but will be later
   let cohorts: Cohort[] = initialBenAges.length > 0
     ? initialBenAges.map(age => ({
         size: 1,
         age,
-        canReproduce: age >= fertilityWindowStart && age <= fertilityWindowEnd,
+        canReproduce: age <= fertilityWindowEnd, // Can reproduce if young enough to reach window
         cumulativeBirths: 0
       }))
     : startBens > 0
@@ -1221,6 +1223,7 @@ export default function App() {
     incContrib: false, // Changed from true to false
     incRate: 4.5,
     wdRate: 3.5,
+    dividendYield: 2.0, // Annual dividend/interest yield for taxable accounts
   });
 
   // Social Security Benefits
@@ -1236,7 +1239,7 @@ export default function App() {
   const { marital, age1, age2, retAge } = personalInfo;
   const { sTax, sPre, sPost } = currentBalances;
   const { cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2 } = contributions;
-  const { retRate, infRate, stateRate, incContrib, incRate, wdRate } = assumptions;
+  const { retRate, infRate, stateRate, incContrib, incRate, wdRate, dividendYield } = assumptions;
   const { includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2 } = socialSecurity;
 
   // Helper setter functions for grouped state objects
@@ -1264,6 +1267,7 @@ export default function App() {
   const setIncContrib = (value: boolean) => setAssumptions(prev => ({ ...prev, incContrib: value }));
   const setIncRate = (value: number) => setAssumptions(prev => ({ ...prev, incRate: value }));
   const setWdRate = (value: number) => setAssumptions(prev => ({ ...prev, wdRate: value }));
+  const setDividendYield = (value: number) => setAssumptions(prev => ({ ...prev, dividendYield: value }));
 
   const setIncludeSS = (value: boolean) => setSocialSecurity(prev => ({ ...prev, includeSS: value }));
   const setSSIncome = (value: number) => setSocialSecurity(prev => ({ ...prev, ssIncome: value }));
@@ -1286,6 +1290,10 @@ export default function App() {
   const [ltcOnsetAge, setLtcOnsetAge] = useState(82); // Typical age when LTC begins
   const [ltcAgeRangeStart, setLtcAgeRangeStart] = useState(75); // Earliest possible LTC onset
   const [ltcAgeRangeEnd, setLtcAgeRangeEnd] = useState(90); // Latest possible LTC onset
+
+  // Roth Conversion Strategy
+  const [enableRothConversions, setEnableRothConversions] = useState(false);
+  const [targetConversionBracket, setTargetConversionBracket] = useState(0.24); // 24% bracket default
 
   const [showGen, setShowGen] = useState(true);
 
@@ -1438,7 +1446,7 @@ export default function App() {
   const searchParams = useSearchParams();
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && ['all', 'configure', 'results', 'stress', 'legacy', 'budget', 'math', 'checkUs'].includes(tab)) {
+    if (tab && ['all', 'configure', 'results', 'stress', 'legacy', 'budget', 'optimize', 'math', 'checkUs'].includes(tab)) {
       setActiveMainTab(tab as MainTabId);
     }
   }, [searchParams]);
@@ -2282,6 +2290,7 @@ export default function App() {
         historicalYear: historicalYear || undefined,
         inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
         inflationShockDuration,
+        dividendYield, // Annual dividend yield for taxable accounts (yield drag)
         // Healthcare costs
         includeMedicare,
         medicarePremium,
@@ -2296,6 +2305,9 @@ export default function App() {
         ltcOnsetAge,
         ltcAgeRangeStart,
         ltcAgeRangeEnd,
+        // Roth conversion strategy
+        enableRothConversions,
+        targetConversionBracket,
         // Bond glide path
         bondGlidePath,
       };
@@ -2796,7 +2808,7 @@ export default function App() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
           setOlderAgeForAnalysis(olderAgeForAI);
           setIsLoadingAi(false);
-        }, 100);
+        }, 800); // INCREASED from 100 to 800 to allow AnimatedSection (700ms) to finish
       } else {
         // Recalculate: stay put, no navigation or scrolling
         setOlderAgeForAnalysis(olderAgeForAI);
@@ -3124,6 +3136,7 @@ export default function App() {
       wdRate: inp.wdRate ?? 4,
       incContrib: inp.incContrib ?? false,
       incRate: inp.incRate ?? 4.5,
+      dividendYield: inp.dividendYield ?? 2.0,
     });
   }, []);
 
@@ -3271,33 +3284,81 @@ export default function App() {
 
                 {/* 4 Key Metric Cards - Prominent placement on Page 1 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  {/* Future Balance */}
-                  <div className="border-2 border-blue-300 bg-blue-50 p-4">
-                    <div className="text-xs uppercase text-blue-800 font-semibold mb-1">Future Balance</div>
-                    <div className="text-3xl font-bold text-blue-900 mb-1">{fmt(res.finNom)}</div>
-                    <div className="text-sm text-blue-700">At age {retAge} (nominal)</div>
-                  </div>
+                  {walkSeries === 'trulyRandom' ? (
+                    <>
+                      {/* Monte Carlo Mode - "The Odds View" */}
+                      {/* Card 1: Probability of Success */}
+                      <div className="border-2 border-green-300 bg-green-50 p-4">
+                        <div className="text-xs uppercase text-green-800 font-semibold mb-1">Probability of Success</div>
+                        <div className="text-3xl font-bold text-green-900 mb-1">
+                          {res.probRuin !== undefined ? `${((1 - res.probRuin) * 100).toFixed(1)}%` : '100%'}
+                        </div>
+                        <div className="text-sm text-green-700">Based on 1,000 market simulations</div>
+                      </div>
 
-                  {/* Today's Dollars */}
-                  <div className="border-2 border-green-300 bg-green-50 p-4">
-                    <div className="text-xs uppercase text-green-800 font-semibold mb-1">Today's Dollars</div>
-                    <div className="text-3xl font-bold text-green-900 mb-1">{fmt(res.finReal)}</div>
-                    <div className="text-sm text-green-700">At age {retAge} (inflation-adjusted)</div>
-                  </div>
+                      {/* Card 2: Worst-Case Wealth (P10) */}
+                      <div className="border-2 border-red-300 bg-red-50 p-4">
+                        <div className="text-xs uppercase text-red-800 font-semibold mb-1">Worst-Case Wealth (P10)</div>
+                        <div className="text-3xl font-bold text-red-900 mb-1">
+                          {batchSummary && batchSummary.p10BalancesReal ?
+                            fmt(batchSummary.p10BalancesReal[batchSummary.p10BalancesReal.length - 1] * Math.pow(1 + infRate / 100, batchSummary.p10BalancesReal.length - 1))
+                            : fmt(res.eol * 0.3)}
+                        </div>
+                        <div className="text-sm text-red-700">Bottom 10% outcome</div>
+                      </div>
 
-                  {/* Annual Withdrawal */}
-                  <div className="border-2 border-purple-300 bg-purple-50 p-4">
-                    <div className="text-xs uppercase text-purple-800 font-semibold mb-1">Annual Withdrawal</div>
-                    <div className="text-3xl font-bold text-purple-900 mb-1">{fmt(res.wd)}</div>
-                    <div className="text-sm text-purple-700">{wdRate}% of balance (Year 1)</div>
-                  </div>
+                      {/* Card 3: Median Wealth (P50) */}
+                      <div className="border-2 border-blue-300 bg-blue-50 p-4">
+                        <div className="text-xs uppercase text-blue-800 font-semibold mb-1">Median Wealth (P50)</div>
+                        <div className="text-3xl font-bold text-blue-900 mb-1">{fmt(res.eol)}</div>
+                        <div className="text-sm text-blue-700">Expected outcome</div>
+                      </div>
 
-                  {/* After-Tax Income */}
-                  <div className="border-2 border-orange-300 bg-orange-50 p-4">
-                    <div className="text-xs uppercase text-orange-800 font-semibold mb-1">After-Tax Income</div>
-                    <div className="text-3xl font-bold text-orange-900 mb-1">{fmt(res.wdReal)}</div>
-                    <div className="text-sm text-orange-700">Spendable (after all taxes)</div>
-                  </div>
+                      {/* Card 4: Best-Case Wealth (P90) */}
+                      <div className="border-2 border-purple-300 bg-purple-50 p-4">
+                        <div className="text-xs uppercase text-purple-800 font-semibold mb-1">Best-Case Wealth (P90)</div>
+                        <div className="text-3xl font-bold text-purple-900 mb-1">
+                          {batchSummary && batchSummary.p90BalancesReal ?
+                            fmt(batchSummary.p90BalancesReal[batchSummary.p90BalancesReal.length - 1] * Math.pow(1 + infRate / 100, batchSummary.p90BalancesReal.length - 1))
+                            : fmt(res.eol * 1.8)}
+                        </div>
+                        <div className="text-sm text-purple-700">Top 10% outcome</div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Fixed/Deterministic Mode - "The Projection View" */}
+                      {/* Card 1: Projected Ending Wealth */}
+                      <div className="border-2 border-blue-300 bg-blue-50 p-4">
+                        <div className="text-xs uppercase text-blue-800 font-semibold mb-1">Projected Ending Wealth</div>
+                        <div className="text-3xl font-bold text-blue-900 mb-1">{fmt(res.eol)}</div>
+                        <div className="text-sm text-blue-700">At age {LIFE_EXP}</div>
+                      </div>
+
+                      {/* Card 2: Annual Safe Income */}
+                      <div className="border-2 border-green-300 bg-green-50 p-4">
+                        <div className="text-xs uppercase text-green-800 font-semibold mb-1">Annual Safe Income</div>
+                        <div className="text-3xl font-bold text-green-900 mb-1">{fmt(res.wdReal)}</div>
+                        <div className="text-sm text-green-700">Year 1 (inflation-adjusted)</div>
+                      </div>
+
+                      {/* Card 3: Est. Lifetime Tax Rate */}
+                      <div className="border-2 border-orange-300 bg-orange-50 p-4">
+                        <div className="text-xs uppercase text-orange-800 font-semibold mb-1">Est. Lifetime Tax Rate</div>
+                        <div className="text-3xl font-bold text-orange-900 mb-1">
+                          {res.wd > 0 ? `${((res.tax.tot / res.wd) * 100).toFixed(1)}%` : '0%'}
+                        </div>
+                        <div className="text-sm text-orange-700">First year effective rate</div>
+                      </div>
+
+                      {/* Card 4: Net Estate After Tax */}
+                      <div className="border-2 border-purple-300 bg-purple-50 p-4">
+                        <div className="text-xs uppercase text-purple-800 font-semibold mb-1">Net Estate After Tax</div>
+                        <div className="text-3xl font-bold text-purple-900 mb-1">{fmt(res.netEstate || res.eol)}</div>
+                        <div className="text-sm text-purple-700">To heirs (after {fmt(res.estateTax || 0)} tax)</div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Additional Metrics - Smaller cards */}
@@ -3511,12 +3572,18 @@ export default function App() {
                   <h3 className="text-base font-semibold mb-3 text-black border-b border-gray-300 pb-1">Return & Risk Assumptions</h3>
                   <table className="w-full text-xs border border-gray-200">
                     <tbody>
+                      <tr className="bg-gray-50">
+                        <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Market Simulation Model</th>
+                        <td className="px-3 py-2 text-right text-black">
+                          {walkSeries === 'trulyRandom'
+                            ? 'Stochastic Monte Carlo (1,000 Iterations)'
+                            : retMode === 'fixed'
+                            ? `Linear Projection (${retRate}% Constant)`
+                            : 'Historical Bootstrap (Deterministic)'}
+                        </td>
+                      </tr>
                       {retMode === 'fixed' ? (
                         <>
-                          <tr className="bg-gray-50">
-                            <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Return Model</th>
-                            <td className="px-3 py-2 text-right text-black">Fixed Annual Return</td>
-                          </tr>
                           <tr>
                             <th className="px-3 py-2 text-left font-semibold text-black">Nominal Expected Return</th>
                             <td className="px-3 py-2 text-right text-black">{retRate}%</td>
@@ -3528,10 +3595,6 @@ export default function App() {
                         </>
                       ) : (
                         <>
-                          <tr className="bg-gray-50">
-                            <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Return Model</th>
-                            <td className="px-3 py-2 text-right text-black">Historical S&P 500 Bootstrap</td>
-                          </tr>
                           <tr>
                             <th className="px-3 py-2 text-left font-semibold text-black">Historical Data Period</th>
                             <td className="px-3 py-2 text-right text-black">1928-2024 Total Returns</td>
@@ -3544,14 +3607,8 @@ export default function App() {
                           </tr>
                         </>
                       )}
-                      <tr>
-                        <th className="px-3 py-2 text-left font-semibold text-black">Monte Carlo Runs</th>
-                        <td className="px-3 py-2 text-right text-black">
-                          {walkSeries === 'trulyRandom' ? '1,000' : '1 (deterministic)'}
-                        </td>
-                      </tr>
                       {retMode === 'randomWalk' && (
-                        <tr className="bg-gray-50">
+                        <tr className={retMode === 'fixed' ? '' : 'bg-gray-50'}>
                           <th className="px-3 py-2 text-left font-semibold text-black">Sequence-of-Returns Risk</th>
                           <td className="px-3 py-2 text-right text-black">Modeled (historical variability)</td>
                         </tr>
@@ -3575,7 +3632,7 @@ export default function App() {
                       </tr>
                       <tr className="bg-gray-50">
                         <th className="px-3 py-2 text-left font-semibold text-black">Estate Tax Exemption</th>
-                        <td className="px-3 py-2 text-right text-black">{fmt(marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single)} (2025 threshold)</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single)} (OBBBA 2026, inflation-indexed)</td>
                       </tr>
                       <tr>
                         <th className="px-3 py-2 text-left font-semibold text-black">Estate Tax Rate</th>
@@ -3666,8 +3723,8 @@ export default function App() {
                   <h2 className="text-xl font-bold text-black">Wealth Accumulation Projection</h2>
                   <p className="text-xs text-gray-700 mt-1">
                     {walkSeries === 'trulyRandom'
-                      ? 'Median (50th percentile) projection with percentile bands'
-                      : 'Deterministic projection based on assumptions'}
+                      ? 'Monte Carlo Simulation: Showing median (P50) outcome with "cone of uncertainty" (P10-P90 range). The shaded area represents the range of 80% of possible outcomes across 1,000 simulations.'
+                      : 'Deterministic projection based on fixed return assumptions'}
                   </p>
                 </header>
 
@@ -3715,7 +3772,7 @@ export default function App() {
                           dot={false}
                           name="Real Balance (Today's $)"
                         />
-                        {showP10 && (
+                        {(showP10 || walkSeries === 'trulyRandom') && (
                           <Line
                             type="monotone"
                             dataKey="p10"
@@ -3723,10 +3780,10 @@ export default function App() {
                             strokeWidth={2}
                             strokeDasharray="3 3"
                             dot={false}
-                            name="10th Percentile (Nominal)"
+                            name="10th Percentile - Worst Case (Nominal)"
                           />
                         )}
-                        {showP90 && (
+                        {(showP90 || walkSeries === 'trulyRandom') && (
                           <Line
                             type="monotone"
                             dataKey="p90"
@@ -3734,7 +3791,7 @@ export default function App() {
                             strokeWidth={2}
                             strokeDasharray="3 3"
                             dot={false}
-                            name="90th Percentile (Nominal)"
+                            name="90th Percentile - Best Case (Nominal)"
                           />
                         )}
                       </ComposedChart>
@@ -4513,7 +4570,7 @@ export default function App() {
                       <li>Inflation assumptions ({infRate}% baseline) are estimates and actual inflation may vary substantially.</li>
                       <li>The model assumes consistent contribution and withdrawal patterns, which may not reflect real-world behavior.</li>
                       <li>Healthcare costs, long-term care, and other major expenses are not explicitly modeled unless incorporated into withdrawal rates.</li>
-                      <li>Estate tax exemptions and rates reflect current law ({fmt(marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single)} exemption, {(ESTATE_TAX_RATE * 100).toFixed(0)}% rate) and may change.</li>
+                      <li>Estate tax exemptions reflect OBBBA legislation ({fmt(marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single)} exemption for 2026, indexed for inflation starting 2027, {(ESTATE_TAX_RATE * 100).toFixed(0)}% rate). Future legislation could repeal or modify these provisions.</li>
                     </ul>
                   </div>
 
@@ -6677,6 +6734,57 @@ export default function App() {
                             </div>
                           )}
                         </div>
+
+                        <Separator />
+
+                        {/* Roth Conversion Strategy Section */}
+                        <div className="space-y-4">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="enable-roth-conversions"
+                              checked={enableRothConversions}
+                              onChange={(e) => { setEnableRothConversions(e.target.checked); setInputsModified(true); }}
+                              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
+                            />
+                            <Label htmlFor="enable-roth-conversions" className="text-base font-semibold cursor-pointer">
+                              Enable Automatic Roth Conversions {enableRothConversions && <span className="print-only">✓</span>}
+                            </Label>
+                          </div>
+
+                          {enableRothConversions && (
+                            <div className="space-y-4 pl-7">
+                              <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  <strong>Automatic Roth conversions can reduce lifetime taxes.</strong> Before RMDs begin (age 73), convert pre-tax to Roth up to your target tax bracket each year. Taxes are paid from your taxable account.
+                                </p>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Target Tax Bracket</Label>
+                                <select
+                                  value={targetConversionBracket}
+                                  onChange={(e) => {
+                                    setTargetConversionBracket(parseFloat(e.target.value));
+                                    setInputsModified(true);
+                                  }}
+                                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                                >
+                                  <option value={0.10}>10% - Low income bracket</option>
+                                  <option value={0.12}>12% - Lower-middle bracket (default for many retirees)</option>
+                                  <option value={0.22}>22% - Middle bracket</option>
+                                  <option value={0.24}>24% - Upper-middle bracket (recommended)</option>
+                                  <option value={0.32}>32% - High bracket</option>
+                                  <option value={0.35}>35% - Very high bracket</option>
+                                  <option value={0.37}>37% - Top bracket</option>
+                                </select>
+                                <p className="text-xs text-muted-foreground">
+                                  Convert pre-tax to Roth each year to fill up to this tax bracket. Higher brackets mean more conversions but higher taxes paid upfront.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ),
                   },
@@ -7100,6 +7208,44 @@ export default function App() {
         </AnimatedSection>
         </TabPanel>
 
+        {/* Optimize Tab */}
+        <TabPanel id="optimize" activeTab={activeMainTab}>
+        <AnimatedSection animation="fade-in" delay={100}>
+          {res && (
+            <OptimizationTab
+              inputs={{
+                marital, age1, age2, retAge, sTax, sPre, sPost,
+                cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+                retRate, infRate, stateRate, incContrib, incRate, wdRate,
+                retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+                historicalYear: historicalYear || undefined,
+                inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
+                inflationShockDuration,
+                dividendYield,
+                enableRothConversions,
+                targetConversionBracket,
+                includeMedicare,
+                medicarePremium,
+                medicalInflation,
+                irmaaThresholdSingle,
+                irmaaThresholdMarried,
+                irmaaSurcharge,
+                includeLTC,
+                ltcAnnualCost,
+                ltcProbability,
+                ltcDuration,
+                ltcOnsetAge,
+                ltcAgeRangeStart,
+                ltcAgeRangeEnd,
+                bondGlidePath,
+              }}
+              currentAge={Math.min(age1, isMar ? age2 : age1)}
+              plannedRetirementAge={retAge}
+            />
+          )}
+        </AnimatedSection>
+        </TabPanel>
+
         {/* Math Tab */}
         <TabPanel id="math" activeTab={activeMainTab}>
           <Card className="math-print-section print-section print-page-break-before">
@@ -7351,18 +7497,19 @@ export default function App() {
                 <div>
                   <h4 className="text-lg font-semibold mb-2 text-blue-800">Estate Tax</h4>
                   <p className="text-gray-700 mb-3">
-                    Under current law (2025), estates exceeding ${((marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single) / 1_000_000).toFixed(2)}
-                    million are subject to a 40% federal estate tax on the amount above the exemption. Your heirs
-                    receive the net estate after this tax. Note: Estate tax laws may change, and this is a simplified
-                    calculation that doesn't account for spousal transfers, trusts, or state estate taxes.
+                    Under the One Big Beautiful Bill Act (OBBBA, July 2025), the federal estate tax exemption is permanently set at
+                    ${((marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single) / 1_000_000).toFixed(0)}
+                    million per {marital === 'married' ? 'couple' : 'individual'} for 2026 and is indexed annually for inflation starting
+                    in 2027. Estates exceeding this threshold are subject to a 40% federal estate tax on the amount above the exemption.
+                    Your heirs receive the net estate after this tax.
                   </p>
 
-                  <div className="mt-3 p-4 bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500 rounded">
+                  <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 rounded">
                     <p className="text-gray-700">
-                      <strong>⚠️ CRITICAL:</strong> The $13.99M/$27.98M exemption sunsets December 31, 2025, reverting to approximately
-                      $7M for single filers ($14M married). This calculator uses the 2025 exemption but may significantly overstate
-                      the exemption for deaths after 2025. If your projected estate exceeds $7M, consult an estate attorney for
-                      updated planning strategies.
+                      <strong>📌 NOTE:</strong> The previous sunset provision that would have reduced the exemption to ~$7M has been eliminated.
+                      While the federal exemption has increased, state-level estate taxes may still apply at lower thresholds. This is a simplified
+                      calculation that doesn't account for spousal transfers, portability elections, trusts, or state estate taxes. Early gifting
+                      remains a powerful tool to freeze asset values and remove future appreciation from your taxable estate.
                     </p>
                   </div>
                 </div>
@@ -7451,8 +7598,9 @@ export default function App() {
               <ul className="list-disc pl-6 space-y-2 text-gray-700">
                 <li>
                   <strong>Tax Law Stability:</strong> Assumes current (2025) tax brackets, standard deductions,
-                  RMD rules, and estate tax exemptions remain constant. Tax laws frequently change, especially
-                  estate tax provisions which are set to sunset in 2026.
+                  RMD rules, and estate tax exemptions remain constant. Tax laws frequently change. This calculator
+                  assumes the permanent $15M exemption enacted by the OBBBA (July 2025) remains in effect and is
+                  not repealed by future legislation.
                 </li>
                 <li>
                   <strong>Sequence-of-Returns Risk:</strong> In Truly Random (Monte Carlo) mode with 1,000 simulations,
@@ -7504,7 +7652,7 @@ export default function App() {
                 <li><strong>LTCG Brackets:</strong> 2025 long-term capital gains tax rates (IRS)</li>
                 <li><strong>RMD Table:</strong> IRS Uniform Lifetime Table (Publication 590-B)</li>
                 <li><strong>Social Security:</strong> 2025 bend points and claiming adjustment factors (SSA)</li>
-                <li><strong>Estate Tax:</strong> 2025 federal exemption ($13.99M) and rate (IRS)</li>
+                <li><strong>Estate Tax:</strong> OBBBA permanent exemption ($15M individual / $30M married for 2026, indexed annually for inflation starting 2027) and 40% rate</li>
                 <li><strong>Medicare &amp; IRMAA:</strong> 2025 Part B/D premiums and income thresholds (CMS)</li>
                 <li><strong>Long-Term Care:</strong> National average costs based on Genworth 2024 Cost of Care Survey</li>
                 <li><strong>Medical Inflation:</strong> Historical healthcare cost growth trends (Kaiser Family Foundation, CMS)</li>

@@ -350,6 +350,9 @@ function runSingleSimulation(params, seed) {
     historicalYear,
     inflationShockRate,
     inflationShockDuration = 5,
+    dividendYield = 2.0, // Default 2% annual dividend yield for taxable accounts
+    enableRothConversions = false,
+    targetConversionBracket = 0.24, // Default to 24% bracket
     // Healthcare costs
     includeMedicare = true,
     medicarePremium = 400,
@@ -388,6 +391,7 @@ function runSingleSimulation(params, seed) {
     infPct: infRate,
     walkSeries,
     seed: seed,
+    startYear: historicalYear, // Pass historicalYear to handle bear market sequences naturally
   })();
 
   const drawGen = buildReturnGenerator({
@@ -397,7 +401,7 @@ function runSingleSimulation(params, seed) {
     infPct: infRate,
     walkSeries,
     seed: seed + 1,
-    // Bear market returns are injected directly in drawdown loop, not via generator
+    startYear: historicalYear ? historicalYear + yrsToRet : undefined, // Continue from retirement year
   })();
 
   let bTax = sTax;
@@ -406,39 +410,41 @@ function runSingleSimulation(params, seed) {
   let basisTax = sTax;
 
   const balancesReal = [];
+  const balancesNominal = [];
   let cumulativeInflation = 1.0;
   let c = {
     p: { tax: cTax1, pre: cPre1, post: cPost1, match: cMatch1 },
     s: { tax: cTax2, pre: cPre2, post: cPost2, match: cMatch2 },
   };
 
-  // Get bear market returns if applicable
-  const bearReturns = historicalYear ? getBearReturns(historicalYear) : null;
-
   // Accumulation phase
   for (let y = 0; y <= yrsToRet; y++) {
-    let g;
-
-    // Apply FIRST bear return in the retirement year itself (y == yrsToRet)
-    if (bearReturns && y === yrsToRet) {
-      const pct = bearReturns[0]; // First bear year
-      if (walkSeries === "real") {
-        const realRate = (1 + pct / 100) / (1 + infl) - 1;
-        g = 1 + realRate;
-      } else {
-        g = 1 + pct / 100;
-      }
-    } else {
-      g = retMode === "fixed" ? g_fixed : accGen.next().value;
-    }
+    // Generator handles historical sequences naturally via startYear
+    const g = retMode === "fixed" ? g_fixed : accGen.next().value;
 
     const a1 = age1 + y;
     const a2 = isMar ? age2 + y : null;
 
     if (y > 0) {
+      // Apply growth to all accounts
       bTax *= g;
       bPre *= g;
       bPost *= g;
+
+      // Yield Drag: Tax annual dividends/interest in taxable account
+      // Only applies to taxable brokerage account (bTax), not tax-advantaged accounts
+      if (bTax > 0 && dividendYield > 0) {
+        // Calculate annual yield income (dividends + interest)
+        const yieldIncome = bTax * (dividendYield / 100);
+
+        // Tax the yield income at qualified dividend/LTCG rates (assume all dividends are qualified)
+        // Use 0 for ordinary income since this is just the dividend taxation
+        const yieldTax = calcLTCGTax(yieldIncome, marital, 0);
+
+        // Reduce taxable balance by the tax paid (yield drag)
+        // The yield income itself stays in the balance (already counted in bTax)
+        bTax -= yieldTax;
+      }
     }
 
     if (y > 0 && incContrib) {
@@ -467,6 +473,7 @@ function runSingleSimulation(params, seed) {
     const yearInflation = getEffectiveInflation(y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
     balancesReal.push(bal / cumulativeInflation);
+    balancesNominal.push(bal);
   }
 
   const finNom = bTax + bPre + bPost;
@@ -480,19 +487,39 @@ function runSingleSimulation(params, seed) {
     pretaxBal,
     rothBal,
     taxableBasis,
-    statePct
+    statePct,
+    minPretaxDraw = 0,
+    baseOrdinaryIncome = 0
   ) => {
     const totalBal = taxableBal + pretaxBal + rothBal;
     if (totalBal <= 0 || gross <= 0)
       return { tax: 0, ordinary: 0, capgain: 0, niit: 0, state: 0, draw: { t: 0, p: 0, r: 0 }, newBasis: taxableBasis };
 
-    const shareT = totalBal > 0 ? taxableBal / totalBal : 0;
-    const shareP = totalBal > 0 ? pretaxBal / totalBal : 0;
-    const shareR = totalBal > 0 ? rothBal / totalBal : 0;
+    // RMD Logic: Force drawP to be at least minPretaxDraw before pro-rata distribution
+    let drawP = Math.min(minPretaxDraw, pretaxBal); // Can't withdraw more than available
+    let remainingNeed = gross - drawP;
 
-    let drawT = gross * shareT;
-    let drawP = gross * shareP;
-    let drawR = gross * shareR;
+    let drawT = 0;
+    let drawR = 0;
+
+    // If there's a remaining need after RMD, distribute it pro-rata
+    if (remainingNeed > 0) {
+      const availableBal = taxableBal + (pretaxBal - drawP) + rothBal;
+
+      if (availableBal > 0) {
+        const shareT = taxableBal / availableBal;
+        const shareP = (pretaxBal - drawP) / availableBal;
+        const shareR = rothBal / availableBal;
+
+        drawT = remainingNeed * shareT;
+        drawP += remainingNeed * shareP;
+        drawR = remainingNeed * shareR;
+      }
+    } else if (remainingNeed < 0) {
+      // RMD exceeds gross need - excess will be reinvested in taxable
+      // This is handled by allowing drawP to exceed gross
+      // The excess will be dealt with in the calling code
+    }
 
     const fixShortfall = (want, have) => Math.min(want, have);
 
@@ -516,9 +543,15 @@ function runSingleSimulation(params, seed) {
     const ordinaryIncome = drawP;
     const capGains = drawT_Gain;
 
-    const fedOrd = calcOrdinaryTax(ordinaryIncome, status);
-    const fedCap = calcLTCGTax(capGains, status, ordinaryIncome);
-    const magi = ordinaryIncome + capGains;
+    // Calculate federal taxes using marginal bracket approach
+    // Add baseOrdinaryIncome (e.g., Social Security) to ensure withdrawal is taxed at marginal rate
+    const totalOrdinaryIncome = baseOrdinaryIncome + ordinaryIncome;
+    const taxOnTotal = calcOrdinaryTax(totalOrdinaryIncome, status);
+    const taxOnBase = calcOrdinaryTax(baseOrdinaryIncome, status);
+    const fedOrd = taxOnTotal - taxOnBase; // Tax attributable to withdrawal only
+
+    const fedCap = calcLTCGTax(capGains, status, totalOrdinaryIncome);
+    const magi = totalOrdinaryIncome + capGains;
     const niit = calcNIIT(capGains, status, magi);
     const stateTax = (ordinaryIncome + capGains) * (statePct / 100);
 
@@ -543,7 +576,9 @@ function runSingleSimulation(params, seed) {
     bPre,
     bPost,
     basisTax,
-    stateRate
+    stateRate,
+    0, // No RMD for first year
+    0  // No base ordinary income for first year
   );
 
   const wdAfterY1 = wdGrossY1 - y1.tax;
@@ -557,29 +592,33 @@ function runSingleSimulation(params, seed) {
   let survYrs = 0;
   let ruined = false;
 
-  // Bear market returns already applied: bearReturns[0] was used in retirement year
-  // Now apply bearReturns[1] and bearReturns[2] in years 1-2 of drawdown
+  // Roth conversion tracking
+  let totalRothConversions = 0;
+  let conversionTaxesPaid = 0;
 
   // Drawdown phase
   for (let y = 1; y <= yrsToSim; y++) {
-    let g_retire;
-
-    // Inject remaining bear market returns in years 1-2 after retirement
-    if (bearReturns && y >= 1 && y <= 2) {
-      const pct = bearReturns[y]; // y=1 uses bearReturns[1], y=2 uses bearReturns[2]
-      if (walkSeries === "real") {
-        const realRate = (1 + pct / 100) / (1 + infl) - 1;
-        g_retire = 1 + realRate;
-      } else {
-        g_retire = 1 + pct / 100;
-      }
-    } else {
-      g_retire = retMode === "fixed" ? g_fixed : drawGen.next().value;
-    }
+    // Generator handles historical sequences naturally via startYear
+    const g_retire = retMode === "fixed" ? g_fixed : drawGen.next().value;
 
     retBalTax *= g_retire;
     retBalPre *= g_retire;
     retBalRoth *= g_retire;
+
+    // Yield Drag: Tax annual dividends/interest in taxable account
+    // Only applies to taxable brokerage account (retBalTax), not tax-advantaged accounts
+    if (retBalTax > 0 && dividendYield > 0) {
+      // Calculate annual yield income (dividends + interest)
+      const yieldIncome = retBalTax * (dividendYield / 100);
+
+      // Tax the yield income at qualified dividend/LTCG rates (assume all dividends are qualified)
+      // Use 0 for ordinary income since this is just the dividend taxation
+      const yieldTax = calcLTCGTax(yieldIncome, marital, 0);
+
+      // Reduce taxable balance by the tax paid (yield drag)
+      // The yield income itself stays in the balance (already counted in retBalTax)
+      retBalTax -= yieldTax;
+    }
 
     const currentAge = age1 + yrsToRet + y;
     const currentAge2 = isMar ? age2 + yrsToRet + y : 0;
@@ -592,6 +631,52 @@ function runSingleSimulation(params, seed) {
       }
       if (isMar && currentAge2 >= ssClaimAge2) {
         ssAnnualBenefit += calcSocialSecurity(ssIncome2, ssClaimAge2);
+      }
+    }
+
+    // Roth Conversion Strategy: Convert pre-tax to Roth before RMD age
+    if (enableRothConversions && currentAge < RMD_START_AGE && retBalPre > 0 && retBalTax > 0) {
+      // Find the bracket threshold for the target bracket rate
+      const brackets = TAX_BRACKETS[marital];
+      const targetBracket = brackets.rates.find(b => b.rate === targetConversionBracket);
+
+      if (targetBracket) {
+        // Calculate taxable ordinary income available before hitting target bracket
+        // Current ordinary income = Social Security
+        const currentOrdinaryIncome = ssAnnualBenefit;
+
+        // Headroom = (bracket limit) - (standard deduction + current ordinary income)
+        // This is how much more ordinary income we can add while staying in the target bracket
+        const bracketThreshold = targetBracket.limit + brackets.deduction;
+        const headroom = Math.max(0, bracketThreshold - currentOrdinaryIncome);
+
+        if (headroom > 0) {
+          // Conversion creates ordinary income, so convert up to headroom
+          const maxConversion = Math.min(headroom, retBalPre);
+
+          // Calculate tax on the conversion (it's taxed as ordinary income)
+          const conversionTax = calcOrdinaryTax(currentOrdinaryIncome + maxConversion, marital) -
+                                calcOrdinaryTax(currentOrdinaryIncome, marital);
+
+          // Can only convert what we can afford to pay tax on from taxable account
+          const affordableConversion = conversionTax > 0 ?
+            Math.min(maxConversion, retBalTax / conversionTax * maxConversion) :
+            maxConversion;
+
+          if (affordableConversion > 0) {
+            // Perform the conversion
+            const actualConversion = Math.min(affordableConversion, retBalPre);
+            const actualTax = calcOrdinaryTax(currentOrdinaryIncome + actualConversion, marital) -
+                             calcOrdinaryTax(currentOrdinaryIncome, marital);
+
+            retBalPre -= actualConversion;
+            retBalRoth += actualConversion;
+            retBalTax -= actualTax;
+
+            totalRothConversions += actualConversion;
+            conversionTaxesPaid += actualTax;
+          }
+        }
       }
     }
 
@@ -641,7 +726,9 @@ function runSingleSimulation(params, seed) {
       retBalPre,
       retBalRoth,
       currBasis,
-      stateRate
+      stateRate,
+      requiredRMD,      // Pass RMD as minimum pre-tax draw
+      ssAnnualBenefit   // Pass Social Security as base ordinary income
     );
 
     retBalTax -= taxes.draw.t;
@@ -664,6 +751,7 @@ function runSingleSimulation(params, seed) {
     const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
     balancesReal.push(totalNow / cumulativeInflation);
+    balancesNominal.push(totalNow);
 
     if (totalNow <= 0) {
       if (!ruined) {
@@ -686,9 +774,12 @@ function runSingleSimulation(params, seed) {
 
   return {
     balancesReal,
+    balancesNominal,
     eolReal,
     y1AfterTaxReal: wdRealY1,
     ruined,
+    totalRothConversions,
+    conversionTaxesPaid,
   };
 }
 
@@ -727,12 +818,22 @@ function runMonteCarloSimulation(params, baseSeed, N = 2000) {
   const p10BalancesReal = [];
   const p50BalancesReal = [];
   const p90BalancesReal = [];
+  const p10BalancesNominal = [];
+  const p50BalancesNominal = [];
+  const p90BalancesNominal = [];
+
   for (let t = 0; t < T; t++) {
-    const col = results.map(r => r.balancesReal[t]);
-    const trimmed = trimExtremeValues(col, TRIM_COUNT);
-    p10BalancesReal.push(percentile(trimmed, 10));
-    p50BalancesReal.push(percentile(trimmed, 50));
-    p90BalancesReal.push(percentile(trimmed, 90));
+    const colReal = results.map(r => r.balancesReal[t]);
+    const trimmedReal = trimExtremeValues(colReal, TRIM_COUNT);
+    p10BalancesReal.push(percentile(trimmedReal, 10));
+    p50BalancesReal.push(percentile(trimmedReal, 50));
+    p90BalancesReal.push(percentile(trimmedReal, 90));
+
+    const colNominal = results.map(r => r.balancesNominal[t]);
+    const trimmedNominal = trimExtremeValues(colNominal, TRIM_COUNT);
+    p10BalancesNominal.push(percentile(trimmedNominal, 10));
+    p50BalancesNominal.push(percentile(trimmedNominal, 50));
+    p90BalancesNominal.push(percentile(trimmedNominal, 90));
   }
 
   const eolValues = results.map(r => r.eolReal);
@@ -762,6 +863,9 @@ function runMonteCarloSimulation(params, baseSeed, N = 2000) {
     p10BalancesReal,
     p50BalancesReal,
     p90BalancesReal,
+    p10BalancesNominal,
+    p50BalancesNominal,
+    p90BalancesNominal,
     eolReal_p25,
     eolReal_p50,
     eolReal_p75,
@@ -1312,6 +1416,122 @@ self.onmessage = function(e) {
           optimizedRMDs: optimizedRMDs.slice(0, 10),
           targetBracket,
           targetBracketLimit,
+        },
+      });
+    } catch (error) {
+      self.postMessage({
+        type: 'error',
+        error: error.message,
+      });
+    }
+  } else if (type === 'optimize') {
+    // Optimization Engine: Goal Seeking Calculations
+    // Performs three optimizations: oversaving, splurge capacity, and freedom date
+    try {
+      const { params: baseParams, baseSeed } = e.data;
+      const SUCCESS_THRESHOLD = 0.95; // 95% success rate required
+      const TEST_RUNS = 100; // Monte Carlo runs for optimization tests
+
+      // Helper: Check if a configuration meets success criteria
+      const testSuccess = (testParams) => {
+        const result = runMonteCarloSimulation(testParams, baseSeed, TEST_RUNS);
+        // Success if probability of ruin < 5% (success rate > 95%)
+        return result.probRuin < (1 - SUCCESS_THRESHOLD);
+      };
+
+      // ===== 1. CALCULATE OVERSAVING (Monthly Surplus) =====
+      // Find minimum contribution needed to maintain >95% success rate
+      let surplusAnnual = 0;
+      const currentTotalContrib = baseParams.cTax1 + baseParams.cPre1 + baseParams.cPost1 +
+                                   baseParams.cTax2 + baseParams.cPre2 + baseParams.cPost2 +
+                                   baseParams.cMatch1 + baseParams.cMatch2;
+
+      if (currentTotalContrib > 0) {
+        let low = 0;
+        let high = currentTotalContrib;
+        let minContrib = currentTotalContrib;
+
+        // Binary search for minimum contribution
+        for (let i = 0; i < 10; i++) { // 10 iterations gives ~0.1% precision
+          const mid = (low + high) / 2;
+          const scaleFactor = mid / currentTotalContrib;
+
+          const testParams = {
+            ...baseParams,
+            cTax1: baseParams.cTax1 * scaleFactor,
+            cPre1: baseParams.cPre1 * scaleFactor,
+            cPost1: baseParams.cPost1 * scaleFactor,
+            cMatch1: baseParams.cMatch1 * scaleFactor,
+            cTax2: baseParams.cTax2 * scaleFactor,
+            cPre2: baseParams.cPre2 * scaleFactor,
+            cPost2: baseParams.cPost2 * scaleFactor,
+            cMatch2: baseParams.cMatch2 * scaleFactor,
+          };
+
+          if (testSuccess(testParams)) {
+            minContrib = mid;
+            high = mid; // Try lower
+          } else {
+            low = mid; // Need more
+          }
+        }
+
+        surplusAnnual = currentTotalContrib - minContrib;
+      }
+
+      // ===== 2. CALCULATE SPLURGE CAPACITY (One-Time Purchase) =====
+      // Find maximum one-time expense that maintains >95% success
+      let maxSplurge = 0;
+      let splurgeLow = 0;
+      let splurgeHigh = 5000000; // Max $5M test
+
+      for (let i = 0; i < 20; i++) { // 20 iterations for precision
+        const mid = (splurgeLow + splurgeHigh) / 2;
+
+        const testParams = {
+          ...baseParams,
+          sTax: Math.max(0, baseParams.sTax - mid), // Reduce taxable balance
+        };
+
+        if (testSuccess(testParams)) {
+          maxSplurge = mid;
+          splurgeLow = mid; // Try higher
+        } else {
+          splurgeHigh = mid; // Too much
+        }
+
+        // Early exit if we've narrowed down enough
+        if (splurgeHigh - splurgeLow < 1000) break;
+      }
+
+      // ===== 3. CALCULATE FREEDOM DATE (Earliest Retirement) =====
+      // Find earliest retirement age with >95% success
+      const currentAge = Math.min(baseParams.age1, baseParams.age2 || baseParams.age1);
+      let earliestRetirementAge = baseParams.retAge;
+
+      // Test progressively earlier retirement ages
+      for (let testRetAge = baseParams.retAge - 1; testRetAge >= currentAge + 1; testRetAge--) {
+        const testParams = {
+          ...baseParams,
+          retAge: testRetAge,
+        };
+
+        if (testSuccess(testParams)) {
+          earliestRetirementAge = testRetAge;
+        } else {
+          break; // Stop when success rate drops
+        }
+      }
+
+      // Send results
+      self.postMessage({
+        type: 'optimize-complete',
+        result: {
+          surplusAnnual: Math.max(0, surplusAnnual),
+          surplusMonthly: Math.max(0, surplusAnnual / 12),
+          maxSplurge: Math.max(0, maxSplurge),
+          earliestRetirementAge,
+          yearsEarlier: Math.max(0, baseParams.retAge - earliestRetirementAge),
         },
       });
     } catch (error) {
