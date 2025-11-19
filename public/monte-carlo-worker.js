@@ -1490,30 +1490,37 @@ self.onmessage = function(e) {
 
       // ===== 2. CALCULATE SPLURGE CAPACITY (One-Time Purchase) =====
       // Find maximum one-time expense that maintains >95% success
+      const totalStartingBalance = baseParams.sTax + baseParams.sPre + baseParams.sPost;
       let maxSplurge = 0;
       let splurgeLow = 0;
-      let splurgeHigh = 5000000; // Max $5M test
+      let splurgeHigh = Math.min(5000000, totalStartingBalance * 0.95); // Cap at 95% of total balance
       let splurgeIterations = 0;
 
-      // Binary search with safety brake
-      while (splurgeLow < splurgeHigh && splurgeIterations < SAFETY_MAX_ITERATIONS) {
-        splurgeIterations++;
-        const mid = (splurgeLow + splurgeHigh) / 2;
+      if (totalStartingBalance > 0) {
+        // Binary search with safety brake
+        while (splurgeLow < splurgeHigh && splurgeIterations < SAFETY_MAX_ITERATIONS) {
+          splurgeIterations++;
+          const mid = (splurgeLow + splurgeHigh) / 2;
 
-        const testParams = {
-          ...baseParams,
-          sTax: Math.max(0, baseParams.sTax - mid), // Reduce taxable balance
-        };
+          // Reduce all accounts proportionally (simulate spending from the portfolio)
+          const reductionFactor = Math.max(0, (totalStartingBalance - mid) / totalStartingBalance);
+          const testParams = {
+            ...baseParams,
+            sTax: baseParams.sTax * reductionFactor,
+            sPre: baseParams.sPre * reductionFactor,
+            sPost: baseParams.sPost * reductionFactor,
+          };
 
-        if (testSuccess(testParams)) {
-          maxSplurge = mid;
-          splurgeLow = mid; // Try higher
-        } else {
-          splurgeHigh = mid; // Too much
+          if (testSuccess(testParams)) {
+            maxSplurge = mid;
+            splurgeLow = mid; // Try higher
+          } else {
+            splurgeHigh = mid; // Too much
+          }
+
+          // Early exit if we've narrowed down enough
+          if (splurgeHigh - splurgeLow < 1000) break;
         }
-
-        // Early exit if we've narrowed down enough
-        if (splurgeHigh - splurgeLow < 1000) break;
       }
 
       // ===== 3. CALCULATE FREEDOM DATE (Earliest Retirement) =====
