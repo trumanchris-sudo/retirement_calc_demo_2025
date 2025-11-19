@@ -811,8 +811,11 @@ function runMonteCarloSimulation(params, baseSeed, N = 2000) {
     }
   }
 
-  // Calculate percentiles after trimming top 50 and bottom 50 values
-  const TRIM_COUNT = 50; // Remove top 50 and bottom 50 values
+  // Calculate percentiles after trimming extreme values
+  // Trim 5% from each end, but ensure we have enough data points
+  // Minimum: keep at least 50% of data (trim max 25% from each end)
+  const trimPercent = Math.min(0.025, 0.25 * N / (2 * N)); // 2.5% from each end, or less if N is small
+  const TRIM_COUNT = Math.floor(N * trimPercent);
   const T = results[0].balancesReal.length;
 
   const p10BalancesReal = [];

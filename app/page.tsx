@@ -3608,7 +3608,7 @@ export default function App() {
                         </>
                       )}
                       {retMode === 'randomWalk' && (
-                        <tr className={retMode === 'fixed' ? '' : 'bg-gray-50'}>
+                        <tr className="bg-gray-50">
                           <th className="px-3 py-2 text-left font-semibold text-black">Sequence-of-Returns Risk</th>
                           <td className="px-3 py-2 text-right text-black">Modeled (historical variability)</td>
                         </tr>
