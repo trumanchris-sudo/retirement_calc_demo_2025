@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
       withdrawalRate,
       returnRate,
       inflationRate,
-      stateRate,
       totalRMDs,
       estateTax,
       netEstate,
@@ -36,7 +35,6 @@ export async function POST(request: NextRequest) {
       startingTaxable,
       startingPretax,
       startingRoth,
-      totalContributions,
       returnModel,
       userQuestion
     } = body;
@@ -83,42 +81,10 @@ Social Security Benefits:
 - Claiming Age: ${ssClaimAge}
 - Benefits reduce portfolio withdrawal needs starting at age ${ssClaimAge}` : '';
 
-    // Determine longevity risk
-    const longevityRisk = duration < maxDuration ?
-      `⚠️ CRITICAL: Funds exhausted after ${duration} years (age ${retirementAge + duration}), but projected to live to ${retirementAge + maxDuration}` :
-      `✓ Funds last full retirement (${maxDuration} years to age 95)`;
-
-    // Calculate replacement rate
-    const replacementRate = ((afterTaxIncome / (currentBalance * 0.05)) * 100).toFixed(0); // rough estimate
-
     // Build return model description
     const returnModelDesc = returnModel === 'fixed'
       ? `- Return Model: Fixed\n- Assumed Return: ${returnRate}%`
       : `- Return Model: Historical S&P 500 total-return bootstrap (1928–2024)`;
-
-    // Build the context about the retirement plan
-    const planContext = `Retirement Profile:
-- Current Age: ${age}
-- Retirement Age: ${retirementAge}
-- Current Balance: $${currentBalance.toLocaleString()}
-- Starting Accounts: Taxable $${startingTaxable.toLocaleString()} | Pre-tax $${startingPretax.toLocaleString()} | Roth $${startingRoth.toLocaleString()}
-- Marital Status: ${maritalStatus}
-
-Withdrawal Strategy:
-- Annual Withdrawal: $${annualWithdrawal.toLocaleString()} (${withdrawalRate}% initial rate)
-- After-Tax Income: $${afterTaxIncome.toLocaleString()}
-${returnModelDesc}
-- Inflation Rate: ${inflationRate}%
-
-Results:
-${longevityRisk}
-- Future Balance (Nominal): $${futureBalance.toLocaleString()}
-- Real Balance (Today's Dollars): $${realBalance.toLocaleString()}
-- Total Lifetime Tax: $${totalTax.toLocaleString()}
-${accountBreakdown}
-${rmdAnalysis}
-${estateAnalysis}
-${ssAnalysis}`;
 
     // Only process Q&A requests - auto-generated insights are now handled client-side
     if (!userQuestion || !userQuestion.trim()) {
@@ -233,11 +199,12 @@ Provide a concise, specific answer focused on their question. Keep your response
       : 'Unable to generate analysis.';
 
     return NextResponse.json({ insight });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Claude API Error:', error);
 
     // Handle specific error cases
-    if (error?.status === 401) {
+    const errorObj = error as { status?: number; message?: string };
+    if (errorObj?.status === 401) {
       return NextResponse.json(
         {
           error: 'Invalid API key',
@@ -249,7 +216,7 @@ Provide a concise, specific answer focused on their question. Keep your response
 
     return NextResponse.json(
       {
-        error: error?.message || 'Failed to generate AI analysis',
+        error: errorObj?.message || 'Failed to generate AI analysis',
         insight: 'Unable to generate AI insights at this time. Your retirement calculations are still accurate and valid.'
       },
       { status: 200 }
