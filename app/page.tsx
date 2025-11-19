@@ -54,6 +54,7 @@ import { TimelineView } from "@/components/calculator/TimelineView";
 import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
 import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
 import { CheckUsTab } from "@/components/calculator/CheckUsTab";
+import OptimizationTab from "@/components/calculator/OptimizationTab";
 import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
 import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexibilityChart";
 import { RothConversionOptimizer } from "@/components/calculator/RothConversionOptimizer";
@@ -1445,7 +1446,7 @@ export default function App() {
   const searchParams = useSearchParams();
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && ['all', 'configure', 'results', 'stress', 'legacy', 'budget', 'math', 'checkUs'].includes(tab)) {
+    if (tab && ['all', 'configure', 'results', 'stress', 'legacy', 'budget', 'optimize', 'math', 'checkUs'].includes(tab)) {
       setActiveMainTab(tab as MainTabId);
     }
   }, [searchParams]);
@@ -7159,6 +7160,44 @@ export default function App() {
               </Card>
             );
           })()}
+        </AnimatedSection>
+        </TabPanel>
+
+        {/* Optimize Tab */}
+        <TabPanel id="optimize" activeTab={activeMainTab}>
+        <AnimatedSection animation="fade-in" delay={100}>
+          {res && (
+            <OptimizationTab
+              inputs={{
+                marital, age1, age2, retAge, sTax, sPre, sPost,
+                cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+                retRate, infRate, stateRate, incContrib, incRate, wdRate,
+                retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+                historicalYear: historicalYear || undefined,
+                inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
+                inflationShockDuration,
+                dividendYield,
+                enableRothConversions,
+                targetConversionBracket,
+                includeMedicare,
+                medicarePremium,
+                medicalInflation,
+                irmaaThresholdSingle,
+                irmaaThresholdMarried,
+                irmaaSurcharge,
+                includeLTC,
+                ltcAnnualCost,
+                ltcProbability,
+                ltcDuration,
+                ltcOnsetAge,
+                ltcAgeRangeStart,
+                ltcAgeRangeEnd,
+                bondGlidePath,
+              }}
+              currentAge={Math.min(age1, isMar ? age2 : age1)}
+              plannedRetirementAge={retAge}
+            />
+          )}
         </AnimatedSection>
         </TabPanel>
 
