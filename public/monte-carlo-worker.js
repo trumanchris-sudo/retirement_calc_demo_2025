@@ -1431,6 +1431,7 @@ self.onmessage = function(e) {
       const { params: baseParams, baseSeed } = e.data;
       const SUCCESS_THRESHOLD = 0.95; // 95% success rate required
       const TEST_RUNS = 100; // Monte Carlo runs for optimization tests
+      const SAFETY_MAX_ITERATIONS = 50; // Safety brake: prevent infinite loops
 
       // Helper: Check if a configuration meets success criteria
       const testSuccess = (testParams) => {
@@ -1450,9 +1451,11 @@ self.onmessage = function(e) {
         let low = 0;
         let high = currentTotalContrib;
         let minContrib = currentTotalContrib;
+        let iterations = 0;
 
-        // Binary search for minimum contribution
-        for (let i = 0; i < 10; i++) { // 10 iterations gives ~0.1% precision
+        // Binary search for minimum contribution with safety brake
+        while (low < high && iterations < SAFETY_MAX_ITERATIONS) {
+          iterations++;
           const mid = (low + high) / 2;
           const scaleFactor = mid / currentTotalContrib;
 
@@ -1474,6 +1477,9 @@ self.onmessage = function(e) {
           } else {
             low = mid; // Need more
           }
+
+          // Early exit if converged
+          if (Math.abs(high - low) < 100) break;
         }
 
         surplusAnnual = currentTotalContrib - minContrib;
@@ -1484,8 +1490,11 @@ self.onmessage = function(e) {
       let maxSplurge = 0;
       let splurgeLow = 0;
       let splurgeHigh = 5000000; // Max $5M test
+      let splurgeIterations = 0;
 
-      for (let i = 0; i < 20; i++) { // 20 iterations for precision
+      // Binary search with safety brake
+      while (splurgeLow < splurgeHigh && splurgeIterations < SAFETY_MAX_ITERATIONS) {
+        splurgeIterations++;
         const mid = (splurgeLow + splurgeHigh) / 2;
 
         const testParams = {
@@ -1508,20 +1517,31 @@ self.onmessage = function(e) {
       // Find earliest retirement age with >95% success
       const currentAge = Math.min(baseParams.age1, baseParams.age2 || baseParams.age1);
       let earliestRetirementAge = baseParams.retAge;
+      let freedomIterations = 0;
 
-      // Test progressively earlier retirement ages
-      for (let testRetAge = baseParams.retAge - 1; testRetAge >= currentAge + 1; testRetAge--) {
+      // Binary search for earliest retirement age with safety brake
+      let minAge = currentAge + 1;
+      let maxAge = baseParams.retAge;
+      let bestAge = baseParams.retAge;
+
+      while (minAge <= maxAge && freedomIterations < SAFETY_MAX_ITERATIONS) {
+        freedomIterations++;
+        const midAge = Math.floor((minAge + maxAge) / 2);
+
         const testParams = {
           ...baseParams,
-          retAge: testRetAge,
+          retAge: midAge,
         };
 
         if (testSuccess(testParams)) {
-          earliestRetirementAge = testRetAge;
+          bestAge = midAge;
+          maxAge = midAge - 1; // Try earlier
         } else {
-          break; // Stop when success rate drops
+          minAge = midAge + 1; // Need more time
         }
       }
+
+      earliestRetirementAge = bestAge;
 
       // Send results
       self.postMessage({

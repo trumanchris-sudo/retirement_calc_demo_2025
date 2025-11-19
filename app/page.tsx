@@ -1342,8 +1342,8 @@ export default function App() {
   const [rothResult, setRothResult] = useState<RothConversionResult | null>(null);
 
   // Refs for legacy card image download
-  const legacyCardRefAllInOne = useRef<HTMLDivElement>(null);
-  const legacyCardRefLegacy = useRef<HTMLDivElement>(null);
+  const legacyCardRefAllInOne = useRef<HTMLDivElement>(null!);
+  const legacyCardRefLegacy = useRef<HTMLDivElement>(null!);
 
   // Build bond glide path configuration object
   const bondGlidePath: BondGlidePath | null = useMemo(() => {

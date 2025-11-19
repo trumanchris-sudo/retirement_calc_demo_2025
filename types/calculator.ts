@@ -99,6 +99,7 @@ export interface CalculatorInputs {
   retMode: ReturnMode;
   walkSeries: WalkSeries;
   seed: number;
+  dividendYield: number; // Annual dividend yield percentage for taxable accounts
 
   // Social Security
   includeSS: boolean;
