@@ -1210,6 +1210,7 @@ export default function App() {
 
   // Generational wealth parameters (improved demographic model)
   const [hypPerBen, setHypPerBen] = useState(100_000);
+  const [hypStartBens, setHypStartBens] = useState(2);
 
   // New intuitive beneficiary inputs - UPDATED to ask for current ages
   const [childrenCurrentAges, setChildrenCurrentAges] = useState("5, 3"); // Comma-separated current ages
@@ -1273,7 +1274,7 @@ export default function App() {
   }, [allocationStrategy, bondStartAge, bondEndAge, bondStartPct, bondEndPct, glidePathShape]);
 
   // Auto-calculate beneficiary ages based on user's age and family structure
-  const { hypBenAgesStr, hypStartBens } = useMemo(() => {
+  const hypBenAgesStr = useMemo(() => {
     const olderAge = Math.max(age1, age2);
     const yearsUntilDeath = hypDeathAge - olderAge;
 
@@ -1300,10 +1301,7 @@ export default function App() {
     const allChildrenAges = [...currentChildrenAtDeath, ...additionalChildrenAtDeath]
       .filter(age => age > 0 && age < hypDeathAge);
 
-    return {
-      hypBenAgesStr: allChildrenAges.length > 0 ? allChildrenAges.join(', ') : '0',
-      hypStartBens: Math.max(1, allChildrenAges.length)
-    };
+    return allChildrenAges.length > 0 ? allChildrenAges.join(', ') : '0';
   }, [childrenCurrentAges, additionalChildrenExpected, hypDeathAge, age1, age2]);
 
   const [aiInsight, setAiInsight] = useState<string>("");
