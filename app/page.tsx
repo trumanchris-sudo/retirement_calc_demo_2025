@@ -3631,7 +3631,7 @@ export default function App() {
                       </tr>
                       <tr className="bg-gray-50">
                         <th className="px-3 py-2 text-left font-semibold text-black">Estate Tax Exemption</th>
-                        <td className="px-3 py-2 text-right text-black">{fmt(marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single)} (2025 threshold)</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single)} (OBBBA 2026, inflation-indexed)</td>
                       </tr>
                       <tr>
                         <th className="px-3 py-2 text-left font-semibold text-black">Estate Tax Rate</th>
@@ -4569,7 +4569,7 @@ export default function App() {
                       <li>Inflation assumptions ({infRate}% baseline) are estimates and actual inflation may vary substantially.</li>
                       <li>The model assumes consistent contribution and withdrawal patterns, which may not reflect real-world behavior.</li>
                       <li>Healthcare costs, long-term care, and other major expenses are not explicitly modeled unless incorporated into withdrawal rates.</li>
-                      <li>Estate tax exemptions and rates reflect current law ({fmt(marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single)} exemption, {(ESTATE_TAX_RATE * 100).toFixed(0)}% rate) and may change.</li>
+                      <li>Estate tax exemptions reflect OBBBA legislation ({fmt(marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single)} exemption for 2026, indexed for inflation starting 2027, {(ESTATE_TAX_RATE * 100).toFixed(0)}% rate). Future legislation could repeal or modify these provisions.</li>
                     </ul>
                   </div>
 
@@ -7496,18 +7496,19 @@ export default function App() {
                 <div>
                   <h4 className="text-lg font-semibold mb-2 text-blue-800">Estate Tax</h4>
                   <p className="text-gray-700 mb-3">
-                    Under current law (2025), estates exceeding ${((marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single) / 1_000_000).toFixed(2)}
-                    million are subject to a 40% federal estate tax on the amount above the exemption. Your heirs
-                    receive the net estate after this tax. Note: Estate tax laws may change, and this is a simplified
-                    calculation that doesn't account for spousal transfers, trusts, or state estate taxes.
+                    Under the One Big Beautiful Bill Act (OBBBA, July 2025), the federal estate tax exemption is permanently set at
+                    ${((marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single) / 1_000_000).toFixed(0)}
+                    million per {marital === 'married' ? 'couple' : 'individual'} for 2026 and is indexed annually for inflation starting
+                    in 2027. Estates exceeding this threshold are subject to a 40% federal estate tax on the amount above the exemption.
+                    Your heirs receive the net estate after this tax.
                   </p>
 
-                  <div className="mt-3 p-4 bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500 rounded">
+                  <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 rounded">
                     <p className="text-gray-700">
-                      <strong>⚠️ CRITICAL:</strong> The $13.99M/$27.98M exemption sunsets December 31, 2025, reverting to approximately
-                      $7M for single filers ($14M married). This calculator uses the 2025 exemption but may significantly overstate
-                      the exemption for deaths after 2025. If your projected estate exceeds $7M, consult an estate attorney for
-                      updated planning strategies.
+                      <strong>📌 NOTE:</strong> The previous sunset provision that would have reduced the exemption to ~$7M has been eliminated.
+                      While the federal exemption has increased, state-level estate taxes may still apply at lower thresholds. This is a simplified
+                      calculation that doesn't account for spousal transfers, portability elections, trusts, or state estate taxes. Early gifting
+                      remains a powerful tool to freeze asset values and remove future appreciation from your taxable estate.
                     </p>
                   </div>
                 </div>
@@ -7596,8 +7597,9 @@ export default function App() {
               <ul className="list-disc pl-6 space-y-2 text-gray-700">
                 <li>
                   <strong>Tax Law Stability:</strong> Assumes current (2025) tax brackets, standard deductions,
-                  RMD rules, and estate tax exemptions remain constant. Tax laws frequently change, especially
-                  estate tax provisions which are set to sunset in 2026.
+                  RMD rules, and estate tax exemptions remain constant. Tax laws frequently change. This calculator
+                  assumes the permanent $15M exemption enacted by the OBBBA (July 2025) remains in effect and is
+                  not repealed by future legislation.
                 </li>
                 <li>
                   <strong>Sequence-of-Returns Risk:</strong> In Truly Random (Monte Carlo) mode with 1,000 simulations,
@@ -7649,7 +7651,7 @@ export default function App() {
                 <li><strong>LTCG Brackets:</strong> 2025 long-term capital gains tax rates (IRS)</li>
                 <li><strong>RMD Table:</strong> IRS Uniform Lifetime Table (Publication 590-B)</li>
                 <li><strong>Social Security:</strong> 2025 bend points and claiming adjustment factors (SSA)</li>
-                <li><strong>Estate Tax:</strong> 2025 federal exemption ($13.99M) and rate (IRS)</li>
+                <li><strong>Estate Tax:</strong> OBBBA permanent exemption ($15M individual / $30M married for 2026, indexed annually for inflation starting 2027) and 40% rate</li>
                 <li><strong>Medicare &amp; IRMAA:</strong> 2025 Part B/D premiums and income thresholds (CMS)</li>
                 <li><strong>Long-Term Care:</strong> National average costs based on Genworth 2024 Cost of Care Survey</li>
                 <li><strong>Medical Inflation:</strong> Historical healthcare cost growth trends (Kaiser Family Foundation, CMS)</li>
