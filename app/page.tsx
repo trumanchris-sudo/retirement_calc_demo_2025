@@ -2808,7 +2808,7 @@ export default function App() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
           setOlderAgeForAnalysis(olderAgeForAI);
           setIsLoadingAi(false);
-        }, 100);
+        }, 800); // INCREASED from 100 to 800 to allow AnimatedSection (700ms) to finish
       } else {
         // Recalculate: stay put, no navigation or scrolling
         setOlderAgeForAnalysis(olderAgeForAI);
