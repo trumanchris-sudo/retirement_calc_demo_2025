@@ -1585,337 +1585,134 @@ export default function Income2026Page() {
             {/* 24-Paycheck Linear Flow Table */}
             <PaycheckFlowTable key={calculationKey} paychecks={results.paychecks as any} />
 
-            {/* Paycheck-by-Paycheck Table (Original View) */}
+            {/* Dynamic Paycheck Table - Handles any number of pay periods */}
             <Card>
               <CardHeader>
                 <CardTitle>Paycheck-by-Paycheck Linear Flow</CardTitle>
                 <CardDescription>
-                  Complete waterfall from gross pay through all deductions to final investment allocation (24 paychecks)
+                  Complete waterfall from gross pay through all deductions to final investment allocation
+                  ({results.paychecks.length} pay periods)
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs border-collapse">
-                    <thead className="sticky top-0 bg-background">
-                      <tr className="border-b-2">
-                        <th className="text-left py-2 px-2 font-semibold min-w-[180px]">Description</th>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <th key={p.paycheckNum} className="text-right py-2 px-2 font-semibold min-w-[90px] border-l">
-                            #{p.paycheckNum}
-                          </th>
-                        ))}
-                      </tr>
-                      <tr className="border-b">
-                        <th className="text-left py-1 px-2 text-muted-foreground">Payment Date</th>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <th key={p.paycheckNum} className="text-right py-1 px-2 text-muted-foreground border-l">
-                            {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* Gross Income Section */}
-                      <tr className="bg-muted/30">
-                        <td colSpan={13} className="py-2 px-2 font-semibold">GROSS INCOME</td>
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2">Base Salary</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
-                            ${p.baseGross.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2">Bonus</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
-                            {p.bonus > 0 ? `$${p.bonus.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="border-b font-semibold bg-green-50 dark:bg-green-950/20">
-                        <td className="py-1 px-2">Total Gross</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
-                            ${p.totalGross.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                        ))}
-                      </tr>
+                  {/* Helper function to chunk array into groups of 12 */}
+                  {(() => {
+                    const chunkSize = 12;
+                    const chunks = [];
+                    for (let i = 0; i < results.paychecks.length; i += chunkSize) {
+                      chunks.push(results.paychecks.slice(i, i + chunkSize));
+                    }
 
-                      {/* Pre-Tax Deductions */}
-                      <tr className="bg-muted/30">
-                        <td colSpan={13} className="py-2 px-2 font-semibold">PRE-TAX DEDUCTIONS</td>
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2 pl-4">Health Insurance</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
-                            {p.healthIns > 0 ? `-$${p.healthIns.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2 pl-4">Dependent FSA</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
-                            {p.depFSA > 0 ? `-$${p.depFSA.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '-'}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2 pl-4">Dental</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
-                            {p.dental > 0 ? `-$${p.dental.toFixed(2)}` : '-'}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2 pl-4">Vision</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
-                            {p.vision > 0 ? `-$${p.vision.toFixed(2)}` : '-'}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2 pl-4">Medical FSA</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
-                            {p.medFSA > 0 ? `-$${p.medFSA.toFixed(2)}` : '-'}
-                          </td>
-                        ))}
-                      </tr>
+                    return chunks.map((chunk, chunkIndex) => (
+                      <div key={chunkIndex} className="mb-8 last:mb-0">
+                        <h4 className="font-semibold mb-4 text-sm uppercase tracking-wide text-muted-foreground">
+                          Pay periods {chunk[0].paycheckNum} - {chunk[chunk.length - 1].paycheckNum}
+                        </h4>
+                        <table className="w-full text-xs border-collapse mb-4">
+                          <thead className="sticky top-0 bg-background z-10">
+                            <tr className="border-b-2">
+                              <th className="text-left py-2 px-2 font-semibold min-w-[180px] bg-background">Description</th>
+                              {chunk.map((p: any) => (
+                                <th key={p.paycheckNum} className="text-right py-2 px-2 font-semibold min-w-[90px] border-l bg-background">
+                                  #{p.paycheckNum}
+                                </th>
+                              ))}
+                            </tr>
+                            <tr className="border-b">
+                              <th className="text-left py-1 px-2 text-muted-foreground bg-background">Payment Date</th>
+                              {chunk.map((p: any) => (
+                                <th key={p.paycheckNum} className="text-right py-1 px-2 text-muted-foreground border-l bg-background">
+                                  {new Date(p.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {/* GROSS INCOME */}
+                            <tr className="bg-muted/30"><td colSpan={chunk.length + 1} className="py-2 px-2 font-semibold">GROSS INCOME</td></tr>
+                            <tr className="hover:bg-muted/50">
+                              <td className="py-1 px-2">Base Salary</td>
+                              {chunk.map((p: any) => (
+                                <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
+                                  ${p.baseGross.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50">
+                              <td className="py-1 px-2">Bonus</td>
+                              {chunk.map((p: any) => (
+                                <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
+                                  {p.bonus > 0 ? `$${p.bonus.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="border-b font-semibold bg-green-50 dark:bg-green-950/20">
+                              <td className="py-1 px-2">Total Gross</td>
+                              {chunk.map((p: any) => (
+                                <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
+                                  ${p.totalGross.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                </td>
+                              ))}
+                            </tr>
 
-                      {/* Federal Income Tax */}
-                      <tr className="bg-muted/30">
-                        <td colSpan={13} className="py-2 px-2 font-semibold">FEDERAL INCOME TAX</td>
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2">FIT Taxable Income</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
-                            ${p.fitTaxable.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2">FIT Base Withholding</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
-                            -${p.fitBase.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2">Extra FIT Withholding</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
-                            {p.extraFIT > 0 ? `-$${p.extraFIT.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="border-b font-semibold">
-                        <td className="py-1 px-2">Total FIT</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
-                            -${p.totalFIT.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                        ))}
-                      </tr>
+                            {/* TAXES & DEDUCTIONS */}
+                            <tr className="bg-muted/30"><td colSpan={chunk.length + 1} className="py-2 px-2 font-semibold">TAXES & WITHHOLDING</td></tr>
+                            <tr className="hover:bg-muted/50">
+                              <td className="py-1 px-2">Federal Tax (FIT)</td>
+                              {chunk.map((p: any) => (
+                                <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                                  -${p.totalFIT.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50">
+                              <td className="py-1 px-2">FICA (SS + Med)</td>
+                              {chunk.map((p: any) => (
+                                <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                                  -${(p.ss + p.totalMed).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50">
+                              <td className="py-1 px-2">Benefits (Pre-Tax)</td>
+                              {chunk.map((p: any) => (
+                                <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
+                                  -${p.totalPreTax.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                </td>
+                              ))}
+                            </tr>
 
-                      {/* FICA Taxes */}
-                      <tr className="bg-muted/30">
-                        <td colSpan={13} className="py-2 px-2 font-semibold">FICA TAXES</td>
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2">Social Security (6.2%)</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
-                            {p.ss > 0 ? `-$${p.ss.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2">Medicare (1.45%)</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
-                            {p.med145 > 0 ? `-$${p.med145.toFixed(2)}` : '-'}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2">Medicare (2.35% over $200k)</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
-                            {p.med235 > 0 ? `-$${p.med235.toFixed(2)}` : '-'}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="border-b font-semibold">
-                        <td className="py-1 px-2">Total FICA</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
-                            -${(p.ss + p.totalMed).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                        ))}
-                      </tr>
-
-                      {/* Fixed Expenses */}
-                      <tr className="bg-muted/30">
-                        <td colSpan={13} className="py-2 px-2 font-semibold">FIXED EXPENSES</td>
-                      </tr>
-                      <tr className="border-b hover:bg-muted/50">
-                        <td className="py-1 px-2">Fixed Expenses (Biweekly)</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-red-700 dark:text-red-400">
-                            -${p.fixedExpenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                        ))}
-                      </tr>
-
-                      {/* Pre-Investment Remainder */}
-                      <tr className="bg-blue-50 dark:bg-blue-950/20 font-semibold border-b-2">
-                        <td className="py-2 px-2">Pre-Investment Remainder</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-2 px-2 font-mono border-l">
-                            ${p.preInvRemainder.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                        ))}
-                      </tr>
-
-                      {/* Investment Allocations */}
-                      <tr className="bg-muted/30">
-                        <td colSpan={13} className="py-2 px-2 font-semibold">INVESTMENT ALLOCATIONS</td>
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2">401k Contribution</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-blue-700 dark:text-blue-400">
-                            {p.contribution401k > 0 ? `$${p.contribution401k.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2">HYSA (EOY Expenses)</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-blue-700 dark:text-blue-400">
-                            {p.hysaContribution > 0 ? `$${p.hysaContribution.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2">Brokerage (Remainder)</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-blue-700 dark:text-blue-400">
-                            ${p.brokerageContribution.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                        ))}
-                      </tr>
-
-                      {/* YTD Aggregates */}
-                      <tr className="bg-muted/30">
-                        <td colSpan={13} className="py-2 px-2 font-semibold">YEAR-TO-DATE TOTALS</td>
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2">YTD 401k</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
-                            ${p.ytd401k.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                        ))}
-                      </tr>
-                      <tr className="hover:bg-muted/50">
-                        <td className="py-1 px-2">YTD Wages (SS Base)</td>
-                        {results.paychecks.slice(0, 12).map((p: any) => (
-                          <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
-                            ${p.ytdWages.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </td>
-                        ))}
-                      </tr>
-                    </tbody>
-                  </table>
-
-                  {/* Second Half of Paychecks (13-24) */}
-                  <div className="mt-8">
-                    <h4 className="font-semibold mb-4">Paychecks 13-24</h4>
-                    <table className="w-full text-xs border-collapse">
-                      <thead className="sticky top-0 bg-background">
-                        <tr className="border-b-2">
-                          <th className="text-left py-2 px-2 font-semibold min-w-[180px]">Description</th>
-                          {results.paychecks.slice(12, 24).map((p: any) => (
-                            <th key={p.paycheckNum} className="text-right py-2 px-2 font-semibold min-w-[90px] border-l">
-                              #{p.paycheckNum}
-                            </th>
-                          ))}
-                        </tr>
-                        <tr className="border-b">
-                          <th className="text-left py-1 px-2 text-muted-foreground">Payment Date</th>
-                          {results.paychecks.slice(12, 24).map((p: any) => (
-                            <th key={p.paycheckNum} className="text-right py-1 px-2 text-muted-foreground border-l">
-                              {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {/* Repeat same structure for paychecks 13-24 */}
-                        <tr className="bg-muted/30">
-                          <td colSpan={13} className="py-2 px-2 font-semibold">GROSS INCOME</td>
-                        </tr>
-                        <tr className="hover:bg-muted/50">
-                          <td className="py-1 px-2">Base Salary</td>
-                          {results.paychecks.slice(12, 24).map((p: any) => (
-                            <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
-                              ${p.baseGross.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                            </td>
-                          ))}
-                        </tr>
-                        <tr className="hover:bg-muted/50 border-b">
-                          <td className="py-1 px-2">Total Gross</td>
-                          {results.paychecks.slice(12, 24).map((p: any) => (
-                            <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l bg-green-50 dark:bg-green-950/20 font-semibold">
-                              ${p.totalGross.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                            </td>
-                          ))}
-                        </tr>
-                        <tr className="bg-blue-50 dark:bg-blue-950/20 font-semibold">
-                          <td className="py-2 px-2">Pre-Investment Remainder</td>
-                          {results.paychecks.slice(12, 24).map((p: any) => (
-                            <td key={p.paycheckNum} className="text-right py-2 px-2 font-mono border-l">
-                              ${p.preInvRemainder.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                            </td>
-                          ))}
-                        </tr>
-                        <tr className="hover:bg-muted/50">
-                          <td className="py-1 px-2">401k Contribution</td>
-                          {results.paychecks.slice(12, 24).map((p: any) => (
-                            <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-blue-700 dark:text-blue-400">
-                              {p.contribution401k > 0 ? `$${p.contribution401k.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
-                            </td>
-                          ))}
-                        </tr>
-                        <tr className="hover:bg-muted/50">
-                          <td className="py-1 px-2">Brokerage (Remainder)</td>
-                          {results.paychecks.slice(12, 24).map((p: any) => (
-                            <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-blue-700 dark:text-blue-400">
-                              ${p.brokerageContribution.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                            </td>
-                          ))}
-                        </tr>
-                        <tr className="hover:bg-muted/50">
-                          <td className="py-1 px-2">YTD 401k</td>
-                          {results.paychecks.slice(12, 24).map((p: any) => (
-                            <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l">
-                              ${p.ytd401k.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                            </td>
-                          ))}
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                            {/* CASH FLOW & INVESTMENTS */}
+                            <tr className="bg-blue-50 dark:bg-blue-950/20 font-semibold border-y-2">
+                              <td className="py-2 px-2">Net Cash (Pre-Inv)</td>
+                              {chunk.map((p: any) => (
+                                <td key={p.paycheckNum} className="text-right py-2 px-2 font-mono border-l">
+                                  ${p.preInvRemainder.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50">
+                              <td className="py-1 px-2">401k Contribution</td>
+                              {chunk.map((p: any) => (
+                                <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-blue-700 dark:text-blue-400">
+                                  {p.contribution401k > 0 ? `-$${p.contribution401k.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '-'}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50 font-semibold">
+                              <td className="py-1 px-2">Brokerage / Net</td>
+                              {chunk.map((p: any) => (
+                                <td key={p.paycheckNum} className="text-right py-1 px-2 font-mono border-l text-blue-700 dark:text-blue-400">
+                                  ${p.brokerageContribution.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                </td>
+                              ))}
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </CardContent>
             </Card>
