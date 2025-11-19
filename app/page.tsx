@@ -1342,8 +1342,8 @@ export default function App() {
   const [rothResult, setRothResult] = useState<RothConversionResult | null>(null);
 
   // Refs for legacy card image download
-  const legacyCardRefAllInOne = useRef<HTMLDivElement>(null);
-  const legacyCardRefLegacy = useRef<HTMLDivElement>(null);
+  const legacyCardRefAllInOne = useRef<HTMLDivElement>(null!);
+  const legacyCardRefLegacy = useRef<HTMLDivElement>(null!);
 
   // Build bond glide path configuration object
   const bondGlidePath: BondGlidePath | null = useMemo(() => {
@@ -3608,7 +3608,7 @@ export default function App() {
                         </>
                       )}
                       {retMode === 'randomWalk' && (
-                        <tr className={retMode === 'fixed' ? '' : 'bg-gray-50'}>
+                        <tr className="bg-gray-50">
                           <th className="px-3 py-2 text-left font-semibold text-black">Sequence-of-Returns Risk</th>
                           <td className="px-3 py-2 text-right text-black">Modeled (historical variability)</td>
                         </tr>
