@@ -2465,6 +2465,106 @@ export default function App() {
           console.log('[CALC] Implied CAGR - P50: Using user retRate:', retRate + '%');
           console.log('[CALC] Implied CAGR - P75 Real:', (impliedRealCAGR_P75 * 100).toFixed(2) + '%, Nominal:', impliedNominal_P75.toFixed(2) + '%');
 
+          // ========================================
+          // Fix: "Missing Grandchildren" - Recursive Backfill
+          // ========================================
+          // If initial beneficiaries are too old to have children (age > fertilityWindowEnd),
+          // we need to backfill younger generations to prevent immediate dynasty failure.
+          //
+          // Example: User dies at 95, child is 65. If fertility window is 25-35, the 65-year-old
+          // child cannot have offspring. We need to create implied grandchildren at appropriate ages.
+
+          interface BackfilledBeneficiary {
+            age: number;
+            size: number;
+            generation: number; // 0 = original beneficiaries, 1 = children, 2 = grandchildren, etc.
+          }
+
+          const backfillYoungerGenerations = (
+            initialAges: number[],
+            numBeneficiaries: number,
+            fertilityWindowEnd: number,
+            generationLength: number,
+            totalFertilityRate: number
+          ): BackfilledBeneficiary[] => {
+            const result: BackfilledBeneficiary[] = [];
+
+            // Process each initial beneficiary
+            for (const age of initialAges) {
+              if (age <= fertilityWindowEnd) {
+                // This beneficiary can have children - add them as-is
+                result.push({
+                  age,
+                  size: numBeneficiaries / initialAges.length, // Distribute total beneficiaries evenly
+                  generation: 0
+                });
+              } else {
+                // This beneficiary is too old - backfill younger generations
+                let currentAge = age;
+                let currentSize = numBeneficiaries / initialAges.length;
+                let generation = 0;
+
+                // Recursively create younger generations until we find one within fertility window
+                while (currentAge > fertilityWindowEnd) {
+                  // Calculate implied child age
+                  const childAge = currentAge - generationLength;
+
+                  // Calculate child cohort size using TFR
+                  const childSize = currentSize * totalFertilityRate;
+
+                  // Move to the child generation
+                  currentAge = childAge;
+                  currentSize = childSize;
+                  generation++;
+
+                  console.log(`[BACKFILL] Gen ${generation}: Parent age ${currentAge + generationLength} → Child age ${childAge}, size ${childSize.toFixed(2)}`);
+                }
+
+                // Add the youngest fertile generation we found
+                result.push({
+                  age: currentAge,
+                  size: currentSize,
+                  generation
+                });
+
+                console.log(`[BACKFILL] Final: Added beneficiary at age ${currentAge}, size ${currentSize.toFixed(2)}, generation ${generation}`);
+              }
+            }
+
+            return result;
+          };
+
+          // Apply backfill logic
+          const backfilledBeneficiaries = backfillYoungerGenerations(
+            benAges,
+            hypStartBens,
+            fertilityWindowEnd,
+            generationLength,
+            totalFertilityRate
+          );
+
+          // Convert backfilled beneficiaries to the format expected by the worker
+          // The worker expects initialBenAges array, so we need to expand the cohorts
+          const adjustedBenAges: number[] = [];
+          const adjustedStartBens = backfilledBeneficiaries.reduce((sum, b) => sum + b.size, 0);
+
+          console.log('[BACKFILL] Summary:');
+          console.log('[BACKFILL] Original beneficiaries:', hypStartBens, 'at ages', benAges);
+          console.log('[BACKFILL] Backfilled cohorts:', backfilledBeneficiaries.map(b => `Gen${b.generation}(age=${b.age}, size=${b.size.toFixed(2)})`).join(', '));
+          console.log('[BACKFILL] Adjusted total beneficiaries:', adjustedStartBens.toFixed(2));
+
+          // For the worker, we'll use the youngest generation's ages
+          // and adjust the starting beneficiary count
+          const finalBenAges = backfilledBeneficiaries.length > 0
+            ? backfilledBeneficiaries.map(b => b.age)
+            : benAges.length > 0 ? benAges : [0];
+
+          const finalStartBens = Math.max(1, Math.round(adjustedStartBens));
+
+          console.log('[BACKFILL] Final parameters for worker:');
+          console.log('[BACKFILL] - initialBenAges:', finalBenAges);
+          console.log('[BACKFILL] - startBens:', finalStartBens);
+
           // Run generational wealth simulation for all three percentiles (P25, P50, P75)
           // This allows us to calculate actual success rate based on which percentiles are perpetual
           console.log('[CALC] Running generational simulations for P25, P50, P75...');
@@ -2476,13 +2576,13 @@ export default function App() {
             nominalRet: impliedNominal_P25,
             inflPct: infRate,
             perBenReal: hypPerBen,
-            startBens: Math.max(1, hypStartBens),
+            startBens: finalStartBens,
             totalFertilityRate,
             generationLength,
             deathAge: Math.max(1, hypDeathAge),
             minDistAge: Math.max(0, hypMinDistAge),
             capYears: 10000,  // Optimized simulation with early-exit and chunking
-            initialBenAges: benAges.length > 0 ? benAges : [0],
+            initialBenAges: finalBenAges,
             fertilityWindowStart,
             fertilityWindowEnd
           });
@@ -2493,13 +2593,13 @@ export default function App() {
             nominalRet: retRate,
             inflPct: infRate,
             perBenReal: hypPerBen,
-            startBens: Math.max(1, hypStartBens),
+            startBens: finalStartBens,
             totalFertilityRate,
             generationLength,
             deathAge: Math.max(1, hypDeathAge),
             minDistAge: Math.max(0, hypMinDistAge),
             capYears: 10000,  // Optimized simulation with early-exit and chunking
-            initialBenAges: benAges.length > 0 ? benAges : [0],
+            initialBenAges: finalBenAges,
             fertilityWindowStart,
             fertilityWindowEnd
           });
@@ -2510,13 +2610,13 @@ export default function App() {
             nominalRet: impliedNominal_P75,
             inflPct: infRate,
             perBenReal: hypPerBen,
-            startBens: Math.max(1, hypStartBens),
+            startBens: finalStartBens,
             totalFertilityRate,
             generationLength,
             deathAge: Math.max(1, hypDeathAge),
             minDistAge: Math.max(0, hypMinDistAge),
             capYears: 10000,  // Optimized simulation with early-exit and chunking
-            initialBenAges: benAges.length > 0 ? benAges : [0],
+            initialBenAges: finalBenAges,
             fertilityWindowStart,
             fertilityWindowEnd
           });
