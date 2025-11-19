@@ -1222,6 +1222,7 @@ export default function App() {
     incContrib: false, // Changed from true to false
     incRate: 4.5,
     wdRate: 3.5,
+    dividendYield: 2.0, // Annual dividend/interest yield for taxable accounts
   });
 
   // Social Security Benefits
@@ -1237,7 +1238,7 @@ export default function App() {
   const { marital, age1, age2, retAge } = personalInfo;
   const { sTax, sPre, sPost } = currentBalances;
   const { cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2 } = contributions;
-  const { retRate, infRate, stateRate, incContrib, incRate, wdRate } = assumptions;
+  const { retRate, infRate, stateRate, incContrib, incRate, wdRate, dividendYield } = assumptions;
   const { includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2 } = socialSecurity;
 
   // Helper setter functions for grouped state objects
@@ -1265,6 +1266,7 @@ export default function App() {
   const setIncContrib = (value: boolean) => setAssumptions(prev => ({ ...prev, incContrib: value }));
   const setIncRate = (value: number) => setAssumptions(prev => ({ ...prev, incRate: value }));
   const setWdRate = (value: number) => setAssumptions(prev => ({ ...prev, wdRate: value }));
+  const setDividendYield = (value: number) => setAssumptions(prev => ({ ...prev, dividendYield: value }));
 
   const setIncludeSS = (value: boolean) => setSocialSecurity(prev => ({ ...prev, includeSS: value }));
   const setSSIncome = (value: number) => setSocialSecurity(prev => ({ ...prev, ssIncome: value }));
@@ -2283,6 +2285,7 @@ export default function App() {
         historicalYear: historicalYear || undefined,
         inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
         inflationShockDuration,
+        dividendYield, // Annual dividend yield for taxable accounts (yield drag)
         // Healthcare costs
         includeMedicare,
         medicarePremium,

@@ -6,7 +6,7 @@
 import type { ReturnMode, WalkSeries } from "@/types/planner";
 import type { FilingStatus } from "./taxCalculations";
 import type { BondGlidePath } from "@/types/calculator";
-import { calcOrdinaryTax } from "./taxCalculations";
+import { calcOrdinaryTax, calcLTCGTax } from "./taxCalculations";
 import { computeWithdrawalTaxes } from "./withdrawalTax";
 import { getBearReturns } from "@/lib/simulation/bearMarkets";
 import { getEffectiveInflation } from "@/lib/simulation/inflationShocks";
@@ -65,6 +65,8 @@ export type SimulationInputs = {
   ltcAgeRangeEnd?: number;
   // Bond allocation
   bondGlidePath?: BondGlidePath | null;
+  // Yield drag (annual tax on dividends/interest in taxable accounts)
+  dividendYield?: number; // Annual dividend/interest yield % (default 2.0)
 };
 
 /**
@@ -252,6 +254,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     historicalYear,
     inflationShockRate,
     inflationShockDuration = 5,
+    dividendYield = 2.0, // Default 2% annual dividend yield for taxable accounts
   } = params;
 
   const isMar = marital === "married";
@@ -317,9 +320,25 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     const a2 = isMar ? age2 + y : null;
 
     if (y > 0) {
+      // Apply growth to all accounts
       bTax *= g;
       bPre *= g;
       bPost *= g;
+
+      // Yield Drag: Tax annual dividends/interest in taxable account
+      // Only applies to taxable brokerage account (bTax), not tax-advantaged accounts
+      if (bTax > 0 && dividendYield > 0) {
+        // Calculate annual yield income (dividends + interest)
+        const yieldIncome = bTax * (dividendYield / 100);
+
+        // Tax the yield income at qualified dividend/LTCG rates (assume all dividends are qualified)
+        // Use 0 for ordinary income since this is just the dividend taxation
+        const yieldTax = calcLTCGTax(yieldIncome, marital, 0);
+
+        // Reduce taxable balance by the tax paid (yield drag)
+        // The yield income itself stays in the balance (already counted in bTax)
+        bTax -= yieldTax;
+      }
     }
 
     if (y > 0 && incContrib) {
@@ -388,6 +407,21 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     retBalTax *= g_retire;
     retBalPre *= g_retire;
     retBalRoth *= g_retire;
+
+    // Yield Drag: Tax annual dividends/interest in taxable account
+    // Only applies to taxable brokerage account (retBalTax), not tax-advantaged accounts
+    if (retBalTax > 0 && dividendYield > 0) {
+      // Calculate annual yield income (dividends + interest)
+      const yieldIncome = retBalTax * (dividendYield / 100);
+
+      // Tax the yield income at qualified dividend/LTCG rates (assume all dividends are qualified)
+      // Use 0 for ordinary income since this is just the dividend taxation
+      const yieldTax = calcLTCGTax(yieldIncome, marital, 0);
+
+      // Reduce taxable balance by the tax paid (yield drag)
+      // The yield income itself stays in the balance (already counted in retBalTax)
+      retBalTax -= yieldTax;
+    }
 
     const currentAge = age1 + yrsToRet + y;
     const currentAge2 = isMar ? age2 + yrsToRet + y : 0;
