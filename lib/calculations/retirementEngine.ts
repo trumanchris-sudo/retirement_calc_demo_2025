@@ -72,6 +72,7 @@ export type SimulationInputs = {
  */
 export type SimulationResult = {
   balancesReal: number[];      // real balance per year
+  balancesNominal: number[];   // nominal balance per year (needed for UI)
   eolReal: number;            // end-of-life wealth (real)
   y1AfterTaxReal: number;     // year-1 after-tax withdrawal (real)
   ruined: boolean;            // true if ran out of money before age 95
@@ -278,6 +279,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     infPct: infRate,
     walkSeries,
     seed: seed,
+    startYear: historicalYear, // Pass historicalYear to handle bear market sequences naturally
     bondGlidePath: params.bondGlidePath || null,
     currentAge: younger,
   })();
@@ -289,6 +291,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     infPct: infRate,
     walkSeries,
     seed: seed + 1,
+    startYear: historicalYear ? historicalYear + yrsToRet : undefined, // Continue from retirement year
     bondGlidePath: params.bondGlidePath || null,
     currentAge: older + yrsToRet,
   })();
@@ -299,30 +302,16 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   let basisTax = sTax;
 
   const balancesReal: number[] = [];
+  const balancesNominal: number[] = [];
   let c = {
     p: { tax: cTax1, pre: cPre1, post: cPost1, match: cMatch1 },
     s: { tax: cTax2, pre: cPre2, post: cPost2, match: cMatch2 },
   };
 
-  // Get bear market returns if applicable
-  const bearReturns = historicalYear ? getBearReturns(historicalYear) : null;
-
   // Accumulation phase
   for (let y = 0; y <= yrsToRet; y++) {
-    let g: number;
-
-    // Apply FIRST bear return in the retirement year itself (y == yrsToRet)
-    if (bearReturns && y === yrsToRet) {
-      const pct = bearReturns[0];
-      if (walkSeries === "real") {
-        const realRate = (1 + pct / 100) / (1 + infl) - 1;
-        g = 1 + realRate;
-      } else {
-        g = 1 + pct / 100;
-      }
-    } else {
-      g = retMode === "fixed" ? g_fixed : (accGen.next().value as number);
-    }
+    // Generator handles historical sequences naturally via startYear
+    const g = retMode === "fixed" ? g_fixed : (accGen.next().value as number);
 
     const a1 = age1 + y;
     const a2 = isMar ? age2 + y : null;
@@ -361,6 +350,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     const yearInflation = getEffectiveInflation(y, yrsToRet, infRate, inflationShockRate ?? null, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
     balancesReal.push(bal / cumulativeInflation);
+    balancesNominal.push(bal);
   }
 
   const finNom = bTax + bPre + bPost;
@@ -374,7 +364,9 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     bPre,
     bPost,
     basisTax,
-    stateRate
+    stateRate,
+    0, // No RMD for first year
+    0  // No base ordinary income for first year
   );
 
   const wdAfterY1 = wdGrossY1 - y1.tax;
@@ -390,20 +382,8 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
 
   // Drawdown phase
   for (let y = 1; y <= yrsToSim; y++) {
-    let g_retire: number;
-
-    // Inject remaining bear market returns in years 1-2 after retirement
-    if (bearReturns && y >= 1 && y <= 2) {
-      const pct = bearReturns[y];
-      if (walkSeries === "real") {
-        const realRate = (1 + pct / 100) / (1 + infl) - 1;
-        g_retire = 1 + realRate;
-      } else {
-        g_retire = 1 + pct / 100;
-      }
-    } else {
-      g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
-    }
+    // Generator handles historical sequences naturally via startYear
+    const g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
 
     retBalTax *= g_retire;
     retBalPre *= g_retire;
@@ -441,7 +421,9 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
       retBalPre,
       retBalRoth,
       currBasis,
-      stateRate
+      stateRate,
+      requiredRMD,      // Pass RMD as minimum pre-tax draw
+      ssAnnualBenefit   // Pass Social Security as base ordinary income
     );
 
     retBalTax -= taxes.draw.t;
@@ -466,6 +448,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, infRate, inflationShockRate ?? null, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
     balancesReal.push(totalNow / cumulativeInflation);
+    balancesNominal.push(totalNow);
 
     if (totalNow <= 0) {
       if (!ruined) {
@@ -486,6 +469,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
 
   return {
     balancesReal,
+    balancesNominal,
     eolReal,
     y1AfterTaxReal: wdRealY1,
     ruined,
