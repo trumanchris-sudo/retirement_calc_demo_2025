@@ -912,11 +912,14 @@ function simulateRealPerBeneficiaryPayout(
   const fertilityWindowYears = fertilityWindowEnd - fertilityWindowStart;
   const birthsPerYear = fertilityWindowYears > 0 ? totalFertilityRate / fertilityWindowYears : 0;
 
+  // Initialize cohorts with canReproduce based on maximum age only
+  // A young beneficiary (e.g., age 5) should have canReproduce: true
+  // so they can start reproducing when they age into the fertility window later
   let cohorts = initialBenAges.length > 0
     ? initialBenAges.map(age => ({
         size: 1,
         age,
-        canReproduce: age >= fertilityWindowStart && age <= fertilityWindowEnd,
+        canReproduce: age <= fertilityWindowEnd,
         cumulativeBirths: 0
       }))
     : startBens > 0

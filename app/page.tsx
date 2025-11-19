@@ -1448,6 +1448,14 @@ export default function App() {
     setInputsModified(true);
   }, []);
 
+  // Fix #4: Input Consistency - Auto-update fertility windows when generation length changes
+  const handleGenerationLengthChange = useCallback((newGenLen: number) => {
+    setGenerationLength(newGenLen);
+    setFertilityWindowStart(newGenLen - 5);
+    setFertilityWindowEnd(newGenLen + 5);
+    handleInputChange(); // Mark inputs as modified
+  }, [handleInputChange]);
+
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
   const monteCarloRef = useRef<HTMLDivElement | null>(null);
@@ -6824,7 +6832,7 @@ export default function App() {
                       <Input
                         label="Generation Length (years)"
                         value={generationLength}
-                        setter={setGenerationLength}
+                        setter={handleGenerationLengthChange}
                         min={20}
                         max={40}
                         onInputChange={handleInputChange}
