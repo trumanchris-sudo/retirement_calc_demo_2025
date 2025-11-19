@@ -1496,8 +1496,9 @@ self.onmessage = function(e) {
       let splurgeHigh = Math.min(5000000, totalStartingBalance * 0.95); // Cap at 95% of total balance
       let splurgeIterations = 0;
 
-      // Binary search with safety brake
-      while (splurgeLow < splurgeHigh && splurgeIterations < SAFETY_MAX_ITERATIONS) {
+      if (totalStartingBalance > 0) {
+        // Binary search with safety brake
+        while (splurgeLow < splurgeHigh && splurgeIterations < SAFETY_MAX_ITERATIONS) {
         splurgeIterations++;
         const mid = splurgeLow + (splurgeHigh - splurgeLow) / 2;
 
