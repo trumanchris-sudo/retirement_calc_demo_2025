@@ -837,12 +837,13 @@ function simulateRealPerBeneficiaryPayout(
   const birthsPerYear = fertilityWindowYears > 0 ? totalFertilityRate / fertilityWindowYears : 0;
 
   // Initialize cohorts with specified ages
-  // Only beneficiaries within fertility window at death can reproduce
+  // Beneficiaries can reproduce if they are young enough to eventually reach the fertility window
+  // Fix: Don't sterilize young children (e.g., age 5) who aren't fertile YET but will be later
   let cohorts: Cohort[] = initialBenAges.length > 0
     ? initialBenAges.map(age => ({
         size: 1,
         age,
-        canReproduce: age >= fertilityWindowStart && age <= fertilityWindowEnd,
+        canReproduce: age <= fertilityWindowEnd, // Can reproduce if young enough to reach window
         cumulativeBirths: 0
       }))
     : startBens > 0
