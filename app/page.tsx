@@ -320,12 +320,39 @@ const calcRMD = (pretaxBalance: number, age: number): number => {
 };
 
 /**
- * Calculate Estate Tax (2025 law)
+ * Calculate Estate Tax with TCJA sunset handling
+ * After 2025, exemptions drop to ~$7M/$14M (inflation-adjusted) unless tax cuts extended
  * @param totalEstate - Total estate value (all accounts)
  * @param status - Filing status (single or married)
+ * @param year - Year of death (defaults to current year)
+ * @param assumeExtended - Whether to assume TCJA extended beyond 2025 (defaults to false)
  */
-const calcEstateTax = (totalEstate: number, status: FilingStatus = "single"): number => {
-  const exemption = ESTATE_TAX_EXEMPTION[status];
+const calcEstateTax = (
+  totalEstate: number,
+  status: FilingStatus = "single",
+  year: number = CURR_YEAR,
+  assumeExtended: boolean = false
+): number => {
+  let exemption: number;
+
+  // Check if we need to apply post-2025 sunset rules
+  if (year > 2025 && !assumeExtended) {
+    // Post-TCJA sunset: exemptions drop to approximately $7M/$14M (2026 baseline)
+    // Apply inflation adjustment from 2026 to death year
+    const yearsAfter2026 = Math.max(0, year - 2026);
+    const inflationFactor = Math.pow(1.026, yearsAfter2026); // ~2.6% annual inflation
+
+    const baseSunsetExemption = {
+      single: 7_000_000,
+      married: 14_000_000,
+    };
+
+    exemption = baseSunsetExemption[status] * inflationFactor;
+  } else {
+    // Use current TCJA exemptions (2025 levels or extended)
+    exemption = ESTATE_TAX_EXEMPTION[status];
+  }
+
   if (totalEstate <= exemption) return 0;
   const taxableEstate = totalEstate - exemption;
   return taxableEstate * ESTATE_TAX_RATE;
@@ -1380,6 +1407,9 @@ export default function App() {
   const [inflationShockRate, setInflationShockRate] = useState<number>(0); // elevated inflation % - default 0 means no shock
   const [inflationShockDuration, setInflationShockDuration] = useState<number>(5); // years
 
+  // Estate tax sunset assumption (TCJA expires after 2025)
+  const [assumeTaxCutsExtended, setAssumeTaxCutsExtended] = useState(false); // Default: assume sunset happens
+
   // Scenario comparison mode
   const [comparisonMode, setComparisonMode] = useState(false);
 
@@ -2370,9 +2400,10 @@ export default function App() {
 
         // Calculate estate tax using median EOL
         console.log('[CALC] Calculating estate tax...');
-        const estateTax = calcEstateTax(eolWealth, marital);
+        const yearOfDeath = CURR_YEAR + (LIFE_EXP - older); // Death at LIFE_EXP age
+        const estateTax = calcEstateTax(eolWealth, marital, yearOfDeath, assumeTaxCutsExtended);
         const netEstate = eolWealth - estateTax;
-        console.log('[CALC] Estate tax calculated - estateTax:', estateTax, 'netEstate:', netEstate);
+        console.log('[CALC] Estate tax calculated - year:', yearOfDeath, 'estateTax:', estateTax, 'netEstate:', netEstate);
 
         // Generational payout calculation (if enabled) - Monte Carlo version
         // NOW OPTIMIZED: Uses early-exit, decade chunking, and early termination for 90-99% speedup
@@ -2398,9 +2429,9 @@ export default function App() {
 
           // Calculate estate tax and net estate for each percentile
           console.log('[CALC] Calculating estate taxes for percentiles...');
-          const estateTaxP25 = calcEstateTax(eolP25, marital);
-          const estateTaxP50 = calcEstateTax(eolP50, marital);
-          const estateTaxP75 = calcEstateTax(eolP75, marital);
+          const estateTaxP25 = calcEstateTax(eolP25, marital, yearOfDeath, assumeTaxCutsExtended);
+          const estateTaxP50 = calcEstateTax(eolP50, marital, yearOfDeath, assumeTaxCutsExtended);
+          const estateTaxP75 = calcEstateTax(eolP75, marital, yearOfDeath, assumeTaxCutsExtended);
 
           const netEstateP25 = eolP25 - estateTaxP25;
           const netEstateP50 = eolP50 - estateTaxP50;
@@ -2496,7 +2527,7 @@ export default function App() {
           // Step 3: Convert to nominal terms and apply estate tax
           const allEstatesAfterTax = allEstatesReal.map(eolReal => {
             const eolNominal = eolReal * Math.pow(1 + infl, yearsFrom2025);
-            const estateTax = calcEstateTax(eolNominal, marital);
+            const estateTax = calcEstateTax(eolNominal, marital, yearOfDeath, assumeTaxCutsExtended);
             return eolNominal - estateTax;
           });
 
@@ -2667,93 +2698,152 @@ export default function App() {
     totalFertilityRate, generationLength, fertilityWindowStart, fertilityWindowEnd,
   ]);
 
-  // Calculate sensitivity analysis using mathematical approximations
+  // Calculate sensitivity analysis using ACTUAL simulations (not approximations)
   const calculateSensitivity = useCallback(() => {
     if (!res) return null;
 
-    const baselineEOL = res.eol;
-    const retirementBalance = res.finNom;
+    // Base inputs for simulations
+    const baseInputs: SimulationInputs = {
+      marital, age1, age2, retAge, sTax, sPre, sPost,
+      cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+      retRate, infRate, stateRate, incContrib, incRate, wdRate,
+      retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+      historicalYear: historicalYear || undefined,
+      inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
+      inflationShockDuration,
+      includeMedicare, medicarePremium, medicalInflation,
+      irmaaThresholdSingle, irmaaThresholdMarried, irmaaSurcharge,
+      includeLTC, ltcAnnualCost, ltcProbability, ltcDuration,
+      ltcOnsetAge, ltcAgeRangeStart, ltcAgeRangeEnd,
+      bondGlidePath,
+    };
+
+    // Run baseline simulation
+    const baselineSim = runSingleSimulation(baseInputs, seed);
+    const baselineEOL = baselineSim.eolReal;
+    const infl = infRate / 100;
     const younger = Math.min(age1, isMar ? age2 : age1);
+    const older = Math.max(age1, isMar ? age2 : age1);
     const yrsToRet = retAge - younger;
-    const yrsToSim = Math.max(0, LIFE_EXP - (Math.max(age1, isMar ? age2 : age1) + yrsToRet));
+    const yearsFrom2025 = (LIFE_EXP - older);
+    const baselineNominal = baselineEOL * Math.pow(1 + infl, yearsFrom2025);
+
     const variations = [];
 
-    // Return Rate impact: Use compound growth sensitivity
-    // ±2% over 30 years ≈ ±60% impact on accumulation, ±40% on total EOL
-    const returnDelta = 0.02;
-    const accumulationYears = yrsToRet;
-    const drawdownYears = yrsToSim;
-    const totalYears = accumulationYears + drawdownYears;
-    const returnImpact = baselineEOL * (Math.pow(1 + retRate/100 + returnDelta, totalYears) / Math.pow(1 + retRate/100, totalYears) - 1);
+    // 1. Return Rate: ±2%
+    const highReturnSim = runSingleSimulation({ ...baseInputs, retRate: retRate + 2 }, seed);
+    const lowReturnSim = runSingleSimulation({ ...baseInputs, retRate: retRate - 2 }, seed);
     variations.push({
       label: "Return Rate",
-      high: returnImpact,
-      low: -returnImpact * 0.95, // Slightly asymmetric
-      range: Math.abs(returnImpact) * 1.95,
+      high: (highReturnSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      low: (lowReturnSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      range: Math.abs((highReturnSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - (lowReturnSim.eolReal * Math.pow(1 + infl, yearsFrom2025))),
     });
 
-    // Retirement Age: Each year delays retirement adds ~1 year of contributions + growth, saves 1 year of withdrawals
-    const annualContrib = (cTax1 + cPre1 + cPost1 + cMatch1 + cTax2 + cPre2 + cPost2 + cMatch2);
-    const growthFactor = Math.pow(1 + retRate/100, yrsToRet / 2); // Mid-point growth
-    const retAgeImpact = (annualContrib * growthFactor * 2) + (res.wd * 2); // 2 years of contributions + savings from not withdrawing
+    // 2. Retirement Age: ±2 years
+    const highRetAgeSim = runSingleSimulation({ ...baseInputs, retAge: retAge + 2 }, seed);
+    const lowRetAgeSim = runSingleSimulation({ ...baseInputs, retAge: Math.max(younger + 5, retAge - 2) }, seed); // Don't retire before age younger+5
     variations.push({
       label: "Retirement Age",
-      high: retAgeImpact * 2, // +2 years
-      low: -retAgeImpact * 2, // -2 years
-      range: retAgeImpact * 4,
+      high: (highRetAgeSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      low: (lowRetAgeSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      range: Math.abs((highRetAgeSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - (lowRetAgeSim.eolReal * Math.pow(1 + infl, yearsFrom2025))),
     });
 
-    // Withdrawal Rate: Direct impact on EOL wealth
-    // ±0.5% over yrsToSim years with compound effects
-    const avgBalance = (retirementBalance + baselineEOL) / 2;
-    const wdImpact = avgBalance * 0.005 * yrsToSim * 1.2; // 1.2 factor for compound effects
+    // 3. Withdrawal Rate: ±0.5%
+    const highWdSim = runSingleSimulation({ ...baseInputs, wdRate: wdRate + 0.5 }, seed);
+    const lowWdSim = runSingleSimulation({ ...baseInputs, wdRate: wdRate - 0.5 }, seed);
     variations.push({
       label: "Withdrawal Rate",
-      high: -wdImpact, // Higher withdrawal = lower EOL (negative impact)
-      low: wdImpact, // Lower withdrawal = higher EOL (positive impact)
-      range: wdImpact * 2,
+      high: (lowWdSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal, // Lower withdrawal = higher EOL
+      low: (highWdSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal, // Higher withdrawal = lower EOL
+      range: Math.abs((lowWdSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - (highWdSim.eolReal * Math.pow(1 + infl, yearsFrom2025))),
     });
 
-    // Starting Savings: ±15% with growth over entire period
-    const savingsGrowthFactor = Math.pow(1 + retRate/100, totalYears);
-    const savingsImpact = (sTax + sPre + sPost) * 0.15 * savingsGrowthFactor;
+    // 4. Starting Savings: ±15%
+    const savingsFactor = 0.15;
+    const highSavingsSim = runSingleSimulation({
+      ...baseInputs,
+      sTax: sTax * (1 + savingsFactor),
+      sPre: sPre * (1 + savingsFactor),
+      sPost: sPost * (1 + savingsFactor),
+    }, seed);
+    const lowSavingsSim = runSingleSimulation({
+      ...baseInputs,
+      sTax: sTax * (1 - savingsFactor),
+      sPre: sPre * (1 - savingsFactor),
+      sPost: sPost * (1 - savingsFactor),
+    }, seed);
     variations.push({
       label: "Starting Savings",
-      high: savingsImpact,
-      low: -savingsImpact,
-      range: savingsImpact * 2,
+      high: (highSavingsSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      low: (lowSavingsSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      range: Math.abs((highSavingsSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - (lowSavingsSim.eolReal * Math.pow(1 + infl, yearsFrom2025))),
     });
 
-    // Annual Contributions: ±15% over yrsToRet with growth
-    // Future value of annuity with geometric growth
-    const fvFactor = ((Math.pow(1 + retRate/100, yrsToRet) - 1) / (retRate/100)) * (1 + retRate/100);
-    const contribImpact = annualContrib * 0.15 * fvFactor * Math.pow(1 + retRate/100, yrsToSim);
+    // 5. Annual Contributions: ±15%
+    const contribFactor = 0.15;
+    const highContribSim = runSingleSimulation({
+      ...baseInputs,
+      cTax1: cTax1 * (1 + contribFactor),
+      cPre1: cPre1 * (1 + contribFactor),
+      cPost1: cPost1 * (1 + contribFactor),
+      cMatch1: cMatch1 * (1 + contribFactor),
+      cTax2: cTax2 * (1 + contribFactor),
+      cPre2: cPre2 * (1 + contribFactor),
+      cPost2: cPost2 * (1 + contribFactor),
+      cMatch2: cMatch2 * (1 + contribFactor),
+    }, seed);
+    const lowContribSim = runSingleSimulation({
+      ...baseInputs,
+      cTax1: cTax1 * (1 - contribFactor),
+      cPre1: cPre1 * (1 - contribFactor),
+      cPost1: cPost1 * (1 - contribFactor),
+      cMatch1: cMatch1 * (1 - contribFactor),
+      cTax2: cTax2 * (1 - contribFactor),
+      cPre2: cPre2 * (1 - contribFactor),
+      cPost2: cPost2 * (1 - contribFactor),
+      cMatch2: cMatch2 * (1 - contribFactor),
+    }, seed);
     variations.push({
       label: "Annual Contributions",
-      high: contribImpact,
-      low: -contribImpact,
-      range: contribImpact * 2,
+      high: (highContribSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      low: (lowContribSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
+      range: Math.abs((highContribSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - (lowContribSim.eolReal * Math.pow(1 + infl, yearsFrom2025))),
     });
 
-    // Inflation: ±0.5% affects both accumulation and purchasing power
-    // Impact is approximately ±0.5% * totalYears on real value
-    const inflationDelta = 0.005;
-    const inflationImpact = baselineEOL * inflationDelta * totalYears * 0.5; // Conservative linear approximation
+    // 6. Inflation Rate: ±0.5%
+    const highInflSim = runSingleSimulation({ ...baseInputs, infRate: infRate + 0.5 }, seed);
+    const lowInflSim = runSingleSimulation({ ...baseInputs, infRate: infRate - 0.5 }, seed);
+    // Higher inflation reduces real purchasing power, lower inflation increases it
+    const highInflNominal = highInflSim.eolReal * Math.pow(1 + (infRate + 0.5) / 100, yearsFrom2025);
+    const lowInflNominal = lowInflSim.eolReal * Math.pow(1 + (infRate - 0.5) / 100, yearsFrom2025);
     variations.push({
       label: "Inflation Rate",
-      high: -inflationImpact, // Higher inflation = lower real value
-      low: inflationImpact, // Lower inflation = higher real value
-      range: inflationImpact * 2,
+      high: lowInflNominal - baselineNominal, // Lower inflation = higher real purchasing power
+      low: highInflNominal - baselineNominal, // Higher inflation = lower real purchasing power
+      range: Math.abs(lowInflNominal - highInflNominal),
     });
 
     // Sort by range (impact magnitude)
     variations.sort((a, b) => b.range - a.range);
 
     return {
-      baseline: baselineEOL,
+      baseline: baselineNominal,
       variations,
     };
-  }, [res, retRate, retAge, wdRate, sTax, sPre, sPost, cTax1, cPre1, cPost1, cTax2, cPre2, cPost2, age1, age2, isMar, infRate]);
+  }, [
+    res, marital, age1, age2, retAge, sTax, sPre, sPost,
+    cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+    retRate, infRate, stateRate, incContrib, incRate, wdRate,
+    retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+    historicalYear, inflationShockRate, inflationShockDuration,
+    includeMedicare, medicarePremium, medicalInflation,
+    irmaaThresholdSingle, irmaaThresholdMarried, irmaaSurcharge,
+    includeLTC, ltcAnnualCost, ltcProbability, ltcDuration,
+    ltcOnsetAge, ltcAgeRangeStart, ltcAgeRangeEnd,
+    bondGlidePath, isMar, seed,
+  ]);
 
   // Load scenarios from localStorage on mount
   useEffect(() => {
