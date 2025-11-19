@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { ArrowLeft, Calculator, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ interface PayEvent {
 }
 
 export default function Income2026Page() {
-  const { implied } = useBudget();
+  useBudget();
   // Marital status
   const [maritalStatus, setMaritalStatus] = useState<FilingStatus>("single");
 
@@ -47,11 +47,6 @@ export default function Income2026Page() {
   const [p1PreTaxHSA, setP1PreTaxHSA] = useState(0);
   const [p1PreTaxFSA, setP1PreTaxFSA] = useState(0);
 
-  // Person 1 Post-tax Deductions
-  const [p1RothContribution, setP1RothContribution] = useState(0);
-  const [p1DisabilityInsurance, setP1DisabilityInsurance] = useState(0);
-  const [p1LifeInsurance, setP1LifeInsurance] = useState(0);
-
   // Person 2 (Spouse) Income Inputs
   const [p2BaseIncome, setP2BaseIncome] = useState(0);
   const [p2Bonus, setP2Bonus] = useState(0);
@@ -66,38 +61,25 @@ export default function Income2026Page() {
   const [p2PreTaxHSA, setP2PreTaxHSA] = useState(0);
   const [p2PreTaxFSA, setP2PreTaxFSA] = useState(0);
 
-  // Person 2 Post-tax Deductions
-  const [p2RothContribution, setP2RothContribution] = useState(0);
-  const [p2DisabilityInsurance, setP2DisabilityInsurance] = useState(0);
-  const [p2LifeInsurance, setP2LifeInsurance] = useState(0);
-
   // Tax Settings
-  const [federalWithholdingExtra, setFederalWithholdingExtra] = useState(0);
-  const [stateWithholdingExtra, setStateWithholdingExtra] = useState(0);
+  const [federalWithholdingExtra] = useState(0);
+  const [stateWithholdingExtra] = useState(0);
 
   // Housing
   const [housingType, setHousingType] = useState<"rent" | "own">("own");
   const [rentPayment, setRentPayment] = useState(0);
   const [mortgagePayment, setMortgagePayment] = useState(5859);
-  const [propertyTaxAnnual, setPropertyTaxAnnual] = useState(25000);
-  const [homeInsuranceAnnual, setHomeInsuranceAnnual] = useState(10000);
-  const [floodInsuranceAnnual, setFloodInsuranceAnnual] = useState(3500);
+  const [propertyTaxAnnual] = useState(25000);
+  const [homeInsuranceAnnual] = useState(10000);
+  const [floodInsuranceAnnual] = useState(3500);
 
   // Spending Buckets
   const [householdExpenses, setHouseholdExpenses] = useState(0);
   const [discretionarySpending, setDiscretionarySpending] = useState(0);
-  const [childcareCosts, setChildcareCosts] = useState(1550);
-  const [childcareDropoffMonth, setChildcareDropoffMonth] = useState("None");
-  const [nonRetirementInvestments, setNonRetirementInvestments] = useState(0);
-  const [surplusLiquidity, setSurplusLiquidity] = useState(0);
+  const [childcareCosts] = useState(1550);
 
   // Life Insurance
-  const [p1LifeInsuranceAnnual, setP1LifeInsuranceAnnual] = useState(4500);
-  const [p1LifeInsuranceCoverage, setP1LifeInsuranceCoverage] = useState(3000000);
-  const [p1LifeInsuranceFrequency, setP1LifeInsuranceFrequency] = useState<"monthly" | "quarterly" | "semi-annually" | "annually">("annually");
-  const [p2LifeInsuranceAnnual, setP2LifeInsuranceAnnual] = useState(0);
-  const [p2LifeInsuranceCoverage, setP2LifeInsuranceCoverage] = useState(0);
-  const [p2LifeInsuranceFrequency, setP2LifeInsuranceFrequency] = useState<"monthly" | "quarterly" | "semi-annually" | "annually">("annually");
+  const [p1LifeInsuranceAnnual] = useState(4500);
 
   // TODO: Net Worth Tracking Feature (Not Yet Implemented)
   // Uncomment these when implementing net worth tracking functionality

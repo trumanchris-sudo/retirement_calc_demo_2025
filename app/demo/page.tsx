@@ -181,10 +181,10 @@ export default function DemoPage() {
                 <h3 className="text-2xl font-bold mb-3">🎉 Looking Great!</h3>
                 <p className="text-lg text-slate-600 dark:text-slate-300">
                   Based on your current savings of <strong className="text-blue-600 dark:text-blue-400">${balance.toLocaleString()}</strong> and
-                  an expected return of <strong className="text-blue-600 dark:text-blue-400">{returnRate}%</strong>, you're projected to have{" "}
+                  an expected return of <strong className="text-blue-600 dark:text-blue-400">{returnRate}%</strong>, you&apos;re projected to have{" "}
                   <strong className="text-blue-600 dark:text-blue-400">${futureValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong>{" "}
-                  by age 65. That's <strong className="text-emerald-600 dark:text-emerald-400">${realValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong> in
-                  today's purchasing power!
+                  by age 65. That&apos;s <strong className="text-emerald-600 dark:text-emerald-400">${realValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong> in
+                  today&apos;s purchasing power!
                 </p>
               </div>
             </AnimatedSection>
