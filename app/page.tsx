@@ -1158,37 +1158,91 @@ ScenarioComparisonChart.displayName = 'ScenarioComparisonChart';
 
 export default function App() {
   const { setImplied } = useBudget();
-  const [marital, setMarital] = useState<FilingStatus>("single");
-  const [age1, setAge1] = useState(35);
-  const [age2, setAge2] = useState(33);
-  const [retAge, setRetAge] = useState(65);
 
-  const [sTax, setSTax] = useState(50000);
-  const [sPre, setSPre] = useState(150000);
-  const [sPost, setSPost] = useState(25000);
+  // Personal Information
+  const [personalInfo, setPersonalInfo] = useState({
+    marital: "single" as FilingStatus,
+    age1: 35,
+    age2: 33,
+    retAge: 65,
+  });
 
-  const [cTax1, setCTax1] = useState(12000);
-  const [cPre1, setCPre1] = useState(23000);
-  const [cPost1, setCPost1] = useState(7000);
-  const [cMatch1, setCMatch1] = useState(0);
+  // Current Account Balances
+  const [currentBalances, setCurrentBalances] = useState({
+    sTax: 50000,
+    sPre: 150000,
+    sPost: 25000,
+  });
 
-  const [cTax2, setCTax2] = useState(8000);
-  const [cPre2, setCPre2] = useState(23000);
-  const [cPost2, setCPost2] = useState(7000);
-  const [cMatch2, setCMatch2] = useState(0);
+  // Annual Contributions
+  const [contributions, setContributions] = useState({
+    cTax1: 12000,
+    cPre1: 23000,
+    cPost1: 7000,
+    cMatch1: 0,
+    cTax2: 8000,
+    cPre2: 23000,
+    cPost2: 7000,
+    cMatch2: 0,
+  });
 
-  const [retRate, setRetRate] = useState(9.8);
-  const [infRate, setInfRate] = useState(2.6);
-  const [stateRate, setStateRate] = useState(0);
-  const [incContrib, setIncContrib] = useState(false); // Changed from true to false
-  const [incRate, setIncRate] = useState(4.5);
-  const [wdRate, setWdRate] = useState(3.5);
+  // Return and Withdrawal Assumptions
+  const [assumptions, setAssumptions] = useState({
+    retRate: 9.8,
+    infRate: 2.6,
+    stateRate: 0,
+    incContrib: false, // Changed from true to false
+    incRate: 4.5,
+    wdRate: 3.5,
+  });
 
-  const [includeSS, setIncludeSS] = useState(true);
-  const [ssIncome, setSSIncome] = useState(75000); // Primary - Avg career earnings for SS calc
-  const [ssClaimAge, setSSClaimAge] = useState(67); // Primary - Full retirement age
-  const [ssIncome2, setSSIncome2] = useState(75000); // Spouse - Avg career earnings for SS calc
-  const [ssClaimAge2, setSSClaimAge2] = useState(67); // Spouse - Full retirement age
+  // Social Security Benefits
+  const [socialSecurity, setSocialSecurity] = useState({
+    includeSS: true,
+    ssIncome: 75000, // Primary - Avg career earnings for SS calc
+    ssClaimAge: 67, // Primary - Full retirement age
+    ssIncome2: 75000, // Spouse - Avg career earnings for SS calc
+    ssClaimAge2: 67, // Spouse - Full retirement age
+  });
+
+  // Destructure for backward compatibility with existing code
+  const { marital, age1, age2, retAge } = personalInfo;
+  const { sTax, sPre, sPost } = currentBalances;
+  const { cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2 } = contributions;
+  const { retRate, infRate, stateRate, incContrib, incRate, wdRate } = assumptions;
+  const { includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2 } = socialSecurity;
+
+  // Helper setter functions for grouped state objects
+  const setMarital = (value: FilingStatus) => setPersonalInfo(prev => ({ ...prev, marital: value }));
+  const setAge1 = (value: number) => setPersonalInfo(prev => ({ ...prev, age1: value }));
+  const setAge2 = (value: number) => setPersonalInfo(prev => ({ ...prev, age2: value }));
+  const setRetAge = (value: number) => setPersonalInfo(prev => ({ ...prev, retAge: value }));
+
+  const setSTax = (value: number) => setCurrentBalances(prev => ({ ...prev, sTax: value }));
+  const setSPre = (value: number) => setCurrentBalances(prev => ({ ...prev, sPre: value }));
+  const setSPost = (value: number) => setCurrentBalances(prev => ({ ...prev, sPost: value }));
+
+  const setCTax1 = (value: number) => setContributions(prev => ({ ...prev, cTax1: value }));
+  const setCPre1 = (value: number) => setContributions(prev => ({ ...prev, cPre1: value }));
+  const setCPost1 = (value: number) => setContributions(prev => ({ ...prev, cPost1: value }));
+  const setCMatch1 = (value: number) => setContributions(prev => ({ ...prev, cMatch1: value }));
+  const setCTax2 = (value: number) => setContributions(prev => ({ ...prev, cTax2: value }));
+  const setCPre2 = (value: number) => setContributions(prev => ({ ...prev, cPre2: value }));
+  const setCPost2 = (value: number) => setContributions(prev => ({ ...prev, cPost2: value }));
+  const setCMatch2 = (value: number) => setContributions(prev => ({ ...prev, cMatch2: value }));
+
+  const setRetRate = (value: number) => setAssumptions(prev => ({ ...prev, retRate: value }));
+  const setInfRate = (value: number) => setAssumptions(prev => ({ ...prev, infRate: value }));
+  const setStateRate = (value: number) => setAssumptions(prev => ({ ...prev, stateRate: value }));
+  const setIncContrib = (value: boolean) => setAssumptions(prev => ({ ...prev, incContrib: value }));
+  const setIncRate = (value: number) => setAssumptions(prev => ({ ...prev, incRate: value }));
+  const setWdRate = (value: number) => setAssumptions(prev => ({ ...prev, wdRate: value }));
+
+  const setIncludeSS = (value: boolean) => setSocialSecurity(prev => ({ ...prev, includeSS: value }));
+  const setSSIncome = (value: number) => setSocialSecurity(prev => ({ ...prev, ssIncome: value }));
+  const setSSClaimAge = (value: number) => setSocialSecurity(prev => ({ ...prev, ssClaimAge: value }));
+  const setSSIncome2 = (value: number) => setSocialSecurity(prev => ({ ...prev, ssIncome2: value }));
+  const setSSClaimAge2 = (value: number) => setSocialSecurity(prev => ({ ...prev, ssClaimAge2: value }));
 
   // Healthcare costs (post-retirement)
   const [includeMedicare, setIncludeMedicare] = useState(true);
@@ -2781,11 +2835,10 @@ export default function App() {
       name: scenarioName.trim(),
       timestamp: Date.now(),
       inputs: {
-        age1, age2, retAge, marital,
-        sTax, sPre, sPost,
-        cTax1, cPre1, cPost1, cMatch1,
-        cTax2, cPre2, cPost2, cMatch2,
-        retRate, infRate, stateRate, wdRate, incContrib, incRate,
+        ...personalInfo,
+        ...currentBalances,
+        ...contributions,
+        ...assumptions,
       },
       results: {
         finNom: res.finNom,
@@ -2804,7 +2857,7 @@ export default function App() {
     setSavedScenarios(updated);
     localStorage.setItem('retirement-scenarios', JSON.stringify(updated));
     setScenarioName("");
-  }, [res, scenarioName, savedScenarios, age1, age2, retAge, marital, sTax, sPre, sPost, cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2, retRate, infRate, stateRate, wdRate, incContrib, incRate]);
+  }, [res, scenarioName, savedScenarios, personalInfo, currentBalances, contributions, assumptions]);
 
   // Delete a scenario
   const deleteScenario = useCallback((id: string) => {
@@ -2813,30 +2866,43 @@ export default function App() {
     localStorage.setItem('retirement-scenarios', JSON.stringify(updated));
   }, [savedScenarios]);
 
-  // Load a scenario (restore inputs)
+  // Load a scenario (restore inputs) - Optimized with grouped state updates
   const loadScenario = useCallback((scenario: SavedScenario) => {
     const inp = scenario.inputs;
-    setAge1(inp.age1 ?? 30);
-    setAge2(inp.age2 ?? 30);
-    setRetAge(inp.retAge ?? 65);
-    setMarital(inp.marital ?? 'single');
-    setSTax(inp.sTax ?? 0);
-    setSPre(inp.sPre ?? 0);
-    setSPost(inp.sPost ?? 0);
-    setCTax1(inp.cTax1 ?? 0);
-    setCPre1(inp.cPre1 ?? 0);
-    setCPost1(inp.cPost1 ?? 0);
-    setCMatch1(inp.cMatch1 ?? 0);
-    setCTax2(inp.cTax2 ?? 0);
-    setCPre2(inp.cPre2 ?? 0);
-    setCPost2(inp.cPost2 ?? 0);
-    setCMatch2(inp.cMatch2 ?? 0);
-    setRetRate(inp.retRate ?? 7);
-    setInfRate(inp.infRate ?? 3);
-    setStateRate(inp.stateRate ?? 0);
-    setWdRate(inp.wdRate ?? 4);
-    setIncContrib(inp.incContrib ?? false);
-    setIncRate(inp.incRate ?? 4.5);
+
+    // Update all grouped state objects in one operation each
+    setPersonalInfo({
+      age1: inp.age1 ?? 30,
+      age2: inp.age2 ?? 30,
+      retAge: inp.retAge ?? 65,
+      marital: inp.marital ?? 'single',
+    });
+
+    setCurrentBalances({
+      sTax: inp.sTax ?? 0,
+      sPre: inp.sPre ?? 0,
+      sPost: inp.sPost ?? 0,
+    });
+
+    setContributions({
+      cTax1: inp.cTax1 ?? 0,
+      cPre1: inp.cPre1 ?? 0,
+      cPost1: inp.cPost1 ?? 0,
+      cMatch1: inp.cMatch1 ?? 0,
+      cTax2: inp.cTax2 ?? 0,
+      cPre2: inp.cPre2 ?? 0,
+      cPost2: inp.cPost2 ?? 0,
+      cMatch2: inp.cMatch2 ?? 0,
+    });
+
+    setAssumptions({
+      retRate: inp.retRate ?? 7,
+      infRate: inp.infRate ?? 3,
+      stateRate: inp.stateRate ?? 0,
+      wdRate: inp.wdRate ?? 4,
+      incContrib: inp.incContrib ?? false,
+      incRate: inp.incRate ?? 4.5,
+    });
   }, []);
 
   return (
