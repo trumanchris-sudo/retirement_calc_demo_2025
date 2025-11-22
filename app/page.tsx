@@ -6792,8 +6792,6 @@ export default function App() {
               <Button
                 onClick={() => {
                   calc();
-                  // Auto-navigate to Results tab after clicking Calculate
-                  setActiveMainTab('results');
                 }}
                 disabled={isLoadingAi}
                 size="lg"
