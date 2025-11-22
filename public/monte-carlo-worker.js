@@ -967,6 +967,26 @@ function simulateYearsChunk(
         cohort.cumulativeBirths += birthsThisYear;
       }
     });
+
+    // Consolidate cohorts of the same age to prevent array explosion
+    // With high fertility rates, we can create thousands of tiny cohorts
+    // Merge them by age to keep array size manageable
+    const cohortsByAge = new Map();
+    currentCohorts.forEach(cohort => {
+      const existing = cohortsByAge.get(cohort.age);
+      if (existing) {
+        // Merge into existing cohort
+        existing.size += cohort.size;
+        // Use weighted average for cumulativeBirths
+        const totalSize = existing.size;
+        existing.cumulativeBirths =
+          (existing.cumulativeBirths * (existing.size - cohort.size) +
+           cohort.cumulativeBirths * cohort.size) / totalSize;
+      } else {
+        cohortsByAge.set(cohort.age, { ...cohort });
+      }
+    });
+    currentCohorts = Array.from(cohortsByAge.values());
   }
 
   return { cohorts: currentCohorts, fundReal: currentFund, years: yearsSimulated, depleted: false };
