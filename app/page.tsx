@@ -853,9 +853,10 @@ function simulateRealPerBeneficiaryPayout(
   // Initialize cohorts with specified ages
   // Beneficiaries can reproduce if they are young enough to eventually reach the fertility window
   // Fix: Don't sterilize young children (e.g., age 5) who aren't fertile YET but will be later
+  // FIX: Distribute startBens evenly across initialBenAges instead of hardcoding size: 1
   let cohorts: Cohort[] = initialBenAges.length > 0
     ? initialBenAges.map(age => ({
-        size: 1,
+        size: startBens / initialBenAges.length,  // Distribute total beneficiaries evenly
         age,
         canReproduce: age <= fertilityWindowEnd, // Can reproduce if young enough to reach window
         cumulativeBirths: 0

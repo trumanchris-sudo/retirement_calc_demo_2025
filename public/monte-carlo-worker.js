@@ -1042,9 +1042,10 @@ function simulateRealPerBeneficiaryPayout(
   // Initialize cohorts with canReproduce based on maximum age only
   // A young beneficiary (e.g., age 5) should have canReproduce: true
   // so they can start reproducing when they age into the fertility window later
+  // FIX: Distribute startBens evenly across initialBenAges instead of hardcoding size: 1
   let cohorts = initialBenAges.length > 0
     ? initialBenAges.map(age => ({
-        size: 1,
+        size: startBens / initialBenAges.length,  // Distribute total beneficiaries evenly
         age,
         canReproduce: age <= fertilityWindowEnd,
         cumulativeBirths: 0
