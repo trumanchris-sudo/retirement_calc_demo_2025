@@ -2448,11 +2448,29 @@ export default function App() {
         if (showGen && netEstate > 0) {
           console.log('[CALC] Starting generational payout calculation...');
           console.log('[CALC] hypBenAgesStr:', hypBenAgesStr);
-          const benAges = hypBenAgesStr
+
+          // Parse current ages of beneficiaries
+          const currentBenAges = hypBenAgesStr
             .split(',')
             .map(s => parseInt(s.trim(), 10))
             .filter(n => !isNaN(n) && n >= 0 && n < 90);
-          console.log('[CALC] benAges parsed:', benAges);
+          console.log('[CALC] Current beneficiary ages:', currentBenAges);
+
+          // CRITICAL FIX: Beneficiaries age while user is alive!
+          // Calculate their ages AT THE TIME OF USER'S DEATH
+          // yearsFrom2025 = years from now until death
+          console.log('[CALC] Years until death:', yearsFrom2025);
+          const benAgesAtDeath = currentBenAges.map(age => age + yearsFrom2025);
+          console.log('[CALC] Beneficiary ages at user death:', benAgesAtDeath);
+
+          // Filter out any beneficiaries who would be dead by then
+          const benAges = benAgesAtDeath.filter(age => age < hypDeathAge);
+          console.log('[CALC] Beneficiary ages at death (alive):', benAges);
+
+          if (benAges.length === 0) {
+            console.warn('[CALC] All beneficiaries would be deceased by the time of user death!');
+            // Continue with calculation but it will show 0 years of support
+          }
 
           // Calculate EOL values for all three percentiles
           console.log('[CALC] Calculating EOL percentiles...');
