@@ -58,7 +58,7 @@ export default function SelfEmployed2026Page() {
 
   // Retirement & Benefits
   const [age, setAge] = useState(42);
-  const [traditional401k, setTraditional401k] = useState(24500);
+  const [traditional401k, setTraditional401k] = useState(24000);
   const [roth401k, setRoth401k] = useState(0);
   const [definedBenefitPlan, setDefinedBenefitPlan] = useState(26500);
   const [sepIRA, setSepIRA] = useState(0);

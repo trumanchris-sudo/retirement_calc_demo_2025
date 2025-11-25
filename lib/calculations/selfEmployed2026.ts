@@ -553,7 +553,8 @@ export function calculateYearSummary(
 ): YearSummary {
   const lastPeriod = periods[periods.length - 1];
 
-  const totalGrossIncome = lastPeriod.cumulativeGrossPay;
+  // Total household gross income (partner + spouse)
+  const totalGrossIncome = federalTaxResult.grossIncome;
   const totalSelfEmploymentTax = seTaxResult.totalSETax;
   const totalFederalTax = lastPeriod.ytdFederalTax;
   const totalStateTax = lastPeriod.ytdStateTax;
