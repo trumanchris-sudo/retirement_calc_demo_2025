@@ -194,9 +194,9 @@ export function calculateSelfEmploymentTax(
   const seTaxBase = guaranteedPayments * SE_TAX_2026.SE_TAX_BASE_MULTIPLIER;
 
   // Social Security portion (capped at $184,500 for 2026)
-  // Must account for spouse's W-2 wages reducing available cap
-  const ssWageBaseRemaining = Math.max(0, SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE - spouseW2Income);
-  const ssTaxableIncome = Math.min(seTaxBase, ssWageBaseRemaining);
+  // Note: SS wage base cap is PER PERSON, not household
+  // Spouse's W-2 income does NOT reduce the self-employed person's cap
+  const ssTaxableIncome = Math.min(seTaxBase, SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE);
   const socialSecurityTax = ssTaxableIncome * SE_TAX_2026.SOCIAL_SECURITY_RATE;
 
   // Medicare portion (uncapped)
@@ -300,6 +300,73 @@ export function calculateFederalTax(
 }
 
 // =============================================================================
+// HELPER FUNCTIONS FOR DATE GENERATION
+// =============================================================================
+
+/**
+ * Adjust date to previous Friday if it falls on a weekend
+ */
+function adjustForWeekend(date: Date): Date {
+  const dayOfWeek = date.getDay();
+  const adjusted = new Date(date);
+  if (dayOfWeek === 0) adjusted.setDate(date.getDate() - 2); // Sunday -> Friday
+  else if (dayOfWeek === 6) adjusted.setDate(date.getDate() - 1); // Saturday -> Friday
+  return adjusted;
+}
+
+/**
+ * Generate payment dates for the year based on frequency
+ * Uses same logic as income-2026 calculator with weekend adjustments
+ */
+function generatePaymentDates(frequency: PayFrequency, periodsPerYear: number): Date[] {
+  const dates: Date[] = [];
+
+  if (frequency === 'semimonthly') {
+    // 15th and last day of each month
+    for (let month = 0; month < 12; month++) {
+      const fifteenth = adjustForWeekend(new Date(2026, month, 15));
+      dates.push(fifteenth);
+      const lastDay = adjustForWeekend(new Date(2026, month + 1, 0));
+      dates.push(lastDay);
+    }
+  } else if (frequency === 'monthly') {
+    // 1st of each month (or next business day)
+    for (let month = 0; month < 12; month++) {
+      const payDate = adjustForWeekend(new Date(2026, month, 1));
+      dates.push(payDate);
+    }
+  } else if (frequency === 'biweekly') {
+    // Every 14 days starting from first Friday of January 2026
+    const startDate = new Date(2026, 0, 2); // Friday, Jan 2, 2026
+    for (let i = 0; i < periodsPerYear; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + (i * 14));
+      if (date.getFullYear() === 2026) {
+        dates.push(date);
+      }
+    }
+  } else if (frequency === 'weekly') {
+    // Every 7 days starting from first Friday of January 2026
+    const startDate = new Date(2026, 0, 2); // Friday, Jan 2, 2026
+    for (let i = 0; i < periodsPerYear; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + (i * 7));
+      if (date.getFullYear() === 2026) {
+        dates.push(date);
+      }
+    }
+  } else if (frequency === 'quarterly') {
+    // End of each quarter (March 31, June 30, Sept 30, Dec 31)
+    dates.push(adjustForWeekend(new Date(2026, 2, 31))); // Q1: March 31
+    dates.push(adjustForWeekend(new Date(2026, 5, 30))); // Q2: June 30
+    dates.push(adjustForWeekend(new Date(2026, 8, 30))); // Q3: September 30
+    dates.push(adjustForWeekend(new Date(2026, 11, 31))); // Q4: December 31
+  }
+
+  return dates.filter(d => d.getFullYear() === 2026).sort((a, b) => a.getTime() - b.getTime());
+}
+
+// =============================================================================
 // PER-PERIOD CASH FLOW CALCULATION
 // =============================================================================
 
@@ -341,22 +408,12 @@ export function calculatePerPeriodCashFlow(
   let ytd401k = 0;
   let cumulativeInvestableProceeds = 0;
 
+  // Generate payment dates using proper calendar logic with weekend adjustments
+  const paymentDates = generatePaymentDates(partnerIncome.payFrequency, periodsPerYear);
+
   for (let i = 0; i < periodsPerYear; i++) {
     const periodNumber = i + 1;
-
-    // Calculate period date (simplified - assuming monthly 1st of month or semi-monthly 1st and 15th)
-    let periodDate = new Date(2026, 0, 1);
-    if (partnerIncome.payFrequency === 'monthly') {
-      periodDate = new Date(2026, i, 1);
-    } else if (partnerIncome.payFrequency === 'semimonthly') {
-      const month = Math.floor(i / 2);
-      const day = (i % 2 === 0) ? 1 : 15;
-      periodDate = new Date(2026, month, day);
-    } else if (partnerIncome.payFrequency === 'biweekly') {
-      periodDate = new Date(2026, 0, 1 + (i * 14));
-    } else if (partnerIncome.payFrequency === 'weekly') {
-      periodDate = new Date(2026, 0, 1 + (i * 7));
-    }
+    const periodDate = paymentDates[i];
 
     const grossPay = grossPayPerPeriod;
     cumulativeGrossPay += grossPay;
@@ -366,13 +423,14 @@ export function calculatePerPeriodCashFlow(
     const seTaxBase = grossPay * SE_TAX_2026.SE_TAX_BASE_MULTIPLIER;
 
     let socialSecurityTax = 0;
-    const ssWageBaseRemaining = Math.max(0, SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE - priorCumulativeGross - spouseW2Income);
+    // SS wage base cap is PER PERSON - spouse's W-2 income does NOT reduce partner's cap
+    const ssWageBaseRemaining = Math.max(0, SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE - priorCumulativeGross);
     const ssCapReached = ssWageBaseRemaining <= 0;
 
     if (!ssCapReached && priorCumulativeGross < SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE) {
       const taxableThisPeriod = Math.min(
         seTaxBase,
-        SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE - priorCumulativeGross - spouseW2Income
+        SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE - priorCumulativeGross
       );
       socialSecurityTax = Math.max(0, taxableThisPeriod * SE_TAX_2026.SOCIAL_SECURITY_RATE);
     }
