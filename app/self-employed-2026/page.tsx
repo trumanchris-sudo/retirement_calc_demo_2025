@@ -50,6 +50,12 @@ export default function SelfEmployed2026Page() {
   const [guaranteedPayments, setGuaranteedPayments] = useState(550000);
   const [payFrequency, setPayFrequency] = useState<PayFrequency>("semimonthly");
 
+  // Distributive Share Schedule
+  const [distributionTiming, setDistributionTiming] = useState<'quarterly' | 'annual' | 'monthly' | 'none'>('quarterly');
+  const [annualDistributionMonth, setAnnualDistributionMonth] = useState(11); // December
+  const [statePTETAlreadyPaid, setStatePTETAlreadyPaid] = useState(false);
+  const [federalEstimatesAlreadyPaid, setFederalEstimatesAlreadyPaid] = useState(false);
+
   // Filing Status & Spouse
   const [filingStatus, setFilingStatus] = useState<FilingStatus>("mfj");
   const [spouseW2Income, setSpouseW2Income] = useState(145000);
@@ -63,6 +69,11 @@ export default function SelfEmployed2026Page() {
   const [definedBenefitPlan, setDefinedBenefitPlan] = useState(26500);
   const [sepIRA, setSepIRA] = useState(0);
   const [solo401kEmployer, setSolo401kEmployer] = useState(0);
+
+  // Spouse Retirement (if married)
+  const [spouseAge, setSpouseAge] = useState(40);
+  const [spouseTraditional401k, setSpouseTraditional401k] = useState(0);
+  const [spouseRoth401k, setSpouseRoth401k] = useState(0);
 
   // Health Benefits
   const [healthInsuranceCoverage, setHealthInsuranceCoverage] = useState<'self' | 'self_spouse' | 'family' | 'none'>('self');
@@ -109,6 +120,13 @@ export default function SelfEmployed2026Page() {
         guaranteedPayments,
         distributiveShare,
         payFrequency,
+        distributiveShareSchedule: {
+          timing: distributionTiming,
+          annualDistributionMonth,
+          quarterlyDistributionMonths: [2, 5, 8, 11], // Mar, Jun, Sep, Dec
+          statePTETAlreadyPaid,
+          federalEstimatesAlreadyPaid,
+        },
       },
       filingStatus,
       spouseW2Income: isMarried ? spouseW2Income : 0,

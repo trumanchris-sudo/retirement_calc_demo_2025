@@ -24,11 +24,27 @@ export interface PartnershipIncome {
   // Guaranteed payments (like salary - subject to SE tax)
   guaranteedPayments: number;
 
-  // Distributive share / allocation (profit share - different tax treatment)
+  // Distributive share / allocation (profit share - NO SE tax)
   distributiveShare: number;
 
-  // Pay frequency (most partnerships pay semi-monthly or monthly)
+  // Pay frequency for guaranteed payments
   payFrequency: PayFrequency;
+
+  // Distributive share schedule
+  distributiveShareSchedule: {
+    // When distributions are received
+    timing: 'quarterly' | 'annual' | 'monthly' | 'none';
+
+    // Specific month for annual distribution (0-11 for Jan-Dec)
+    annualDistributionMonth?: number;
+
+    // For quarterly: which months (e.g., [2, 5, 8, 11] for Mar, Jun, Sep, Dec)
+    quarterlyDistributionMonths?: number[];
+
+    // Tax status
+    statePTETAlreadyPaid: boolean;
+    federalEstimatesAlreadyPaid: boolean;
+  };
 }
 
 export interface RetirementContributions {
@@ -104,7 +120,16 @@ export interface PerPeriodCashFlow {
   periodNumber: number;
   periodDate: Date;
 
-  // Gross pay for the period
+  // Guaranteed payments for the period (subject to SE tax)
+  guaranteedPaymentAmount: number;
+  cumulativeGuaranteedPayments: number;
+
+  // Distributive share for this period (if any - NO SE tax)
+  distributiveShareAmount: number;
+  cumulativeDistributiveShare: number;
+  isDistributionPeriod: boolean;
+
+  // Total gross for period
   grossPay: number;
   cumulativeGrossPay: number;
 
@@ -366,6 +391,48 @@ function generatePaymentDates(frequency: PayFrequency, periodsPerYear: number): 
   return dates.filter(d => d.getFullYear() === 2026).sort((a, b) => a.getTime() - b.getTime());
 }
 
+/**
+ * Determine if a period should receive distributive share based on schedule
+ */
+function isDistributionPeriod(
+  periodDate: Date,
+  schedule: PartnershipIncome['distributiveShareSchedule']
+): boolean {
+  if (schedule.timing === 'none') return false;
+
+  const month = periodDate.getMonth();
+
+  if (schedule.timing === 'annual') {
+    return month === (schedule.annualDistributionMonth ?? 11); // Default to December
+  }
+
+  if (schedule.timing === 'quarterly') {
+    const defaultQuarterlyMonths = [2, 5, 8, 11]; // Mar, Jun, Sep, Dec
+    const quarterlyMonths = schedule.quarterlyDistributionMonths ?? defaultQuarterlyMonths;
+    return quarterlyMonths.includes(month);
+  }
+
+  if (schedule.timing === 'monthly') {
+    return true; // Every period gets distribution
+  }
+
+  return false;
+}
+
+/**
+ * Calculate distribution amount for a period
+ */
+function getDistributionAmount(
+  totalDistributiveShare: number,
+  schedule: PartnershipIncome['distributiveShareSchedule']
+): number {
+  if (schedule.timing === 'none') return 0;
+  if (schedule.timing === 'annual') return totalDistributiveShare;
+  if (schedule.timing === 'quarterly') return totalDistributiveShare / 4;
+  if (schedule.timing === 'monthly') return totalDistributiveShare / 12;
+  return 0;
+}
+
 // =============================================================================
 // PER-PERIOD CASH FLOW CALCULATION
 // =============================================================================
@@ -400,6 +467,8 @@ export function calculatePerPeriodCashFlow(
   const periods: PerPeriodCashFlow[] = [];
 
   // YTD trackers
+  let cumulativeGuaranteedPayments = 0;
+  let cumulativeDistributiveShare = 0;
   let cumulativeGrossPay = 0;
   let ytdSocialSecurityTax = 0;
   let ytdMedicareTax = 0;
@@ -415,27 +484,40 @@ export function calculatePerPeriodCashFlow(
     const periodNumber = i + 1;
     const periodDate = paymentDates[i];
 
-    const grossPay = grossPayPerPeriod;
+    // Guaranteed payments for this period (subject to SE tax)
+    const guaranteedPaymentAmount = grossPayPerPeriod;
+    cumulativeGuaranteedPayments += guaranteedPaymentAmount;
+
+    // Check if this period receives distributive share (NO SE tax)
+    const receivesDistribution = isDistributionPeriod(periodDate, partnerIncome.distributiveShareSchedule);
+    const distributiveShareAmount = receivesDistribution
+      ? getDistributionAmount(partnerIncome.distributiveShare, partnerIncome.distributiveShareSchedule)
+      : 0;
+    cumulativeDistributiveShare += distributiveShareAmount;
+
+    // Total gross for period
+    const grossPay = guaranteedPaymentAmount + distributiveShareAmount;
     cumulativeGrossPay += grossPay;
 
     // Calculate Social Security tax for this period
-    const priorCumulativeGross = cumulativeGrossPay - grossPay;
-    const seTaxBase = grossPay * SE_TAX_2026.SE_TAX_BASE_MULTIPLIER;
+    // IMPORTANT: SE tax only applies to GUARANTEED PAYMENTS, not distributive share
+    const priorCumulativeGuaranteedPayments = cumulativeGuaranteedPayments - guaranteedPaymentAmount;
+    const seTaxBase = guaranteedPaymentAmount * SE_TAX_2026.SE_TAX_BASE_MULTIPLIER;
 
     let socialSecurityTax = 0;
     // SS wage base cap is PER PERSON - spouse's W-2 income does NOT reduce partner's cap
-    const ssWageBaseRemaining = Math.max(0, SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE - priorCumulativeGross);
+    const ssWageBaseRemaining = Math.max(0, SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE - priorCumulativeGuaranteedPayments);
     const ssCapReached = ssWageBaseRemaining <= 0;
 
-    if (!ssCapReached && priorCumulativeGross < SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE) {
+    if (!ssCapReached && priorCumulativeGuaranteedPayments < SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE) {
       const taxableThisPeriod = Math.min(
         seTaxBase,
-        SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE - priorCumulativeGross
+        SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE - priorCumulativeGuaranteedPayments
       );
       socialSecurityTax = Math.max(0, taxableThisPeriod * SE_TAX_2026.SOCIAL_SECURITY_RATE);
     }
 
-    // Medicare never stops
+    // Medicare never stops (but only on guaranteed payments, not distributive share)
     const medicareTax = seTaxBase * SE_TAX_2026.MEDICARE_RATE;
 
     // Additional Medicare Tax (check if cumulative exceeds threshold)
@@ -506,6 +588,11 @@ export function calculatePerPeriodCashFlow(
     periods.push({
       periodNumber,
       periodDate,
+      guaranteedPaymentAmount,
+      cumulativeGuaranteedPayments,
+      distributiveShareAmount,
+      cumulativeDistributiveShare,
+      isDistributionPeriod: receivesDistribution,
       grossPay,
       cumulativeGrossPay,
       federalTaxWithholding,
