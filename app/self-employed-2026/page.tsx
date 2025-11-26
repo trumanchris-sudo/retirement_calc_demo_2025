@@ -582,21 +582,21 @@ export default function SelfEmployed2026Page() {
         <SectionCard
           icon={Home}
           title="Fixed Expenses"
-          description="Your monthly fixed expenses (per period)"
+          description="Your monthly fixed expenses (entered as monthly amounts)"
         >
           <div className="grid md:grid-cols-3 gap-4">
             <Input
-              label="Mortgage/Rent (per period)"
+              label="Mortgage/Rent (monthly)"
               value={mortgage}
               setter={setMortgage}
             />
             <Input
-              label="Household Expenses (per period)"
+              label="Household Expenses (monthly)"
               value={householdExpenses}
               setter={setHouseholdExpenses}
             />
             <Input
-              label="Discretionary Budget (per period)"
+              label="Discretionary Budget (monthly)"
               value={discretionaryBudget}
               setter={setDiscretionaryBudget}
             />

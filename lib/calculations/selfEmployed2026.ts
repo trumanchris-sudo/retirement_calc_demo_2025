@@ -525,7 +525,7 @@ export function calculatePerPeriodCashFlow(
     const combinedIncome = cumulativeGrossPay + spouseW2Income;
     let additionalMedicareTax = 0;
     if (combinedIncome > medicareThreshold) {
-      const priorCombinedIncome = priorCumulativeGross + spouseW2Income;
+      const priorCombinedIncome = (cumulativeGrossPay - grossPay) + spouseW2Income;
       const amountOver = Math.max(0, combinedIncome - medicareThreshold);
       const priorAmountOver = Math.max(0, priorCombinedIncome - medicareThreshold);
       const incrementalOver = amountOver - priorAmountOver;
@@ -575,14 +575,16 @@ export function calculatePerPeriodCashFlow(
 
     const netPay = grossPay - totalDeductions;
 
-    // Fixed expenses
-    const mortgage = fixedExpenses.mortgage;
-    const householdExpenses = fixedExpenses.householdExpenses;
-    const discretionaryBudget = fixedExpenses.discretionaryBudget;
-    const totalFixedExpenses = mortgage + householdExpenses + discretionaryBudget;
+    // Fixed expenses (convert monthly to per-period)
+    // Monthly expenses entered by user need to be divided across payment periods
+    const monthlyToPerPeriodFactor = 12 / periodsPerYear;
+    const mortgagePerPeriod = fixedExpenses.mortgage * monthlyToPerPeriodFactor;
+    const householdExpensesPerPeriod = fixedExpenses.householdExpenses * monthlyToPerPeriodFactor;
+    const discretionaryBudgetPerPeriod = fixedExpenses.discretionaryBudget * monthlyToPerPeriodFactor;
+    const totalFixedExpensesPerPeriod = mortgagePerPeriod + householdExpensesPerPeriod + discretionaryBudgetPerPeriod;
 
     // Investable proceeds
-    const investableProceeds = netPay - totalFixedExpenses;
+    const investableProceeds = netPay - totalFixedExpensesPerPeriod;
     cumulativeInvestableProceeds += investableProceeds;
 
     periods.push({
@@ -609,10 +611,10 @@ export function calculatePerPeriodCashFlow(
       roth401k,
       parking,
       netPay,
-      mortgage,
-      householdExpenses,
-      discretionaryBudget,
-      totalFixedExpenses,
+      mortgage: mortgagePerPeriod,
+      householdExpenses: householdExpensesPerPeriod,
+      discretionaryBudget: discretionaryBudgetPerPeriod,
+      totalFixedExpenses: totalFixedExpensesPerPeriod,
       investableProceeds,
       cumulativeInvestableProceeds,
       ytdSocialSecurityTax,
