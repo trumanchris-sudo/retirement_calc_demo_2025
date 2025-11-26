@@ -266,7 +266,7 @@ export default function SelfEmployed2026Page() {
           </div>
 
           <div>
-            <Label>Pay Frequency</Label>
+            <Label>Pay Frequency (Guaranteed Payments)</Label>
             <Select value={payFrequency} onValueChange={(value: PayFrequency) => setPayFrequency(value)}>
               <SelectTrigger>
                 <SelectValue />
@@ -280,6 +280,87 @@ export default function SelfEmployed2026Page() {
               </SelectContent>
             </Select>
           </div>
+
+          <Separator className="my-4" />
+
+          <h4 className="font-semibold text-sm mb-3 flex items-center">
+            Distributive Share Distribution Schedule
+            <InfoTooltip content="When do you receive your profit distributions? These are NOT subject to SE tax but may have state PTET or federal estimates already paid." />
+          </h4>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <Label>Distribution Timing</Label>
+              <Select value={distributionTiming} onValueChange={(value: any) => setDistributionTiming(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="quarterly">Quarterly (Mar, Jun, Sep, Dec)</SelectItem>
+                  <SelectItem value="annual">Annual Lump Sum</SelectItem>
+                  <SelectItem value="monthly">Monthly (with regular payments)</SelectItem>
+                  <SelectItem value="none">No distributions modeled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {distributionTiming === 'annual' && (
+              <div>
+                <Label>Distribution Month</Label>
+                <Select value={annualDistributionMonth.toString()} onValueChange={(value: string) => setAnnualDistributionMonth(parseInt(value))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">January</SelectItem>
+                    <SelectItem value="1">February</SelectItem>
+                    <SelectItem value="2">March</SelectItem>
+                    <SelectItem value="3">April</SelectItem>
+                    <SelectItem value="4">May</SelectItem>
+                    <SelectItem value="5">June</SelectItem>
+                    <SelectItem value="6">July</SelectItem>
+                    <SelectItem value="7">August</SelectItem>
+                    <SelectItem value="8">September</SelectItem>
+                    <SelectItem value="9">October</SelectItem>
+                    <SelectItem value="10">November</SelectItem>
+                    <SelectItem value="11">December</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {distributionTiming !== 'none' && (
+            <div className="space-y-3 mt-4">
+              <Label className="text-sm font-semibold">Tax Payment Status (for Distributive Share)</Label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="state-ptet"
+                  checked={statePTETAlreadyPaid}
+                  onChange={(e) => setStatePTETAlreadyPaid(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="state-ptet" className="font-normal cursor-pointer flex items-center">
+                  State PTET already paid by partnership
+                  <InfoTooltip content="Many states allow partnerships to pay state income tax at the entity level, avoiding the $10K SALT cap" />
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="federal-estimates"
+                  checked={federalEstimatesAlreadyPaid}
+                  onChange={(e) => setFederalEstimatesAlreadyPaid(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="federal-estimates" className="font-normal cursor-pointer flex items-center">
+                  Federal quarterly estimates already paid
+                  <InfoTooltip content="Check if you've already made quarterly estimated tax payments covering this income" />
+                </Label>
+              </div>
+            </div>
+          )}
         </SectionCard>
 
         {/* FILING STATUS & SPOUSE */}
@@ -388,6 +469,35 @@ export default function SelfEmployed2026Page() {
                 If your prior year FICA wages exceeded $150,000, catch-up contributions must be made as Roth starting in 2026.
               </p>
             </div>
+          )}
+
+          {isMarried && (
+            <>
+              <Separator />
+              <h4 className="font-semibold text-sm">Spouse Retirement Contributions (Annual)</h4>
+              <div className="grid md:grid-cols-3 gap-4">
+                <Input
+                  label="Spouse Age"
+                  value={spouseAge}
+                  setter={setSpouseAge}
+                />
+                <Input
+                  label="Spouse Traditional 401(k)"
+                  value={spouseTraditional401k}
+                  setter={setSpouseTraditional401k}
+                />
+                <Input
+                  label="Spouse Roth 401(k)"
+                  value={spouseRoth401k}
+                  setter={setSpouseRoth401k}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Spouse age {spouseAge}: Max 401(k) is ${getMax401kContribution(spouseAge).toLocaleString()}
+                {spouseAge >= 50 && spouseAge < 60 && " (includes $8,000 catch-up)"}
+                {spouseAge >= 60 && spouseAge <= 63 && " (includes $11,250 super catch-up)"}
+              </p>
+            </>
           )}
 
           <Separator />
@@ -585,35 +695,51 @@ export default function SelfEmployed2026Page() {
                     <thead className="bg-muted">
                       <tr className="border-b">
                         <th className="text-left p-2">Period</th>
-                        <th className="text-right p-2">Gross</th>
-                        <th className="text-right p-2">Fed Tax</th>
+                        <th className="text-right p-2">Guaranteed</th>
+                        <th className="text-right p-2">Distribution</th>
+                        <th className="text-right p-2">Total</th>
                         <th className="text-right p-2">SE Tax</th>
+                        <th className="text-right p-2">Fed Tax</th>
                         <th className="text-right p-2">State</th>
                         <th className="text-right p-2">401k</th>
-                        <th className="text-right p-2">Benefits</th>
                         <th className="text-right p-2">Net Pay</th>
-                        <th className="text-right p-2">Expenses</th>
                         <th className="text-right p-2">Investable</th>
                         <th className="text-right p-2">SS Cap</th>
                       </tr>
                     </thead>
                     <tbody>
                       {results.periods.map((period) => (
-                        <tr key={period.periodNumber} className="border-b hover:bg-muted/50">
-                          <td className="p-2">{period.periodNumber}</td>
-                          <td className="text-right p-2">${period.grossPay.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                          <td className="text-right p-2 text-red-600">${period.federalTaxWithholding.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                        <tr
+                          key={period.periodNumber}
+                          className={`border-b hover:bg-muted/50 ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/10' : ''}`}
+                        >
+                          <td className="p-2 font-medium">
+                            {period.periodNumber}
+                            {period.isDistributionPeriod && (
+                              <span className="ml-1 text-xs text-emerald-600">●</span>
+                            )}
+                          </td>
+                          <td className="text-right p-2">${period.guaranteedPaymentAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                          <td className="text-right p-2">
+                            {period.isDistributionPeriod ? (
+                              <span className="text-emerald-600 font-semibold">
+                                ${period.distributiveShareAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="text-right p-2 font-semibold">${period.grossPay.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                           <td className="text-right p-2 text-red-600">${(period.socialSecurityTax + period.medicareTax).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                          <td className="text-right p-2 text-red-600">${period.federalTaxWithholding.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                           <td className="text-right p-2 text-red-600">${period.stateTaxWithholding.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                           <td className="text-right p-2 text-blue-600">${period.retirement401k.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                          <td className="text-right p-2">${(period.healthInsurance + period.hsa).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                           <td className="text-right p-2 font-semibold">${period.netPay.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                          <td className="text-right p-2">${period.totalFixedExpenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                           <td className="text-right p-2 text-green-600 font-semibold">${period.investableProceeds.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                           <td className="text-right p-2">
                             {period.ssCapReached ? (
                               <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded">
-                                Cap Reached
+                                Reached
                               </span>
                             ) : (
                               <span className="text-xs">${period.ssWageBaseRemaining.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
@@ -623,6 +749,19 @@ export default function SelfEmployed2026Page() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-900">
+                    <p className="text-sm font-semibold flex items-center">
+                      <span className="text-emerald-600 mr-2">●</span> Distribution Periods
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Periods highlighted in green receive distributive share distributions. These are NOT subject to self-employment tax.
+                      {statePTETAlreadyPaid && " State PTET already paid by partnership."}
+                      {federalEstimatesAlreadyPaid && " Federal quarterly estimates already paid."}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
