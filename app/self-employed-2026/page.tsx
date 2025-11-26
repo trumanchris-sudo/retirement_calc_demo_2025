@@ -690,65 +690,213 @@ export default function SelfEmployed2026Page() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm border-collapse">
-                    <thead className="bg-muted">
-                      <tr className="border-b">
-                        <th className="text-left p-2">Period</th>
-                        <th className="text-right p-2">Guaranteed</th>
-                        <th className="text-right p-2">Distribution</th>
-                        <th className="text-right p-2">Total</th>
-                        <th className="text-right p-2">SE Tax</th>
-                        <th className="text-right p-2">Fed Tax</th>
-                        <th className="text-right p-2">State</th>
-                        <th className="text-right p-2">401k</th>
-                        <th className="text-right p-2">Net Pay</th>
-                        <th className="text-right p-2">Investable</th>
-                        <th className="text-right p-2">SS Cap</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {results.periods.map((period) => (
-                        <tr
-                          key={period.periodNumber}
-                          className={`border-b hover:bg-muted/50 ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/10' : ''}`}
-                        >
-                          <td className="p-2 font-medium">
-                            {period.periodNumber}
-                            {period.isDistributionPeriod && (
-                              <span className="ml-1 text-xs text-emerald-600">●</span>
-                            )}
-                          </td>
-                          <td className="text-right p-2">${period.guaranteedPaymentAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                          <td className="text-right p-2">
-                            {period.isDistributionPeriod ? (
-                              <span className="text-emerald-600 font-semibold">
-                                ${period.distributiveShareAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
-                          <td className="text-right p-2 font-semibold">${period.grossPay.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                          <td className="text-right p-2 text-red-600">${(period.socialSecurityTax + period.medicareTax).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                          <td className="text-right p-2 text-red-600">${period.federalTaxWithholding.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                          <td className="text-right p-2 text-red-600">${period.stateTaxWithholding.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                          <td className="text-right p-2 text-blue-600">${period.retirement401k.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                          <td className="text-right p-2 font-semibold">${period.netPay.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                          <td className="text-right p-2 text-green-600 font-semibold">${period.investableProceeds.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                          <td className="text-right p-2">
-                            {period.ssCapReached ? (
-                              <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded">
-                                Reached
-                              </span>
-                            ) : (
-                              <span className="text-xs">${period.ssWageBaseRemaining.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="space-y-8">
+                  {(() => {
+                    const chunkSize = 6;
+                    const chunks: any[][] = [];
+                    for (let i = 0; i < results.periods.length; i += chunkSize) {
+                      chunks.push(results.periods.slice(i, i + chunkSize));
+                    }
+                    return chunks.map((chunk, chunkIdx) => (
+                      <div key={chunkIdx} className="overflow-x-auto border rounded-lg">
+                        <table className="w-full text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b-2">
+                              <th className="text-left py-2 px-2 font-semibold min-w-[180px] bg-background sticky left-0">Item</th>
+                              {chunk.map((period) => (
+                                <th key={period.periodNumber} className={`text-right py-2 px-2 font-semibold min-w-[90px] border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : 'bg-background'}`}>
+                                  #{period.periodNumber}
+                                  {period.isDistributionPeriod && <span className="ml-1 text-emerald-600">●</span>}
+                                  <br/>
+                                  <span className="text-[10px] font-normal text-muted-foreground">
+                                    {new Date(period.periodDate + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'})}
+                                  </span>
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {/* INCOME SECTION */}
+                            <tr className="bg-blue-50 dark:bg-blue-950/20">
+                              <td colSpan={chunk.length + 1} className="py-1 px-2 font-semibold text-xs">INCOME</td>
+                            </tr>
+                            <tr className="hover:bg-muted/50">
+                              <td className="py-1 px-2 sticky left-0 bg-background">Guaranteed Payments</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  ${period.guaranteedPaymentAmount.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50">
+                              <td className="py-1 px-2 sticky left-0 bg-background">Distributive Share</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  {period.isDistributionPeriod ? (
+                                    <span className="text-emerald-600 font-semibold">${period.distributiveShareAmount.toLocaleString(undefined, {maximumFractionDigits:0})}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="font-bold bg-muted/30">
+                              <td className="py-1 px-2 sticky left-0 bg-muted/30">Total Gross Income</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-100 dark:bg-emerald-950/30' : 'bg-muted/30'}`}>
+                                  ${period.grossPay.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+
+                            {/* PAYCHECK DEDUCTIONS SECTION */}
+                            <tr className="bg-red-50 dark:bg-red-950/20">
+                              <td colSpan={chunk.length + 1} className="py-1 px-2 font-semibold text-xs">DEDUCTIONS FROM PAYCHECK</td>
+                            </tr>
+                            <tr className="hover:bg-muted/50 text-red-600">
+                              <td className="py-1 px-2 pl-4 sticky left-0 bg-background">SE Tax (SS + Medicare)</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  -${(period.socialSecurityTax + period.medicareTax).toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50 text-red-600">
+                              <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Federal Income Tax</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  -${period.federalTaxWithholding.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50 text-red-600">
+                              <td className="py-1 px-2 pl-4 sticky left-0 bg-background">State Income Tax</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  -${period.stateTaxWithholding.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50 text-blue-600">
+                              <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Traditional 401(k)</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  -${period.retirement401k.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50 text-blue-600">
+                              <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Roth 401(k)</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  -${period.roth401k.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50 text-blue-600">
+                              <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Defined Benefit Plan</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  -${period.definedBenefitPlan.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50 text-purple-600">
+                              <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Health Insurance</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  -${period.healthInsurance.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50 text-purple-600">
+                              <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Dental/Vision</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  -${period.dentalVision.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50 text-purple-600">
+                              <td className="py-1 px-2 pl-4 sticky left-0 bg-background">HSA Contribution</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  -${period.hsa.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50 text-purple-600">
+                              <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Dependent Care FSA</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  -${period.dependentCareFSA.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="font-bold bg-amber-50 dark:bg-amber-950/20">
+                              <td className="py-1 px-2 sticky left-0 bg-amber-50 dark:bg-amber-950/20">= Net Pay (to Bank Account)</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-amber-100 dark:bg-amber-950/30' : 'bg-amber-50 dark:bg-amber-950/20'}`}>
+                                  ${period.netPay.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+
+                            {/* POST-PAYMENT EXPENSES SECTION */}
+                            <tr className="bg-orange-50 dark:bg-orange-950/20">
+                              <td colSpan={chunk.length + 1} className="py-1 px-2 font-semibold text-xs">POST-PAYMENT EXPENSES</td>
+                            </tr>
+                            <tr className="hover:bg-muted/50 text-orange-600">
+                              <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Mortgage/Rent</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  -${period.mortgage.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50 text-orange-600">
+                              <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Household Expenses</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  -${period.householdExpenses.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-muted/50 text-orange-600">
+                              <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Discretionary Budget</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
+                                  -${period.discretionaryBudget.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="font-bold bg-green-50 dark:bg-green-950/20">
+                              <td className="py-1 px-2 sticky left-0 bg-green-50 dark:bg-green-950/20">= Investable Proceeds</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l text-green-600 ${period.isDistributionPeriod ? 'bg-green-100 dark:bg-green-950/30' : 'bg-green-50 dark:bg-green-950/20'}`}>
+                                  ${period.investableProceeds.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                </td>
+                              ))}
+                            </tr>
+
+                            {/* SS CAP TRACKING */}
+                            <tr className="bg-slate-50 dark:bg-slate-950/20 border-t-2">
+                              <td className="py-1 px-2 text-xs font-semibold sticky left-0 bg-slate-50 dark:bg-slate-950/20">SS Wage Base Remaining</td>
+                              {chunk.map((period) => (
+                                <td key={period.periodNumber} className={`text-right py-1 px-2 border-l text-xs ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : 'bg-slate-50 dark:bg-slate-950/20'}`}>
+                                  {period.ssCapReached ? (
+                                    <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded">Cap Reached</span>
+                                  ) : (
+                                    `$${period.ssWageBaseRemaining.toLocaleString(undefined, {maximumFractionDigits:0})}`
+                                  )}
+                                </td>
+                              ))}
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    ));
+                  })()}
                 </div>
 
                 <div className="mt-4 space-y-2">
