@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Moon, Sun, FileText, Share2, Sliders, DollarSign } from "lucide-react";
+import { Moon, Sun, FileText, Share2, Sliders, DollarSign, Briefcase } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -93,6 +93,28 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             >
               <DollarSign className="w-4 h-4 mr-2" />
               2026 Income
+            </Button>
+          </Link>
+
+          {/* Self-Employed Calculator Link */}
+          <Link href="/self-employed-2026">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden no-print"
+              aria-label="Self-Employed 2026"
+            >
+              <Briefcase className="w-4 h-4" />
+            </Button>
+          </Link>
+          <Link href="/self-employed-2026">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden md:inline-flex no-print"
+            >
+              <Briefcase className="w-4 h-4 mr-2" />
+              Self-Employed
             </Button>
           </Link>
 
