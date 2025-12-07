@@ -27,7 +27,7 @@ const SS_BEND_POINTS = {
 
 const TAX_BRACKETS = {
   single: {
-    deduction: 15000,
+    deduction: 15750,  // OBBBA standard deduction (up from $15,000)
     rates: [
       { limit: 11925, rate: 0.1 },
       { limit: 48475, rate: 0.12 },
@@ -39,7 +39,7 @@ const TAX_BRACKETS = {
     ],
   },
   married: {
-    deduction: 30000,
+    deduction: 31500,  // OBBBA standard deduction (up from $30,000)
     rates: [
       { limit: 23850, rate: 0.1 },
       { limit: 96950, rate: 0.12 },
@@ -269,19 +269,28 @@ function calcLTCGTax(capGain, status, ordinaryIncome) {
   const brackets = LTCG_BRACKETS[status];
   let remainingGain = capGain;
   let tax = 0;
-  let used = 0;
+
+  // Track cumulative income (ordinary + gains processed so far)
+  // This is how capital gains "stack" on top of ordinary income
+  let cumulativeIncome = ordinaryIncome;
 
   for (const b of brackets) {
-    const bracketRoom = Math.max(0, b.limit - used - ordinaryIncome);
+    // How much room is left in this bracket after accounting for cumulative income?
+    const bracketRoom = Math.max(0, b.limit - cumulativeIncome);
+
+    // Fill this bracket with as much gain as possible
     const taxedHere = Math.min(remainingGain, bracketRoom);
+
     if (taxedHere > 0) {
       tax += taxedHere * b.rate;
       remainingGain -= taxedHere;
+      cumulativeIncome += taxedHere;  // Update cumulative position
     }
-    used = b.limit - ordinaryIncome;
+
     if (remainingGain <= 0) break;
   }
 
+  // Any remaining gains go at the top rate
   if (remainingGain > 0) {
     const topRate = brackets[brackets.length - 1].rate;
     tax += remainingGain * topRate;
