@@ -1053,7 +1053,7 @@ function simulateRealPerBeneficiaryPayout(
   );
 
   if (isPerpetual && capYears >= 10000) {
-    return { years: Infinity, fundLeftReal: fundReal, lastLivingCount: startBens };
+    return { years: Infinity, fundLeftReal: fundReal, lastLivingCount: startBens, generationData: [] };
   }
 
   let years = 0;
@@ -1062,6 +1062,11 @@ function simulateRealPerBeneficiaryPayout(
 
   let fundAtYear100 = 0;
   let fundAtYear1000 = 0;
+
+  // Track generation-by-generation data for Dynasty Timeline
+  const generationData = [];
+  let nextGenerationCheckpoint = generationLength;
+  let generationNumber = 1;
 
   // OPTIMIZATION 2: Chunked simulation
   for (let t = 0; t < capYears; t += CHUNK_SIZE) {
@@ -1087,7 +1092,32 @@ function simulateRealPerBeneficiaryPayout(
 
     if (result.depleted) {
       const living = cohorts.reduce((acc, c) => acc + c.size, 0);
-      return { years, fundLeftReal: 0, lastLivingCount: living };
+      return { years, fundLeftReal: 0, lastLivingCount: living, generationData };
+    }
+
+    // Track generation boundaries (every generationLength years)
+    if (t >= nextGenerationCheckpoint && generationData.length < 10) {
+      const estateValueNominal = fundReal * Math.pow(1 + inflPct / 100, yearsFrom2025 + t);
+
+      // Calculate estate tax using 2025 exemptions (adjust this as needed)
+      // For simplicity, using single filer exemption of $13.61M (2024 baseline)
+      const exemption = 13610000;
+      const taxableEstate = Math.max(0, estateValueNominal - exemption);
+      const estateTax = taxableEstate * 0.40; // 40% federal estate tax rate
+      const netToHeirs = estateValueNominal - estateTax;
+
+      generationData.push({
+        generation: generationNumber,
+        year: t,
+        estateValue: estateValueNominal,
+        estateTax: estateTax,
+        netToHeirs: netToHeirs,
+        fundRealValue: fundReal,
+        livingBeneficiaries: cohorts.reduce((acc, c) => acc + c.size, 0)
+      });
+
+      nextGenerationCheckpoint += generationLength;
+      generationNumber++;
     }
 
     if (t === 100 && fundAtYear100 === 0) {
@@ -1104,14 +1134,14 @@ function simulateRealPerBeneficiaryPayout(
 
         if (growthRate > 0.03) {
           const living = cohorts.reduce((acc, c) => acc + c.size, 0);
-          return { years: Infinity, fundLeftReal: fundReal, lastLivingCount: living };
+          return { years: Infinity, fundLeftReal: fundReal, lastLivingCount: living, generationData };
         }
       }
     }
   }
 
   const lastLiving = cohorts.reduce((acc, c) => acc + c.size, 0);
-  return { years, fundLeftReal: fundReal, lastLivingCount: lastLiving };
+  return { years, fundLeftReal: fundReal, lastLivingCount: lastLiving, generationData };
 }
 
 // ===============================
@@ -1499,25 +1529,25 @@ self.onmessage = function(e) {
 
       // ===== 2. CALCULATE SPLURGE CAPACITY (One-Time Purchase) =====
       // Find maximum one-time expense that maintains >95% success
-      const totalStartingBalance = baseParams.sTax + baseParams.sPre + baseParams.sPost;
+      // IMPORTANT: Only use taxable balance - it's the only truly liquid account
+      // Pre-tax and Roth accounts have penalties/restrictions before retirement age
+      const liquidBalance = baseParams.sTax; // Only taxable is immediately accessible
       let maxSplurge = 0;
       let splurgeLow = 0;
-      let splurgeHigh = Math.min(5000000, totalStartingBalance * 0.95); // Cap at 95% of total balance
+      let splurgeHigh = Math.min(5000000, liquidBalance * 0.95); // Cap at 95% of liquid balance
       let splurgeIterations = 0;
 
-      if (totalStartingBalance > 0) {
+      if (liquidBalance > 0) {
         // Binary search with safety brake
         while (splurgeLow < splurgeHigh && splurgeIterations < SAFETY_MAX_ITERATIONS) {
         splurgeIterations++;
         const mid = splurgeLow + (splurgeHigh - splurgeLow) / 2;
 
-          // Reduce all accounts proportionally (simulate spending from the portfolio)
-          const reductionFactor = Math.max(0, (totalStartingBalance - mid) / totalStartingBalance);
+          // Reduce only taxable account (simulate immediate spending from liquid funds)
           const testParams = {
             ...baseParams,
-            sTax: baseParams.sTax * reductionFactor,
-            sPre: baseParams.sPre * reductionFactor,
-            sPost: baseParams.sPost * reductionFactor,
+            sTax: Math.max(0, baseParams.sTax - mid),
+            // Pre-tax and Roth remain unchanged - can't access penalty-free before retirement
           };
 
           if (testSuccess(testParams)) {

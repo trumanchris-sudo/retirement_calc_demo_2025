@@ -108,8 +108,8 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
         </p>
       </div>
 
-      {/* Card A: Oversaving Assessment */}
-      <Card className="border-2 border-green-200 bg-green-50/50 dark:bg-green-950/20">
+      {/* Card A: Oversaving Assessment - HIDDEN (undermines generational wealth goal) */}
+      {/* <Card className="border-2 border-green-200 bg-green-50/50 dark:bg-green-950/20">
         <CardHeader>
           <div className="flex items-center gap-2">
             <TrendingUp className="h-6 w-6 text-green-600" />
@@ -134,7 +134,6 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
                 You can spend this amount guilt-free on lifestyle today and still hit your retirement targets with <strong>95% confidence</strong>.
               </p>
 
-              {/* Visual gauge */}
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Required Savings</span>
@@ -160,7 +159,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Card B: Splurge Capacity */}
       <Card className="border-2 border-purple-200 bg-purple-50/50 dark:bg-purple-950/20">

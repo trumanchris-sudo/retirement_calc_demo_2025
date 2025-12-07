@@ -33,6 +33,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 import { FlippingCard } from "@/components/FlippingCard";
 import { GenerationalResultCard } from "@/components/GenerationalResultCard";
 import { LegacyResultCard } from "@/components/LegacyResultCard";
+import { DynastyTimeline } from "@/components/calculator/DynastyTimeline";
 import AddToWalletButton from "@/components/AddToWalletButton";
 import DownloadCardButton from "@/components/DownloadCardButton";
 import DownloadPDFButton from "@/components/DownloadPDFButton";
@@ -1847,7 +1848,7 @@ export default function App() {
     initialBenAges?: number[];
     fertilityWindowStart?: number;
     fertilityWindowEnd?: number;
-  }): Promise<{ years: number; fundLeftReal: number; lastLivingCount: number }> => {
+  }): Promise<{ years: number; fundLeftReal: number; lastLivingCount: number; generationData?: any[] }> => {
     return new Promise((resolve, reject) => {
       if (!workerRef.current) {
         reject(new Error("Worker not initialized"));
@@ -2704,21 +2705,25 @@ export default function App() {
             totalFertilityRate,
             generationLength,
             deathAge: Math.max(1, hypDeathAge),
+            generationData: simP50.generationData || [],
             // All three percentiles
             p10: {
               years: simP25.years,
               fundLeftReal: simP25.fundLeftReal,
-              isPerpetual: simP25.fundLeftReal > 0
+              isPerpetual: simP25.fundLeftReal > 0,
+              generationData: simP25.generationData || []
             },
             p50: {
               years: simP50.years,
               fundLeftReal: simP50.fundLeftReal,
-              isPerpetual: simP50.fundLeftReal > 0
+              isPerpetual: simP50.fundLeftReal > 0,
+              generationData: simP50.generationData || []
             },
             p90: {
               years: simP75.years,
               fundLeftReal: simP75.fundLeftReal,
-              isPerpetual: simP75.fundLeftReal > 0
+              isPerpetual: simP75.fundLeftReal > 0,
+              generationData: simP75.generationData || []
             },
             probPerpetual: calculatedProbPerpetual  // Calculated from percentile results, not hardcoded!
           };
@@ -7043,6 +7048,13 @@ export default function App() {
                         />
                         <AddToWalletButton result={legacyResult} />
                       </div>
+
+                      {/* Dynasty Timeline Visualization */}
+                      {res.genPayout.p50?.generationData && res.genPayout.p50.generationData.length > 0 && (
+                        <div className="mt-8">
+                          <DynastyTimeline generationData={res.genPayout.p50.generationData} />
+                        </div>
+                      )}
                       </div>
                     </>
                   )}
