@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import {
   AreaChart,
   Area,
@@ -12,11 +12,15 @@ import {
   Legend,
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { GenerationDataPoint } from "@/types/calculator";
 
 interface DynastyTimelineProps {
   generationData: GenerationDataPoint[];
 }
+
+type Scenario = "direct" | "trust";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -26,6 +30,8 @@ const fmt = (n: number) =>
   }).format(n);
 
 export function DynastyTimeline({ generationData }: DynastyTimelineProps) {
+  const [scenario, setScenario] = useState<Scenario>("trust");
+
   if (!generationData || generationData.length === 0) {
     return (
       <Card>
@@ -46,33 +52,121 @@ export function DynastyTimeline({ generationData }: DynastyTimelineProps) {
     );
   }
 
-  // Transform data for the chart
-  const chartData = generationData.map((gen) => ({
-    generation: `Gen ${gen.generation}`,
-    generationNumber: gen.generation,
-    netWealthAfterTax: gen.netToHeirs,
-    estateTax: gen.estateTax,
-    estateValue: gen.estateValue,
-    year: gen.year,
-    beneficiaries: gen.livingBeneficiaries,
-  }));
+  // Calculate both scenarios
+  const { directInheritanceData, dynastyTrustData } = useMemo(() => {
+    // Direct Inheritance: Estate tax at every generation
+    const directData = generationData.map((gen) => ({
+      generation: `Gen ${gen.generation}`,
+      generationNumber: gen.generation,
+      netWealthAfterTax: gen.netToHeirs,
+      estateTax: gen.estateTax,
+      estateValue: gen.estateValue,
+      year: gen.year,
+      beneficiaries: gen.livingBeneficiaries,
+    }));
 
-  // Calculate totals
-  const totalEstateTaxPaid = generationData.reduce((sum, gen) => sum + gen.estateTax, 0);
-  const avgTaxRate =
-    generationData.length > 0
-      ? (totalEstateTaxPaid / generationData.reduce((sum, gen) => sum + gen.estateValue, 0)) * 100
-      : 0;
+    // Dynasty Trust: Tax only at Generation 1, then trust grows tax-free
+    const trustData = generationData.map((gen, idx) => {
+      if (idx === 0) {
+        // Generation 1: Pay estate/GST tax when funding the trust
+        return {
+          generation: `Gen ${gen.generation}`,
+          generationNumber: gen.generation,
+          netWealthAfterTax: gen.netToHeirs,
+          estateTax: gen.estateTax,
+          estateValue: gen.estateValue,
+          year: gen.year,
+          beneficiaries: gen.livingBeneficiaries,
+        };
+      } else {
+        // Generations 2+: No estate tax, assets stay in trust
+        return {
+          generation: `Gen ${gen.generation}`,
+          generationNumber: gen.generation,
+          netWealthAfterTax: gen.estateValue, // Full value stays in trust
+          estateTax: 0, // No estate tax
+          estateValue: gen.estateValue,
+          year: gen.year,
+          beneficiaries: gen.livingBeneficiaries,
+        };
+      }
+    });
+
+    return { directInheritanceData: directData, dynastyTrustData: trustData };
+  }, [generationData]);
+
+  // Select data based on scenario
+  const chartData = scenario === "direct" ? directInheritanceData : dynastyTrustData;
+
+  // Calculate totals for selected scenario
+  const totalEstateTaxPaid = chartData.reduce((sum, gen) => sum + gen.estateTax, 0);
+  const totalEstate = chartData.reduce((sum, gen) => sum + gen.estateValue, 0);
+  const avgTaxRate = totalEstate > 0 ? (totalEstateTaxPaid / totalEstate) * 100 : 0;
+  const finalNetWealth = chartData[chartData.length - 1]?.netWealthAfterTax || 0;
+
+  // Calculate tax savings (trust vs direct)
+  const directTotalTax = directInheritanceData.reduce((sum, gen) => sum + gen.estateTax, 0);
+  const trustTotalTax = dynastyTrustData.reduce((sum, gen) => sum + gen.estateTax, 0);
+  const taxSavings = directTotalTax - trustTotalTax;
+  const savingsPercent = directTotalTax > 0 ? (taxSavings / directTotalTax) * 100 : 0;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Dynasty Wealth Timeline</CardTitle>
         <CardDescription>
-          Wealth transfer across {generationData.length} generations with estate tax impact
+          Compare direct inheritance vs dynasty trust structures across {generationData.length} generations
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Scenario Toggle */}
+        <div className="p-4 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-950/50 dark:to-gray-950/50 border border-slate-200 dark:border-slate-800 rounded-lg">
+          <Label className="text-sm font-semibold mb-3 block">Estate Planning Strategy:</Label>
+          <RadioGroup
+            value={scenario}
+            onValueChange={(value) => setScenario(value as Scenario)}
+            className="flex flex-col md:flex-row gap-4"
+          >
+            <div className="flex items-center space-x-2 flex-1">
+              <RadioGroupItem value="trust" id="trust" />
+              <Label htmlFor="trust" className="cursor-pointer flex-1">
+                <div className="font-semibold">Dynasty Trust</div>
+                <div className="text-xs text-muted-foreground">
+                  Estate/GST tax at Gen 1, then assets stay in trust (tax-free growth)
+                </div>
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2 flex-1">
+              <RadioGroupItem value="direct" id="direct" />
+              <Label htmlFor="direct" className="cursor-pointer flex-1">
+                <div className="font-semibold">Direct Inheritance</div>
+                <div className="text-xs text-muted-foreground">
+                  Estate tax charged at every generation handoff (no trust)
+                </div>
+              </Label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        {/* Tax Savings Comparison (always visible) */}
+        {taxSavings > 0 && (
+          <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-2 border-green-300 dark:border-green-800 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">
+                  Dynasty Trust Tax Savings
+                </div>
+                <div className="text-xs text-green-800 dark:text-green-200">
+                  Avoid {savingsPercent.toFixed(0)}% of estate taxes by using a trust structure
+                </div>
+              </div>
+              <div className="text-3xl font-bold text-green-900 dark:text-green-100">
+                {fmt(taxSavings)}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -81,7 +175,7 @@ export function DynastyTimeline({ generationData }: DynastyTimelineProps) {
               {fmt(totalEstateTaxPaid)}
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              Across all {generationData.length} generations
+              {scenario === "trust" ? "At Generation 1 only" : `Across all ${generationData.length} generations`}
             </div>
           </div>
 
@@ -98,7 +192,7 @@ export function DynastyTimeline({ generationData }: DynastyTimelineProps) {
           <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800 rounded-lg">
             <div className="text-sm text-muted-foreground mb-1">Final Net Wealth</div>
             <div className="text-2xl font-bold text-green-900 dark:text-green-100">
-              {fmt(chartData[chartData.length - 1]?.netWealthAfterTax || 0)}
+              {fmt(finalNetWealth)}
             </div>
             <div className="text-xs text-muted-foreground mt-1">
               Generation {generationData.length}
@@ -146,7 +240,9 @@ export function DynastyTimeline({ generationData }: DynastyTimelineProps) {
                           <span className="font-medium">Estate Tax:</span> {fmt(data.estateTax)}
                         </p>
                         <p className="text-green-600 dark:text-green-400">
-                          <span className="font-medium">Net to Heirs:</span> {fmt(data.netWealthAfterTax)}
+                          <span className="font-medium">
+                            {scenario === "trust" && data.generationNumber > 1 ? "Trust Balance:" : "Net to Heirs:"}
+                          </span> {fmt(data.netWealthAfterTax)}
                         </p>
                         <p className="text-muted-foreground text-xs mt-2">
                           {data.beneficiaries} living beneficiaries
@@ -172,7 +268,7 @@ export function DynastyTimeline({ generationData }: DynastyTimelineProps) {
                 stroke="#10b981"
                 fill="#10b981"
                 fillOpacity={0.6}
-                name="Net Wealth After Estate Tax"
+                name={scenario === "trust" ? "Trust Balance (Tax-Free)" : "Net Wealth After Estate Tax"}
               />
               <Area
                 type="monotone"
@@ -190,13 +286,23 @@ export function DynastyTimeline({ generationData }: DynastyTimelineProps) {
         {/* Info Box */}
         <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
           <h4 className="font-semibold text-sm mb-2 text-amber-900 dark:text-amber-100">
-            Understanding Estate Tax Impact
+            {scenario === "trust" ? "Dynasty Trust Structure" : "Direct Inheritance Structure"}
           </h4>
-          <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
-            This chart shows how federal estate tax reduces wealth at each generation handoff. The red area represents
-            tax paid (40% on amounts above ${(13.61).toFixed(1)}M exemption), while the green area shows net wealth
-            passing to heirs. Strategic gifting ($18K/person/year) can significantly reduce this tax burden.
-          </p>
+          {scenario === "trust" ? (
+            <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
+              With a dynasty trust, estate/GST tax is paid only once (Generation 1) when you fund the trust.
+              After that, assets remain in the trust indefinitely, growing tax-free. Beneficiaries receive
+              annual distributions (${fmt(generationData[0]?.estateValue || 0).replace(/\$/, '')} shown here) but never own the assets outright,
+              avoiding estate tax at each generation handoff. This structure can preserve wealth for 3+ generations.
+            </p>
+          ) : (
+            <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
+              With direct inheritance, each generation owns assets outright. Federal estate tax (40% on amounts
+              above ${(13.61).toFixed(1)}M exemption) is charged every time wealth passes to the next generation.
+              Over multiple generations, this compounds significantly, eroding family wealth. Strategic gifting
+              ($18K/person/year) can help reduce this burden.
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
