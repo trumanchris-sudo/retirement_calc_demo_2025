@@ -253,7 +253,121 @@ The NIIT calculation correctly:
 
 ---
 
-## Phase 2: Retirement Engine Core Logic - PENDING
+## Phase 2: Retirement Engine Core Logic - ✅ IN PROGRESS
+
+### Overview
+
+The retirement engine (`lib/calculations/retirementEngine.ts:571`) simulates retirement planning through two main phases:
+1. **Accumulation Phase** (lines 321-380) - Pre-retirement growth
+2. **Drawdown Phase** (lines 413-546) - Retirement withdrawals
+
+### Key Components Reviewed:
+
+#### 2.1 Accumulation Phase Logic
+**Location:** `retirementEngine.ts:321-380`
+
+**What Happens Each Year:**
+1. ✅ Apply annual return (fixed, random, or historical)
+2. ✅ Apply growth to all accounts (taxable, pre-tax, Roth)
+3. ✅ **Yield Drag**: Tax annual dividends/interest on taxable accounts (lines 337-348)
+   - Assumes qualified dividends taxed at LTCG rates
+   - Reduces taxable balance by tax paid
+4. ✅ Contribution escalation (if enabled)
+5. ✅ **Mid-year contributions**: Apply half-year growth (line 358)
+6. ✅ Add contributions to respective accounts
+7. ✅ Track cost basis for taxable account
+8. ✅ Calculate real & nominal balances
+
+**Key Formula - Mid-Year Contribution Growth:**
+```typescript
+const addMidYear = (amt: number) => amt * (1 + (g - 1) * 0.5);
+```
+This models contributions made mid-year receiving half the annual return.
+
+#### 2.2 Drawdown Phase Logic
+**Location:** `retirementEngine.ts:413-546`
+
+**What Happens Each Year:**
+1. ✅ Apply annual return to all accounts
+2. ✅ **Yield Drag**: Tax dividends/interest (same as accumulation)
+3. ✅ Calculate Required Minimum Distribution (RMD) if age >= 73
+4. ✅ Calculate Social Security benefits (if claiming age reached)
+5. ✅ **Roth Conversion Strategy** (lines 452-495) - Before RMD age
+   - Converts pre-tax to Roth up to target tax bracket (default 24%)
+   - Pays conversion tax from taxable account
+   - Only if headroom available in target bracket
+6. ✅ Calculate net spending need (withdrawal - Social Security)
+7. ✅ Enforce RMD minimum (if > spending need)
+8. ✅ Compute pro-rata withdrawal taxes
+9. ✅ Reinvest excess RMD to taxable account (after tax)
+10. ✅ Track portfolio depletion (ruined flag)
+
+#### 2.3 RMD Calculations
+**Location:** `retirementEngine.ts:201-207`
+
+**Verified:**
+- [x] ✅ RMD starts at age 73 (2023 SECURE Act 2.0)
+- [x] ✅ Uses IRS Uniform Lifetime Table divisors
+- [x] ✅ Formula: `RMD = pretax_balance / divisor`
+- [x] ✅ Returns 0 if age < 73 or balance <= 0
+- [x] ✅ Fallback divisor of 2.0 for ages > 120
+
+**RMD Divisor Table Sample:**
+- Age 73: 26.5
+- Age 80: 20.2
+- Age 90: 12.2
+- Age 95: 8.9
+- Age 120: 2.0
+
+#### 2.4 Social Security Integration
+**Location:** `retirementEngine.ts:212-244`
+
+**Bend Point Formula (2025):**
+- First $1,226/month: 90% replacement
+- $1,226 - $7,391/month: 32% replacement
+- Above $7,391/month: 15% replacement
+
+**Early/Late Claiming Adjustments:**
+- Claim before FRA (67): Reduction factor applied
+- Claim after FRA: Delayed retirement credits applied
+- Formula: `adjusted_benefit = PIA × adjustment_factor`
+
+**Verified:**
+- [x] ✅ Bend points correct ($1,226 and $7,391)
+- [x] ✅ Conversion from annual to monthly income
+- [x] ✅ PIA (Primary Insurance Amount) calculation
+- [x] ✅ Early/late claiming adjustments
+- [x] ✅ Converts back to annual benefit
+- [x] ✅ Integration with drawdown (reduces portfolio withdrawals)
+
+### Initial Observations:
+
+#### ✅ Strengths:
+1. Comprehensive simulation covering accumulation & drawdown
+2. Proper mid-year contribution modeling
+3. Yield drag correctly modeled for taxable accounts
+4. RMD enforcement with excess reinvestment
+5. Roth conversion optimization strategy
+6. Social Security integration reduces withdrawal needs
+7. Multiple return modes (fixed, random, historical)
+8. Inflation tracking (real vs nominal balances)
+
+#### ⚠️ Areas Requiring Detailed Testing:
+1. Mid-year contribution formula accuracy
+2. Yield drag calculation vs actual dividend taxation
+3. Roth conversion bracket filling logic
+4. Pro-rata withdrawal strategy (tested separately in Phase 3)
+5. RMD excess reinvestment after-tax calculation
+6. Bond glide path integration
+7. Historical return sequence handling
+
+### Next Steps for Phase 2:
+- [ ] Create comprehensive retirement engine tests
+- [ ] Verify mid-year contribution growth formula
+- [ ] Test RMD divisor accuracy against IRS tables
+- [ ] Verify Social Security bend point calculations
+- [ ] Test Roth conversion optimization
+- [ ] Verify inflation shock handling
 
 ## Phase 3: Tax-Optimized Withdrawal Strategy - PENDING
 
