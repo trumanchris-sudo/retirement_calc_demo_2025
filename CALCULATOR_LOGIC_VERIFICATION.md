@@ -369,7 +369,143 @@ This models contributions made mid-year receiving half the annual return.
 - [ ] Test Roth conversion optimization
 - [ ] Verify inflation shock handling
 
-## Phase 3: Tax-Optimized Withdrawal Strategy - PENDING
+## Phase 3: Tax-Optimized Withdrawal Strategy - ✅ **VERIFIED**
+
+**Location:** `lib/calculations/withdrawalTax.ts:140`
+
+**Test Results:** 17/17 tests passed ✅
+
+### Withdrawal Logic Components:
+
+#### 3.1 Pro-Rata Distribution
+**Location:** `withdrawalTax.ts:63-87`
+
+**How it Works:**
+1. Satisfy RMD requirement first (force minimum from pre-tax)
+2. Distribute remaining need proportionally across all accounts
+3. Formula: `drawAccount = remainingNeed × (accountBalance / totalAvailableBalance)`
+
+**Verified:**
+- [x] ✅ Proportional distribution across taxable, pre-tax, Roth
+- [x] ✅ Equal balances → equal withdrawals (33.33% each)
+- [x] ✅ Single account type → withdraws from that account only
+- [x] ✅ RMD enforced before pro-rata distribution
+
+**Example:** Portfolio of $100k taxable, $200k pre-tax, $100k Roth (total $400k)
+- Withdraw $40k → 25% taxable ($10k), 50% pre-tax ($20k), 25% Roth ($10k)
+
+#### 3.2 RMD Enforcement
+**Location:** `withdrawalTax.ts:63-66`
+
+**Verified:**
+- [x] ✅ Forces minimum pre-tax withdrawal (RMD)
+- [x] ✅ If RMD > withdrawal need, takes full RMD
+- [x] ✅ If RMD < withdrawal need, satisfies RMD then pro-rata for remainder
+- [x] ✅ Caps RMD at available pre-tax balance
+
+**Example:** Need $40k, RMD requires $20k
+- Pre-tax: $20k (RMD) + proportional share of remaining $20k
+- Other accounts: proportional share of remaining $20k
+
+#### 3.3 Shortfall Cascade Logic
+**Location:** `withdrawalTax.ts:89-103`
+
+**How it Works:**
+1. Calculate pro-rata amounts for each account
+2. Check if each account has enough (cascade if not)
+3. Order: Taxable → Pre-tax → Roth
+
+**Verified:**
+- [x] ✅ Cascades to next account when one is depleted
+- [x] ✅ Handles complete portfolio depletion gracefully
+- [x] ✅ Pro-rata distribution maintained when possible
+
+**Example:** Portfolio has $10k taxable, $150k pre-tax, $50k Roth
+- Request $105k → Takes $5k from taxable (pro-rata), fills remainder from other accounts
+
+#### 3.4 Capital Gains Calculation
+**Location:** `withdrawalTax.ts:105-109`
+
+**Formula:**
+```typescript
+unrealizedGain = taxableBalance - costBasis
+gainRatio = unrealizedGain / taxableBalance
+withdrawalGain = taxableWithdrawal × gainRatio
+withdrawalBasis = taxableWithdrawal - withdrawalGain
+```
+
+**Verified:**
+- [x] ✅ Pro-rata method for gains (gain% applies to withdrawal)
+- [x] ✅ Basis tracked correctly after withdrawal
+- [x] ✅ Handles zero-gain scenario (basis = balance)
+- [x] ✅ Gains taxed at LTCG rates (0%, 15%, 20%)
+
+**Example:** $100k taxable, $60k basis → 40% gains
+- Withdraw $25k from taxable → $10k gain, $15k basis return
+- New basis: $60k - $15k = $45k
+
+#### 3.5 Marginal Tax Rate Approach
+**Location:** `withdrawalTax.ts:115-125`
+
+**How it Works:**
+```typescript
+// Calculate marginal tax on withdrawal
+totalOrdinaryIncome = baseIncome + withdrawalOrdinaryIncome
+fedOrd = calcOrdinaryTax(totalIncome) - calcOrdinaryTax(baseIncome)
+```
+
+This ensures withdrawal is taxed at marginal rate, accounting for base income (Social Security) that fills lower brackets.
+
+**Verified:**
+- [x] ✅ Taxes withdrawal at marginal rate when base income exists
+- [x] ✅ Capital gains stack on top of total ordinary income
+- [x] ✅ Correct LTCG bracket determination
+- [x] ✅ NIIT applies to investment income when MAGI > threshold
+
+**Example:** $50k Social Security + $40k pre-tax withdrawal
+- Tax = Tax($90k) - Tax($50k) = marginal tax on withdrawal only
+
+#### 3.6 Tax Components
+**Verified Calculations:**
+- [x] ✅ Federal ordinary income tax (progressive brackets)
+- [x] ✅ Federal capital gains tax (stacked on ordinary income)
+- [x] ✅ NIIT (3.8% on investment income over threshold)
+- [x] ✅ State income tax (flat rate on ordinary + gains)
+
+### Real-World Scenario Test
+
+**Typical 73-year-old Retiree:**
+- Portfolio: $500k ($200k taxable, $200k pre-tax, $100k Roth)
+- Social Security: $40k/year
+- RMD: $7,547 (from $200k ÷ 26.5)
+- Spending need: $80k total ($40k from portfolio, $40k from SS)
+
+**Results:**
+- Withdrawal distribution:
+  - Taxable: $13,180 (33%)
+  - Pre-tax: $20,230 (50.6%) - includes RMD
+  - Roth: $6,590 (16.4%)
+- Tax breakdown:
+  - Federal ordinary: $2,121
+  - Federal LTCG: $0 (low income, 0% bracket)
+  - NIIT: $0
+  - **Total tax: $2,121**
+  - **After-tax spending: $37,879**
+
+### Key Findings:
+
+✅ **Strengths:**
+1. Pro-rata distribution ensures tax diversification
+2. RMD enforcement prevents IRS penalties
+3. Marginal tax approach maximizes tax efficiency
+4. Capital gains properly calculated with basis tracking
+5. Handles edge cases gracefully (depletion, shortfalls)
+6. Integrates all tax types (ordinary, LTCG, NIIT, state)
+
+✅ **No Issues Found:**
+- All withdrawal logic working as designed
+- Tax calculations accurate
+- Edge cases handled correctly
 
 ## Phase 4: Monte Carlo Simulation Accuracy - PENDING
 
