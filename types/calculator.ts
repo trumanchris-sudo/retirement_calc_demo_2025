@@ -149,6 +149,19 @@ export interface TaxBreakdown {
 }
 
 /**
+ * Generation data point for dynasty timeline
+ */
+export interface GenerationDataPoint {
+  generation: number;
+  year: number;
+  estateValue: number;
+  estateTax: number;
+  netToHeirs: number;
+  fundRealValue: number;
+  livingBeneficiaries: number;
+}
+
+/**
  * Generational payout simulation result
  */
 export interface GenerationalPayout {
@@ -161,20 +174,24 @@ export interface GenerationalPayout {
   generationLength: number;
   deathAge: number;
   benAges?: number[];
+  generationData?: GenerationDataPoint[];
   p10?: {
     years: number;
     fundLeftReal: number;
     isPerpetual: boolean;
+    generationData?: GenerationDataPoint[];
   };
   p50?: {
     years: number;
     fundLeftReal: number;
     isPerpetual: boolean;
+    generationData?: GenerationDataPoint[];
   };
   p90?: {
     years: number;
     fundLeftReal: number;
     isPerpetual: boolean;
+    generationData?: GenerationDataPoint[];
   };
   probPerpetual?: number;
 }
