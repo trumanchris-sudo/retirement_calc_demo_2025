@@ -16,31 +16,19 @@ describe('Tax Calculation Verification Suite', () => {
 
   describe('Standard Deduction Values', () => {
     it('should use OBBBA 2025 standard deduction amounts', () => {
-      // KNOWN ISSUE: Code currently uses pre-OBBBA values
-      // This test documents the expected vs actual values
-
       const codeValueSingle = TAX_BRACKETS.single.deduction;
       const codeValueMarried = TAX_BRACKETS.married.deduction;
 
       const expectedSingle = 15750;  // OBBBA value (July 2025)
       const expectedMarried = 31500; // OBBBA value (July 2025)
 
-      // Document current state
-      console.log(`Current single deduction: $${codeValueSingle.toLocaleString()}`);
-      console.log(`Expected single deduction: $${expectedSingle.toLocaleString()}`);
-      console.log(`Current married deduction: $${codeValueMarried.toLocaleString()}`);
-      console.log(`Expected married deduction: $${expectedMarried.toLocaleString()}`);
+      // Verify OBBBA values are correctly implemented
+      expect(codeValueSingle).toBe(expectedSingle);
+      expect(codeValueMarried).toBe(expectedMarried);
 
-      // These will FAIL until constants are updated
-      // expect(codeValueSingle).toBe(expectedSingle);
-      // expect(codeValueMarried).toBe(expectedMarried);
-
-      // Workaround: Document the error
-      const singleError = expectedSingle - codeValueSingle;
-      const marriedError = expectedMarried - codeValueMarried;
-
-      expect(singleError).toBe(750);  // Documents $750 underestimation
-      expect(marriedError).toBe(1500); // Documents $1,500 underestimation
+      console.log('✅ Standard deductions updated to OBBBA values:');
+      console.log(`  Single: $${codeValueSingle.toLocaleString()}`);
+      console.log(`  Married: $${codeValueMarried.toLocaleString()}`);
     });
   });
 
@@ -91,8 +79,16 @@ describe('Tax Calculation Verification Suite', () => {
       // Check if married is roughly double single (within 5% for rounding)
       for (let i = 0; i < single.length - 1; i++) { // Skip infinity
         const ratio = married[i].limit / single[i].limit;
-        expect(ratio).toBeGreaterThanOrEqual(1.95);
-        expect(ratio).toBeLessThanOrEqual(2.05);
+
+        // The 35% bracket (index 5) has a marriage penalty - intentional design
+        // Ratio is ~1.2x instead of 2x for this bracket
+        if (i === 5) {
+          expect(ratio).toBeGreaterThanOrEqual(1.15);
+          expect(ratio).toBeLessThanOrEqual(1.25);
+        } else {
+          expect(ratio).toBeGreaterThanOrEqual(1.95);
+          expect(ratio).toBeLessThanOrEqual(2.05);
+        }
       }
     });
   });
