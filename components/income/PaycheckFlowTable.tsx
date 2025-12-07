@@ -54,15 +54,17 @@ export function PaycheckFlowTable({ paychecks }: PaycheckFlowTableProps) {
   const SS_WAGE_BASE = 176100;
 
   const formatCurrency = (value: number, showSign: boolean = false) => {
-    const absValue = Math.abs(value);
+    // Handle null/undefined values by defaulting to 0
+    const safeValue = value ?? 0;
+    const absValue = Math.abs(safeValue);
     const formatted = absValue.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
 
-    if (value === 0) return '0.00';
-    if (value < 0) return `-${formatted}`;
-    if (showSign && value > 0) return `+${formatted}`;
+    if (safeValue === 0) return '0.00';
+    if (safeValue < 0) return `-${formatted}`;
+    if (showSign && safeValue > 0) return `+${formatted}`;
     return formatted;
   };
 

@@ -626,24 +626,24 @@ export default function SelfEmployed2026Page() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-900">
                     <div className="text-sm text-green-700 dark:text-green-400">Gross Income</div>
-                    <div className="text-xl font-bold">${results.yearSummary.totalGrossIncome.toLocaleString()}</div>
+                    <div className="text-xl font-bold">${(results.yearSummary.totalGrossIncome ?? 0).toLocaleString()}</div>
                   </div>
                   <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg border border-red-200 dark:border-red-900">
                     <div className="text-sm text-red-700 dark:text-red-400">Total Taxes</div>
                     <div className="text-xl font-bold">
-                      ${(results.yearSummary.totalSelfEmploymentTax + results.yearSummary.totalFederalTax + results.yearSummary.totalStateTax).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      ${((results.yearSummary.totalSelfEmploymentTax ?? 0) + (results.yearSummary.totalFederalTax ?? 0) + (results.yearSummary.totalStateTax ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {(results.yearSummary.effectiveTaxRate * 100).toFixed(1)}% effective
+                      {((results.yearSummary.effectiveTaxRate ?? 0) * 100).toFixed(1)}% effective
                     </div>
                   </div>
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-900">
                     <div className="text-sm text-blue-700 dark:text-blue-400">Retirement Saved</div>
-                    <div className="text-xl font-bold">${results.yearSummary.totalRetirement.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="text-xl font-bold">${(results.yearSummary.totalRetirement ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                   </div>
                   <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-900">
                     <div className="text-sm text-emerald-700 dark:text-emerald-400">Investable Proceeds</div>
-                    <div className="text-xl font-bold">${results.yearSummary.totalInvestableProceeds.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="text-xl font-bold">${(results.yearSummary.totalInvestableProceeds ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                   </div>
                 </div>
 
@@ -652,30 +652,30 @@ export default function SelfEmployed2026Page() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                   <div>
                     <div className="text-muted-foreground">Self-Employment Tax</div>
-                    <div className="font-semibold">${results.seTaxResult.totalSETax.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="font-semibold">${(results.seTaxResult.totalSETax ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                     <div className="text-xs text-muted-foreground">
-                      SS: ${results.seTaxResult.socialSecurityTax.toLocaleString(undefined, { maximumFractionDigits: 0 })} |
-                      Medicare: ${(results.seTaxResult.medicareTax + results.seTaxResult.additionalMedicareTax).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      SS: ${(results.seTaxResult.socialSecurityTax ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} |
+                      Medicare: ${((results.seTaxResult.medicareTax ?? 0) + (results.seTaxResult.additionalMedicareTax ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Federal Income Tax</div>
-                    <div className="font-semibold">${results.yearSummary.totalFederalTax.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="font-semibold">${(results.yearSummary.totalFederalTax ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                     <div className="text-xs text-muted-foreground">
-                      {(results.yearSummary.marginalTaxRate * 100).toFixed(0)}% marginal bracket
+                      {((results.yearSummary.marginalTaxRate ?? 0) * 100).toFixed(0)}% marginal bracket
                     </div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">State Tax</div>
-                    <div className="font-semibold">${results.yearSummary.totalStateTax.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="font-semibold">${(results.yearSummary.totalStateTax ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Health Benefits</div>
-                    <div className="font-semibold">${results.yearSummary.totalHealthBenefits.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="font-semibold">${(results.yearSummary.totalHealthBenefits ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Fixed Expenses</div>
-                    <div className="font-semibold">${results.yearSummary.totalFixedExpenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="font-semibold">${(results.yearSummary.totalFixedExpenses ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                   </div>
                 </div>
               </CardContent>
@@ -724,7 +724,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 sticky left-0 bg-background">Guaranteed Payments</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  ${period.guaranteedPaymentAmount.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  ${(period.guaranteedPaymentAmount ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -733,7 +733,7 @@ export default function SelfEmployed2026Page() {
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
                                   {period.isDistributionPeriod ? (
-                                    <span className="text-emerald-600 font-semibold">${period.distributiveShareAmount.toLocaleString(undefined, {maximumFractionDigits:0})}</span>
+                                    <span className="text-emerald-600 font-semibold">${(period.distributiveShareAmount ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}</span>
                                   ) : (
                                     <span className="text-muted-foreground">—</span>
                                   )}
@@ -744,7 +744,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 sticky left-0 bg-muted/30">Total Gross Income</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-100 dark:bg-emerald-950/30' : 'bg-muted/30'}`}>
-                                  ${period.grossPay.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  ${(period.grossPay ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -757,7 +757,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 pl-4 sticky left-0 bg-background">SE Tax (SS + Medicare)</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  -${(period.socialSecurityTax + period.medicareTax).toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  -${((period.socialSecurityTax ?? 0) + (period.medicareTax ?? 0)).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -765,7 +765,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Federal Income Tax</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  -${period.federalTaxWithholding.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  -${(period.federalTaxWithholding ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -773,7 +773,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 pl-4 sticky left-0 bg-background">State Income Tax</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  -${period.stateTaxWithholding.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  -${(period.stateTaxWithholding ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -781,7 +781,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Traditional 401(k)</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  -${period.retirement401k.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  -${(period.retirement401k ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -789,7 +789,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Roth 401(k)</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  -${period.roth401k.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  -${(period.roth401k ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -797,7 +797,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Defined Benefit Plan</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  -${period.definedBenefitPlan.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  -${(period.definedBenefitPlan ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -805,7 +805,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Health Insurance</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  -${period.healthInsurance.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  -${(period.healthInsurance ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -813,7 +813,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Dental/Vision</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  -${period.dentalVision.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  -${(period.dentalVision ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -821,7 +821,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 pl-4 sticky left-0 bg-background">HSA Contribution</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  -${period.hsa.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  -${(period.hsa ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -829,7 +829,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Dependent Care FSA</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  -${period.dependentCareFSA.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  -${(period.dependentCareFSA ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -837,7 +837,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 sticky left-0 bg-amber-50 dark:bg-amber-950/20">= Net Pay (to Bank Account)</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-amber-100 dark:bg-amber-950/30' : 'bg-amber-50 dark:bg-amber-950/20'}`}>
-                                  ${period.netPay.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  ${(period.netPay ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -850,7 +850,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Mortgage/Rent</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  -${period.mortgage.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  -${(period.mortgage ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -858,7 +858,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Household Expenses</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  -${period.householdExpenses.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  -${(period.householdExpenses ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -866,7 +866,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Discretionary Budget</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
-                                  -${period.discretionaryBudget.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  -${(period.discretionaryBudget ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -874,7 +874,7 @@ export default function SelfEmployed2026Page() {
                               <td className="py-1 px-2 sticky left-0 bg-green-50 dark:bg-green-950/20">= Investable Proceeds</td>
                               {chunk.map((period) => (
                                 <td key={period.periodNumber} className={`text-right py-1 px-2 border-l text-green-600 ${period.isDistributionPeriod ? 'bg-green-100 dark:bg-green-950/30' : 'bg-green-50 dark:bg-green-950/20'}`}>
-                                  ${period.investableProceeds.toLocaleString(undefined, {maximumFractionDigits:0})}
+                                  ${(period.investableProceeds ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
                                 </td>
                               ))}
                             </tr>
@@ -887,7 +887,7 @@ export default function SelfEmployed2026Page() {
                                   {period.ssCapReached ? (
                                     <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded">Cap Reached</span>
                                   ) : (
-                                    `$${period.ssWageBaseRemaining.toLocaleString(undefined, {maximumFractionDigits:0})}`
+                                    `$${(period.ssWageBaseRemaining ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}`
                                   )}
                                 </td>
                               ))}

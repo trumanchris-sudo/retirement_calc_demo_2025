@@ -671,10 +671,10 @@ export default function Income2026Page() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-green-50 p-4 rounded-lg border border-green-200"><div className="text-sm text-green-700">Total Income</div><div className="text-xl font-bold">${results.yearSummary.totalIncome.toLocaleString()}</div></div>
-                    <div className="bg-red-50 p-4 rounded-lg border border-red-200"><div className="text-sm text-red-700">Total Tax (Fed+FICA)</div><div className="text-xl font-bold">${(results.yearSummary.totalFIT + results.yearSummary.totalFICA).toLocaleString()}</div></div>
-                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200"><div className="text-sm text-blue-700">401k Invested</div><div className="text-xl font-bold">${results.yearSummary.total401k.toLocaleString()}</div></div>
-                    <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200"><div className="text-sm text-emerald-700">Net Cash Flow</div><div className="text-xl font-bold">${results.yearSummary.netTakeHome.toLocaleString()}</div></div>
+                    <div className="bg-green-50 p-4 rounded-lg border border-green-200"><div className="text-sm text-green-700">Total Income</div><div className="text-xl font-bold">${(results.yearSummary.totalIncome ?? 0).toLocaleString()}</div></div>
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200"><div className="text-sm text-red-700">Total Tax (Fed+FICA)</div><div className="text-xl font-bold">${((results.yearSummary.totalFIT ?? 0) + (results.yearSummary.totalFICA ?? 0)).toLocaleString()}</div></div>
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200"><div className="text-sm text-blue-700">401k Invested</div><div className="text-xl font-bold">${(results.yearSummary.total401k ?? 0).toLocaleString()}</div></div>
+                    <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200"><div className="text-sm text-emerald-700">Net Cash Flow</div><div className="text-xl font-bold">${(results.yearSummary.netTakeHome ?? 0).toLocaleString()}</div></div>
                 </div>
               </CardContent>
             </Card>
@@ -713,19 +713,19 @@ export default function Income2026Page() {
                           <tbody>
                             <tr className="hover:bg-muted/50">
                                 <td className="py-1 px-2 font-medium">Total Gross</td>
-                                {chunk.map((p: any) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">${p.totalGross.toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
+                                {chunk.map((p: any) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">${(p.totalGross ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
                             </tr>
                             <tr className="hover:bg-muted/50 text-red-600">
                                 <td className="py-1 px-2">Taxes & FICA</td>
-                                {chunk.map((p: any) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">-${(p.totalFIT + p.ss + p.totalMed).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
+                                {chunk.map((p: any) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">-${((p.totalFIT ?? 0) + (p.ss ?? 0) + (p.totalMed ?? 0)).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
                             </tr>
                              <tr className="hover:bg-muted/50 text-blue-600">
                                 <td className="py-1 px-2">401k Contrib</td>
-                                {chunk.map((p: any) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">-${p.contribution401k.toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
+                                {chunk.map((p: any) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">-${(p.contribution401k ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
                             </tr>
                             <tr className="bg-muted/30 font-bold">
                                 <td className="py-1 px-2">Net Remainder</td>
-                                {chunk.map((p: any) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">${p.brokerageContribution.toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
+                                {chunk.map((p: any) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">${(p.brokerageContribution ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
                             </tr>
                           </tbody>
                         </table>
