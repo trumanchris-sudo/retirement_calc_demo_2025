@@ -32,10 +32,10 @@ export const ESTATE_TAX_EXEMPTION: Record<'single' | 'married', number> = {
 } as const;
 export const ESTATE_TAX_RATE = 0.40; // 40% on amount over exemption
 
-/** Illustrative 2025 ordinary brackets + standard deductions */
+/** 2025 ordinary brackets + standard deductions (post-OBBBA July 2025) */
 export const TAX_BRACKETS = {
   single: {
-    deduction: 15000,
+    deduction: 15750,  // OBBBA standard deduction (up from $15,000)
     rates: [
       { limit: 11925, rate: 0.1 },
       { limit: 48475, rate: 0.12 },
@@ -47,7 +47,7 @@ export const TAX_BRACKETS = {
     ],
   },
   married: {
-    deduction: 30000,
+    deduction: 31500,  // OBBBA standard deduction (up from $30,000)
     rates: [
       { limit: 23850, rate: 0.1 },
       { limit: 96950, rate: 0.12 },

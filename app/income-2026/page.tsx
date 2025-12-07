@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowLeft, Calculator, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ interface PayEvent {
 }
 
 export default function Income2026Page() {
-  useBudget();
+  const { implied } = useBudget();
   // Marital status
   const [maritalStatus, setMaritalStatus] = useState<FilingStatus>("single");
 
@@ -116,6 +116,53 @@ export default function Income2026Page() {
 
   // Calculation key to force re-render of table when inputs change
   const [calculationKey, setCalculationKey] = useState(0);
+
+  // Pre-populate form from main calculator if data is available
+  useEffect(() => {
+    if (implied) {
+      console.log('[INCOME-2026] Pre-populating from budget context:', implied);
+
+      // Set marital status
+      if (implied.maritalStatus) {
+        setMaritalStatus(implied.maritalStatus);
+      }
+
+      // Estimate base income from gross income (if available)
+      if (implied.grossIncome > 0) {
+        const estimatedBaseIncome = implied.grossIncome * 0.5; // Split between persons if married
+        setP1BaseIncome(Math.round(estimatedBaseIncome));
+        if (implied.maritalStatus === 'married') {
+          setP2BaseIncome(Math.round(estimatedBaseIncome));
+        }
+      }
+
+      // Pre-fill 401k contributions
+      if (implied.contributions401k > 0) {
+        const perPerson = implied.maritalStatus === 'married'
+          ? Math.round(implied.contributions401k / 2)
+          : implied.contributions401k;
+        setP1PreTax401k(perPerson);
+        if (implied.maritalStatus === 'married') {
+          setP2PreTax401k(perPerson);
+        }
+      }
+
+      // Estimate housing from withdrawal needs
+      if (implied.housing > 0) {
+        const monthlyHousing = Math.round(implied.housing / 12);
+        setMortgagePayment(monthlyHousing);
+      }
+
+      // Estimate household/discretionary spending
+      if (implied.discretionary > 0) {
+        const monthlyDiscretionary = Math.round(implied.discretionary / 12);
+        setHouseholdExpenses(Math.round(monthlyDiscretionary * 0.6));
+        setDiscretionarySpending(Math.round(monthlyDiscretionary * 0.4));
+      }
+
+      console.log('[INCOME-2026] Form pre-populated successfully');
+    }
+  }, [implied]);
 
   const months = [
     "January", "February", "March", "April", "May", "June",
@@ -707,7 +754,7 @@ export default function Income2026Page() {
                             </tr>
                             <tr className="border-b">
                                 <th className="text-left py-1 px-2 bg-background">Date</th>
-                                {chunk.map((p: any) => <th key={p.paycheckNum} className="text-right py-1 px-2 border-l bg-background">{new Date(p.date + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'})}</th>)}
+                                {chunk.map((p: any) => <th key={p.paycheckNum} className="text-right py-1 px-2 border-l bg-background">{p.date.toLocaleDateString('en-US', {month:'short', day:'numeric'})}</th>)}
                             </tr>
                           </thead>
                           <tbody>

@@ -709,7 +709,7 @@ export default function SelfEmployed2026Page() {
                                   {period.isDistributionPeriod && <span className="ml-1 text-emerald-600">●</span>}
                                   <br/>
                                   <span className="text-[10px] font-normal text-muted-foreground">
-                                    {new Date(period.periodDate + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'})}
+                                    {period.periodDate.toLocaleDateString('en-US', {month:'short', day:'numeric'})}
                                   </span>
                                 </th>
                               ))}

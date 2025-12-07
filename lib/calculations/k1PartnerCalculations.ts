@@ -37,7 +37,7 @@ export const calculateK1PartnerFlow = (inputs: PartnerInputs): PartnerCalculatio
   const { drawBase, expectedBonus, priorYearTax, stateTaxRate, isMarried, spouseIncome } = inputs;
 
   // Constants
-  const SE_LIMIT = 176100; // SS Wage Base
+  const SE_LIMIT = 184500; // 2026 SS Wage Base
   const MEDICARE_RATE = 0.029; // 2.9% (Employer+Employee)
   const ADDL_MEDICARE = 0.009; // 0.9% over 250k (Joint)
   const SE_SS_RATE = 0.124;    // 12.4%
@@ -110,12 +110,15 @@ export const calculateK1PartnerFlow = (inputs: PartnerInputs): PartnerCalculatio
   const totalSETax = ssTax + medTax;
 
   // Est. Income Tax (Simplified flat 35% blended for high earner logic + SE deduction)
-  const taxableIncome = totalIncome - (totalSETax / 2) - 60000; // Standard deduction + adjustments
+  const standardDeduction = isMarried ? 31500 : 15750; // 2025 OBBBA standard deduction
+  const taxableIncome = totalIncome - (totalSETax / 2) - standardDeduction;
   const approxIncomeTax = taxableIncome * 0.35; // Placeholder for progressive logic
 
   const totalLiability = approxIncomeTax + totalSETax;
   const totalPaid = requiredAnnualSafeHarbor;
   const aprilTrueUp = totalLiability - totalPaid;
+
+  const totalStateTaxPaid = (drawBase + expectedBonus) * stateTaxRate;
 
   return {
     months,
@@ -124,7 +127,7 @@ export const calculateK1PartnerFlow = (inputs: PartnerInputs): PartnerCalculatio
        totalSafeHarborPaid: totalPaid,
        actualLiability: totalLiability,
        aprilTrueUpDue: aprilTrueUp, // The check you write next year
-       netAfterAllTaxes: (drawBase + expectedBonus) - totalLiability - (drawBase * stateTaxRate)
+       netAfterAllTaxes: (drawBase + expectedBonus) - totalLiability - totalStateTaxPaid
     }
   };
 };

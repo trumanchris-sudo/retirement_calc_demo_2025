@@ -103,13 +103,6 @@ export function validateRetirementAge(
     };
   }
 
-  if (retirementAge - currentAge < 1) {
-    return {
-      isValid: false,
-      error: `You must have at least 1 year until retirement. Current age: ${currentAge}, Retirement age: ${retirementAge}.`
-    };
-  }
-
   return { isValid: true };
 }
 
@@ -239,7 +232,8 @@ export function validateCalculatorInputs(inputs: {
 
   // Check if user has any starting balance or contributions
   const totalBalance = inputs.sTax + inputs.sPre + inputs.sPost;
-  const totalContributions = inputs.cTax1 + inputs.cPre1 + inputs.cPost1 + inputs.cMatch1;
+  const totalContributions = inputs.cTax1 + inputs.cPre1 + inputs.cPost1 + inputs.cMatch1
+    + (inputs.cTax2 || 0) + (inputs.cPre2 || 0) + (inputs.cPost2 || 0) + (inputs.cMatch2 || 0);
 
   if (totalBalance === 0 && totalContributions === 0) {
     return {

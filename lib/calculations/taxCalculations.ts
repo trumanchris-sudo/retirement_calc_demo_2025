@@ -31,6 +31,7 @@ export const calcOrdinaryTax = (income: number, status: FilingStatus): number =>
 
 /**
  * Calculate federal long-term capital gains tax
+ * Capital gains "stack" on top of ordinary income for bracket determination
  * @param capGain - Long-term capital gains amount
  * @param status - Filing status (single or married)
  * @param ordinaryIncome - Ordinary income (affects which LTCG bracket applies)
@@ -45,19 +46,28 @@ export const calcLTCGTax = (
   const brackets = LTCG_BRACKETS[status];
   let remainingGain = capGain;
   let tax = 0;
-  let used = 0;
+
+  // Track cumulative income (ordinary + gains processed so far)
+  // This is how capital gains "stack" on top of ordinary income
+  let cumulativeIncome = ordinaryIncome;
 
   for (const b of brackets) {
-    const bracketRoom = Math.max(0, b.limit - used - ordinaryIncome);
+    // How much room is left in this bracket after accounting for cumulative income?
+    const bracketRoom = Math.max(0, b.limit - cumulativeIncome);
+
+    // Fill this bracket with as much gain as possible
     const taxedHere = Math.min(remainingGain, bracketRoom);
+
     if (taxedHere > 0) {
       tax += taxedHere * b.rate;
       remainingGain -= taxedHere;
+      cumulativeIncome += taxedHere;  // Update cumulative position
     }
-    used = b.limit - ordinaryIncome;
+
     if (remainingGain <= 0) break;
   }
 
+  // Any remaining gains go at the top rate
   if (remainingGain > 0) {
     const topRate = brackets[brackets.length - 1].rate;
     tax += remainingGain * topRate;
