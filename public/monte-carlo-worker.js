@@ -1499,25 +1499,25 @@ self.onmessage = function(e) {
 
       // ===== 2. CALCULATE SPLURGE CAPACITY (One-Time Purchase) =====
       // Find maximum one-time expense that maintains >95% success
-      const totalStartingBalance = baseParams.sTax + baseParams.sPre + baseParams.sPost;
+      // IMPORTANT: Only use taxable balance - it's the only truly liquid account
+      // Pre-tax and Roth accounts have penalties/restrictions before retirement age
+      const liquidBalance = baseParams.sTax; // Only taxable is immediately accessible
       let maxSplurge = 0;
       let splurgeLow = 0;
-      let splurgeHigh = Math.min(5000000, totalStartingBalance * 0.95); // Cap at 95% of total balance
+      let splurgeHigh = Math.min(5000000, liquidBalance * 0.95); // Cap at 95% of liquid balance
       let splurgeIterations = 0;
 
-      if (totalStartingBalance > 0) {
+      if (liquidBalance > 0) {
         // Binary search with safety brake
         while (splurgeLow < splurgeHigh && splurgeIterations < SAFETY_MAX_ITERATIONS) {
         splurgeIterations++;
         const mid = splurgeLow + (splurgeHigh - splurgeLow) / 2;
 
-          // Reduce all accounts proportionally (simulate spending from the portfolio)
-          const reductionFactor = Math.max(0, (totalStartingBalance - mid) / totalStartingBalance);
+          // Reduce only taxable account (simulate immediate spending from liquid funds)
           const testParams = {
             ...baseParams,
-            sTax: baseParams.sTax * reductionFactor,
-            sPre: baseParams.sPre * reductionFactor,
-            sPost: baseParams.sPost * reductionFactor,
+            sTax: Math.max(0, baseParams.sTax - mid),
+            // Pre-tax and Roth remain unchanged - can't access penalty-free before retirement
           };
 
           if (testSuccess(testParams)) {
