@@ -11,7 +11,7 @@ interface SpendingFlexibilityChartProps {
   isCalculating?: boolean;
 }
 
-export function SpendingFlexibilityChart({ guardrailsResult, isCalculating }: SpendingFlexibilityChartProps) {
+export const SpendingFlexibilityChart = React.memo(function SpendingFlexibilityChart({ guardrailsResult, isCalculating }: SpendingFlexibilityChartProps) {
   const [spendingReduction] = useState(10); // Default 10% reduction
 
   if (isCalculating) {
@@ -193,4 +193,4 @@ export function SpendingFlexibilityChart({ guardrailsResult, isCalculating }: Sp
       </CardContent>
     </Card>
   );
-}
+});

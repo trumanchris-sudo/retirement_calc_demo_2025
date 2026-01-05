@@ -21,7 +21,7 @@ export interface RiskSummaryCardProps {
  * RiskSummaryCard - Shows risk metrics and success rates for stress testing
  * Displays base case vs current scenario comparison
  */
-export function RiskSummaryCard({
+export const RiskSummaryCard = React.memo(function RiskSummaryCard({
   baseSuccessRate,
   currentScenario,
   showComparison = true
@@ -182,4 +182,4 @@ export function RiskSummaryCard({
       </CardContent>
     </Card>
   );
-}
+});
