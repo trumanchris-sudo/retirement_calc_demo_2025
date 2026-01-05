@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { clampNum, toNumber } from "@/lib/utils";
+import type { FieldValidationResult } from "@/lib/fieldValidation";
 
 /**
  * Shared UI helper components for calculator inputs and icons
@@ -71,6 +72,7 @@ export type InputProps = {
   disabled?: boolean;
   onInputChange?: () => void; // Called when input value changes
   defaultValue?: number; // If provided, auto-clear this value on focus
+  validate?: (value: number) => FieldValidationResult; // Optional validation function
 };
 
 export const Input: React.FC<InputProps> = ({
@@ -85,9 +87,11 @@ export const Input: React.FC<InputProps> = ({
   disabled = false,
   onInputChange,
   defaultValue,
+  validate,
 }) => {
   const [local, setLocal] = useState<string>(String(value ?? 0));
   const [isFocused, setIsFocused] = useState(false);
+  const [validationResult, setValidationResult] = useState<FieldValidationResult | null>(null);
 
   useEffect(() => {
     if (!isFocused) {
@@ -121,12 +125,21 @@ export const Input: React.FC<InputProps> = ({
       setter(defaultValue);
       onInputChange?.();
       setLocal(isRate ? String(defaultValue) : defaultValue.toLocaleString('en-US'));
+      // Run validation on default value
+      if (validate) {
+        setValidationResult(validate(defaultValue));
+      }
       return;
     }
 
     const num = toNumber(cleanValue, value ?? 0);
     let val = isRate ? parseFloat(String(num)) : Math.round(num);
     val = clampNum(val, min, max);
+
+    // Run validation
+    if (validate) {
+      setValidationResult(validate(val));
+    }
 
     // Only trigger change if value actually changed
     if (val !== value) {
@@ -154,6 +167,15 @@ export const Input: React.FC<InputProps> = ({
     }
   };
 
+  // Determine border color based on validation state
+  const hasError = validationResult && !validationResult.isValid;
+  const hasWarning = validationResult && validationResult.warningOnly;
+  const borderClass = hasError
+    ? "border-red-500 focus-visible:ring-red-500"
+    : hasWarning
+    ? "border-yellow-500 focus-visible:ring-yellow-500"
+    : "border-gray-300 focus-visible:ring-blue-500";
+
   return (
     <div className="space-y-2">
       <Label className="flex items-center gap-1.5 text-foreground">
@@ -168,8 +190,14 @@ export const Input: React.FC<InputProps> = ({
         onBlur={onBlur}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+        className={`flex h-10 w-full rounded-md border ${borderClass} bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800`}
       />
+      {/* Validation message */}
+      {validationResult && validationResult.error && (
+        <p className={`text-xs ${hasError ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+          {hasError ? '⚠ ' : '⚡ '}{validationResult.error}
+        </p>
+      )}
     </div>
   );
 };

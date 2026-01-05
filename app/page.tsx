@@ -135,6 +135,15 @@ import {
 
 // Import validation utilities
 import { validateCalculatorInputs } from "@/lib/validation";
+import {
+  validateAge,
+  validateRetirementAge,
+  validateBalance,
+  validate401kContribution,
+  validateIRAContribution,
+  validateRate,
+  validateWithdrawalRate
+} from "@/lib/fieldValidation";
 
 // Re-export types for compatibility
 export type { ReturnMode, WalkSeries, BatchSummary };
@@ -6236,10 +6245,10 @@ export default function App() {
                           <option value="married">Married</option>
                         </select>
                       </div>
-                      <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} onInputChange={handleInputChange} defaultValue={35} />
-                      <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} onInputChange={handleInputChange} defaultValue={65} />
+                      <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} onInputChange={handleInputChange} defaultValue={35} validate={(val) => validateAge(val, 'Your age')} />
+                      <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} onInputChange={handleInputChange} defaultValue={65} validate={(val) => validateRetirementAge(val, age1)} />
                       {isMar && (
-                        <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} onInputChange={handleInputChange} defaultValue={33} />
+                        <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} onInputChange={handleInputChange} defaultValue={33} validate={(val) => validateAge(val, 'Spouse age')} />
                       )}
                     </div>
                   ),
@@ -6251,9 +6260,9 @@ export default function App() {
                   content: (
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} onInputChange={handleInputChange} defaultValue={50000} />
-                        <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} onInputChange={handleInputChange} defaultValue={150000} />
-                        <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} onInputChange={handleInputChange} defaultValue={25000} />
+                        <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} onInputChange={handleInputChange} defaultValue={50000} validate={(val) => validateBalance(val, 'Taxable balance')} />
+                        <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} onInputChange={handleInputChange} defaultValue={150000} validate={(val) => validateBalance(val, 'Pre-tax balance')} />
+                        <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} onInputChange={handleInputChange} defaultValue={25000} validate={(val) => validateBalance(val, 'Roth balance')} />
                       </div>
                     </div>
                   ),
@@ -6268,20 +6277,20 @@ export default function App() {
                   <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
                     {marital === 'single' ? 'Your Contributions' : 'Your Contributions'}
                   </Badge>
-                  <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} onInputChange={handleInputChange} defaultValue={12000} />
-                  <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} onInputChange={handleInputChange} defaultValue={23000} />
-                  <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} onInputChange={handleInputChange} defaultValue={7000} />
-                  <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} onInputChange={handleInputChange} defaultValue={0} />
+                  <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} onInputChange={handleInputChange} defaultValue={12000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
+                  <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} onInputChange={handleInputChange} defaultValue={23000} validate={validate401kContribution} tip="2026 IRS limit: $24,000" />
+                  <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} onInputChange={handleInputChange} defaultValue={7000} validate={validateIRAContribution} tip="2026 IRS limit: $7,000" />
+                  <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} onInputChange={handleInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
                 </div>
                 {isMar && (
                   <div className="space-y-4">
                     <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
                       Spouse's Contributions
                     </Badge>
-                    <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} onInputChange={handleInputChange} defaultValue={8000} />
-                    <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} onInputChange={handleInputChange} defaultValue={23000} />
-                    <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} onInputChange={handleInputChange} defaultValue={7000} />
-                    <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} onInputChange={handleInputChange} defaultValue={0} />
+                    <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} onInputChange={handleInputChange} defaultValue={8000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
+                    <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} onInputChange={handleInputChange} defaultValue={23000} validate={validate401kContribution} tip="2026 IRS limit: $24,000" />
+                    <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} onInputChange={handleInputChange} defaultValue={7000} validate={validateIRAContribution} tip="2026 IRS limit: $7,000" />
+                    <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} onInputChange={handleInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
                   </div>
                 )}
                       </div>
