@@ -30,6 +30,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FlippingCard } from "@/components/FlippingCard";
 import { GenerationalResultCard } from "@/components/GenerationalResultCard";
@@ -53,6 +54,8 @@ import { LastCalculatedBadge } from "@/components/calculator/LastCalculatedBadge
 import { RecalculateButton } from "@/components/calculator/RecalculateButton";
 import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
 import { TimelineView } from "@/components/calculator/TimelineView";
+import { PlanSummaryCard } from "@/components/calculator/PlanSummaryCard";
+import { NextStepsCard } from "@/components/calculator/NextStepsCard";
 import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
 import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
 import { CheckUsTab } from "@/components/calculator/CheckUsTab";
@@ -62,6 +65,10 @@ import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexib
 import { RothConversionOptimizer } from "@/components/calculator/RothConversionOptimizer";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { useOnboarding } from "@/hooks/useOnboarding";
+import { wizardDataToAppState } from "@/lib/onboardingMapper";
+import type { OnboardingWizardData } from "@/types/onboarding";
 
 // Import types
 import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress, BondGlidePath } from "@/types/calculator";
@@ -1192,6 +1199,14 @@ ScenarioComparisonChart.displayName = 'ScenarioComparisonChart';
 export default function App() {
   const { setImplied } = useBudget();
 
+  // Onboarding wizard state
+  const {
+    hasCompletedOnboarding,
+    wizardData,
+    updateWizardStep,
+  } = useOnboarding();
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+
   // Personal Information
   const [personalInfo, setPersonalInfo] = useState({
     marital: "single" as FilingStatus,
@@ -1439,6 +1454,16 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
   const [showP90, setShowP90] = useState(false); // Show 90th percentile line
+  const [resultsViewMode, setResultsViewMode] = useState<'quick' | 'detailed'>(() => {
+    // Load from localStorage if available
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('wdr_results_view_mode')
+      if (saved === 'quick' || saved === 'detailed') {
+        return saved
+      }
+    }
+    return 'detailed' // Default to detailed view
+  });
   const [showBackToTop, setShowBackToTop] = useState(false); // Show back-to-top button after scrolling
   const [activeChartTab, setActiveChartTab] = useState("accumulation"); // Track active chart tab
   const [loaderComplete, setLoaderComplete] = useState(false); // Always show loader on mount
@@ -2200,6 +2225,71 @@ export default function App() {
         setHypBirthInterval(28);
         break;
     }
+  }, []);
+
+  // Auto-open wizard for first-time users with no saved config
+  useEffect(() => {
+    // Only auto-open if:
+    // 1. User hasn't completed onboarding
+    // 2. No existing results (first visit)
+    // 3. Loader has completed
+    if (!hasCompletedOnboarding && !res && loaderComplete) {
+      // Small delay to let the page settle
+      const timer = setTimeout(() => {
+        setIsWizardOpen(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [hasCompletedOnboarding, res, loaderComplete]);
+
+  // Save results view mode preference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('wdr_results_view_mode', resultsViewMode)
+    }
+  }, [resultsViewMode]);
+
+  // Handler for wizard completion
+  const handleWizardComplete = useCallback(async (wizardData: OnboardingWizardData) => {
+    console.log('[ONBOARDING] Wizard completed, applying data to app state');
+
+    // Map wizard data to app state
+    const appState = wizardDataToAppState(wizardData);
+
+    // Update all the app state values
+    setPersonalInfo({
+      marital: appState.marital,
+      age1: appState.age1,
+      age2: appState.age2,
+      retAge: appState.retAge,
+    });
+
+    setContributions({
+      cTax1: appState.cTax1,
+      cPre1: appState.cPre1,
+      cPost1: appState.cPost1,
+      cMatch1: appState.cMatch1,
+      cTax2: appState.cTax2,
+      cPre2: appState.cPre2,
+      cPost2: appState.cPost2,
+      cMatch2: appState.cMatch2,
+    });
+
+    setAssumptions((prev) => ({
+      ...prev,
+      wdRate: appState.wdRate,
+    }));
+
+    // Close wizard
+    setIsWizardOpen(false);
+
+    // Switch to All-in-One tab
+    setActiveMainTab('all');
+
+    // Run the calculation after a brief moment
+    setTimeout(() => {
+      calc();
+    }, 300);
   }, []);
 
   const calc = useCallback(async () => {
@@ -3268,11 +3358,20 @@ export default function App() {
       {/* Tab Navigation */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
         <div className="space-y-4">
-          <TabNavigation
-            activeTab={activeMainTab}
-            onTabChange={setActiveMainTab}
-            hasResults={!!res}
-          />
+          <div className="flex items-center justify-between gap-4">
+            <TabNavigation
+              activeTab={activeMainTab}
+              onTabChange={setActiveMainTab}
+              hasResults={!!res}
+            />
+            <Button
+              variant="outline"
+              onClick={() => setIsWizardOpen(true)}
+              className="shrink-0"
+            >
+              Guided Setup
+            </Button>
+          </div>
           {res && (
             <div className="flex justify-end">
               <LastCalculatedBadge
@@ -4693,6 +4792,41 @@ export default function App() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Plan Summary Card */}
+            <div className="mb-6">
+              <PlanSummaryCard result={res} batchSummary={batchSummary} />
+            </div>
+
+            {/* Next Steps Card */}
+            <div className="mb-6">
+              <NextStepsCard result={res} batchSummary={batchSummary} />
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex justify-center mb-6">
+              <ToggleGroup
+                type="single"
+                value={resultsViewMode}
+                onValueChange={(value) => {
+                  if (value === 'quick' || value === 'detailed') {
+                    setResultsViewMode(value)
+                  }
+                }}
+                className="bg-muted p-1 rounded-lg"
+              >
+                <ToggleGroupItem value="quick" className="px-6">
+                  Quick View
+                </ToggleGroupItem>
+                <ToggleGroupItem value="detailed" className="px-6">
+                  Detailed View
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+
+            {/* Detailed View Content */}
+            {resultsViewMode === 'detailed' && (
+            <div className="space-y-6">
             <div className="print:hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <FlippingStatCard
                 title="Future Balance"
@@ -5629,6 +5763,60 @@ export default function App() {
             </Accordion>
               </div>
             </AnimatedSection>
+            </div>
+            )}
+
+            {/* Quick View Content - Simplified */}
+            {resultsViewMode === 'quick' && (
+              <div className="space-y-6">
+                <AnimatedSection animation="fade-in" delay={200}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Wealth Projection</CardTitle>
+                    <CardDescription>Your projected wealth over time (inflation-adjusted)</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <AreaChart data={res.data}>
+                        <defs>
+                          <linearGradient id="wealthGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis
+                          dataKey="year"
+                          label={{ value: 'Year', position: 'insideBottom', offset: -5 }}
+                        />
+                        <YAxis
+                          label={{ value: 'Balance ($)', angle: -90, position: 'insideLeft' }}
+                          tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                        />
+                        <RTooltip
+                          formatter={(value: number) => [`$${value.toLocaleString()}`, 'Balance']}
+                          labelFormatter={(label) => `Year ${label}`}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="real"
+                          stroke="#3b82f6"
+                          strokeWidth={2}
+                          fill="url(#wealthGradient)"
+                          name="Real Balance"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+                </AnimatedSection>
+
+                <p className="text-sm text-muted-foreground text-center">
+                  Switch to <strong>Detailed View</strong> to see comprehensive charts, tax analysis, and advanced projections.
+                </p>
+              </div>
+            )}
+
             </TabPanel>
 
             {/* Portfolio Stress Tests - Consolidates Bear Market, Inflation Shock, and Scenario Comparison */}
@@ -6196,15 +6384,6 @@ export default function App() {
               <AnimatedSection animation="fade-in" delay={600}>
                 <SpendingFlexibilityChart
                   guardrailsResult={guardrailsResult}
-                />
-              </AnimatedSection>
-            )}
-
-            {/* Roth Conversion Optimizer */}
-            {rothResult && (
-              <AnimatedSection animation="fade-in" delay={700}>
-                <RothConversionOptimizer
-                  rothResult={rothResult}
                 />
               </AnimatedSection>
             )}
@@ -7749,6 +7928,13 @@ export default function App() {
           </svg>
         </button>
       )}
+
+      {/* ONBOARDING WIZARD */}
+      <OnboardingWizard
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        onComplete={handleWizardComplete}
+      />
     </>
   );
 }
