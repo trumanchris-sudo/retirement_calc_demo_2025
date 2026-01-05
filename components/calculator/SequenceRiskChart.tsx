@@ -21,7 +21,7 @@ interface FailureBucket {
   age1Range: string;
 }
 
-export function SequenceRiskChart({ batchSummary, retAge, age1 }: SequenceRiskChartProps) {
+export const SequenceRiskChart = React.memo(function SequenceRiskChart({ batchSummary, retAge, age1 }: SequenceRiskChartProps) {
   const analysis = useMemo(() => {
     if (!batchSummary || !batchSummary.allRuns) return null;
 
@@ -187,4 +187,4 @@ export function SequenceRiskChart({ batchSummary, retAge, age1 }: SequenceRiskCh
       </CardContent>
     </Card>
   );
-}
+});

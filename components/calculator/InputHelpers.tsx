@@ -142,6 +142,18 @@ export const Input: React.FC<InputProps> = ({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Allow Ctrl+A / Cmd+A to select all text in this input only
+    if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+      e.stopPropagation();
+      // Let default behavior select all text in the input
+    }
+    // Allow Enter to blur the field and trigger calculation
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  };
+
   return (
     <div className="space-y-2">
       <Label className="flex items-center gap-1.5 text-foreground">
@@ -154,6 +166,7 @@ export const Input: React.FC<InputProps> = ({
         onChange={(e) => setLocal(e.target.value)}
         onFocus={onFocus}
         onBlur={onBlur}
+        onKeyDown={handleKeyDown}
         disabled={disabled}
         className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
       />

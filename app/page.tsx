@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -1236,38 +1237,40 @@ export default function App() {
   const { retRate, infRate, stateRate, incContrib, incRate, wdRate, dividendYield } = assumptions;
   const { includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2 } = socialSecurity;
 
-  // Helper setter functions for grouped state objects
-  const setMarital = (value: FilingStatus) => setPersonalInfo(prev => ({ ...prev, marital: value }));
-  const setAge1 = (value: number) => setPersonalInfo(prev => ({ ...prev, age1: value }));
-  const setAge2 = (value: number) => setPersonalInfo(prev => ({ ...prev, age2: value }));
-  const setRetAge = (value: number) => setPersonalInfo(prev => ({ ...prev, retAge: value }));
+  // Helper setter functions for grouped state objects (with dirty tracking)
+  const markDirty = () => res && setIsDirty(true); // Only mark dirty if we have results
 
-  const setSTax = (value: number) => setCurrentBalances(prev => ({ ...prev, sTax: value }));
-  const setSPre = (value: number) => setCurrentBalances(prev => ({ ...prev, sPre: value }));
-  const setSPost = (value: number) => setCurrentBalances(prev => ({ ...prev, sPost: value }));
+  const setMarital = (value: FilingStatus) => { setPersonalInfo(prev => ({ ...prev, marital: value })); markDirty(); };
+  const setAge1 = (value: number) => { setPersonalInfo(prev => ({ ...prev, age1: value })); markDirty(); };
+  const setAge2 = (value: number) => { setPersonalInfo(prev => ({ ...prev, age2: value })); markDirty(); };
+  const setRetAge = (value: number) => { setPersonalInfo(prev => ({ ...prev, retAge: value })); markDirty(); };
 
-  const setCTax1 = (value: number) => setContributions(prev => ({ ...prev, cTax1: value }));
-  const setCPre1 = (value: number) => setContributions(prev => ({ ...prev, cPre1: value }));
-  const setCPost1 = (value: number) => setContributions(prev => ({ ...prev, cPost1: value }));
-  const setCMatch1 = (value: number) => setContributions(prev => ({ ...prev, cMatch1: value }));
-  const setCTax2 = (value: number) => setContributions(prev => ({ ...prev, cTax2: value }));
-  const setCPre2 = (value: number) => setContributions(prev => ({ ...prev, cPre2: value }));
-  const setCPost2 = (value: number) => setContributions(prev => ({ ...prev, cPost2: value }));
-  const setCMatch2 = (value: number) => setContributions(prev => ({ ...prev, cMatch2: value }));
+  const setSTax = (value: number) => { setCurrentBalances(prev => ({ ...prev, sTax: value })); markDirty(); };
+  const setSPre = (value: number) => { setCurrentBalances(prev => ({ ...prev, sPre: value })); markDirty(); };
+  const setSPost = (value: number) => { setCurrentBalances(prev => ({ ...prev, sPost: value })); markDirty(); };
 
-  const setRetRate = (value: number) => setAssumptions(prev => ({ ...prev, retRate: value }));
-  const setInfRate = (value: number) => setAssumptions(prev => ({ ...prev, infRate: value }));
-  const setStateRate = (value: number) => setAssumptions(prev => ({ ...prev, stateRate: value }));
-  const setIncContrib = (value: boolean) => setAssumptions(prev => ({ ...prev, incContrib: value }));
-  const setIncRate = (value: number) => setAssumptions(prev => ({ ...prev, incRate: value }));
-  const setWdRate = (value: number) => setAssumptions(prev => ({ ...prev, wdRate: value }));
-  const setDividendYield = (value: number) => setAssumptions(prev => ({ ...prev, dividendYield: value }));
+  const setCTax1 = (value: number) => { setContributions(prev => ({ ...prev, cTax1: value })); markDirty(); };
+  const setCPre1 = (value: number) => { setContributions(prev => ({ ...prev, cPre1: value })); markDirty(); };
+  const setCPost1 = (value: number) => { setContributions(prev => ({ ...prev, cPost1: value })); markDirty(); };
+  const setCMatch1 = (value: number) => { setContributions(prev => ({ ...prev, cMatch1: value })); markDirty(); };
+  const setCTax2 = (value: number) => { setContributions(prev => ({ ...prev, cTax2: value })); markDirty(); };
+  const setCPre2 = (value: number) => { setContributions(prev => ({ ...prev, cPre2: value })); markDirty(); };
+  const setCPost2 = (value: number) => { setContributions(prev => ({ ...prev, cPost2: value })); markDirty(); };
+  const setCMatch2 = (value: number) => { setContributions(prev => ({ ...prev, cMatch2: value })); markDirty(); };
 
-  const setIncludeSS = (value: boolean) => setSocialSecurity(prev => ({ ...prev, includeSS: value }));
-  const setSSIncome = (value: number) => setSocialSecurity(prev => ({ ...prev, ssIncome: value }));
-  const setSSClaimAge = (value: number) => setSocialSecurity(prev => ({ ...prev, ssClaimAge: value }));
-  const setSSIncome2 = (value: number) => setSocialSecurity(prev => ({ ...prev, ssIncome2: value }));
-  const setSSClaimAge2 = (value: number) => setSocialSecurity(prev => ({ ...prev, ssClaimAge2: value }));
+  const setRetRate = (value: number) => { setAssumptions(prev => ({ ...prev, retRate: value })); markDirty(); };
+  const setInfRate = (value: number) => { setAssumptions(prev => ({ ...prev, infRate: value })); markDirty(); };
+  const setStateRate = (value: number) => { setAssumptions(prev => ({ ...prev, stateRate: value })); markDirty(); };
+  const setIncContrib = (value: boolean) => { setAssumptions(prev => ({ ...prev, incContrib: value })); markDirty(); };
+  const setIncRate = (value: number) => { setAssumptions(prev => ({ ...prev, incRate: value })); markDirty(); };
+  const setWdRate = (value: number) => { setAssumptions(prev => ({ ...prev, wdRate: value })); markDirty(); };
+  const setDividendYield = (value: number) => { setAssumptions(prev => ({ ...prev, dividendYield: value })); markDirty(); };
+
+  const setIncludeSS = (value: boolean) => { setSocialSecurity(prev => ({ ...prev, includeSS: value })); markDirty(); };
+  const setSSIncome = (value: number) => { setSocialSecurity(prev => ({ ...prev, ssIncome: value })); markDirty(); };
+  const setSSClaimAge = (value: number) => { setSocialSecurity(prev => ({ ...prev, ssClaimAge: value })); markDirty(); };
+  const setSSIncome2 = (value: number) => { setSocialSecurity(prev => ({ ...prev, ssIncome2: value })); markDirty(); };
+  const setSSClaimAge2 = (value: number) => { setSocialSecurity(prev => ({ ...prev, ssClaimAge2: value })); markDirty(); };
 
   // Healthcare costs (post-retirement)
   const [includeMedicare, setIncludeMedicare] = useState(true);
@@ -1330,6 +1333,7 @@ export default function App() {
   const [res, setRes] = useState<CalculationResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [isDirty, setIsDirty] = useState(false); // Track if inputs changed after calculation
   const [legacyResult, setLegacyResult] = useState<LegacyResult | null>(null);
   const [batchSummary, setBatchSummary] = useState<BatchSummary | null>(null);
   const [guardrailsResult, setGuardrailsResult] = useState<GuardrailsResult | null>(null);
@@ -1426,6 +1430,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
   const [showP90, setShowP90] = useState(false); // Show 90th percentile line
+  const [showBackToTop, setShowBackToTop] = useState(false); // Show back-to-top button after scrolling
   const [activeChartTab, setActiveChartTab] = useState("accumulation"); // Track active chart tab
   const [loaderComplete, setLoaderComplete] = useState(false); // Always show loader on mount
   const [loaderHandoff, setLoaderHandoff] = useState(false); // Track when handoff starts
@@ -1499,6 +1504,15 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  // Handle scroll to show/hide back-to-top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const isMar = useMemo(() => marital === "married", [marital]);
   const total = useMemo(() => sTax + sPre + sPost, [sTax, sPre, sPost]);
@@ -2771,6 +2785,7 @@ export default function App() {
 
         console.log('[CALC] About to set result, newRes:', newRes);
         setRes(newRes);
+        setIsDirty(false); // Clear dirty flag after successful calculation
         setLegacyResult(calculateLegacyResult(newRes));
         setBatchSummary(batchSummary); // Store for sequence risk and guardrails analysis
         console.log('[CALC] Result set successfully');
@@ -4641,6 +4656,34 @@ export default function App() {
             </div>
 
             <TabPanel id="results" activeTab={activeMainTab}>
+            {/* Dirty State Banner */}
+            {isDirty && res && (
+              <Card className="mb-6 border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-yellow-900 dark:text-yellow-100">
+                          Inputs Modified
+                        </p>
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200 mt-1">
+                          Your inputs have changed. Recalculate to see updated projections.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={calc}
+                      disabled={isLoadingAi || isRunning}
+                      className="flex-shrink-0"
+                    >
+                      <RefreshCw className={`mr-2 h-4 w-4 ${(isLoadingAi || isRunning) ? 'animate-spin' : ''}`} />
+                      Recalculate
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             <div className="print:hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <FlippingStatCard
                 title="Future Balance"
@@ -7684,6 +7727,19 @@ export default function App() {
         </TabPanel>
       </div>
       </div>
+
+      {/* BACK TO TOP BUTTON */}
+      {showBackToTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-8 right-8 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all"
+          aria-label="Back to top"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m18 15-6-6-6 6"/>
+          </svg>
+        </button>
+      )}
     </>
   );
 }

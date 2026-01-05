@@ -3,6 +3,7 @@ import './globals.css'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Providers } from '@/components/Providers'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export const metadata: Metadata = {
   title: 'WORK DIE RETIRE - Free Retirement Calculator',
@@ -51,9 +52,11 @@ export default function RootLayout({
         `}} />
       </head>
       <body>
-        <Providers>
-          {children}
-        </Providers>
+        <ErrorBoundary>
+          <Providers>
+            {children}
+          </Providers>
+        </ErrorBoundary>
         <Analytics />
         <SpeedInsights />
       </body>

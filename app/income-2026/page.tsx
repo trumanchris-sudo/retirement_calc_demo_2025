@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input as UIInput } from "@/components/ui/input";
-import { Input } from "@/components/calculator/InputHelpers";
+import { Input, Spinner } from "@/components/calculator/InputHelpers";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -28,8 +28,36 @@ interface PayEvent {
   checkNumberForPerson: number; // e.g., P1's 5th check
 }
 
+interface PaycheckResult {
+  paycheckNum: number;
+  date: string;
+  personLabel: string;
+  baseGross: number;
+  bonus: number;
+  totalGross: number;
+  healthIns: number;
+  depFSA: number;
+  dental: number;
+  vision: number;
+  medFSA: number;
+  totalPreTax: number;
+  fitTaxable: number;
+  fitBase: number;
+  extraFIT: number;
+  totalFIT: number;
+  ss: number;
+  totalMed: number;
+  fixedExpenses: number;
+  preInvRemainder: number;
+  contribution401k: number;
+  hysaContribution: number;
+  brokerageContribution: number;
+  ytdWages: number;
+  ytd401k: number;
+}
+
 export default function Income2026Page() {
-  const { implied } = useBudget();
+  const { implied, setImplied } = useBudget();
   // Marital status
   const [maritalStatus, setMaritalStatus] = useState<FilingStatus>("single");
 
@@ -99,7 +127,7 @@ export default function Income2026Page() {
 
   // Results state
   const [results, setResults] = useState<{
-    paychecks: Array<any>;
+    paychecks: PaycheckResult[];
     yearSummary: {
       totalIncome: number;
       totalPreTax: number;
@@ -114,8 +142,26 @@ export default function Income2026Page() {
     };
   } | null>(null);
 
-  // Calculation key to force re-render of table when inputs change
-  const [calculationKey, setCalculationKey] = useState(0);
+  // Error state
+  const [calculationError, setCalculationError] = useState<string | null>(null);
+
+  // Dirty state to track when inputs change
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Show back to top button after scrolling
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  // Loading state for calculation
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  // Handle scroll to show/hide back to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Pre-populate form from main calculator if data is available
   useEffect(() => {
@@ -173,17 +219,6 @@ export default function Income2026Page() {
 
   // --- HELPER FUNCTIONS ---
 
-  const calculateRecommendedLifeInsurance = (income: number, age?: number): number => {
-    if (income === 0) return 0;
-    const baseAge = age || 35;
-    let multiplier = 15;
-    if (baseAge < 30) multiplier = 15;
-    else if (baseAge < 40) multiplier = 14;
-    else if (baseAge < 50) multiplier = 12;
-    else if (baseAge < 60) multiplier = 10;
-    else multiplier = 8;
-    return Math.round(income * multiplier / 100000) * 100000;
-  };
 
   const getPaychecksPerYear = (frequency: PayFrequency): number => {
     switch (frequency) {
@@ -238,10 +273,68 @@ export default function Income2026Page() {
     return dates.filter(d => d.getFullYear() === 2026).sort((a, b) => a.getTime() - b.getTime());
   };
 
+  // Track input changes
+  const handleInputChange = () => {
+    setIsDirty(true);
+  };
+
   // --- MAIN CALCULATION LOGIC ---
   const handleCalculate = () => {
     console.log("Calculating 2026 unified forecast...");
-    setCalculationKey(prev => prev + 1);
+    setIsCalculating(true);
+    setCalculationError(null);
+    setIsDirty(false); // Reset dirty flag on successful calculation
+
+    try {
+      // Input validation
+      if (p1BaseIncome < 0 || p2BaseIncome < 0) {
+        throw new Error("Base income cannot be negative");
+      }
+      if (p1PreTax401k < 0 || p2PreTax401k < 0) {
+        throw new Error("401(k) contributions cannot be negative");
+      }
+      if (p1PreTax401k > 24000) {
+        throw new Error("Your 401(k) contribution exceeds the 2026 limit of $24,000");
+      }
+      if (p2PreTax401k > 24000) {
+        throw new Error("Spouse 401(k) contribution exceeds the 2026 limit of $24,000");
+      }
+      if (p1PreTaxHSA < 0 || p2PreTaxHSA < 0) {
+        throw new Error("HSA contributions cannot be negative");
+      }
+      if (p1PreTaxFSA < 0 || p2PreTaxFSA < 0) {
+        throw new Error("FSA contributions cannot be negative");
+      }
+      if (p1PreTaxHealthInsurance < 0 || p2PreTaxHealthInsurance < 0) {
+        throw new Error("Health insurance premiums cannot be negative");
+      }
+      if (isMarried && p1BaseIncome === 0 && p2BaseIncome === 0) {
+        throw new Error("At least one person must have income");
+      }
+      if (!isMarried && p1BaseIncome === 0) {
+        throw new Error("Please enter your base income");
+      }
+      if (mortgagePayment < 0 || rentPayment < 0) {
+        throw new Error("Housing payments cannot be negative");
+      }
+      if (householdExpenses < 0 || discretionarySpending < 0) {
+        throw new Error("Expenses cannot be negative");
+      }
+      // Validate dates
+      const p1Date = new Date(p1FirstPayDate);
+      const p2Date = new Date(p2FirstPayDate);
+      if (isNaN(p1Date.getTime())) {
+        throw new Error("Invalid first pay date for you");
+      }
+      if (isMarried && p2BaseIncome > 0 && isNaN(p2Date.getTime())) {
+        throw new Error("Invalid first pay date for spouse");
+      }
+      if (p1Date.getFullYear() !== 2026) {
+        throw new Error("First pay date must be in 2026");
+      }
+      if (isMarried && p2BaseIncome > 0 && p2Date.getFullYear() !== 2026) {
+        throw new Error("Spouse first pay date must be in 2026");
+      }
 
     // Constants
     const STANDARD_DEDUCTION = isMarried ? 30000 : 15000;
@@ -331,18 +424,18 @@ export default function Income2026Page() {
             // Check Bonus (First check of bonus month)
             const p1BonusMonthIdx = months.indexOf(p1BonusMonth);
             // Is this the first check for P1 in this month?
-            const isFirstCheckOfMonth = event.checkNumberForPerson === 1 || 
-                                        p1Dates[event.checkNumberForPerson - 2].getMonth() !== monthOfPaycheck;
-            
+            const isFirstCheckOfMonth = event.checkNumberForPerson === 1 ||
+                                        (event.checkNumberForPerson > 1 && p1Dates[event.checkNumberForPerson - 2]?.getMonth() !== monthOfPaycheck);
+
             if (p1BonusMonthIdx === monthOfPaycheck && isFirstCheckOfMonth) {
                 currentBonus = p1Bonus;
             }
         } else {
             currentBaseGross = p2PayPerCheck;
             const p2BonusMonthIdx = months.indexOf(p2BonusMonth);
-            const isFirstCheckOfMonth = event.checkNumberForPerson === 1 || 
-                                        p2Dates[event.checkNumberForPerson - 2].getMonth() !== monthOfPaycheck;
-            
+            const isFirstCheckOfMonth = event.checkNumberForPerson === 1 ||
+                                        (event.checkNumberForPerson > 1 && p2Dates[event.checkNumberForPerson - 2]?.getMonth() !== monthOfPaycheck);
+
             if (p2BonusMonthIdx === monthOfPaycheck && isFirstCheckOfMonth) {
                 currentBonus = p2Bonus;
             }
@@ -353,11 +446,9 @@ export default function Income2026Page() {
         // --- B. PRE-TAX DEDUCTIONS ---
         // Calculate individual check deductions
         // Note: We distribute annual deductions evenly across that person's checks
-        
+
         let healthIns = 0, depFSA = 0, medFSA = 0, dental = 0, vision = 0;
         const numChecksForPerson = person === 'p1' ? p1Dates.length : p2Dates.length;
-        const ytdDepFSA_Person = person === 'p1' ? p1YtdDepFSA : p2YtdDepFSA;
-        const ytdMedFSA_Person = person === 'p1' ? p1YtdMedFSA : p2YtdMedFSA;
 
         if (person === 'p1') {
             healthIns = p1PreTaxHealthInsurance / numChecksForPerson;
@@ -547,57 +638,111 @@ export default function Income2026Page() {
         netTakeHome,
         effectiveTaxRate: totalIncome > 0 ? (totalFIT + totalFICA) / totalIncome : 0
       }
-    } as any);
+    });
+
+    // Write back to budget context for consistency with main calculator
+    setImplied({
+      grossIncome: totalIncome,
+      taxes: totalFIT + totalFICA,
+      housing: (housingType === "own" ? mortgagePayment : rentPayment) * 12,
+      discretionary: discretionarySpending * 12,
+      contributions401k: total401k,
+      contributionsRoth: p1RothContribution + (isMarried ? p2RothContribution : 0),
+      contributionsTaxable: totalBrokerage,
+      maritalStatus: maritalStatus,
+    });
+
+    console.log('[INCOME-2026] Updated budget context with calculated values');
 
     setTimeout(() => {
       const resultsElement = document.getElementById('results-section');
       if (resultsElement) {
         resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
+      setIsCalculating(false);
     }, 100);
+    } catch (error) {
+      console.error('[INCOME-2026] Calculation error:', error);
+      setCalculationError(error instanceof Error ? error.message : 'An unexpected error occurred during calculation. Please check your inputs and try again.');
+      setResults(null);
+      setIsCalculating(false);
+    }
   };
 
   // Helper component for dual input fields
-  const DualInputField = ({ label, idPrefix, value1, onChange1, value2, onChange2, defaultValue = 0 }: any) => {
+  const DualInputField = ({ label, value1, onChange1, value2, onChange2, defaultValue = 0 }: {
+    label: string;
+    value1: number;
+    onChange1: (v: number) => void;
+    value2: number;
+    onChange2: (v: number) => void;
+    defaultValue?: number;
+  }) => {
+    const wrappedOnChange1 = (val: number) => {
+      onChange1(val);
+      handleInputChange();
+    };
+    const wrappedOnChange2 = (val: number) => {
+      onChange2(val);
+      handleInputChange();
+    };
     return (
       <div className={isMarried ? "grid grid-cols-2 gap-4" : ""}>
-        <Input label={`${label} (Your)`} value={value1} setter={onChange1} defaultValue={defaultValue} />
+        <Input label={`${label} (Your)`} value={value1} setter={wrappedOnChange1} defaultValue={defaultValue} onInputChange={handleInputChange} />
         {isMarried && (
-          <Input label={`${label} (Spouse)`} value={value2} setter={onChange2} defaultValue={defaultValue} />
+          <Input label={`${label} (Spouse)`} value={value2} setter={wrappedOnChange2} defaultValue={defaultValue} onInputChange={handleInputChange} />
         )}
       </div>
     );
   };
 
   // Helper component for dual select fields
-  const DualSelectField = ({ label, idPrefix, value1, onChange1, value2, onChange2, options }: any) => (
-    <div className={isMarried ? "grid grid-cols-2 gap-4" : ""}>
-      <div className="space-y-2">
-        <Label htmlFor={`${idPrefix}-your`}>{label} (Your)</Label>
-        <select
-          id={`${idPrefix}-your`}
-          value={value1}
-          onChange={(e) => onChange1(e.target.value)}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-        </select>
-      </div>
-      {isMarried && (
+  const DualSelectField = ({ label, idPrefix, value1, onChange1, value2, onChange2, options }: {
+    label: string;
+    idPrefix: string;
+    value1: string;
+    onChange1: (v: string) => void;
+    value2: string;
+    onChange2: (v: string) => void;
+    options: string[];
+  }) => {
+    const wrappedOnChange1 = (val: string) => {
+      onChange1(val);
+      handleInputChange();
+    };
+    const wrappedOnChange2 = (val: string) => {
+      onChange2(val);
+      handleInputChange();
+    };
+    return (
+      <div className={isMarried ? "grid grid-cols-2 gap-4" : ""}>
         <div className="space-y-2">
-          <Label htmlFor={`${idPrefix}-spouse`}>{label} (Spouse)</Label>
+          <Label htmlFor={`${idPrefix}-your`}>{label} (Your)</Label>
           <select
-            id={`${idPrefix}-spouse`}
-            value={value2}
-            onChange={(e) => onChange2(e.target.value)}
+            id={`${idPrefix}-your`}
+            value={value1}
+            onChange={(e) => wrappedOnChange1(e.target.value)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-             {options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+            {options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
           </select>
         </div>
-      )}
-    </div>
-  );
+        {isMarried && (
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-spouse`}>{label} (Spouse)</Label>
+            <select
+              id={`${idPrefix}-spouse`}
+              value={value2}
+              onChange={(e) => wrappedOnChange2(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+               {options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -619,12 +764,32 @@ export default function Income2026Page() {
           </CardHeader>
         </Card>
 
+        {/* QUICK NAVIGATION */}
         <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={() => document.getElementById('household-setup')?.scrollIntoView({ behavior: 'smooth' })}>
+                Household Setup
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => document.getElementById('income-section')?.scrollIntoView({ behavior: 'smooth' })}>
+                Income Details
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => document.getElementById('housing-section')?.scrollIntoView({ behavior: 'smooth' })}>
+                Housing & Expenses
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })}>
+                Results
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6" id="household-setup">
           <CardHeader><CardTitle>Household Setup</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2 max-w-xs">
               <Label htmlFor="marital-status">Marital Status</Label>
-              <Select value={maritalStatus} onValueChange={(value: FilingStatus) => setMaritalStatus(value)}>
+              <Select value={maritalStatus} onValueChange={(value: FilingStatus) => { setMaritalStatus(value); handleInputChange(); }}>
                 <SelectTrigger id="marital-status"><SelectValue placeholder="Select marital status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="single">Single</SelectItem>
@@ -635,7 +800,7 @@ export default function Income2026Page() {
           </CardContent>
         </Card>
 
-        <Card className="mb-6">
+        <Card className="mb-6" id="income-section">
           <CardHeader>
             <CardTitle>{isMarried ? "YOUR INCOME" : "INCOME DETAILS"}</CardTitle>
             <CardDescription>{isMarried ? "Income details for you and your spouse" : "Your income details"}</CardDescription>
@@ -649,7 +814,7 @@ export default function Income2026Page() {
                   <DualInputField label="Annual Bonus" idPrefix="bonus" value1={p1Bonus} onChange1={setP1Bonus} value2={p2Bonus} onChange2={setP2Bonus} />
                   <DualSelectField label="Bonus Payment Month" idPrefix="bonus-month" value1={p1BonusMonth} onChange1={setP1BonusMonth} value2={p2BonusMonth} onChange2={setP2BonusMonth} options={months.slice(0, 12)} />
                   <DualInputField label="Estimated Monthly Overtime" idPrefix="overtime" value1={p1OvertimeMonthly} onChange1={setP1OvertimeMonthly} value2={p2OvertimeMonthly} onChange2={setP2OvertimeMonthly} />
-                  <DualSelectField label="Pay Frequency" idPrefix="pay-frequency" value1={p1PayFrequency} onChange1={(v: any) => setP1PayFrequency(v)} value2={p2PayFrequency} onChange2={(v: any) => setP2PayFrequency(v)} options={["biweekly", "semimonthly", "monthly", "weekly"]} />
+                  <DualSelectField label="Pay Frequency" idPrefix="pay-frequency" value1={p1PayFrequency} onChange1={(v) => setP1PayFrequency(v as PayFrequency)} value2={p2PayFrequency} onChange2={(v) => setP2PayFrequency(v as PayFrequency)} options={["biweekly", "semimonthly", "monthly", "weekly"]} />
                   
                   <div className={isMarried ? "grid grid-cols-2 gap-4" : ""}>
                     <div className="space-y-2">
@@ -681,33 +846,84 @@ export default function Income2026Page() {
           </CardContent>
         </Card>
 
-        <Card className="mb-6">
+        <Card className="mb-6" id="housing-section">
             <CardHeader><CardTitle>Housing & Expenses</CardTitle></CardHeader>
             <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div className="space-y-2">
                         <Label htmlFor="housing-type">Housing Type</Label>
-                        <Select value={housingType} onValueChange={(value: "rent" | "own") => setHousingType(value)}>
+                        <Select value={housingType} onValueChange={(value: "rent" | "own") => { setHousingType(value); handleInputChange(); }}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent><SelectItem value="rent">Rent</SelectItem><SelectItem value="own">Own</SelectItem></SelectContent>
                         </Select>
                     </div>
                     {housingType === "rent" ? (
-                        <Input label="Monthly Rent" value={rentPayment} setter={setRentPayment} />
+                        <Input label="Monthly Rent" value={rentPayment} setter={(v) => { setRentPayment(v); handleInputChange(); }} onInputChange={handleInputChange} />
                     ) : (
-                        <Input label="Monthly Mortgage" value={mortgagePayment} setter={setMortgagePayment} defaultValue={5859} />
+                        <Input label="Monthly Mortgage" value={mortgagePayment} setter={(v) => { setMortgagePayment(v); handleInputChange(); }} defaultValue={5859} onInputChange={handleInputChange} />
                     )}
-                    <Input label="Household Expenses" value={householdExpenses} setter={setHouseholdExpenses} />
-                    <Input label="Discretionary" value={discretionarySpending} setter={setDiscretionarySpending} />
+                    <Input label="Household Expenses" value={householdExpenses} setter={(v) => { setHouseholdExpenses(v); handleInputChange(); }} onInputChange={handleInputChange} />
+                    <Input label="Discretionary" value={discretionarySpending} setter={(v) => { setDiscretionarySpending(v); handleInputChange(); }} onInputChange={handleInputChange} />
                 </div>
             </CardContent>
         </Card>
 
         <div className="flex justify-center pb-8">
-          <Button size="lg" onClick={handleCalculate} className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" /> Calculate 2026 Projections
+          <Button size="lg" onClick={handleCalculate} disabled={isCalculating} className="flex items-center gap-2">
+            {isCalculating ? (
+              <>
+                <Spinner className="w-5 h-5" /> Calculating...
+              </>
+            ) : (
+              <>
+                <TrendingUp className="w-5 h-5" /> Calculate 2026 Projections
+              </>
+            )}
           </Button>
         </div>
+
+        {/* RECALCULATION BANNER */}
+        {isDirty && results && (
+          <Card className="mb-6 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="text-yellow-600 dark:text-yellow-500">⚠️</div>
+                  <div>
+                    <p className="font-semibold text-yellow-800 dark:text-yellow-200">Inputs Modified</p>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300">Recalculate to see updated projections</p>
+                  </div>
+                </div>
+                <Button onClick={handleCalculate} disabled={isCalculating} variant="default" className="flex items-center gap-2">
+                  {isCalculating ? (
+                    <>
+                      <Spinner className="w-4 h-4" /> Calculating...
+                    </>
+                  ) : (
+                    <>
+                      <TrendingUp className="w-4 h-4" /> Recalculate
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ERROR MESSAGE */}
+        {calculationError && (
+          <Card className="mb-6 border-destructive">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <div className="text-destructive">⚠️</div>
+                <div>
+                  <p className="font-semibold text-destructive">Calculation Error</p>
+                  <p className="text-sm text-muted-foreground mt-1">{calculationError}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* RESULTS */}
         {results && results.paychecks && (
@@ -746,7 +962,7 @@ export default function Income2026Page() {
                           <thead className="sticky top-0 bg-background z-10">
                             <tr className="border-b-2">
                               <th className="text-left py-2 px-2 font-semibold min-w-[150px] bg-background">Item</th>
-                              {chunk.map((p: any) => (
+                              {chunk.map((p: PaycheckResult) => (
                                 <th key={p.paycheckNum} className="text-right py-2 px-2 font-semibold min-w-[100px] border-l bg-background">
                                   #{p.paycheckNum} <br/><span className="text-[10px] font-normal text-muted-foreground">{p.personLabel}</span>
                                 </th>
@@ -754,25 +970,25 @@ export default function Income2026Page() {
                             </tr>
                             <tr className="border-b">
                                 <th className="text-left py-1 px-2 bg-background">Date</th>
-                                {chunk.map((p: any) => <th key={p.paycheckNum} className="text-right py-1 px-2 border-l bg-background">{p.date.toLocaleDateString('en-US', {month:'short', day:'numeric'})}</th>)}
+                                {chunk.map((p: PaycheckResult) => <th key={p.paycheckNum} className="text-right py-1 px-2 border-l bg-background">{new Date(p.date).toLocaleDateString('en-US', {month:'short', day:'numeric'})}</th>)}
                             </tr>
                           </thead>
                           <tbody>
                             <tr className="hover:bg-muted/50">
                                 <td className="py-1 px-2 font-medium">Total Gross</td>
-                                {chunk.map((p: any) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">${(p.totalGross ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
+                                {chunk.map((p: PaycheckResult) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">${(p.totalGross ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
                             </tr>
                             <tr className="hover:bg-muted/50 text-red-600">
                                 <td className="py-1 px-2">Taxes & FICA</td>
-                                {chunk.map((p: any) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">-${((p.totalFIT ?? 0) + (p.ss ?? 0) + (p.totalMed ?? 0)).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
+                                {chunk.map((p: PaycheckResult) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">-${((p.totalFIT ?? 0) + (p.ss ?? 0) + (p.totalMed ?? 0)).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
                             </tr>
                              <tr className="hover:bg-muted/50 text-blue-600">
                                 <td className="py-1 px-2">401k Contrib</td>
-                                {chunk.map((p: any) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">-${(p.contribution401k ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
+                                {chunk.map((p: PaycheckResult) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">-${(p.contribution401k ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
                             </tr>
                             <tr className="bg-muted/30 font-bold">
                                 <td className="py-1 px-2">Net Remainder</td>
-                                {chunk.map((p: any) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">${(p.brokerageContribution ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
+                                {chunk.map((p: PaycheckResult) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">${(p.brokerageContribution ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
                             </tr>
                           </tbody>
                         </table>
@@ -785,6 +1001,19 @@ export default function Income2026Page() {
           </div>
         )}
       </main>
+
+      {/* BACK TO TOP BUTTON */}
+      {showBackToTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-8 right-8 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all"
+          aria-label="Back to top"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m18 15-6-6-6 6"/>
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

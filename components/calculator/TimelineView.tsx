@@ -30,7 +30,7 @@ interface TimelineEvent {
   color: string;
 }
 
-export function TimelineView({ result, currentAge, retirementAge, spouseAge }: TimelineViewProps) {
+export const TimelineView = React.memo(function TimelineView({ result, currentAge, retirementAge, spouseAge }: TimelineViewProps) {
   // Extract key data from result
   const currentYear = new Date().getFullYear();
   const yearsToRetirement = retirementAge - currentAge;
@@ -159,4 +159,4 @@ export function TimelineView({ result, currentAge, retirementAge, spouseAge }: T
       </CardContent>
     </Card>
   );
-}
+});
