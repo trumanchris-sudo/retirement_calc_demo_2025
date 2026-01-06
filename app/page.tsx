@@ -2274,11 +2274,22 @@ export default function App() {
   }, [resultsViewMode]);
 
   // Handler for wizard completion
-  const handleWizardComplete = useCallback(async (wizardData: OnboardingWizardData) => {
-    console.log('[ONBOARDING] Wizard completed, applying data to app state');
+  const handleWizardComplete = useCallback(async (wizardData: OnboardingWizardData | any) => {
+    console.log('[ONBOARDING] Wizard completed, applying data to app state', wizardData);
 
-    // Map wizard data to app state
-    const appState = wizardDataToAppState(wizardData);
+    // Check if this is from AI onboarding (has age/marital directly) or old wizard (has currentStep)
+    const isAIOnboarding = !('currentStep' in wizardData);
+
+    let appState;
+    if (isAIOnboarding) {
+      console.log('[ONBOARDING] Processing AI onboarding data');
+      // AI onboarding already returns calculator inputs format
+      appState = wizardData;
+    } else {
+      console.log('[ONBOARDING] Processing traditional wizard data');
+      // Map wizard data to app state
+      appState = wizardDataToAppState(wizardData);
+    }
 
     // Update all the app state values
     setPersonalInfo({

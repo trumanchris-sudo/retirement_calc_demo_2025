@@ -17,6 +17,8 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
   const handleComplete = useCallback(
     async (extractedData: ExtractedData, assumptions: AssumptionWithReasoning[]) => {
       try {
+        console.log('[OnboardingWizard] Starting completion...', { extractedData, assumptions });
+
         // Map AI data to calculator inputs
         const { generatedAssumptions, ...calculatorInputs } = mapAIDataToCalculator(
           extractedData,
@@ -38,15 +40,19 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
           timestamp: Date.now(),
         });
 
-        console.log('[OnboardingWizard] Saved shared income data for income calculators');
+        console.log('[OnboardingWizard] Saved shared income data');
 
         // Pass to calculator
+        console.log('[OnboardingWizard] Calling parent onComplete...');
         await onComplete(calculatorInputs);
 
+        console.log('[OnboardingWizard] Parent onComplete finished, closing wizard...');
         // Close wizard
         onClose();
+        console.log('[OnboardingWizard] onClose called');
       } catch (error) {
         console.error('[OnboardingWizard] Failed to complete onboarding:', error);
+        alert(`Error completing onboarding: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     },
     [onComplete, onClose]
