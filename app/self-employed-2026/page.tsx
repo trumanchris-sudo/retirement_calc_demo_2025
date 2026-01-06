@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { ArrowLeft, Calculator, TrendingUp, Info, DollarSign, Building2, Heart, Home } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ArrowLeft, Calculator, TrendingUp, Info, DollarSign, Building2, Heart, Home, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { useBudget } from "@/lib/budget-context";
+import { loadSharedIncomeData, clearSharedIncomeData, hasRecentIncomeData } from "@/lib/sharedIncomeData";
 import {
   FilingStatus,
   PayFrequency,
@@ -100,6 +101,10 @@ export default function SelfEmployed2026Page() {
     federalTaxResult: any;
   } | null>(null);
 
+  // AI Onboarding auto-fill state
+  const [isFromAIOnboarding, setIsFromAIOnboarding] = useState(false);
+  const [showAIBanner, setShowAIBanner] = useState(false);
+
   // ============================================================================
   // COMPUTED VALUES
   // ============================================================================
@@ -108,6 +113,54 @@ export default function SelfEmployed2026Page() {
   const max401k = getMax401kContribution(age);
   const maxHSA = getMaxHSAContribution(healthInsuranceCoverage === 'self' ? 'self' : 'family', age);
   const isMarried = filingStatus === 'mfj';
+
+  // ============================================================================
+  // AI ONBOARDING AUTO-FILL
+  // ============================================================================
+
+  // Auto-fill from AI Onboarding data (only for self-employed users)
+  useEffect(() => {
+    if (hasRecentIncomeData()) {
+      const sharedData = loadSharedIncomeData();
+      if (
+        sharedData &&
+        sharedData.source === 'ai-onboarding' &&
+        (sharedData.employmentType1 === 'self-employed' || sharedData.employmentType1 === 'both')
+      ) {
+        console.log('[SELF-EMPLOYED-2026] Loading data from AI onboarding:', sharedData);
+
+        // Set filing status
+        setFilingStatus(sharedData.maritalStatus === 'married' ? 'mfj' : 'single');
+
+        // Set guaranteed payments (estimate from annual income)
+        setGuaranteedPayments(sharedData.annualIncome1);
+
+        // If married and spouse has income, set spouse W-2 income
+        if (sharedData.maritalStatus === 'married' && sharedData.annualIncome2) {
+          setSpouseW2Income(sharedData.annualIncome2);
+        }
+
+        // Show banner and set flag
+        setIsFromAIOnboarding(true);
+        setShowAIBanner(true);
+
+        console.log('[SELF-EMPLOYED-2026] Successfully auto-filled from AI onboarding');
+      }
+    }
+  }, []); // Run once on mount
+
+  // Clear and start fresh
+  const handleClearAIData = () => {
+    clearSharedIncomeData();
+    setIsFromAIOnboarding(false);
+    setShowAIBanner(false);
+    // Reset to defaults
+    setFilingStatus('mfj');
+    setGrossCompensation(750000);
+    setGuaranteedPayments(550000);
+    setSpouseW2Income(145000);
+    console.log('[SELF-EMPLOYED-2026] Cleared AI onboarding data');
+  };
 
   // ============================================================================
   // CALCULATION HANDLER
@@ -220,6 +273,47 @@ export default function SelfEmployed2026Page() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {/* AI Onboarding Auto-fill Banner */}
+        {showAIBanner && isFromAIOnboarding && (
+          <Card className="mb-6 border-blue-500 bg-blue-50 dark:bg-blue-950/20">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5">
+                    <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-blue-900 dark:text-blue-100 text-base mb-1">
+                      Auto-filled from AI Onboarding
+                    </CardTitle>
+                    <CardDescription className="text-blue-700 dark:text-blue-300">
+                      Your self-employment information has been pre-filled based on your onboarding conversation. You can edit any values below.
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearAIData}
+                    className="text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                  >
+                    Clear & Start Fresh
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowAIBanner(false)}
+                    className="text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        )}
+
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

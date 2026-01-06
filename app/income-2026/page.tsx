@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, Calculator, TrendingUp } from "lucide-react";
+import { ArrowLeft, Calculator, TrendingUp, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { useBudget } from "@/lib/budget-context";
+import { loadSharedIncomeData, clearSharedIncomeData, hasRecentIncomeData } from "@/lib/sharedIncomeData";
 
 type FilingStatus = "single" | "married";
 type PayFrequency = "biweekly" | "semimonthly" | "monthly" | "weekly";
@@ -154,6 +155,10 @@ export default function Income2026Page() {
   // Loading state for calculation
   const [isCalculating, setIsCalculating] = useState(false);
 
+  // AI Onboarding auto-fill state
+  const [isFromAIOnboarding, setIsFromAIOnboarding] = useState(false);
+  const [showAIBanner, setShowAIBanner] = useState(false);
+
   // Handle scroll to show/hide back to top button
   useEffect(() => {
     const handleScroll = () => {
@@ -209,6 +214,45 @@ export default function Income2026Page() {
       console.log('[INCOME-2026] Form pre-populated successfully');
     }
   }, [implied]);
+
+  // Auto-fill from AI Onboarding data
+  useEffect(() => {
+    if (hasRecentIncomeData()) {
+      const sharedData = loadSharedIncomeData();
+      if (sharedData && sharedData.source === 'ai-onboarding') {
+        console.log('[INCOME-2026] Loading data from AI onboarding:', sharedData);
+
+        // Set marital status
+        setMaritalStatus(sharedData.maritalStatus);
+
+        // Set Person 1 income
+        setP1BaseIncome(sharedData.annualIncome1);
+
+        // Set Person 2 income if married
+        if (sharedData.maritalStatus === 'married' && sharedData.annualIncome2) {
+          setP2BaseIncome(sharedData.annualIncome2);
+        }
+
+        // Show banner and set flag
+        setIsFromAIOnboarding(true);
+        setShowAIBanner(true);
+
+        console.log('[INCOME-2026] Successfully auto-filled from AI onboarding');
+      }
+    }
+  }, []); // Run once on mount
+
+  // Clear and start fresh
+  const handleClearAIData = () => {
+    clearSharedIncomeData();
+    setIsFromAIOnboarding(false);
+    setShowAIBanner(false);
+    // Reset to defaults
+    setMaritalStatus('single');
+    setP1BaseIncome(0);
+    setP2BaseIncome(0);
+    console.log('[INCOME-2026] Cleared AI onboarding data');
+  };
 
   const months = [
     "January", "February", "March", "April", "May", "June",
@@ -757,6 +801,47 @@ export default function Income2026Page() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {/* AI Onboarding Auto-fill Banner */}
+        {showAIBanner && isFromAIOnboarding && (
+          <Card className="mb-6 border-blue-500 bg-blue-50 dark:bg-blue-950/20">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5">
+                    <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-blue-900 dark:text-blue-100 text-base mb-1">
+                      Auto-filled from AI Onboarding
+                    </CardTitle>
+                    <CardDescription className="text-blue-700 dark:text-blue-300">
+                      Your income information has been pre-filled based on your onboarding conversation. You can edit any values below.
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearAIData}
+                    className="text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                  >
+                    Clear & Start Fresh
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowAIBanner(false)}
+                    className="text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        )}
+
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Calculator className="w-5 h-5" />Comprehensive Income Modeling</CardTitle>

@@ -3,6 +3,7 @@
 import { useCallback } from 'react';
 import { AIConsole } from './AIConsole';
 import { mapAIDataToCalculator } from '@/lib/aiOnboardingMapper';
+import { saveSharedIncomeData } from '@/lib/sharedIncomeData';
 import type { ExtractedData, AssumptionWithReasoning } from '@/types/ai-onboarding';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
@@ -24,6 +25,20 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
 
         console.log('[OnboardingWizard] Mapped calculator inputs:', calculatorInputs);
         console.log('[OnboardingWizard] Generated assumptions:', generatedAssumptions);
+
+        // Save income data for income calculators
+        saveSharedIncomeData({
+          maritalStatus: extractedData.maritalStatus ?? 'single',
+          state: extractedData.state,
+          employmentType1: extractedData.employmentType1 ?? 'w2',
+          annualIncome1: extractedData.annualIncome1 ?? 100000,
+          employmentType2: extractedData.employmentType2,
+          annualIncome2: extractedData.annualIncome2,
+          source: 'ai-onboarding',
+          timestamp: Date.now(),
+        });
+
+        console.log('[OnboardingWizard] Saved shared income data for income calculators');
 
         // Pass to calculator
         await onComplete(calculatorInputs);
