@@ -104,19 +104,20 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] md:max-h-[85vh] overflow-y-auto p-4 md:p-6">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl font-bold">
+            <DialogTitle className="text-xl md:text-2xl font-bold">
               {STEP_TITLES[currentStep]}
             </DialogTitle>
             <Button
               variant="ghost"
               size="icon"
+              className="h-10 w-10 md:h-9 md:w-9"
               onClick={handleSkip}
               aria-label="Close wizard"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5 md:h-4 md:w-4" />
             </Button>
           </div>
         </DialogHeader>
@@ -127,7 +128,7 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
             {Object.entries(STEP_LABELS).map(([step, label]) => (
               <div
                 key={step}
-                className={`flex-1 text-center text-sm font-medium ${
+                className={`flex-1 text-center text-xs md:text-sm font-medium ${
                   parseInt(step) === currentStep
                     ? 'text-primary'
                     : parseInt(step) < currentStep
@@ -135,7 +136,8 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
                     : 'text-muted-foreground/50'
                 }`}
               >
-                {label}
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden">{parseInt(step)}</span>
               </div>
             ))}
           </div>
@@ -161,6 +163,7 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
             <GoalsStep
               data={wizardData.goals}
               savingsData={wizardData.savings}
+              basicsData={wizardData.basics}
               onChange={updateGoals}
             />
           )}

@@ -24,6 +24,20 @@ export const AnimatedSection: React.FC<AnimatedSectionProps> = ({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Check if element is already in viewport on mount
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      const isInViewport = rect.top < window.innerHeight && rect.bottom > 0;
+
+      if (isInViewport) {
+        // Element is already visible, show it immediately (with delay if specified)
+        setTimeout(() => {
+          setIsVisible(true);
+        }, delay);
+        return; // No need to set up observer
+      }
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {

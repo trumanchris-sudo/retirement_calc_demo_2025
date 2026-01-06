@@ -1,25 +1,38 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
+import { Sparkles, Info } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Slider } from '@/components/ui/slider'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import type {
   OnboardingGoalsData,
   OnboardingSavingsData,
   LifestylePreset,
 } from '@/types/onboarding'
 import { calculateRetirementSpending } from '@/types/onboarding'
+import { useAIDefaults } from '@/hooks/useAIDefaults'
 
 interface GoalsStepProps {
   data: OnboardingGoalsData
   savingsData: OnboardingSavingsData
+  basicsData: { age: number; spouseAge?: number; maritalStatus: 'single' | 'married'; state?: string }
   onChange: (data: Partial<OnboardingGoalsData>) => void
 }
 
-export function GoalsStep({ data, savingsData, onChange }: GoalsStepProps) {
+export function GoalsStep({ data, savingsData, basicsData, onChange }: GoalsStepProps) {
   const totalIncome = savingsData.income + (savingsData.spouseIncome || 0)
+  const { defaults } = useAIDefaults()
+
+  // Apply AI-suggested retirement age if user hasn't changed from default
+  useEffect(() => {
+    if (defaults?.retirementAge && data.retirementAge === 65) {
+      // Only auto-update if still at default value
+      onChange({ retirementAge: defaults.retirementAge })
+    }
+  }, [defaults, data.retirementAge, onChange])
 
   const estimatedSpending = useMemo(() => {
     return calculateRetirementSpending(
@@ -85,6 +98,14 @@ export function GoalsStep({ data, savingsData, onChange }: GoalsStepProps) {
           <span>65</span>
           <span>80</span>
         </div>
+        {defaults && (
+          <Alert className="bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800">
+            <Info className="h-4 w-4 text-purple-600" />
+            <AlertDescription className="text-sm text-purple-900 dark:text-purple-100">
+              Based on your age ({basicsData.age}) and income, retiring at age {defaults.retirementAge} provides a balanced timeline. Adjust if needed!
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       {/* Retirement Lifestyle */}
