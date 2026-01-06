@@ -1216,11 +1216,9 @@ export default function App() {
   });
 
   // Family & Children (for generational wealth calculations)
-  const [familyInfo, setFamilyInfo] = useState({
-    numChildren: 0,
-    childrenAges: [] as number[],
-    additionalChildrenExpected: 0,
-  });
+  // Note: additionalChildrenExpected is declared later with generational wealth vars
+  const [numChildren, setNumChildren] = useState(0);
+  const [childrenAges, setChildrenAges] = useState<number[]>([]);
 
   // Employment & Income
   const [employmentInfo, setEmploymentInfo] = useState({
@@ -1272,7 +1270,6 @@ export default function App() {
 
   // Destructure for backward compatibility with existing code
   const { marital, age1, age2, retAge } = personalInfo;
-  const { numChildren, childrenAges, additionalChildrenExpected } = familyInfo;
   const { employmentType1, employmentType2, annualIncome1, annualIncome2 } = employmentInfo;
   const { emergencyFund, sTax, sPre, sPost } = currentBalances;
   const { cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2 } = contributions;
@@ -1287,9 +1284,8 @@ export default function App() {
   const setAge2 = (value: number) => { setPersonalInfo(prev => ({ ...prev, age2: value })); markDirty(); };
   const setRetAge = (value: number) => { setPersonalInfo(prev => ({ ...prev, retAge: value })); markDirty(); };
 
-  const setNumChildren = (value: number) => { setFamilyInfo(prev => ({ ...prev, numChildren: value })); markDirty(); };
-  const setChildrenAges = (value: number[]) => { setFamilyInfo(prev => ({ ...prev, childrenAges: value })); markDirty(); };
-  const setAdditionalChildrenExpected = (value: number) => { setFamilyInfo(prev => ({ ...prev, additionalChildrenExpected: value })); markDirty(); };
+  // Family setters (numChildren and childrenAges are now standalone)
+  // Note: setAdditionalChildrenExpected is declared later with generational wealth vars
 
   const setEmploymentType1 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other') => { setEmploymentInfo(prev => ({ ...prev, employmentType1: value })); markDirty(); };
   const setEmploymentType2 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other' | undefined) => { setEmploymentInfo(prev => ({ ...prev, employmentType2: value })); markDirty(); };
