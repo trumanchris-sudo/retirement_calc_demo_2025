@@ -33,9 +33,10 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const [assumptions, setAssumptions] = useState<AssumptionWithReasoning[]>([]);
   const [phase, setPhase] = useState<ConversationPhase>('greeting');
   const [error, setError] = useState<string | null>(null);
+  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -205,7 +206,7 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     onSkip();
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -216,14 +217,14 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const showAssumptionsReview = phase === 'assumptions-review' || phase === 'refinement';
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Main Console */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/50 backdrop-blur">
+        <div className="flex items-center justify-between px-3 py-3 sm:px-6 sm:py-4 border-b border-slate-800 bg-slate-950/50 backdrop-blur">
           <div>
-            <h2 className="text-xl font-semibold text-slate-100">Retirement Planning Console</h2>
-            <p className="text-sm text-slate-400 mt-1">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-100">Retirement Planning Console</h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
               {phase === 'greeting' && 'Initializing...'}
               {phase === 'data-collection' && 'Gathering information'}
               {phase === 'assumptions-review' && 'Reviewing assumptions'}
@@ -235,14 +236,15 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
             variant="ghost"
             size="sm"
             onClick={handleSkip}
-            className="text-slate-400 hover:text-slate-100 hover:bg-slate-800"
+            className="text-slate-400 hover:text-slate-100 hover:bg-slate-800 text-xs sm:text-sm"
           >
-            Skip to Manual Entry
+            <span className="hidden sm:inline">Skip to Manual Entry</span>
+            <span className="sm:hidden">Skip</span>
           </Button>
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 space-y-3 sm:space-y-4">
           {messages.map((message, index) => (
             <MessageBubble key={`${message.timestamp}-${index}`} message={message} />
           ))}
@@ -280,13 +282,13 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-slate-800 bg-slate-950/50 backdrop-blur p-4">
+        <div className="border-t border-slate-800 bg-slate-950/50 backdrop-blur p-3 sm:p-4">
           <ConsoleInput
             ref={inputRef}
             value={input}
             onChange={setInput}
             onSend={handleSend}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             disabled={isStreaming}
             placeholder={
               isStreaming
@@ -305,8 +307,10 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
         </div>
       </div>
 
-      {/* Side Panel - Data Summary */}
-      <DataSummaryPanel extractedData={extractedData} assumptions={assumptions} />
+      {/* Side Panel - Data Summary - Hidden on mobile, visible on desktop */}
+      <div className="hidden md:block">
+        <DataSummaryPanel extractedData={extractedData} assumptions={assumptions} />
+      </div>
     </div>
   );
 }
