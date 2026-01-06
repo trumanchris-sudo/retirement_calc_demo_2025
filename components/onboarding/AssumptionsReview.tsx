@@ -37,60 +37,69 @@ export function AssumptionsReview({ assumptions, onRefine }: AssumptionsReviewPr
   };
 
   return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-gradient-to-br from-blue-950/50 to-purple-950/50 border border-blue-800/50 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-blue-100 mb-2">📋 Review Assumptions</h3>
-        <p className="text-sm text-blue-200/80">
+    <div
+      className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500"
+      role="region"
+      aria-label="Assumptions review"
+    >
+      <div className="bg-gradient-to-br from-blue-950/50 to-purple-950/50 border-2 border-blue-700 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-blue-100 mb-2">
+          <span aria-hidden="true">📋</span> Review Assumptions
+        </h3>
+        <p className="text-sm text-blue-200">
           I've made the following assumptions based on our conversation. Please review them and let me know if
           anything needs adjustment.
         </p>
       </div>
 
-      <div className="grid gap-3">
+      <div className="grid gap-3" role="list" aria-label="List of assumptions">
         {assumptions.map((assumption, index) => (
           <div
             key={`${assumption.field}-${index}`}
+            role="listitem"
             className={cn(
-              'bg-slate-800/60 backdrop-blur border rounded-lg p-4 transition-all hover:bg-slate-800/80',
-              assumption.userProvided ? 'border-green-800/50' : 'border-slate-700'
+              'bg-slate-800 border-2 rounded-lg p-4 transition-all hover:bg-slate-750',
+              assumption.userProvided ? 'border-green-700' : 'border-slate-600'
             )}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-medium text-slate-100">{assumption.displayName}</h4>
+                  <h4 className="font-medium text-slate-50">{assumption.displayName}</h4>
                   {assumption.userProvided && (
-                    <Badge variant="outline" className="bg-green-950/50 text-green-300 border-green-800">
-                      <Check className="w-3 h-3 mr-1" />
+                    <Badge variant="outline" className="bg-green-950 text-green-200 border-green-700">
+                      <Check className="w-3 h-3 mr-1" aria-hidden="true" />
                       Confirmed
                     </Badge>
                   )}
                 </div>
 
-                <p className="text-lg font-semibold text-blue-300 mb-2">
+                <p className="text-lg font-semibold text-blue-200 mb-2">
                   {formatValue(assumption.value)}
                 </p>
 
-                <p className="text-sm text-slate-400 italic">"{assumption.reasoning}"</p>
+                <p className="text-sm text-slate-300 italic">"{assumption.reasoning}"</p>
               </div>
 
               <Badge
                 variant="outline"
                 className={cn('flex items-center gap-1', getConfidenceColor(assumption.confidence))}
+                aria-label={`Confidence level: ${assumption.confidence}`}
               >
                 {getConfidenceIcon(assumption.confidence)}
-                {assumption.confidence}
+                <span className="sr-only">{assumption.confidence} confidence</span>
+                <span aria-hidden="true">{assumption.confidence}</span>
               </Badge>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="bg-slate-800/40 border border-slate-700 rounded-lg p-4">
-        <p className="text-sm text-slate-300 mb-3">
+      <div className="bg-slate-800 border-2 border-slate-600 rounded-lg p-4">
+        <p className="text-sm text-slate-200 mb-3">
           To refine any assumption, simply type your correction below. For example:
         </p>
-        <ul className="text-sm text-slate-400 space-y-1 mb-3 list-disc list-inside">
+        <ul className="text-sm text-slate-300 space-y-1 mb-3 list-disc list-inside">
           <li>"Actually, my emergency fund is $50,000"</li>
           <li>"I want to retire at 55, not 60"</li>
           <li>"My spouse's income is $120,000"</li>
@@ -99,7 +108,8 @@ export function AssumptionsReview({ assumptions, onRefine }: AssumptionsReviewPr
           size="sm"
           variant="outline"
           onClick={() => onRefine("I'd like to refine some assumptions")}
-          className="text-blue-300 border-blue-800 hover:bg-blue-950"
+          className="text-blue-200 border-blue-700 hover:bg-blue-950 min-h-[44px] px-4"
+          aria-label="Start making changes to assumptions"
         >
           Make Changes
         </Button>

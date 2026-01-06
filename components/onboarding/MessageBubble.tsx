@@ -17,10 +17,15 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         'flex gap-2 sm:gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300',
         isUser ? 'justify-end' : 'justify-start'
       )}
+      role="article"
+      aria-label={isUser ? 'Your message' : 'AI assistant message'}
     >
       {!isUser && (
-        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-          <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+        <div
+          className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg"
+          aria-hidden="true"
+        >
+          <Bot className="w-5 h-5 sm:w-5 sm:h-5 text-white" />
         </div>
       )}
 
@@ -29,7 +34,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           'max-w-[85%] sm:max-w-[80%] rounded-lg px-3 py-2 sm:px-4 sm:py-3 shadow-lg',
           isUser
             ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white'
-            : 'bg-slate-800/80 text-slate-100 backdrop-blur border border-slate-700'
+            : 'bg-slate-800 text-slate-50 border-2 border-slate-600'
         )}
       >
         <div className="prose prose-invert prose-sm max-w-none text-sm sm:text-base">
@@ -42,8 +47,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       </div>
 
       {isUser && (
-        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
-          <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+        <div
+          className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg"
+          aria-hidden="true"
+        >
+          <User className="w-5 h-5 sm:w-5 sm:h-5 text-white" />
         </div>
       )}
     </div>

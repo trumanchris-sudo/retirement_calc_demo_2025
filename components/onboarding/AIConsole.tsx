@@ -229,11 +229,15 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const showAssumptionsReview = phase === 'assumptions-review' || phase === 'refinement';
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div
+      className="flex flex-col md:flex-row min-h-screen md:h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"
+      role="main"
+      aria-label="AI-powered retirement planning onboarding"
+    >
       {/* Main Console */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-screen md:min-h-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-3 sm:px-6 sm:py-4 border-b border-slate-800 bg-slate-950/50 backdrop-blur">
+        <div className="flex items-center justify-between px-3 py-3 sm:px-6 sm:py-4 border-b border-slate-800 bg-slate-950/50 backdrop-blur sticky top-0 z-20">
           <div>
             <h2 className="text-lg sm:text-xl font-semibold text-slate-100">Retirement Planning Console</h2>
             <p className="text-xs sm:text-sm text-slate-400 mt-1">
@@ -248,7 +252,8 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
             variant="ghost"
             size="sm"
             onClick={handleSkip}
-            className="text-slate-400 hover:text-slate-100 hover:bg-slate-800 text-xs sm:text-sm"
+            className="text-slate-300 hover:text-slate-100 hover:bg-slate-800 text-xs sm:text-sm min-h-[44px] px-4"
+            aria-label="Skip AI onboarding and proceed to manual data entry"
           >
             <span className="hidden sm:inline">Skip to Manual Entry</span>
             <span className="sm:hidden">Skip</span>
@@ -256,16 +261,29 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 space-y-3 sm:space-y-4">
+        <div
+          className="flex-1 px-3 py-3 sm:px-6 sm:py-4 space-y-3 sm:space-y-4 pb-32 md:pb-4 md:overflow-y-auto"
+          role="log"
+          aria-live="polite"
+          aria-label="Conversation messages"
+        >
           {error && (
-            <div className="sticky top-0 z-10 bg-red-950 border-2 border-red-600 rounded-lg p-4 sm:p-6 shadow-xl">
+            <div
+              role="alert"
+              aria-live="assertive"
+              aria-atomic="true"
+              className="sticky top-0 z-10 bg-red-950 border-2 border-red-600 rounded-lg p-4 sm:p-6 shadow-xl"
+            >
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-600 flex items-center justify-center">
+                <div
+                  className="flex-shrink-0 w-10 h-10 rounded-full bg-red-600 flex items-center justify-center"
+                  aria-hidden="true"
+                >
                   <span className="text-white text-xl font-bold">!</span>
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-lg text-red-100">Connection Error</p>
-                  <p className="text-sm sm:text-base mt-2 text-red-200">{error}</p>
+                  <p className="text-sm sm:text-base mt-2 text-red-100">{error}</p>
                   <div className="flex gap-2 mt-4">
                     <Button
                       size="sm"
@@ -273,7 +291,8 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
                         setError(null);
                         startGreeting();
                       }}
-                      className="bg-red-600 hover:bg-red-700 text-white"
+                      className="bg-red-600 hover:bg-red-700 text-white min-h-[44px] px-4"
+                      aria-label="Retry connecting to AI assistant"
                     >
                       Retry
                     </Button>
@@ -281,7 +300,8 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
                       size="sm"
                       variant="outline"
                       onClick={() => setError(null)}
-                      className="text-red-200 border-red-600 hover:bg-red-900"
+                      className="text-red-200 border-red-600 hover:bg-red-900 min-h-[44px] px-4"
+                      aria-label="Dismiss error message"
                     >
                       Dismiss
                     </Button>
@@ -312,8 +332,8 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
-        <div className="border-t border-slate-800 bg-slate-950/50 backdrop-blur p-3 sm:p-4">
+        {/* Input Area - Sticky on mobile for accessibility */}
+        <div className="border-t border-slate-800 bg-slate-950 backdrop-blur p-3 sm:p-4 sticky bottom-0 md:relative">
           <ConsoleInput
             ref={inputRef}
             value={input}
@@ -330,9 +350,9 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
             }
           />
           {isStreaming && (
-            <div className="flex items-center gap-2 mt-2 text-sm text-slate-400">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Processing...</span>
+            <div className="flex items-center gap-2 mt-2 text-sm text-slate-300" role="status" aria-live="polite">
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+              <span>Processing your response...</span>
             </div>
           )}
         </div>
