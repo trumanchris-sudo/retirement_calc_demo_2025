@@ -163,6 +163,7 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
             <GoalsStep
               data={wizardData.goals}
               savingsData={wizardData.savings}
+              basicsData={wizardData.basics}
               onChange={updateGoals}
             />
           )}

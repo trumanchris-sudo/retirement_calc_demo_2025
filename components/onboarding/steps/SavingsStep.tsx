@@ -1,15 +1,18 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
+import { Sparkles, Loader2 } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import type {
   OnboardingSavingsData,
   OnboardingBasicsData,
   SavingsMode,
 } from '@/types/onboarding'
 import { getTypicalSavingsRate, IRS_LIMITS_2026 } from '@/types/onboarding'
+import { useAIDefaults } from '@/hooks/useAIDefaults'
 
 interface SavingsStepProps {
   data: OnboardingSavingsData
@@ -19,14 +22,40 @@ interface SavingsStepProps {
 
 export function SavingsStep({ data, basicsData, onChange }: SavingsStepProps) {
   const isMarried = basicsData.maritalStatus === 'married'
+  const { defaults, loading, fetchDefaults } = useAIDefaults()
+
+  // Fetch AI defaults when component mounts with income data
+  useEffect(() => {
+    const shouldFetchDefaults =
+      basicsData.age > 0 &&
+      data.income > 0 &&
+      data.savingsMode === 'typical' && // Only for typical mode
+      !defaults && // Haven't fetched yet
+      !loading // Not currently loading
+
+    if (shouldFetchDefaults) {
+      fetchDefaults({
+        age: basicsData.age,
+        spouseAge: basicsData.spouseAge,
+        maritalStatus: basicsData.maritalStatus,
+        income: data.income,
+        spouseIncome: data.spouseIncome,
+        state: basicsData.state || undefined,
+      })
+    }
+  }, [basicsData, data.income, data.spouseIncome, data.savingsMode, defaults, loading, fetchDefaults])
 
   // Calculate typical savings rate and amounts
+  // Use AI-suggested rate if available, otherwise use heuristic
   const typicalSavingsRate = useMemo(() => {
+    if (defaults?.savingsRate) {
+      return defaults.savingsRate
+    }
     if (data.income > 0) {
       return getTypicalSavingsRate(data.income)
     }
     return 0.12 // Default 12%
-  }, [data.income])
+  }, [data.income, defaults])
 
   const typicalSpouseSavingsRate = useMemo(() => {
     if (data.spouseIncome && data.spouseIncome > 0) {
@@ -139,6 +168,38 @@ export function SavingsStep({ data, basicsData, onChange }: SavingsStepProps) {
             />
           </div>
         </div>
+      )}
+
+      {/* AI-Generated Suggestions */}
+      {loading && data.savingsMode === 'typical' && (
+        <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+          <AlertDescription className="text-blue-900 dark:text-blue-100">
+            Analyzing your profile to suggest optimal savings rates...
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {defaults && data.savingsMode === 'typical' && (
+        <Alert className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-purple-200 dark:border-purple-800">
+          <Sparkles className="h-4 w-4 text-purple-600" />
+          <AlertDescription className="space-y-2">
+            <p className="font-medium text-purple-900 dark:text-purple-100">
+              AI-Suggested Savings Plan
+            </p>
+            <ul className="space-y-1 text-sm text-purple-800 dark:text-purple-200">
+              {defaults.reasoning.map((reason, idx) => (
+                <li key={idx} className="flex items-start gap-2">
+                  <span className="text-purple-500 mt-0.5">•</span>
+                  <span>{reason}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-purple-700 dark:text-purple-300 pt-2">
+              These are personalized suggestions based on your age and income. You can adjust or choose a different savings approach below.
+            </p>
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Savings Mode - Person 1 */}
