@@ -136,7 +136,7 @@ if (retirementAge - currentAge < 1) {
 - ✅ $1,000,001: Rejected with warning
 - ✅ Negative: Rejected
 
-**Note:** Does NOT enforce IRS contribution limits ($23,500 for 401k, $7,000 for IRA in 2025)
+**Note:** Does NOT enforce IRS contribution limits ($24,500 for 401k, $7,500 for IRA in 2026)
 - This is intentional - calculator allows hypothetical scenarios
 - User can model "what if I could contribute more?"
 

@@ -25,7 +25,7 @@ A comprehensive retirement planning calculator with **AI-powered insights** powe
 
 The **Tax-Aware Retirement Planner** is a sophisticated financial planning tool that helps users project their retirement wealth with comprehensive tax calculations. It features:
 
-- **Illustrative 2025 tax brackets** (ordinary income, long-term capital gains, NIIT)
+- **2026 tax laws** including official IRS contribution limits and OBBBA permanent estate tax exemption
 - **Multiple account types** (taxable brokerage, pre-tax 401k/IRA, Roth)
 - **AI-powered insights** using Claude to analyze your retirement plan
 - **Random walk simulations** using 50 years of S&P 500 historical data
@@ -158,11 +158,13 @@ npm start
 
 ### Tax Calculations
 
-The planner uses illustrative 2025 federal tax brackets:
+The planner uses 2026 federal tax laws and IRS limits:
 
+- **2026 Contribution Limits**: 401(k) $24,500 ($32,500 with catch-up), IRA $7,500 ($8,600 with catch-up)
 - **Ordinary Income**: Progressive tax brackets (10% to 37%) with standard deductions
 - **Long-Term Capital Gains**: 0%, 15%, or 20% depending on income
 - **NIIT**: 3.8% tax on investment income for high earners ($200k+ single, $250k+ married)
+- **Estate Tax**: $15M single / $30M married exemption (OBBBA permanent, no sunset)
 - **State Tax**: Configurable percentage
 
 ### Return Models
