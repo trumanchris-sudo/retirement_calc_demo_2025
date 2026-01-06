@@ -412,7 +412,8 @@ CURRENT PHASE: Greeting & Introduction
 - Introduce yourself warmly
 - Explain the process briefly (conversational setup, review assumptions, refine)
 - Start with basic questions: age, marital status
-- Be encouraging and set a positive tone`,
+- Be encouraging and set a positive tone
+- IMPORTANT: After your greeting message, use transition_phase to move to 'data-collection' phase`,
 
     'data-collection': `
 CURRENT PHASE: Data Collection

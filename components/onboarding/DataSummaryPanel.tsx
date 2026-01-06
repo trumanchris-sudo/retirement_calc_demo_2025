@@ -27,8 +27,8 @@ export function DataSummaryPanel({ extractedData, assumptions }: DataSummaryPane
   ).length;
 
   return (
-    <div className="w-96 border-l border-slate-800 bg-slate-950/80 backdrop-blur overflow-y-auto">
-      <div className="p-6 border-b border-slate-800">
+    <div className="h-full w-full bg-slate-950/80 backdrop-blur overflow-y-auto">
+      <div className="p-4 sm:p-6 border-b border-slate-800">
         <h3 className="text-lg font-semibold text-slate-100 mb-2">Data Summary</h3>
         <div className="flex items-center gap-4 text-sm">
           <div>
@@ -45,7 +45,7 @@ export function DataSummaryPanel({ extractedData, assumptions }: DataSummaryPane
       </div>
 
       {/* Extracted Data */}
-      <div className="p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4">
         <div>
           <h4 className="text-sm font-semibold text-slate-300 mb-3 uppercase tracking-wider">
             Collected Information

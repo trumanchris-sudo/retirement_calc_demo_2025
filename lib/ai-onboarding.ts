@@ -29,8 +29,19 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
     onError,
   } = params;
 
+  let timeoutId: NodeJS.Timeout | null = null;
+
   try {
     console.log('[streamAIOnboarding] Starting request:', { phase, messageCount: messages.length });
+
+    // Create AbortController for timeout
+    const controller = new AbortController();
+
+    // Set 60 second timeout for the entire request
+    timeoutId = setTimeout(() => {
+      console.error('[streamAIOnboarding] Request timeout after 60 seconds');
+      controller.abort();
+    }, 60000);
 
     const response = await fetch('/api/ai-onboarding', {
       method: 'POST',
@@ -43,6 +54,13 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
         assumptions,
         phase,
       }),
+      signal: controller.signal,
+    }).catch((fetchError) => {
+      // Handle fetch errors (network issues, aborts, etc.)
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Request timed out. Please check your connection and try again.');
+      }
+      throw new Error(`Network error: ${fetchError.message || 'Unable to connect to server'}`);
     });
 
     console.log('[streamAIOnboarding] Response status:', response.status);
@@ -166,11 +184,17 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
       onComplete(finalData, finalAssumptions);
     }
   } catch (error) {
-    console.error('Stream error:', error);
+    console.error('[streamAIOnboarding] Stream error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown streaming error';
     if (onError) {
-      onError(error instanceof Error ? error.message : 'Unknown streaming error');
+      onError(errorMessage);
     }
     throw error;
+  } finally {
+    // Clear timeout
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 

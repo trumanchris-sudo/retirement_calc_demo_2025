@@ -152,6 +152,8 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     setIsStreaming(true);
     setError(null);
 
+    console.log('[AIConsole] Sending message:', { phase, messageCount: newMessages.length });
+
     // Create abort controller for this request
     abortControllerRef.current = new AbortController();
 
@@ -193,13 +195,21 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
           }
         },
         onError: (err) => {
+          console.error('[AIConsole] Send message error:', err);
+          // Don't remove user's message on error so they can retry
           setError(err);
           setIsStreaming(false);
           setCurrentStreamingMessage('');
         },
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send message');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+      console.error('[AIConsole] Send message exception:', errorMessage);
+      // Restore input so user can edit and retry
+      setInput(userMessage.content);
+      // Remove the user message that failed
+      setMessages(messages);
+      setError(errorMessage);
       setIsStreaming(false);
       setCurrentStreamingMessage('');
     }
@@ -230,14 +240,14 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
 
   return (
     <div
-      className="flex flex-col md:flex-row min-h-screen md:h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"
+      className="fixed inset-0 md:flex md:flex-row bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"
       role="main"
       aria-label="AI-powered retirement planning onboarding"
     >
       {/* Main Console */}
-      <div className="flex-1 flex flex-col min-h-screen md:min-h-0">
+      <div className="h-full w-full md:flex-1 flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-3 sm:px-6 sm:py-4 border-b border-slate-800 bg-slate-950/50 backdrop-blur sticky top-0 z-20">
+        <div className="flex-shrink-0 flex items-center justify-between px-3 py-3 sm:px-6 sm:py-4 border-b border-slate-800 bg-slate-950/50 backdrop-blur">
           <div>
             <h2 className="text-lg sm:text-xl font-semibold text-slate-100">Retirement Planning Console</h2>
             <p className="text-xs sm:text-sm text-slate-400 mt-1">
@@ -260,9 +270,9 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
           </Button>
         </div>
 
-        {/* Messages Area */}
+        {/* Messages Area - Scrollable */}
         <div
-          className="flex-1 px-3 py-3 sm:px-6 sm:py-4 space-y-3 sm:space-y-4 pb-32 md:pb-4 md:overflow-y-auto"
+          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 space-y-3 sm:space-y-4"
           role="log"
           aria-live="polite"
           aria-label="Conversation messages"
@@ -332,8 +342,8 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area - Sticky on mobile for accessibility */}
-        <div className="border-t border-slate-800 bg-slate-950 backdrop-blur p-3 sm:p-4 sticky bottom-0 md:relative">
+        {/* Input Area - Fixed at bottom */}
+        <div className="flex-shrink-0 border-t border-slate-800 bg-slate-950 backdrop-blur p-3 sm:p-4">
           <ConsoleInput
             ref={inputRef}
             value={input}
@@ -359,7 +369,7 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
       </div>
 
       {/* Side Panel - Data Summary - Hidden on mobile, visible on desktop */}
-      <div className="hidden md:block">
+      <div className="hidden md:block md:w-80 border-l border-slate-800">
         <DataSummaryPanel extractedData={extractedData} assumptions={assumptions} />
       </div>
     </div>
