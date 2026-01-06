@@ -31,13 +31,13 @@ export interface OnboardingSavingsData {
 }
 
 /**
- * IRS contribution limits for 2026 (estimated)
+ * IRS contribution limits for 2026 (official, announced Nov 2025)
  */
 export const IRS_LIMITS_2026 = {
-  '401k': 23500,
-  'ira': 7000,
-  'catchUp401k': 7500, // Age 50+
-  'catchUpIRA': 1000, // Age 50+
+  '401k': 24500,
+  'ira': 7500,
+  'catchUp401k': 8000, // Age 50+
+  'catchUpIRA': 1100, // Age 50+
 }
 
 export interface OnboardingGoalsData {

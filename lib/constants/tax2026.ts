@@ -161,7 +161,7 @@ export const AMT_2026 = {
 // =============================================================================
 export const RETIREMENT_LIMITS_2026 = {
   // 401(k) / 403(b) / 457
-  TRADITIONAL_401K_LIMIT: 24000,              // Up from $23,500 in 2025
+  TRADITIONAL_401K_LIMIT: 24500,              // Up from $23,500 in 2025
   CATCHUP_50_PLUS: 8000,                      // Up from $7,500 in 2025
   CATCHUP_60_TO_63: 11250,                    // "Super catch-up" (same as 2025)
   TOTAL_401K_LIMIT_UNDER_50: 72000,           // Up from $70,000 in 2025
@@ -244,11 +244,11 @@ export function getMaxHSAContribution(coverage: 'self' | 'family', age: number):
  */
 export function getMax401kContribution(age: number): number {
   if (age >= 60 && age <= 63) {
-    return RETIREMENT_LIMITS_2026.TRADITIONAL_401K_LIMIT + RETIREMENT_LIMITS_2026.CATCHUP_60_TO_63; // $35,250
+    return RETIREMENT_LIMITS_2026.TRADITIONAL_401K_LIMIT + RETIREMENT_LIMITS_2026.CATCHUP_60_TO_63; // $35,750
   } else if (age >= 50) {
-    return RETIREMENT_LIMITS_2026.TRADITIONAL_401K_LIMIT + RETIREMENT_LIMITS_2026.CATCHUP_50_PLUS; // $32,000
+    return RETIREMENT_LIMITS_2026.TRADITIONAL_401K_LIMIT + RETIREMENT_LIMITS_2026.CATCHUP_50_PLUS; // $32,500
   }
-  return RETIREMENT_LIMITS_2026.TRADITIONAL_401K_LIMIT; // $24,000
+  return RETIREMENT_LIMITS_2026.TRADITIONAL_401K_LIMIT; // $24,500
 }
 
 /**

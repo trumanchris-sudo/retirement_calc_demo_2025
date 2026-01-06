@@ -14,8 +14,8 @@ export const VALIDATION_RULES = {
   age: { min: 18, max: 100 },
   retirementAge: { min: 50, max: 80 },
   balance: { min: 0, max: 1_000_000_000 },
-  contribution401k: { max: 24_000 }, // 2026 limit
-  contributionIRA: { max: 7_000 }, // 2026 limit
+  contribution401k: { max: 24_500 }, // 2026 limit (official IRS)
+  contributionIRA: { max: 7_500 }, // 2026 limit (official IRS)
   rate: { min: -50, max: 50 }, // percentage
   withdrawalRate: { min: 0, max: 20 },
   socialSecurityAge: { min: 62, max: 70 },
