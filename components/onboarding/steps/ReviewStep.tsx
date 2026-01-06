@@ -8,6 +8,7 @@ import type { OnboardingWizardData } from '@/types/onboarding'
 import {
   getTypicalSavingsRate,
   calculateRetirementSpending,
+  IRS_LIMITS_2026,
 } from '@/types/onboarding'
 
 interface ReviewStepProps {
@@ -28,9 +29,11 @@ export function ReviewStep({ wizardData, onRunPlan, isSubmitting }: ReviewStepPr
       const rate = getTypicalSavingsRate(savings.income)
       total += savings.income * rate
     } else if (savings.savingsMode === 'custom') {
-      total += (savings.custom401k || 0) + (savings.customIRA || 0) + (savings.customTaxable || 0)
+      total += (savings.custom401k || 0) + (savings.customIRA || 0) + (savings.customBackdoorRoth || 0) + (savings.customTaxable || 0)
     } else if (savings.savingsMode === 'max401k') {
-      total += 23500 // IRS limit
+      total += IRS_LIMITS_2026['401k']
+    } else if (savings.savingsMode === 'supersaver') {
+      total += IRS_LIMITS_2026['401k'] + IRS_LIMITS_2026.ira
     }
 
     // Person 2 savings (if married)
@@ -39,9 +42,11 @@ export function ReviewStep({ wizardData, onRunPlan, isSubmitting }: ReviewStepPr
         const rate = getTypicalSavingsRate(savings.spouseIncome)
         total += savings.spouseIncome * rate
       } else if (savings.spouseSavingsMode === 'custom') {
-        total += (savings.spouseCustom401k || 0) + (savings.spouseCustomIRA || 0) + (savings.spouseCustomTaxable || 0)
+        total += (savings.spouseCustom401k || 0) + (savings.spouseCustomIRA || 0) + (savings.spouseCustomBackdoorRoth || 0) + (savings.spouseCustomTaxable || 0)
       } else if (savings.spouseSavingsMode === 'max401k') {
-        total += 23500
+        total += IRS_LIMITS_2026['401k']
+      } else if (savings.spouseSavingsMode === 'supersaver') {
+        total += IRS_LIMITS_2026['401k'] + IRS_LIMITS_2026.ira
       }
     }
 
