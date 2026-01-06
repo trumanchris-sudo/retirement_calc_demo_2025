@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { streamAIOnboarding } from '@/lib/ai-onboarding';
+import { processAIOnboarding } from '@/lib/processAIOnboarding';
 import type {
   ConversationMessage,
   ExtractedData,
@@ -10,12 +10,11 @@ import type {
   AIOnboardingState,
 } from '@/types/ai-onboarding';
 import { MessageBubble } from './MessageBubble';
-import { StreamingMessage } from './StreamingMessage';
 import { AssumptionsReview } from './AssumptionsReview';
 import { ConsoleInput } from './ConsoleInput';
 import { DataSummaryPanel } from './DataSummaryPanel';
 import { Button } from '@/components/ui/button';
-import { X, Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 
 interface AIConsoleProps {
   onComplete: (data: ExtractedData, assumptions: AssumptionWithReasoning[]) => void;
@@ -26,18 +25,15 @@ const STORAGE_KEY = 'ai_onboarding_state';
 
 export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
-  const [currentStreamingMessage, setCurrentStreamingMessage] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [input, setInput] = useState('');
   const [extractedData, setExtractedData] = useState<ExtractedData>({});
   const [assumptions, setAssumptions] = useState<AssumptionWithReasoning[]>([]);
   const [phase, setPhase] = useState<ConversationPhase>('greeting');
   const [error, setError] = useState<string | null>(null);
-  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = useCallback(() => {
@@ -46,7 +42,7 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, currentStreamingMessage, scrollToBottom]);
+  }, [messages, scrollToBottom]);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -104,12 +100,11 @@ You can answer in any format - I'll understand!`;
       { role: 'assistant', content: greetingMessage, timestamp: Date.now() },
     ]);
     setPhase('data-collection');
-    setIsStreaming(false);
   };
 
-  // Send user message
+  // Send user message (instant, no API call)
   const handleSend = async () => {
-    if (!input.trim() || isStreaming) return;
+    if (!input.trim() || isProcessing) return;
 
     const userMessage: ConversationMessage = {
       role: 'user',
@@ -117,75 +112,63 @@ You can answer in any format - I'll understand!`;
       timestamp: Date.now(),
     };
 
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
-    setIsStreaming(true);
+
+    // Instant acknowledgment
+    const ackMessage: ConversationMessage = {
+      role: 'assistant',
+      content: 'Got it! Feel free to add more details or click "Process My Responses" when ready.',
+      timestamp: Date.now() + 1,
+    };
+
+    setTimeout(() => {
+      setMessages((prev) => [...prev, ackMessage]);
+    }, 100);
+  };
+
+  // Process all responses with AI
+  const handleProcess = async () => {
+    if (isProcessing) return;
+
+    setIsProcessing(true);
     setError(null);
+    setPhase('assumptions-review');
 
-    console.log('[AIConsole] Sending message:', { phase, messageCount: newMessages.length });
-
-    // Create abort controller for this request
-    abortControllerRef.current = new AbortController();
+    console.log('[AIConsole] Processing responses...');
 
     try {
-      let fullResponse = '';
+      // Combine all user messages
+      const userResponses = messages
+        .filter((msg) => msg.role === 'user')
+        .map((msg) => msg.content)
+        .join('\n\n');
 
-      let capturedPhase = phase;
-
-      await streamAIOnboarding({
-        messages: newMessages,
-        extractedData,
-        assumptions,
-        phase,
-        onMessageDelta: (delta) => {
-          fullResponse += delta;
-          setCurrentStreamingMessage(fullResponse);
-        },
-        onDataUpdate: (field, value) => {
-          setExtractedData((prev) => ({ ...prev, [field]: value }));
-        },
-        onAssumptionAdded: (assumption) => {
-          setAssumptions((prev) => [...prev, assumption]);
-        },
-        onPhaseTransition: (newPhase) => {
-          capturedPhase = newPhase;
-          setPhase(newPhase);
-        },
-        onComplete: (data, finalAssumptions) => {
-          // Add assistant's complete message
-          if (fullResponse) {
-            setMessages((prev) => [
-              ...prev,
-              { role: 'assistant', content: fullResponse, timestamp: Date.now() },
-            ]);
-          }
-          setCurrentStreamingMessage('');
-          setIsStreaming(false);
-
-          // If phase is complete, trigger onComplete callback
-          if (capturedPhase === 'complete') {
-            handleComplete(data, finalAssumptions);
-          }
-        },
-        onError: (err) => {
-          console.error('[AIConsole] Send message error:', err);
-          // Don't remove user's message on error so they can retry
-          setError(err);
-          setIsStreaming(false);
-          setCurrentStreamingMessage('');
-        },
+      // Single API call to extract data and generate assumptions
+      const result = await processAIOnboarding({
+        conversationText: userResponses,
       });
+
+      console.log('[AIConsole] Processing complete');
+
+      setExtractedData(result.extractedData);
+      setAssumptions(result.assumptions);
+
+      // Add summary message
+      const summaryMessage: ConversationMessage = {
+        role: 'assistant',
+        content: result.summary,
+        timestamp: Date.now(),
+      };
+
+      setMessages((prev) => [...prev, summaryMessage]);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
-      console.error('[AIConsole] Send message exception:', errorMessage);
-      // Restore input so user can edit and retry
-      setInput(userMessage.content);
-      // Remove the user message that failed
-      setMessages(messages);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to process responses';
+      console.error('[AIConsole] Processing error:', errorMessage);
       setError(errorMessage);
-      setIsStreaming(false);
-      setCurrentStreamingMessage('');
+      setPhase('data-collection');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -299,18 +282,55 @@ You can answer in any format - I'll understand!`;
             <MessageBubble key={`${message.timestamp}-${index}`} message={message} />
           ))}
 
-          {currentStreamingMessage && (
-            <StreamingMessage content={currentStreamingMessage} />
+          {/* Process button */}
+          {phase === 'data-collection' && messages.filter(m => m.role === 'user').length > 0 && !isProcessing && (
+            <div className="flex justify-center py-4">
+              <Button
+                onClick={handleProcess}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white min-h-[48px] px-6"
+                aria-label="Process my responses with AI"
+              >
+                <Sparkles className="w-5 h-5 mr-2" aria-hidden="true" />
+                Process My Responses
+              </Button>
+            </div>
           )}
 
           {showAssumptionsReview && assumptions.length > 0 && (
-            <AssumptionsReview
-              assumptions={assumptions}
-              onRefine={(refinement) => {
-                setInput(refinement);
-                inputRef.current?.focus();
-              }}
-            />
+            <>
+              <AssumptionsReview
+                assumptions={assumptions}
+                onRefine={(refinement) => {
+                  setPhase('data-collection');
+                  const refinementMsg: ConversationMessage = {
+                    role: 'user',
+                    content: refinement,
+                    timestamp: Date.now(),
+                  };
+                  setMessages((prev) => [...prev, refinementMsg]);
+                }}
+              />
+              <div className="flex justify-center gap-4 py-4">
+                <Button
+                  onClick={() => {
+                    setPhase('complete');
+                    handleComplete(extractedData, assumptions);
+                  }}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white min-h-[48px] px-6"
+                  aria-label="Confirm and complete onboarding"
+                >
+                  Looks Good - Continue
+                </Button>
+                <Button
+                  onClick={handleProcess}
+                  variant="outline"
+                  className="min-h-[48px] px-6"
+                  aria-label="Reprocess responses with refinements"
+                >
+                  Reprocess
+                </Button>
+              </div>
+            </>
           )}
 
           <div ref={messagesEndRef} />
@@ -324,19 +344,21 @@ You can answer in any format - I'll understand!`;
             onChange={setInput}
             onSend={handleSend}
             onKeyDown={handleKeyDown}
-            disabled={isStreaming}
+            disabled={isProcessing || phase === 'complete'}
             placeholder={
-              isStreaming
-                ? 'Thinking...'
+              isProcessing
+                ? 'Processing...'
                 : phase === 'complete'
                 ? 'Onboarding complete!'
+                : phase === 'assumptions-review'
+                ? 'Reviewing assumptions...'
                 : 'Type your response...'
             }
           />
-          {isStreaming && (
+          {isProcessing && (
             <div className="flex items-center gap-2 mt-2 text-sm text-slate-300" role="status" aria-live="polite">
               <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-              <span>{messages.length === 0 ? 'Loading...' : 'Processing your response...'}</span>
+              <span>Analyzing your responses and generating smart assumptions...</span>
             </div>
           )}
         </div>
