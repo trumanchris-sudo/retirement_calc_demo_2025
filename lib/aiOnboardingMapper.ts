@@ -429,7 +429,7 @@ export function validateCalculatorInputs(inputs: Partial<CalculatorInputs>): {
   ];
 
   const missingFields = requiredFields.filter((field) => inputs[field] === undefined);
-  const errors: string[];
+  const errors: string[] = [];
 
   // Validation rules
   if (inputs.age1 && (inputs.age1 < 18 || inputs.age1 > 100)) {
