@@ -22,8 +22,24 @@ const MODEL = 'claude-opus-4-5-20251101'; // Use Opus 4.5 for highest quality
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if API key is configured
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('ANTHROPIC_API_KEY is not set in environment variables');
+      return new Response(
+        JSON.stringify({
+          error: 'API key not configured. Please set ANTHROPIC_API_KEY in your environment variables.'
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     const body: AIOnboardingRequest = await request.json();
     const { messages, extractedData = {}, assumptions = [], phase } = body;
+
+    console.log('[AI Onboarding] Request received:', { phase, messageCount: messages.length });
 
     // Create a readable stream for Server-Sent Events
     const encoder = new TextEncoder();

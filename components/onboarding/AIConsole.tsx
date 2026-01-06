@@ -58,10 +58,15 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
         setExtractedData(state.extractedData);
         setAssumptions(state.assumptions);
         setPhase(state.currentPhase);
+        console.log('[AIConsole] Restored state from localStorage');
       } catch (e) {
-        console.error('Failed to load saved onboarding state:', e);
+        console.error('[AIConsole] Failed to load saved onboarding state:', e);
+        // Clear invalid state and start fresh
+        localStorage.removeItem(STORAGE_KEY);
+        startGreeting();
       }
     } else {
+      console.log('[AIConsole] Starting new onboarding session');
       // Start with greeting if no saved state
       startGreeting();
     }
@@ -81,17 +86,21 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
 
   // Initial greeting
   const startGreeting = async () => {
+    console.log('[AIConsole] Starting greeting...');
     setIsStreaming(true);
     setError(null);
 
     try {
+      let streamingText = '';
+
       await streamAIOnboarding({
         messages: [],
         extractedData: {},
         assumptions: [],
         phase: 'greeting',
         onMessageDelta: (delta) => {
-          setCurrentStreamingMessage((prev) => prev + delta);
+          streamingText += delta;
+          setCurrentStreamingMessage(streamingText);
         },
         onDataUpdate: (field, value) => {
           setExtractedData((prev) => ({ ...prev, [field]: value }));
@@ -103,23 +112,26 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
           setPhase(newPhase);
         },
         onComplete: (data, finalAssumptions) => {
+          console.log('[AIConsole] Greeting complete');
           // Finalize streaming message
-          if (currentStreamingMessage) {
-            setMessages((prev) => [
-              ...prev,
-              { role: 'assistant', content: currentStreamingMessage, timestamp: Date.now() },
+          if (streamingText) {
+            setMessages([
+              { role: 'assistant', content: streamingText, timestamp: Date.now() },
             ]);
             setCurrentStreamingMessage('');
           }
           setIsStreaming(false);
         },
         onError: (err) => {
+          console.error('[AIConsole] Greeting error:', err);
           setError(err);
           setIsStreaming(false);
         },
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start conversation');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to start conversation';
+      console.error('[AIConsole] Greeting exception:', errorMessage);
+      setError(errorMessage);
       setIsStreaming(false);
     }
   };
@@ -245,27 +257,46 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 space-y-3 sm:space-y-4">
+          {error && (
+            <div className="sticky top-0 z-10 bg-red-950 border-2 border-red-600 rounded-lg p-4 sm:p-6 shadow-xl">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-600 flex items-center justify-center">
+                  <span className="text-white text-xl font-bold">!</span>
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-lg text-red-100">Connection Error</p>
+                  <p className="text-sm sm:text-base mt-2 text-red-200">{error}</p>
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setError(null);
+                        startGreeting();
+                      }}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      Retry
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setError(null)}
+                      className="text-red-200 border-red-600 hover:bg-red-900"
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {messages.map((message, index) => (
             <MessageBubble key={`${message.timestamp}-${index}`} message={message} />
           ))}
 
           {currentStreamingMessage && (
             <StreamingMessage content={currentStreamingMessage} />
-          )}
-
-          {error && (
-            <div className="bg-red-950/50 border border-red-800 rounded-lg p-4 text-red-200">
-              <p className="font-semibold">Error</p>
-              <p className="text-sm mt-1">{error}</p>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setError(null)}
-                className="mt-2 text-red-200 border-red-800 hover:bg-red-900"
-              >
-                Dismiss
-              </Button>
-            </div>
           )}
 
           {showAssumptionsReview && assumptions.length > 0 && (

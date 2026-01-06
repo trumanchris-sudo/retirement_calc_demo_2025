@@ -30,6 +30,8 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
   } = params;
 
   try {
+    console.log('[streamAIOnboarding] Starting request:', { phase, messageCount: messages.length });
+
     const response = await fetch('/api/ai-onboarding', {
       method: 'POST',
       headers: {
@@ -43,9 +45,19 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
       }),
     });
 
+    console.log('[streamAIOnboarding] Response status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`API error: ${response.status} - ${errorText}`);
+      console.error('[streamAIOnboarding] API error:', { status: response.status, error: errorText });
+
+      // Try to parse JSON error message
+      try {
+        const errorJson = JSON.parse(errorText);
+        throw new Error(errorJson.error || `API error: ${response.status}`);
+      } catch {
+        throw new Error(`API error: ${response.status} - ${errorText}`);
+      }
     }
 
     if (!response.body) {
@@ -102,6 +114,7 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
                 break;
 
               case 'data_update':
+                console.log('[streamAIOnboarding] Data update:', event.field, event.value);
                 if (onDataUpdate) {
                   onDataUpdate(event.field, event.value);
                 }
@@ -109,6 +122,7 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
                 break;
 
               case 'assumption_added':
+                console.log('[streamAIOnboarding] Assumption added:', event.assumption.field);
                 if (onAssumptionAdded) {
                   onAssumptionAdded(event.assumption);
                 }
@@ -116,6 +130,7 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
                 break;
 
               case 'phase_transition':
+                console.log('[streamAIOnboarding] Phase transition:', event.newPhase);
                 currentPhase = event.newPhase;
                 if (onPhaseTransition) {
                   onPhaseTransition(event.newPhase);
@@ -123,6 +138,7 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
                 break;
 
               case 'complete':
+                console.log('[streamAIOnboarding] Stream complete');
                 finalData = event.finalData;
                 finalAssumptions = event.assumptions;
                 if (onComplete) {
@@ -131,13 +147,14 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
                 return;
 
               case 'error':
+                console.error('[streamAIOnboarding] Stream error event:', event.error);
                 if (onError) {
                   onError(event.error);
                 }
                 throw new Error(event.error);
             }
           } catch (parseError) {
-            console.error('Failed to parse SSE data:', data, parseError);
+            console.error('[streamAIOnboarding] Failed to parse SSE data:', data, parseError);
             // Continue processing other events
           }
         }
