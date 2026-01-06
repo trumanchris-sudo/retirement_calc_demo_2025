@@ -3358,16 +3358,18 @@ export default function App() {
       {/* Tab Navigation */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <TabNavigation
-              activeTab={activeMainTab}
-              onTabChange={setActiveMainTab}
-              hasResults={!!res}
-            />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+            <div className="flex-1 min-w-0">
+              <TabNavigation
+                activeTab={activeMainTab}
+                onTabChange={setActiveMainTab}
+                hasResults={!!res}
+              />
+            </div>
             <Button
               variant="outline"
               onClick={() => setIsWizardOpen(true)}
-              className="shrink-0"
+              className="w-full sm:w-auto sm:shrink-0"
             >
               Guided Setup
             </Button>
@@ -3383,7 +3385,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8">
 
         {res && (
           <>
@@ -3406,7 +3408,7 @@ export default function App() {
                 </header>
 
                 {/* 4 Key Metric Cards - Prominent placement on Page 1 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 print:grid-cols-2 gap-4 mb-6">
                   {walkSeries === 'trulyRandom' ? (
                     <>
                       {/* Monte Carlo Mode - "The Odds View" */}
@@ -3485,7 +3487,7 @@ export default function App() {
                 </div>
 
                 {/* Additional Metrics - Smaller cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                <div className="grid grid-cols-1 print:grid-cols-3 gap-3 mb-6">
                   {/* Success Rate */}
                   <div className="border border-gray-300 p-3 bg-white">
                     <div className="text-xs font-semibold text-gray-600 mb-1">Plan Success Rate</div>
@@ -4066,7 +4068,7 @@ export default function App() {
                 {res.probRuin !== undefined && (
                   <div className="p-4 border-2 border-gray-300 bg-blue-50">
                     <h3 className="text-base font-semibold mb-2 text-black">Monte Carlo Analysis Summary</h3>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div className="grid grid-cols-1 print:grid-cols-2 gap-4 text-xs">
                       <div>
                         <div className="text-gray-700">Success Rate:</div>
                         <div className="text-lg font-bold text-black">{((1 - res.probRuin) * 100).toFixed(1)}%</div>
@@ -4827,7 +4829,7 @@ export default function App() {
             {/* Detailed View Content */}
             {resultsViewMode === 'detailed' && (
             <div className="space-y-6">
-            <div className="print:hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="print:hidden grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
               <FlippingStatCard
                 title="Future Balance"
                 value={fmt(res.finNom)}
@@ -6418,7 +6420,7 @@ export default function App() {
                         <select
                           value={marital}
                           onChange={(e) => { setMarital(e.target.value as FilingStatus); setInputsModified(true); }}
-                          className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                          className="flex h-11 md:h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
                         >
                           <option value="single">Single</option>
                           <option value="married">Married</option>
@@ -6438,7 +6440,7 @@ export default function App() {
                   defaultOpen: false,
                   content: (
                     <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 gap-4">
                         <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} onInputChange={handleInputChange} defaultValue={50000} validate={(val) => validateBalance(val, 'Taxable balance')} />
                         <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} onInputChange={handleInputChange} defaultValue={150000} validate={(val) => validateBalance(val, 'Pre-tax balance')} />
                         <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} onInputChange={handleInputChange} defaultValue={25000} validate={(val) => validateBalance(val, 'Roth balance')} />
@@ -6451,7 +6453,7 @@ export default function App() {
                   label: "Annual Contributions",
                   defaultOpen: false,
                   content: (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 gap-8">
                 <div className="space-y-4">
                   <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
                     {marital === 'single' ? 'Your Contributions' : 'Your Contributions'}
@@ -6481,7 +6483,7 @@ export default function App() {
                     defaultOpen: false,
                     content: (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {retMode === 'fixed' && (
                     <SliderInput
                       label="Return Rate"
@@ -6519,7 +6521,7 @@ export default function App() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <Label>Return Model</Label>
                     <select
@@ -6532,7 +6534,7 @@ export default function App() {
                         }
                         setInputsModified(true);
                       }}
-                      className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                      className="flex h-11 md:h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
                     >
                       <option value="fixed">Fixed (single rate)</option>
                       <option value="randomWalk">Random Walk (S&P bootstrap)</option>
@@ -6557,7 +6559,7 @@ export default function App() {
                         setAllocationStrategy(newStrategy);
                         setInputsModified(true);
                       }}
-                      className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                      className="flex h-11 md:h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
                     >
                       <option value="aggressive">100% Stocks (Aggressive)</option>
                       <option value="ageBased">Age-Based (Bond % = Your Age)</option>
@@ -6639,7 +6641,7 @@ export default function App() {
                             setGlidePathShape(e.target.value as 'linear' | 'accelerated' | 'decelerated');
                             setInputsModified(true);
                           }}
-                          className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                          className="flex h-11 md:h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
                         >
                           <option value="linear">Linear (steady increase)</option>
                           <option value="accelerated">Accelerated (faster early)</option>
@@ -6679,7 +6681,7 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                   <SliderInput
                     label="Withdrawal Rate"
                     value={wdRate}
@@ -6999,7 +7001,7 @@ export default function App() {
                                     setTargetConversionBracket(parseFloat(e.target.value));
                                     setInputsModified(true);
                                   }}
-                                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
+                                  className="flex h-11 md:h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
                                 >
                                   <option value={0.10}>10% - Low income bracket</option>
                                   <option value={0.12}>12% - Lower-middle bracket (default for many retirees)</option>

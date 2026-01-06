@@ -184,13 +184,15 @@ export const Input: React.FC<InputProps> = ({
       </Label>
       <input
         type="text"
+        inputMode="decimal"
+        pattern="[0-9]*"
         value={local}
         onChange={(e) => setLocal(e.target.value)}
         onFocus={onFocus}
         onBlur={onBlur}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        className={`flex h-10 w-full rounded-md border ${borderClass} bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800`}
+        className={`flex h-11 md:h-10 w-full rounded-md border ${borderClass} bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800`}
       />
       {/* Validation message */}
       {validationResult && validationResult.error && (
