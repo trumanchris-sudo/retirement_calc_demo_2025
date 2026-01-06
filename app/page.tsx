@@ -1215,8 +1215,24 @@ export default function App() {
     retAge: 65,
   });
 
+  // Family & Children (for generational wealth calculations)
+  const [familyInfo, setFamilyInfo] = useState({
+    numChildren: 0,
+    childrenAges: [] as number[],
+    additionalChildrenExpected: 0,
+  });
+
+  // Employment & Income
+  const [employmentInfo, setEmploymentInfo] = useState({
+    employmentType1: 'w2' as const,
+    employmentType2: undefined as 'w2' | 'self-employed' | 'both' | 'retired' | 'other' | undefined,
+    annualIncome1: 100000,
+    annualIncome2: 0,
+  });
+
   // Current Account Balances
   const [currentBalances, setCurrentBalances] = useState({
+    emergencyFund: 20000,  // Emergency fund (yields inflation rate only)
     sTax: 50000,
     sPre: 150000,
     sPost: 25000,
@@ -1256,7 +1272,9 @@ export default function App() {
 
   // Destructure for backward compatibility with existing code
   const { marital, age1, age2, retAge } = personalInfo;
-  const { sTax, sPre, sPost } = currentBalances;
+  const { numChildren, childrenAges, additionalChildrenExpected } = familyInfo;
+  const { employmentType1, employmentType2, annualIncome1, annualIncome2 } = employmentInfo;
+  const { emergencyFund, sTax, sPre, sPost } = currentBalances;
   const { cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2 } = contributions;
   const { retRate, infRate, stateRate, incContrib, incRate, wdRate, dividendYield } = assumptions;
   const { includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2 } = socialSecurity;
@@ -1269,6 +1287,16 @@ export default function App() {
   const setAge2 = (value: number) => { setPersonalInfo(prev => ({ ...prev, age2: value })); markDirty(); };
   const setRetAge = (value: number) => { setPersonalInfo(prev => ({ ...prev, retAge: value })); markDirty(); };
 
+  const setNumChildren = (value: number) => { setFamilyInfo(prev => ({ ...prev, numChildren: value })); markDirty(); };
+  const setChildrenAges = (value: number[]) => { setFamilyInfo(prev => ({ ...prev, childrenAges: value })); markDirty(); };
+  const setAdditionalChildrenExpected = (value: number) => { setFamilyInfo(prev => ({ ...prev, additionalChildrenExpected: value })); markDirty(); };
+
+  const setEmploymentType1 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other') => { setEmploymentInfo(prev => ({ ...prev, employmentType1: value })); markDirty(); };
+  const setEmploymentType2 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other' | undefined) => { setEmploymentInfo(prev => ({ ...prev, employmentType2: value })); markDirty(); };
+  const setAnnualIncome1 = (value: number) => { setEmploymentInfo(prev => ({ ...prev, annualIncome1: value })); markDirty(); };
+  const setAnnualIncome2 = (value: number) => { setEmploymentInfo(prev => ({ ...prev, annualIncome2: value })); markDirty(); };
+
+  const setEmergencyFund = (value: number) => { setCurrentBalances(prev => ({ ...prev, emergencyFund: value })); markDirty(); };
   const setSTax = (value: number) => { setCurrentBalances(prev => ({ ...prev, sTax: value })); markDirty(); };
   const setSPre = (value: number) => { setCurrentBalances(prev => ({ ...prev, sPre: value })); markDirty(); };
   const setSPost = (value: number) => { setCurrentBalances(prev => ({ ...prev, sPost: value })); markDirty(); };
@@ -2390,8 +2418,16 @@ export default function App() {
 
       console.log('[CALC] Worker ref exists:', !!workerRef.current);
       const inputs: Inputs = {
-        marital, age1, age2, retAge, sTax, sPre, sPost,
+        // Personal & Family
+        marital, age1, age2, retAge,
+        numChildren, childrenAges, additionalChildrenExpected,
+        // Employment & Income
+        employmentType1, employmentType2, annualIncome1, annualIncome2,
+        // Account Balances
+        emergencyFund, sTax, sPre, sPost,
+        // Contributions
         cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+        // Rates & Assumptions
         retRate, infRate, stateRate, incContrib, incRate, wdRate,
         retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
         historicalYear: historicalYear || undefined,

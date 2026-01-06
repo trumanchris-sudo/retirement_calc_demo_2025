@@ -18,13 +18,25 @@ import { calculateBondAllocation, calculateBlendedReturn } from "@/lib/bondAlloc
  * Input parameters for a single simulation run
  */
 export type SimulationInputs = {
+  // Personal & Family
   marital: FilingStatus;
   age1: number;
   age2: number;
   retAge: number;
+  numChildren?: number;
+  childrenAges?: number[];
+  additionalChildrenExpected?: number;
+  // Employment & Income (used for income calculator sync)
+  employmentType1?: 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
+  employmentType2?: 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
+  annualIncome1?: number;
+  annualIncome2?: number;
+  // Account Balances
+  emergencyFund?: number;  // Emergency fund (yields inflation rate only, no market exposure)
   sTax: number;
   sPre: number;
   sPost: number;
+  // Contributions
   cTax1: number;
   cPre1: number;
   cPost1: number;
@@ -33,6 +45,7 @@ export type SimulationInputs = {
   cPre2: number;
   cPost2: number;
   cMatch2: number;
+  // Rates & Assumptions
   retRate: number;
   infRate: number;
   stateRate: number;
@@ -41,11 +54,13 @@ export type SimulationInputs = {
   wdRate: number;
   retMode: ReturnMode;
   walkSeries: WalkSeries;
+  // Social Security
   includeSS: boolean;
   ssIncome: number;
   ssClaimAge: number;
   ssIncome2: number;
   ssClaimAge2: number;
+  // Scenario Testing
   historicalYear?: number;
   inflationShockRate?: number | null;
   inflationShockDuration?: number;

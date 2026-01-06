@@ -61,6 +61,11 @@ export interface ValidationRule {
 // ==================== Input Types ====================
 
 /**
+ * Employment classification types
+ */
+export type EmploymentType = 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
+
+/**
  * Complete set of inputs for retirement calculation
  */
 export interface CalculatorInputs {
@@ -70,10 +75,22 @@ export interface CalculatorInputs {
   age2: number;
   retAge: number;
 
+  // Family & Children (for generational wealth calculations)
+  numChildren: number;
+  childrenAges: number[];  // Array of current ages
+  additionalChildrenExpected: number;
+
+  // Employment & Income
+  employmentType1: EmploymentType;
+  employmentType2?: EmploymentType;
+  annualIncome1: number;
+  annualIncome2?: number;
+
   // Starting Balances
-  sTax: number;     // Starting taxable balance
-  sPre: number;     // Starting pre-tax (401k/IRA) balance
-  sPost: number;    // Starting Roth balance
+  emergencyFund: number;  // Separate emergency fund (yields inflation rate only)
+  sTax: number;           // Starting taxable brokerage balance
+  sPre: number;           // Starting pre-tax (401k/IRA) balance
+  sPost: number;          // Starting Roth balance
 
   // Person 1 Contributions
   cTax1: number;    // Annual taxable contributions
