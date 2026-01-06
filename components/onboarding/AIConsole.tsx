@@ -84,56 +84,22 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [messages, extractedData, assumptions, phase]);
 
-  // Initial greeting
+  // Initial greeting - use pre-scripted message for speed
   const startGreeting = async () => {
     console.log('[AIConsole] Starting greeting...');
-    setIsStreaming(true);
-    setError(null);
 
-    try {
-      let streamingText = '';
+    // Show instant pre-scripted greeting
+    const greetingMessage = `Hello! I'm here to help you set up your retirement calculator. I'll ask you a few questions about your financial situation, and we'll build a personalized plan together.
 
-      await streamAIOnboarding({
-        messages: [],
-        extractedData: {},
-        assumptions: [],
-        phase: 'greeting',
-        onMessageDelta: (delta) => {
-          streamingText += delta;
-          setCurrentStreamingMessage(streamingText);
-        },
-        onDataUpdate: (field, value) => {
-          setExtractedData((prev) => ({ ...prev, [field]: value }));
-        },
-        onAssumptionAdded: (assumption) => {
-          setAssumptions((prev) => [...prev, assumption]);
-        },
-        onPhaseTransition: (newPhase) => {
-          setPhase(newPhase);
-        },
-        onComplete: (data, finalAssumptions) => {
-          console.log('[AIConsole] Greeting complete');
-          // Finalize streaming message
-          if (streamingText) {
-            setMessages([
-              { role: 'assistant', content: streamingText, timestamp: Date.now() },
-            ]);
-            setCurrentStreamingMessage('');
-          }
-          setIsStreaming(false);
-        },
-        onError: (err) => {
-          console.error('[AIConsole] Greeting error:', err);
-          setError(err);
-          setIsStreaming(false);
-        },
-      });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to start conversation';
-      console.error('[AIConsole] Greeting exception:', errorMessage);
-      setError(errorMessage);
-      setIsStreaming(false);
-    }
+Let's start with some basics:
+- How old are you?
+- Are you single or married?`;
+
+    setMessages([
+      { role: 'assistant', content: greetingMessage, timestamp: Date.now() },
+    ]);
+    setPhase('data-collection');
+    setIsStreaming(false);
   };
 
   // Send user message
@@ -362,7 +328,7 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
           {isStreaming && (
             <div className="flex items-center gap-2 mt-2 text-sm text-slate-300" role="status" aria-live="polite">
               <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-              <span>Processing your response...</span>
+              <span>{messages.length === 0 ? 'Loading...' : 'Processing your response...'}</span>
             </div>
           )}
         </div>
