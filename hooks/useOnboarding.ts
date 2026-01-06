@@ -1,0 +1,167 @@
+import { useState, useEffect, useCallback } from 'react'
+import type {
+  OnboardingState,
+  OnboardingWizardData,
+  OnboardingBasicsData,
+  OnboardingSavingsData,
+  OnboardingGoalsData,
+} from '@/types/onboarding'
+
+const ONBOARDING_STORAGE_KEY = 'wdr_onboarding_state'
+const WIZARD_PROGRESS_KEY = 'wdr_wizard_progress'
+
+/**
+ * Hook for managing onboarding state and wizard progress
+ */
+export function useOnboarding() {
+  const [onboardingState, setOnboardingState] = useState<OnboardingState>(() => {
+    if (typeof window === 'undefined') {
+      return { hasCompletedOnboarding: false }
+    }
+
+    try {
+      const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY)
+      if (stored) {
+        return JSON.parse(stored)
+      }
+    } catch (error) {
+      console.error('Failed to load onboarding state:', error)
+    }
+
+    return { hasCompletedOnboarding: false }
+  })
+
+  const [wizardData, setWizardData] = useState<OnboardingWizardData | null>(() => {
+    if (typeof window === 'undefined') {
+      return null
+    }
+
+    try {
+      const stored = localStorage.getItem(WIZARD_PROGRESS_KEY)
+      if (stored) {
+        return JSON.parse(stored)
+      }
+    } catch (error) {
+      console.error('Failed to load wizard progress:', error)
+    }
+
+    return null
+  })
+
+  // Save onboarding state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(onboardingState))
+      } catch (error) {
+        console.error('Failed to save onboarding state:', error)
+      }
+    }
+  }, [onboardingState])
+
+  // Save wizard progress to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && wizardData) {
+      try {
+        localStorage.setItem(WIZARD_PROGRESS_KEY, JSON.stringify(wizardData))
+      } catch (error) {
+        console.error('Failed to save wizard progress:', error)
+      }
+    }
+  }, [wizardData])
+
+  const markOnboardingComplete = useCallback(() => {
+    setOnboardingState((prev) => ({
+      ...prev,
+      hasCompletedOnboarding: true,
+    }))
+    // Clear wizard progress after completion
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(WIZARD_PROGRESS_KEY)
+    }
+    setWizardData(null)
+  }, [])
+
+  const resetOnboarding = useCallback(() => {
+    setOnboardingState({ hasCompletedOnboarding: false })
+    setWizardData(null)
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(ONBOARDING_STORAGE_KEY)
+      localStorage.removeItem(WIZARD_PROGRESS_KEY)
+    }
+  }, [])
+
+  const updateWizardStep = useCallback((step: 1 | 2 | 3 | 4) => {
+    setWizardData((prev) => {
+      if (!prev) {
+        // Initialize wizard data
+        return {
+          currentStep: step,
+          basics: {
+            age: 30,
+            maritalStatus: 'single',
+            state: '',
+          },
+          savings: {
+            income: 0,
+            savingsMode: 'typical',
+          },
+          goals: {
+            retirementAge: 65,
+            lifestylePreset: 'comfortable',
+          },
+        }
+      }
+      return { ...prev, currentStep: step }
+    })
+  }, [])
+
+  const updateBasics = useCallback((data: Partial<OnboardingBasicsData>) => {
+    setWizardData((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        basics: { ...prev.basics, ...data },
+      }
+    })
+  }, [])
+
+  const updateSavings = useCallback((data: Partial<OnboardingSavingsData>) => {
+    setWizardData((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        savings: { ...prev.savings, ...data },
+      }
+    })
+  }, [])
+
+  const updateGoals = useCallback((data: Partial<OnboardingGoalsData>) => {
+    setWizardData((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        goals: { ...prev.goals, ...data },
+      }
+    })
+  }, [])
+
+  const clearWizardProgress = useCallback(() => {
+    setWizardData(null)
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(WIZARD_PROGRESS_KEY)
+    }
+  }, [])
+
+  return {
+    hasCompletedOnboarding: onboardingState.hasCompletedOnboarding,
+    wizardData,
+    markOnboardingComplete,
+    resetOnboarding,
+    updateWizardStep,
+    updateBasics,
+    updateSavings,
+    updateGoals,
+    clearWizardProgress,
+  }
+}
