@@ -91,9 +91,14 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     // Show instant pre-scripted greeting
     const greetingMessage = `Hello! I'm here to help you set up your retirement calculator. I'll ask you a few questions about your financial situation, and we'll build a personalized plan together.
 
-Let's start with some basics:
-- How old are you?
-- Are you single or married?`;
+Let's start with the basics. Please provide:
+1. Your age
+2. Marital status (single or married)
+3. Annual income
+4. Current retirement savings (401k, IRA, etc.)
+5. Target retirement age
+
+You can answer in any format - I'll understand!`;
 
     setMessages([
       { role: 'assistant', content: greetingMessage, timestamp: Date.now() },
@@ -126,6 +131,8 @@ Let's start with some basics:
     try {
       let fullResponse = '';
 
+      let capturedPhase = phase;
+
       await streamAIOnboarding({
         messages: newMessages,
         extractedData,
@@ -142,6 +149,7 @@ Let's start with some basics:
           setAssumptions((prev) => [...prev, assumption]);
         },
         onPhaseTransition: (newPhase) => {
+          capturedPhase = newPhase;
           setPhase(newPhase);
         },
         onComplete: (data, finalAssumptions) => {
@@ -156,7 +164,7 @@ Let's start with some basics:
           setIsStreaming(false);
 
           // If phase is complete, trigger onComplete callback
-          if (newPhase === 'complete') {
+          if (capturedPhase === 'complete') {
             handleComplete(data, finalAssumptions);
           }
         },
