@@ -2,7 +2,7 @@
  * Onboarding wizard types for guided plan setup
  */
 
-export type SavingsMode = 'max401k' | 'typical' | 'custom'
+export type SavingsMode = 'max401k' | 'supersaver' | 'typical' | 'custom'
 
 export type LifestylePreset = 'lean' | 'comfortable' | 'luxurious' | 'custom'
 
@@ -22,10 +22,22 @@ export interface OnboardingSavingsData {
   // For 'custom' mode:
   custom401k?: number
   customIRA?: number
+  customBackdoorRoth?: number
   customTaxable?: number
   spouseCustom401k?: number
   spouseCustomIRA?: number
+  spouseCustomBackdoorRoth?: number
   spouseCustomTaxable?: number
+}
+
+/**
+ * IRS contribution limits for 2026 (estimated)
+ */
+export const IRS_LIMITS_2026 = {
+  '401k': 23500,
+  'ira': 7000,
+  'catchUp401k': 7500, // Age 50+
+  'catchUpIRA': 1000, // Age 50+
 }
 
 export interface OnboardingGoalsData {

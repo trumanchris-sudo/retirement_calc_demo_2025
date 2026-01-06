@@ -9,7 +9,7 @@ import type {
   OnboardingBasicsData,
   SavingsMode,
 } from '@/types/onboarding'
-import { getTypicalSavingsRate } from '@/types/onboarding'
+import { getTypicalSavingsRate, IRS_LIMITS_2026 } from '@/types/onboarding'
 
 interface SavingsStepProps {
   data: OnboardingSavingsData
@@ -42,10 +42,12 @@ export function SavingsStep({ data, basicsData, onChange }: SavingsStepProps) {
     if (data.savingsMode === 'typical' && data.income > 0) {
       total += data.income * typicalSavingsRate
     } else if (data.savingsMode === 'custom') {
-      total += (data.custom401k || 0) + (data.customIRA || 0) + (data.customTaxable || 0)
-    } else if (data.savingsMode === 'max401k' && data.income > 0) {
-      // IRS 401k limit for 2026: $23,500 (assuming)
-      total += 23500
+      total += (data.custom401k || 0) + (data.customIRA || 0) + (data.customBackdoorRoth || 0) + (data.customTaxable || 0)
+    } else if (data.savingsMode === 'max401k') {
+      total += IRS_LIMITS_2026['401k']
+    } else if (data.savingsMode === 'supersaver') {
+      // Max 401k + Backdoor Roth IRA
+      total += IRS_LIMITS_2026['401k'] + IRS_LIMITS_2026.ira
     }
 
     // Person 2 savings (if married)
@@ -53,9 +55,11 @@ export function SavingsStep({ data, basicsData, onChange }: SavingsStepProps) {
       if (data.spouseSavingsMode === 'typical') {
         total += data.spouseIncome * typicalSpouseSavingsRate
       } else if (data.spouseSavingsMode === 'custom') {
-        total += (data.spouseCustom401k || 0) + (data.spouseCustomIRA || 0) + (data.spouseCustomTaxable || 0)
+        total += (data.spouseCustom401k || 0) + (data.spouseCustomIRA || 0) + (data.spouseCustomBackdoorRoth || 0) + (data.spouseCustomTaxable || 0)
       } else if (data.spouseSavingsMode === 'max401k') {
-        total += 23500
+        total += IRS_LIMITS_2026['401k']
+      } else if (data.spouseSavingsMode === 'supersaver') {
+        total += IRS_LIMITS_2026['401k'] + IRS_LIMITS_2026.ira
       }
     }
 
@@ -152,7 +156,18 @@ export function SavingsStep({ data, basicsData, onChange }: SavingsStepProps) {
                 Max out 401(k)
               </Label>
               <p className="text-xs text-muted-foreground mt-1">
-                Contribute the IRS maximum ($23,500/year)
+                Contribute the IRS maximum (${IRS_LIMITS_2026['401k'].toLocaleString()}/year)
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-2">
+            <RadioGroupItem value="supersaver" id="supersaver" className="mt-1" />
+            <div className="flex-1">
+              <Label htmlFor="supersaver" className="font-normal cursor-pointer">
+                Super Saver
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Max 401(k) + Backdoor Roth IRA (${(IRS_LIMITS_2026['401k'] + IRS_LIMITS_2026.ira).toLocaleString()}/year)
               </p>
             </div>
           </div>
@@ -205,7 +220,7 @@ export function SavingsStep({ data, basicsData, onChange }: SavingsStepProps) {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="customIRA">IRA contribution</Label>
+            <Label htmlFor="customIRA">Traditional IRA contribution</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                 $
@@ -219,10 +234,33 @@ export function SavingsStep({ data, basicsData, onChange }: SavingsStepProps) {
                   const value = parseFloat(e.target.value)
                   onChange({ customIRA: isNaN(value) ? 0 : value })
                 }}
+                placeholder="0"
+                className="pl-7"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="customBackdoorRoth">Backdoor Roth IRA</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                $
+              </span>
+              <Input
+                id="customBackdoorRoth"
+                type="number"
+                min={0}
+                value={data.customBackdoorRoth || ''}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value)
+                  onChange({ customBackdoorRoth: isNaN(value) ? 0 : value })
+                }}
                 placeholder="7000"
                 className="pl-7"
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Annual contribution that will be converted to Roth (typically $7,000)
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="customTaxable">Other taxable savings</Label>
@@ -263,6 +301,17 @@ export function SavingsStep({ data, basicsData, onChange }: SavingsStepProps) {
                   <Label htmlFor="spouse-max401k" className="font-normal cursor-pointer">
                     Max out 401(k)
                   </Label>
+                </div>
+              </div>
+              <div className="flex items-start space-x-2">
+                <RadioGroupItem value="supersaver" id="spouse-supersaver" className="mt-1" />
+                <div className="flex-1">
+                  <Label htmlFor="spouse-supersaver" className="font-normal cursor-pointer">
+                    Super Saver
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Max 401(k) + Backdoor Roth IRA
+                  </p>
                 </div>
               </div>
               <div className="flex items-start space-x-2">
@@ -311,7 +360,7 @@ export function SavingsStep({ data, basicsData, onChange }: SavingsStepProps) {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="spouseCustomIRA">IRA contribution</Label>
+                <Label htmlFor="spouseCustomIRA">Traditional IRA contribution</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                     $
@@ -324,6 +373,26 @@ export function SavingsStep({ data, basicsData, onChange }: SavingsStepProps) {
                     onChange={(e) => {
                       const value = parseFloat(e.target.value)
                       onChange({ spouseCustomIRA: isNaN(value) ? 0 : value })
+                    }}
+                    placeholder="0"
+                    className="pl-7"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="spouseCustomBackdoorRoth">Backdoor Roth IRA</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    $
+                  </span>
+                  <Input
+                    id="spouseCustomBackdoorRoth"
+                    type="number"
+                    min={0}
+                    value={data.spouseCustomBackdoorRoth || ''}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value)
+                      onChange({ spouseCustomBackdoorRoth: isNaN(value) ? 0 : value })
                     }}
                     placeholder="7000"
                     className="pl-7"

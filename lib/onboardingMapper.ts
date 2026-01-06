@@ -4,7 +4,7 @@
 
 import type { OnboardingWizardData } from '@/types/onboarding'
 import type { FilingStatus } from '@/lib/calculations/taxCalculations'
-import { getTypicalSavingsRate } from '@/types/onboarding'
+import { getTypicalSavingsRate, IRS_LIMITS_2026 } from '@/types/onboarding'
 
 export interface AppState {
   // Personal Info
@@ -40,7 +40,11 @@ export function wizardDataToAppState(wizardData: OnboardingWizardData): AppState
   let cTax1 = 0, cPre1 = 0, cPost1 = 0, cMatch1 = 0
 
   if (savings.savingsMode === 'max401k') {
-    cPre1 = 23500 // 2026 401k limit
+    cPre1 = IRS_LIMITS_2026['401k']
+  } else if (savings.savingsMode === 'supersaver') {
+    // Max 401k + Backdoor Roth IRA
+    cPre1 = IRS_LIMITS_2026['401k']
+    cPost1 = IRS_LIMITS_2026.ira
   } else if (savings.savingsMode === 'typical' && savings.income > 0) {
     const rate = getTypicalSavingsRate(savings.income)
     const totalSavings = savings.income * rate
@@ -50,7 +54,7 @@ export function wizardDataToAppState(wizardData: OnboardingWizardData): AppState
     cTax1 = Math.round(totalSavings * 0.15)
   } else if (savings.savingsMode === 'custom') {
     cPre1 = savings.custom401k || 0
-    cPost1 = savings.customIRA || 0
+    cPost1 = (savings.customIRA || 0) + (savings.customBackdoorRoth || 0)
     cTax1 = savings.customTaxable || 0
   }
 
@@ -61,7 +65,10 @@ export function wizardDataToAppState(wizardData: OnboardingWizardData): AppState
     const spouseMode = savings.spouseSavingsMode || 'typical'
 
     if (spouseMode === 'max401k') {
-      cPre2 = 23500
+      cPre2 = IRS_LIMITS_2026['401k']
+    } else if (spouseMode === 'supersaver') {
+      cPre2 = IRS_LIMITS_2026['401k']
+      cPost2 = IRS_LIMITS_2026.ira
     } else if (spouseMode === 'typical') {
       const rate = getTypicalSavingsRate(savings.spouseIncome)
       const totalSavings = savings.spouseIncome * rate
@@ -70,7 +77,7 @@ export function wizardDataToAppState(wizardData: OnboardingWizardData): AppState
       cTax2 = Math.round(totalSavings * 0.15)
     } else if (spouseMode === 'custom') {
       cPre2 = savings.spouseCustom401k || 0
-      cPost2 = savings.spouseCustomIRA || 0
+      cPost2 = (savings.spouseCustomIRA || 0) + (savings.spouseCustomBackdoorRoth || 0)
       cTax2 = savings.spouseCustomTaxable || 0
     }
   }

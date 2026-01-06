@@ -30,18 +30,26 @@ const US_STATES = [
 
 export function BasicsStep({ data, onChange }: BasicsStepProps) {
   const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value)
-    if (!isNaN(value) && value >= 18 && value <= 100) {
-      onChange({ age: value })
+    const value = e.target.value
+    if (value === '') {
+      onChange({ age: 30 }) // Default to 30 if cleared
+      return
+    }
+    const numValue = parseInt(value)
+    if (!isNaN(numValue)) {
+      onChange({ age: numValue })
     }
   }
 
   const handleSpouseAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value)
-    if (!isNaN(value) && value >= 18 && value <= 100) {
-      onChange({ spouseAge: value })
-    } else if (e.target.value === '') {
+    const value = e.target.value
+    if (value === '') {
       onChange({ spouseAge: undefined })
+      return
+    }
+    const numValue = parseInt(value)
+    if (!isNaN(numValue)) {
+      onChange({ spouseAge: numValue })
     }
   }
 
