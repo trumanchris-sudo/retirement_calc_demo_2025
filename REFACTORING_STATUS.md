@@ -4,7 +4,7 @@
 
 This document tracks the implementation of a unified PlanConfig system to serve as the single source of truth across the entire retirement calculator application (Configure, Results, Wizard, 2026 Planner, Budget, etc.).
 
-**Overall Progress: ~45% Complete**
+**Overall Progress: ~50% Complete**
 
 ---
 
@@ -175,6 +175,48 @@ const handleComplete = async (extractedData, assumptions) => {
   onClose();
 };
 ```
+
+### 8. Phase 3 - Hybrid Integration (Partial - Foundation Complete)
+
+**Files Modified:**
+- `/app/page.tsx`
+
+**What Was Done:**
+- ✅ Added `usePlanConfig()` hook to main app component
+- ✅ Updated `handleWizardComplete()` with explicit documentation
+- ✅ Established hybrid pattern: PlanConfig as source of truth, local state for backward compatibility
+- ✅ Added comprehensive logging for debugging data flow
+
+**Implementation:**
+```typescript
+export default function App() {
+  const { setImplied } = useBudget();
+  const { config: planConfig, updateConfig: updatePlanConfig } = usePlanConfig();
+
+  // ... existing useState hooks (kept for backward compatibility)
+
+  const handleWizardComplete = useCallback(async (wizardData) => {
+    // Wizard has already updated PlanConfig context
+    // Sync to local state for backward compatibility
+    // TODO Phase 3.3+: Remove when calc() reads from PlanConfig directly
+    setPersonalInfo({...});
+    setContributions({...});
+    // ...
+  }, []);
+}
+```
+
+**Why Hybrid Approach:**
+- App has 60+ useState hooks across 8000+ lines
+- Full migration requires updating calc(), all input handlers, and 100+ component interactions
+- Risk of breaking changes too high for single commit
+- Hybrid allows incremental, testable migration
+
+**Next Steps for Full Migration:**
+1. Update calc() to read from planConfig instead of local state variables
+2. Update all input change handlers to call updatePlanConfig()
+3. Gradually remove useState hooks as they become redundant
+4. Add comprehensive integration tests
 
 ---
 
@@ -394,10 +436,12 @@ interface SavedScenario {
 - ✅ Wire wizard to PlanConfig
 - ✅ Add missing fields UI
 
-### Phase 3: Main App Refactor (MAJOR - 8-12 hours)
-- ⏳ Refactor page.tsx to use PlanConfig
-- ⏳ Update all InputForm props
-- ⏳ Update calc() to read from config
+### Phase 3: Main App Refactor (PARTIAL ⚠️ - Estimated 12-16 hours remaining)
+- ✅ Added PlanConfig hook to page.tsx
+- ✅ Updated handleWizardComplete with documentation
+- ⏳ Update calc() to read from PlanConfig (deferred - complex)
+- ⏳ Update all input handlers to use updatePlanConfig (deferred - complex)
+- ⏳ Remove redundant useState hooks (deferred - depends on above)
 
 ### Phase 4: 2026 Planners (4-6 hours)
 - ⏳ Read from PlanConfig

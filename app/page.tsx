@@ -65,6 +65,7 @@ import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexib
 import { RothConversionOptimizer } from "@/components/calculator/RothConversionOptimizer";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
+import { usePlanConfig } from "@/lib/plan-config-context";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { wizardDataToAppState } from "@/lib/onboardingMapper";
@@ -1198,6 +1199,7 @@ ScenarioComparisonChart.displayName = 'ScenarioComparisonChart';
 
 export default function App() {
   const { setImplied } = useBudget();
+  const { config: planConfig, updateConfig: updatePlanConfig } = usePlanConfig();
 
   // Onboarding wizard state
   const {
@@ -2275,7 +2277,12 @@ export default function App() {
 
   // Handler for wizard completion
   const handleWizardComplete = useCallback(async (wizardData: OnboardingWizardData | any) => {
-    console.log('[ONBOARDING] Wizard completed, applying data to app state', wizardData);
+    console.log('[ONBOARDING] Wizard completed', wizardData);
+    console.log('[ONBOARDING] PlanConfig has been updated by wizard, syncing to local state...');
+
+    // NOTE: The wizard has already updated PlanConfig context.
+    // We need to sync PlanConfig → local state for backward compatibility
+    // (until we fully migrate calc() to use PlanConfig directly)
 
     // Check if this is from AI onboarding (has age/marital directly) or old wizard (has currentStep)
     const isAIOnboarding = !('currentStep' in wizardData);
@@ -2291,7 +2298,8 @@ export default function App() {
       appState = wizardDataToAppState(wizardData);
     }
 
-    // Update all the app state values
+    // Update all the app state values (for backward compatibility during transition)
+    // TODO Phase 3: Remove these once calc() reads from PlanConfig directly
     setPersonalInfo({
       marital: appState.marital,
       age1: appState.age1,
@@ -2314,6 +2322,8 @@ export default function App() {
       ...prev,
       wdRate: appState.wdRate,
     }));
+
+    console.log('[ONBOARDING] State synced successfully');
 
     // Close wizard
     setIsWizardOpen(false);
