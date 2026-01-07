@@ -47,6 +47,14 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
+  // Scroll to bottom when textarea is focused (handles mobile keyboard)
+  const handleTextareaFocus = useCallback(() => {
+    // Small delay to let keyboard animation complete
+    setTimeout(() => {
+      scrollToBottom();
+    }, 300);
+  }, [scrollToBottom]);
+
   // Load state from localStorage on mount
   useEffect(() => {
     const savedState = localStorage.getItem(STORAGE_KEY);
@@ -397,7 +405,7 @@ ${getNextQuestion(0, {})}`;
 
         {/* Messages Area - Scrollable */}
         <div
-          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 pb-32 space-y-4 bg-black"
+          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 pb-64 space-y-4 bg-black"
           role="log"
           aria-live="polite"
           aria-label="Conversation messages"
@@ -502,6 +510,7 @@ ${getNextQuestion(0, {})}`;
             onChange={setInput}
             onSend={handleSend}
             onKeyDown={handleKeyDown}
+            onFocus={handleTextareaFocus}
             disabled={isProcessing || phase === 'complete'}
             placeholder={
               isProcessing

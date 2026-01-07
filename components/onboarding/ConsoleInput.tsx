@@ -10,12 +10,13 @@ interface ConsoleInputProps {
   onChange: (value: string) => void;
   onSend: () => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
+  onFocus?: () => void;
   disabled?: boolean;
   placeholder?: string;
 }
 
 export const ConsoleInput = forwardRef<HTMLTextAreaElement, ConsoleInputProps>(
-  ({ value, onChange, onSend, onKeyDown, disabled, placeholder }, ref) => {
+  ({ value, onChange, onSend, onKeyDown, onFocus, disabled, placeholder }, ref) => {
     return (
       <div className="flex gap-2 sm:gap-3">
         <div className="flex-1 relative">
@@ -28,6 +29,7 @@ export const ConsoleInput = forwardRef<HTMLTextAreaElement, ConsoleInputProps>(
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={onKeyDown}
+            onFocus={onFocus}
             disabled={disabled}
             placeholder={placeholder || 'Type your response...'}
             rows={3}
