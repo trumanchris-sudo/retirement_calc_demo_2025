@@ -121,29 +121,6 @@ export function createDefaultPlanConfig(): PlanConfig {
     walkSeries: 'nominal',
     seed: 12345,
 
-    // Bond Glide Path
-    bondStartPct: 20,
-    bondEndPct: 60,
-    bondStartAge: 40,
-    bondEndAge: 70,
-    glidePathShape: 'linear',
-
-    // Healthcare
-    includeMedicare: true,
-    medicarePremium: 174.70,
-    medicalInflation: 5.5,
-    irmaaThreshold: 103000,
-    irmaaMaxSurcharge: 419.30,
-
-    // Long-Term Care
-    includeLTC: false,
-    ltcAnnualCost: 100000,
-    ltcProbability: 0.5,
-    ltcDuration: 3,
-    ltcOnsetAge: 80,
-    ltcAgeRangeStart: 75,
-    ltcAgeRangeEnd: 90,
-
     // Generational Wealth
     showGen: false,
     hypPerBen: 30000,
@@ -152,9 +129,9 @@ export function createDefaultPlanConfig(): PlanConfig {
     generationLength: 30,
     hypDeathAge: 90,
     hypMinDistAge: 18,
-    childrenCurrentAges: [],
-    hypBirthMultiple: 1,
-    hypBirthInterval: 3,
+    hypBenAgesStr: '',
+    fertilityWindowStart: 20,
+    fertilityWindowEnd: 45,
 
     // Metadata
     fieldMetadata: {},

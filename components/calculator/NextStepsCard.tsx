@@ -37,8 +37,9 @@ function generateSuggestions(
 
   // Determine success rate
   let successRate = 0
-  if (batchSummary && batchSummary.successRate !== undefined) {
-    successRate = batchSummary.successRate
+  if (batchSummary && batchSummary.probRuin !== undefined) {
+    // Calculate success rate from probability of ruin
+    successRate = (1 - batchSummary.probRuin) * 100
   } else {
     const survivalYears = result.survYrs || 0
     const totalYears = result.yrsToSim || 1

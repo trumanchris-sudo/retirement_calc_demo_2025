@@ -902,9 +902,9 @@ export default function Income2026Page() {
                 <div className="space-y-4">
                   <DualInputField label="Base Annual Salary" value1={p1BaseIncome} onChange1={setP1BaseIncome} value2={p2BaseIncome} onChange2={setP2BaseIncome} />
                   <DualInputField label="Annual Bonus" value1={p1Bonus} onChange1={setP1Bonus} value2={p2Bonus} onChange2={setP2Bonus} />
-                  <DualSelectField label="Bonus Payment Month" value1={p1BonusMonth} onChange1={setP1BonusMonth} value2={p2BonusMonth} onChange2={setP2BonusMonth} options={months.slice(0, 12)} />
+                  <DualSelectField label="Bonus Payment Month" idPrefix="bonus-month" value1={p1BonusMonth} onChange1={setP1BonusMonth} value2={p2BonusMonth} onChange2={setP2BonusMonth} options={months.slice(0, 12)} />
                   <DualInputField label="Estimated Monthly Overtime" value1={p1OvertimeMonthly} onChange1={setP1OvertimeMonthly} value2={p2OvertimeMonthly} onChange2={setP2OvertimeMonthly} />
-                  <DualSelectField label="Pay Frequency" value1={p1PayFrequency} onChange1={(v) => setP1PayFrequency(v as PayFrequency)} value2={p2PayFrequency} onChange2={(v) => setP2PayFrequency(v as PayFrequency)} options={["biweekly", "semimonthly", "monthly", "weekly"]} />
+                  <DualSelectField label="Pay Frequency" idPrefix="pay-frequency" value1={p1PayFrequency} onChange1={(v) => setP1PayFrequency(v as PayFrequency)} value2={p2PayFrequency} onChange2={(v) => setP2PayFrequency(v as PayFrequency)} options={["biweekly", "semimonthly", "monthly", "weekly"]} />
                   
                   <div className={isMarried ? "grid grid-cols-2 gap-4" : ""}>
                     <div className="space-y-2">
