@@ -223,7 +223,14 @@ export function mapAIDataToCalculator(
   }
 
   // === Retirement Goals ===
+  // IMPORTANT: Use user-specified retirement age if provided, don't override it
   const retAge = extractedData.retirementAge ?? calculateRecommendedRetirementAge(age1, annualIncome1);
+
+  console.log('[aiOnboardingMapper] Retirement age:', {
+    userProvided: extractedData.retirementAge,
+    calculated: calculateRecommendedRetirementAge(age1, annualIncome1),
+    final: retAge,
+  });
 
   if (!extractedData.retirementAge) {
     addAssumption(

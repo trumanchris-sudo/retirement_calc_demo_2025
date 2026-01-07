@@ -251,6 +251,9 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
         // Extract retirement age (should be a single number)
         if (numbers.length > 0) {
           extracted.retirementAge = numbers[0];
+          console.log('[AIConsole] Parsed retirement age:', numbers[0], 'from input:', userInput);
+        } else {
+          console.warn('[AIConsole] No retirement age found in input:', userInput);
         }
         break;
     }
