@@ -9,9 +9,16 @@ export interface ProcessOnboardingParams {
   conversationText: string; // All user responses combined
 }
 
+export interface MissingField {
+  field: string;
+  displayName: string;
+  description: string;
+}
+
 export interface ProcessOnboardingResult {
   extractedData: ExtractedData;
   assumptions: AssumptionWithReasoning[];
+  missingFields: MissingField[];
   summary: string;
 }
 

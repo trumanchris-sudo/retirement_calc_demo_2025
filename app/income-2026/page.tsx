@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { useBudget } from "@/lib/budget-context";
+import { usePlanConfig } from "@/lib/plan-config-context";
 import { loadSharedIncomeData, clearSharedIncomeData, hasRecentIncomeData } from "@/lib/sharedIncomeData";
 
 type FilingStatus = "single" | "married";
@@ -59,6 +60,8 @@ interface PaycheckResult {
 
 export default function Income2026Page() {
   const { implied, setImplied } = useBudget();
+  const { config: planConfig, updateConfig: updatePlanConfig } = usePlanConfig();
+
   // Marital status
   const [maritalStatus, setMaritalStatus] = useState<FilingStatus>("single");
 
@@ -168,79 +171,65 @@ export default function Income2026Page() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Pre-populate form from main calculator if data is available
+  // Pre-populate form from PlanConfig (single source of truth)
   useEffect(() => {
-    if (implied) {
-      console.log('[INCOME-2026] Pre-populating from budget context:', implied);
+    console.log('[INCOME-2026] Pre-populating from PlanConfig:', planConfig);
 
-      // Set marital status
-      if (implied.maritalStatus) {
-        setMaritalStatus(implied.maritalStatus);
-      }
+    // Priority 1: Use direct values from PlanConfig if available
+    if (planConfig.marital) {
+      setMaritalStatus(planConfig.marital);
+    }
 
-      // Estimate base income from gross income (if available)
-      if (implied.grossIncome > 0) {
-        const estimatedBaseIncome = implied.grossIncome * 0.5; // Split between persons if married
+    if (planConfig.annualIncome1 && planConfig.annualIncome1 > 0) {
+      setP1BaseIncome(planConfig.annualIncome1);
+      console.log('[INCOME-2026] Loaded Person 1 income from PlanConfig:', planConfig.annualIncome1);
+    }
+
+    if (planConfig.marital === 'married' && planConfig.annualIncome2 && planConfig.annualIncome2 > 0) {
+      setP2BaseIncome(planConfig.annualIncome2);
+      console.log('[INCOME-2026] Loaded Person 2 income from PlanConfig:', planConfig.annualIncome2);
+    }
+
+    // Pre-fill 401k contributions from PlanConfig
+    if (planConfig.cPre1 && planConfig.cPre1 > 0) {
+      setP1PreTax401k(planConfig.cPre1);
+    }
+
+    if (planConfig.marital === 'married' && planConfig.cPre2 && planConfig.cPre2 > 0) {
+      setP2PreTax401k(planConfig.cPre2);
+    }
+
+    // Priority 2: Fall back to budget context estimates if PlanConfig is empty
+    if (!planConfig.annualIncome1 || planConfig.annualIncome1 === 0) {
+      if (implied && implied.grossIncome > 0) {
+        console.log('[INCOME-2026] Falling back to budget context estimates');
+        const estimatedBaseIncome = implied.grossIncome * 0.5;
         setP1BaseIncome(Math.round(estimatedBaseIncome));
         if (implied.maritalStatus === 'married') {
           setP2BaseIncome(Math.round(estimatedBaseIncome));
         }
       }
-
-      // Pre-fill 401k contributions
-      if (implied.contributions401k > 0) {
-        const perPerson = implied.maritalStatus === 'married'
-          ? Math.round(implied.contributions401k / 2)
-          : implied.contributions401k;
-        setP1PreTax401k(perPerson);
-        if (implied.maritalStatus === 'married') {
-          setP2PreTax401k(perPerson);
-        }
-      }
-
-      // Estimate housing from withdrawal needs
-      if (implied.housing > 0) {
-        const monthlyHousing = Math.round(implied.housing / 12);
-        setMortgagePayment(monthlyHousing);
-      }
-
-      // Estimate household/discretionary spending
-      if (implied.discretionary > 0) {
-        const monthlyDiscretionary = Math.round(implied.discretionary / 12);
-        setHouseholdExpenses(Math.round(monthlyDiscretionary * 0.6));
-        setDiscretionarySpending(Math.round(monthlyDiscretionary * 0.4));
-      }
-
-      console.log('[INCOME-2026] Form pre-populated successfully');
     }
-  }, [implied]);
 
-  // Auto-fill from AI Onboarding data
-  useEffect(() => {
+    // Priority 3: Check legacy sharedIncomeData for backward compatibility
     if (hasRecentIncomeData()) {
       const sharedData = loadSharedIncomeData();
       if (sharedData && sharedData.source === 'ai-onboarding') {
-        console.log('[INCOME-2026] Loading data from AI onboarding:', sharedData);
-
-        // Set marital status
-        setMaritalStatus(sharedData.maritalStatus);
-
-        // Set Person 1 income
-        setP1BaseIncome(sharedData.annualIncome1);
-
-        // Set Person 2 income if married
-        if (sharedData.maritalStatus === 'married' && sharedData.annualIncome2) {
+        console.log('[INCOME-2026] Found legacy AI onboarding data:', sharedData);
+        // Only use if PlanConfig doesn't have this data
+        if (!planConfig.annualIncome1) {
+          setP1BaseIncome(sharedData.annualIncome1);
+        }
+        if (!planConfig.annualIncome2 && sharedData.annualIncome2) {
           setP2BaseIncome(sharedData.annualIncome2);
         }
-
-        // Show banner and set flag
         setIsFromAIOnboarding(true);
         setShowAIBanner(true);
-
-        console.log('[INCOME-2026] Successfully auto-filled from AI onboarding');
       }
     }
-  }, []); // Run once on mount
+
+    console.log('[INCOME-2026] Form pre-populated successfully');
+  }, [planConfig, implied]); // Re-run when PlanConfig or budget context changes
 
   // Clear and start fresh
   const handleClearAIData = () => {
@@ -252,6 +241,22 @@ export default function Income2026Page() {
     setP1BaseIncome(0);
     setP2BaseIncome(0);
     console.log('[INCOME-2026] Cleared AI onboarding data');
+  };
+
+  // Apply 2026 income planner values to main retirement plan
+  const handleApplyToMainPlan = () => {
+    console.log('[INCOME-2026] Applying values to main retirement plan (PlanConfig)');
+
+    updatePlanConfig({
+      marital: maritalStatus,
+      annualIncome1: p1BaseIncome,
+      annualIncome2: isMarried ? p2BaseIncome : 0,
+      cPre1: p1PreTax401k,
+      cPre2: isMarried ? p2PreTax401k : 0,
+    }, 'user-entered');
+
+    alert('✅ Your 2026 income data has been applied to your main retirement plan!');
+    console.log('[INCOME-2026] Successfully updated PlanConfig with 2026 values');
   };
 
   const months = [
@@ -953,7 +958,7 @@ export default function Income2026Page() {
             </CardContent>
         </Card>
 
-        <div className="flex justify-center pb-8">
+        <div className="flex justify-center gap-4 pb-8">
           <Button size="lg" onClick={handleCalculate} disabled={isCalculating} className="flex items-center gap-2">
             {isCalculating ? (
               <>
@@ -964,6 +969,16 @@ export default function Income2026Page() {
                 <TrendingUp className="w-5 h-5" /> Calculate 2026 Projections
               </>
             )}
+          </Button>
+
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={handleApplyToMainPlan}
+            className="flex items-center gap-2"
+            title="Save these income values to your main retirement plan"
+          >
+            <Sparkles className="w-5 h-5" /> Apply to Main Plan
           </Button>
         </div>
 
