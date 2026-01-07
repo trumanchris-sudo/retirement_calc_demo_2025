@@ -11,13 +11,6 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Lock scroll when wizard is open - iOS Safari fix */
-/* Only prevent scrolling, don't fix position (causes keyboard issues on iOS) */
-html.wizard-open,
-body.wizard-open {
-  overflow: hidden !important;
-}
-
 /* Monospace for numbers */
 .font-mono {
   font-variant-numeric: tabular-nums;
