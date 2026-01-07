@@ -1,5 +1,9 @@
 /**
  * Onboarding wizard types for guided plan setup
+ *
+ * LEGACY: These types are for the old 4-step manual wizard.
+ * New AI wizard uses PlanConfig (types/plan-config.ts) as single source of truth.
+ * Kept for backward compatibility with manual wizard fallback.
  */
 
 export type SavingsMode = 'max401k' | 'supersaver' | 'typical' | 'custom'

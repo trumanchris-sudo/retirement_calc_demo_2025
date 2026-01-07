@@ -82,21 +82,14 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [messages, extractedData, assumptions, phase]);
 
-  // Initial greeting - use pre-scripted message for speed
+  // Initial greeting - start sequential conversation
   const startGreeting = async () => {
     console.log('[AIConsole] Starting greeting...');
 
-    // Show instant pre-scripted greeting
-    const greetingMessage = `Hello! I'm here to help you set up your retirement calculator. I'll ask you a few questions about your financial situation, and we'll build a personalized plan together.
+    // Show instant pre-scripted greeting with first question
+    const greetingMessage = `Hello! I'm here to help you set up your retirement calculator. I'll ask you questions one at a time to make this easy.
 
-Let's start with the basics. Please provide:
-1. Your age
-2. Marital status (single or married)
-3. Annual income
-4. Current retirement savings (401k, IRA, etc.)
-5. Target retirement age
-
-You can answer in any format - I'll understand!`;
+Let's start with the basics: **What is your age and marital status?** (single or married)`;
 
     setMessages([
       { role: 'assistant', content: greetingMessage, timestamp: Date.now() },
@@ -104,7 +97,7 @@ You can answer in any format - I'll understand!`;
     setPhase('data-collection');
   };
 
-  // Send user message (instant, no API call)
+  // Send user message and auto-trigger AI processing
   const handleSend = async () => {
     if (!input.trim() || isProcessing) return;
 
@@ -117,19 +110,11 @@ You can answer in any format - I'll understand!`;
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
 
-    // Instant acknowledgment
-    const ackMessage: ConversationMessage = {
-      role: 'assistant',
-      content: 'Got it! Feel free to add more details or click "Process My Responses" when ready.',
-      timestamp: Date.now() + 1,
-    };
-
-    setTimeout(() => {
-      setMessages((prev) => [...prev, ackMessage]);
-    }, 100);
+    // Auto-trigger AI processing (sequential conversation)
+    await handleProcess();
   };
 
-  // Process all responses with AI
+  // Process conversation with AI (sequential mode)
   const handleProcess = async () => {
     if (isProcessing) return;
 
@@ -137,18 +122,19 @@ You can answer in any format - I'll understand!`;
     setError(null);
     setHasProcessed(true);
 
-    console.log('[AIConsole] Processing responses...');
+    console.log('[AIConsole] Processing conversation...');
 
     try {
-      // Combine all user messages
-      const userResponses = messages
-        .filter((msg) => msg.role === 'user')
-        .map((msg) => msg.content)
-        .join('\n\n');
+      // Send full conversation history for context
+      const conversationHistory = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
 
-      // Single API call to extract data and generate assumptions
+      // API call with conversation history
       const result = await processAIOnboarding({
-        conversationText: userResponses,
+        conversationHistory,
+        extractedData, // Include what we've collected so far
       });
 
       console.log('[AIConsole] Processing complete', {
@@ -163,19 +149,26 @@ You can answer in any format - I'll understand!`;
 
       // Determine phase based on results
       if (result.missingFields.length > 0) {
-        setPhase('data-collection'); // Stay in collection, show missing fields
+        setPhase('data-collection'); // Continue collection
+
+        // Add AI's next question
+        const nextQuestion: ConversationMessage = {
+          role: 'assistant',
+          content: result.nextQuestion || result.summary,
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, nextQuestion]);
       } else {
         setPhase('assumptions-review'); // Move to review
+
+        // Add completion message
+        const completionMessage: ConversationMessage = {
+          role: 'assistant',
+          content: result.summary,
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, completionMessage]);
       }
-
-      // Add summary message
-      const summaryMessage: ConversationMessage = {
-        role: 'assistant',
-        content: result.summary,
-        timestamp: Date.now(),
-      };
-
-      setMessages((prev) => [...prev, summaryMessage]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process responses';
       console.error('[AIConsole] Processing error:', errorMessage);
@@ -296,51 +289,6 @@ You can answer in any format - I'll understand!`;
           {messages.map((message, index) => (
             <MessageBubble key={`${message.timestamp}-${index}`} message={message} />
           ))}
-
-          {/* Process button */}
-          {phase === 'data-collection' && messages.filter(m => m.role === 'user').length > 0 && !isProcessing && (
-            <div className="flex justify-center py-4">
-              <Button
-                onClick={handleProcess}
-                disabled={isProcessing}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white min-h-[48px] px-6 disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Process my responses with AI"
-              >
-                <Sparkles className="w-5 h-5 mr-2" aria-hidden="true" />
-                {isProcessing ? 'Analyzing...' : 'Process My Responses'}
-              </Button>
-            </div>
-          )}
-
-          {/* Missing Fields Panel */}
-          {missingFields.length > 0 && hasProcessed && (
-            <div
-              className="bg-amber-950/50 border-2 border-amber-700 rounded-lg p-4 sm:p-6"
-              role="region"
-              aria-label="Missing information"
-            >
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-6 h-6 text-amber-400 flex-shrink-0 mt-1" aria-hidden="true" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg text-amber-100 mb-2">Still Need Information</h3>
-                  <p className="text-sm text-amber-200 mb-3">
-                    I've extracted what you provided, but need a few more details to complete your plan:
-                  </p>
-                  <ul className="space-y-2 mb-4" role="list">
-                    {missingFields.map(field => (
-                      <li key={field.field} className="text-amber-200">
-                        <span className="font-medium text-amber-100">{field.displayName}</span>
-                        <span className="text-sm text-amber-300 block ml-4 mt-1">→ {field.description}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="text-sm text-amber-300 bg-amber-950/50 rounded px-3 py-2 border border-amber-800">
-                    💡 Please provide these details above, then click "Process My Responses" again.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {showAssumptionsReview && assumptions.length > 0 && (
             <>

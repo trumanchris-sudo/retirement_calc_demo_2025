@@ -23,48 +23,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { conversationText } = await request.json();
+    const { conversationHistory, extractedData } = await request.json();
 
-    console.log('[Process Onboarding] Processing conversation');
+    console.log('[Process Onboarding] Processing conversation', {
+      messageCount: conversationHistory?.length || 0,
+      fieldsCollected: Object.keys(extractedData || {}).length
+    });
 
-    const systemPrompt = `You are a financial planning data extraction assistant. Your job is to:
+    const systemPrompt = `You are a friendly retirement planning assistant conducting a sequential conversation. Your job is to:
 
-1. Extract ONLY clearly stated retirement planning data from user responses
-2. DO NOT guess or assume values for critical fields when unclear
-3. Return structured data with reasoning and list what's still needed
+1. Extract data from the user's latest response
+2. Acknowledge what they provided
+3. Ask the NEXT chunked question to collect missing information
+4. Be conversational and friendly (not robotic)
 
-CRITICAL RULE - DO NOT GUESS THESE FIELDS:
-- state: US state (only if user mentions it)
-- spouseAge: Spouse age (only if married AND user provides it)
-- annualIncome2: Spouse income (only if married AND user provides it)
-- numChildren: Number of children (only if user mentions it)
-- retirementAge: Target retirement age (only if user specifies it)
-- savingsRateTraditional1/Roth1/Taxable1: Savings rates (only if user mentions)
-- currentTaxable/Traditional/Roth: Portfolio balances (only if user provides)
+CONVERSATION FLOW:
+- Ask ONE question at a time
+- Group related fields together (e.g., "What are your current account balances across traditional IRA/401k, Roth IRA/401k, taxable brokerage and savings/emergency?")
+- Acknowledge what the user provided before asking the next question
+- Be flexible with user's response format
 
-PARSING RULES:
-- "I make $X" = annualIncome1: X, annualIncome2: null (NOT 0)
-- "We make $X" = combined income, ask for breakdown
-- If married but no spouse income mentioned = annualIncome2: null, add to missingFields
-- If no state mentioned = state: null, add to missingFields
-- If no children mentioned = numChildren: null, add to missingFields
+QUESTION SEQUENCE (logical order):
+1. Age and marital status
+2. Annual income (theirs, and spouse if married)
+3. Current account balances (grouped: traditional, Roth, taxable, savings)
+4. Contribution rates or amounts (grouped: traditional, Roth, taxable, employer match)
+5. Target retirement age
+6. State (for tax calculations)
+7. Spouse age (if married)
+8. Any other missing critical fields
 
-SAFE ASSUMPTIONS (only if not specified):
+CRITICAL RULES - DO NOT GUESS:
+- State: Only if user mentions it
+- Spouse income/age: Only if married AND user provides
+- Account balances: Only if user specifies
+- Contribution rates: Only if user mentions
+- Retirement age: Only if user specifies
+
+SAFE ASSUMPTIONS (if not specified):
 - employmentType1: "w2" if income mentioned (medium confidence)
-- emergencyFund: 6 months expenses if not mentioned (low confidence)
-- maritalStatus: "single" if spouse never mentioned (medium confidence)
+- maritalStatus: "single" if no spouse mentioned (medium confidence)
 
-Return your response as a JSON object with this structure:
+Return JSON with this structure:
 {
   "extractedData": {
     "age": number | null,
     "maritalStatus": "single" | "married" | null,
     "annualIncome1": number | null,
-    "annualIncome2": number | null,
-    "state": string | null,
-    "spouseAge": number | null,
-    "numChildren": number | null,
-    "retirementAge": number | null,
+    "currentTraditional": number | null,
+    "currentRoth": number | null,
+    "currentTaxable": number | null,
+    "currentCash": number | null,
     ...
   },
   "assumptions": [
@@ -72,7 +81,7 @@ Return your response as a JSON object with this structure:
       "field": "fieldName",
       "displayName": "Human Readable Name",
       "value": any,
-      "reasoning": "One sentence explaining why this was assumed",
+      "reasoning": "Why this was assumed",
       "confidence": "high" | "medium" | "low",
       "userProvided": false
     }
@@ -81,46 +90,58 @@ Return your response as a JSON object with this structure:
     {
       "field": "fieldName",
       "displayName": "Human Readable Name",
-      "description": "Why we need this information"
+      "description": "Why needed"
     }
   ],
-  "summary": "Brief summary of what was collected, what was assumed, and what's still needed"
+  "nextQuestion": "The next chunked question to ask (null if complete)",
+  "summary": "What was just collected"
 }
 
 EXAMPLE:
-User: "I'm 35 and married, I make $150k"
+User: "I'm 35 and single, I make $100k"
 Response: {
   "extractedData": {
     "age": 35,
-    "maritalStatus": "married",
-    "annualIncome1": 150000,
-    "annualIncome2": null,
-    "spouseAge": null,
+    "maritalStatus": "single",
+    "annualIncome1": 100000,
     "employmentType1": "w2"
   },
   "assumptions": [
-    {"field": "employmentType1", "displayName": "Employment Type", "value": "w2", "reasoning": "W-2 employee is most common for stated income level", "confidence": "medium"}
+    {"field": "employmentType1", "displayName": "Employment Type", "value": "w2", "reasoning": "Most common for stated income", "confidence": "medium"}
   ],
   "missingFields": [
-    {"field": "spouseAge", "displayName": "Spouse Age", "description": "Needed for joint retirement planning"},
-    {"field": "annualIncome2", "displayName": "Spouse Income", "description": "Needed to calculate household finances"},
-    {"field": "state", "displayName": "State", "description": "Needed for state tax calculations"},
-    {"field": "retirementAge", "displayName": "Target Retirement Age", "description": "When do you want to retire?"}
+    {"field": "currentTraditional", "displayName": "Traditional 401k/IRA", "description": "Current balance"},
+    {"field": "currentRoth", "displayName": "Roth 401k/IRA", "description": "Current balance"},
+    {"field": "currentTaxable", "displayName": "Taxable Brokerage", "description": "Current balance"},
+    {"field": "currentCash", "displayName": "Savings/Emergency", "description": "Current balance"}
   ],
-  "summary": "Collected your age (35) and income ($150k). Since you're married, we still need your spouse's age and income, your state for tax purposes, and your target retirement age."
+  "nextQuestion": "Great! Got it - you're 35, single, making $100k. What are your current account balances across traditional IRA/401k, Roth IRA/401k, taxable brokerage and savings/emergency? (Just give me the numbers, I'll understand!)",
+  "summary": "Collected age, marital status, and income"
 }`;
+
+    // Build the prompt with current extracted data context
+    const contextPrompt = extractedData && Object.keys(extractedData).length > 0
+      ? `Current extracted data so far:\n${JSON.stringify(extractedData, null, 2)}\n\nConversation history is provided. Extract new data from the latest user message and ask the next question.`
+      : 'This is the beginning of the conversation. Extract data from the user\'s message and ask the next question.';
+
+    // Convert conversation history to Anthropic format
+    const messages = conversationHistory.map((msg: { role: string; content: string }) => ({
+      role: msg.role === 'assistant' ? 'assistant' : 'user',
+      content: msg.content
+    }));
+
+    // Add the extraction instruction
+    messages.push({
+      role: 'user',
+      content: `${contextPrompt}\n\nReturn only valid JSON with extractedData, assumptions, missingFields, nextQuestion, and summary. No other text.`
+    });
 
     const response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 4000,
       temperature: 0.7,
       system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: `Please extract retirement planning data from this conversation:\n\n${conversationText}\n\nReturn only valid JSON, no other text.`,
-        },
-      ],
+      messages: messages as any,
     });
 
     // Extract JSON from response
