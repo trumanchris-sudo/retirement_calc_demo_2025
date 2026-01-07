@@ -45,6 +45,7 @@ export interface ExtractedData {
   employmentType2?: EmploymentType;
   annualIncome1?: number;
   annualIncome2?: number;
+  bonusInfo?: string; // Raw bonus information for API to parse
 
   // Current Portfolio Balances
   emergencyFund?: number;
@@ -59,6 +60,14 @@ export interface ExtractedData {
   savingsRateTaxable2?: number;
   savingsRateTraditional2?: number;
   savingsRateRoth2?: number;
+
+  // Housing & Expenses (from API assumptions)
+  monthlyMortgageRent?: number;
+  monthlyUtilities?: number;
+  monthlyInsurancePropertyTax?: number;
+  monthlyHealthcareP1?: number;
+  monthlyHealthcareP2?: number;
+  monthlyOtherExpenses?: number;
 
   // Goals
   retirementAge?: number;
@@ -102,6 +111,7 @@ export interface AIOnboardingState {
   extractedData: ExtractedData;
   assumptions: AssumptionWithReasoning[];
   currentPhase: ConversationPhase;
+  questionIndex?: number;  // Track which pre-scripted question we're on
   lastUpdated: number;
   sessionId?: string;  // Optional session tracking
 }

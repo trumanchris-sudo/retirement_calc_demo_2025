@@ -2268,7 +2268,7 @@ export default function App() {
     setTimeout(() => {
       calc();
     }, 300);
-  }, [calc]);
+  }, []); // calc is stable, no need in deps (used in setTimeout)
 
   const calc = useCallback(async () => {
     console.log('[CALC] Starting calculation...');
@@ -3169,10 +3169,13 @@ export default function App() {
       name: scenarioName.trim(),
       timestamp: Date.now(),
       inputs: {
-        ...personalInfo,
-        ...currentBalances,
-        ...contributions,
-        ...assumptions,
+        // Use planConfig as source (single source of truth)
+        marital, age1, age2, retAge,
+        emergencyFund, sTax, sPre, sPost,
+        cTax1, cPre1, cPost1, cMatch1,
+        cTax2, cPre2, cPost2, cMatch2,
+        retRate, infRate, stateRate, incContrib, incRate, wdRate, dividendYield,
+        includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
       },
       results: {
         finNom: res.finNom,
@@ -3191,7 +3194,10 @@ export default function App() {
     setSavedScenarios(updated);
     localStorage.setItem('retirement-scenarios', JSON.stringify(updated));
     setScenarioName("");
-  }, [res, scenarioName, savedScenarios, personalInfo, currentBalances, contributions, assumptions]);
+  }, [res, scenarioName, savedScenarios, marital, age1, age2, retAge, emergencyFund, sTax, sPre, sPost,
+      cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+      retRate, infRate, stateRate, incContrib, incRate, wdRate, dividendYield,
+      includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2]);
 
   // Delete a scenario
   const deleteScenario = useCallback((id: string) => {
@@ -3200,25 +3206,23 @@ export default function App() {
     localStorage.setItem('retirement-scenarios', JSON.stringify(updated));
   }, [savedScenarios]);
 
-  // Load a scenario (restore inputs) - Optimized with grouped state updates
+  // Load a scenario (restore inputs) - Now uses PlanConfig single source of truth
   const loadScenario = useCallback((scenario: SavedScenario) => {
     const inp = scenario.inputs;
 
-    // Update all grouped state objects in one operation each
-    setPersonalInfo({
+    // Update PlanConfig in one operation
+    updatePlanConfig({
+      // Personal Info
       age1: inp.age1 ?? 30,
       age2: inp.age2 ?? 30,
       retAge: inp.retAge ?? 65,
       marital: inp.marital ?? 'single',
-    });
-
-    setCurrentBalances({
+      // Current Balances
+      emergencyFund: inp.emergencyFund ?? 0,
       sTax: inp.sTax ?? 0,
       sPre: inp.sPre ?? 0,
       sPost: inp.sPost ?? 0,
-    });
-
-    setContributions({
+      // Contributions
       cTax1: inp.cTax1 ?? 0,
       cPre1: inp.cPre1 ?? 0,
       cPost1: inp.cPost1 ?? 0,
@@ -3227,9 +3231,7 @@ export default function App() {
       cPre2: inp.cPre2 ?? 0,
       cPost2: inp.cPost2 ?? 0,
       cMatch2: inp.cMatch2 ?? 0,
-    });
-
-    setAssumptions({
+      // Assumptions
       retRate: inp.retRate ?? 7,
       infRate: inp.infRate ?? 3,
       stateRate: inp.stateRate ?? 0,
@@ -3237,8 +3239,14 @@ export default function App() {
       incContrib: inp.incContrib ?? false,
       incRate: inp.incRate ?? 4.5,
       dividendYield: inp.dividendYield ?? 2.0,
-    });
-  }, []);
+      // Social Security
+      includeSS: inp.includeSS ?? true,
+      ssIncome: inp.ssIncome ?? 0,
+      ssClaimAge: inp.ssClaimAge ?? 67,
+      ssIncome2: inp.ssIncome2 ?? 0,
+      ssClaimAge2: inp.ssClaimAge2 ?? 67,
+    }, 'user-entered');
+  }, [updatePlanConfig]);
 
   return (
     <>
@@ -5305,14 +5313,27 @@ export default function App() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Link href="/income-2026">
-                      <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
-                        View 2026 Income Planner →
-                      </Button>
-                    </Link>
-                    <p className="text-xs text-blue-600 mt-2">
-                      Fields will be pre-populated based on your {fmt(cPre1 + cPre2)} annual contributions
-                    </p>
+                    {(() => {
+                      // Route to self-employed calculator if either person is not W-2
+                      const usesSelfEmployed =
+                        (planConfig.employmentType1 && planConfig.employmentType1 !== 'w2') ||
+                        (planConfig.employmentType2 && planConfig.employmentType2 !== 'w2');
+                      const targetPath = usesSelfEmployed ? '/self-employed-2026' : '/income-2026';
+                      const plannerName = usesSelfEmployed ? '2026 Self-Employed Planner' : '2026 Income Planner';
+
+                      return (
+                        <>
+                          <Link href={targetPath}>
+                            <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+                              View {plannerName} →
+                            </Button>
+                          </Link>
+                          <p className="text-xs text-blue-600 mt-2">
+                            Fields will be pre-populated based on your {fmt(cPre1 + cPre2)} annual contributions
+                          </p>
+                        </>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               </div>

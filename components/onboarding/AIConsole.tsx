@@ -33,18 +33,35 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const [hasProcessed, setHasProcessed] = useState(false);
   const [phase, setPhase] = useState<ConversationPhase>('greeting');
   const [error, setError] = useState<string | null>(null);
+  const [questionIndex, setQuestionIndex] = useState(0); // Track which pre-scripted question we're on
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!messagesContainerRef.current) return;
+    messagesContainerRef.current.scrollTo({
+      top: messagesContainerRef.current.scrollHeight,
+      behavior: 'smooth',
+    });
   }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, scrollToBottom]);
+  }, [messages.length, scrollToBottom]);
+
+  // Scroll messages to bottom when textarea gets focus
+  const handleTextareaFocus = useCallback(() => {
+    // Scroll messages container to bottom so last question is visible
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, []);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -56,6 +73,7 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
         setExtractedData(state.extractedData);
         setAssumptions(state.assumptions);
         setPhase(state.currentPhase);
+        setQuestionIndex(state.questionIndex || 0);
         console.log('[AIConsole] Restored state from localStorage');
       } catch (e) {
         console.error('[AIConsole] Failed to load saved onboarding state:', e);
@@ -77,41 +95,206 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
       extractedData,
       assumptions,
       currentPhase: phase,
+      questionIndex,
       lastUpdated: Date.now(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [messages, extractedData, assumptions, phase]);
+  }, [messages, extractedData, assumptions, phase, questionIndex]);
+
+  // Pre-scripted questions (no API calls needed for these)
+  const getNextQuestion = (qIndex: number, currentData: ExtractedData): string | null => {
+    // Check if married from current data
+    const isMarried = currentData.maritalStatus === 'married';
+
+    switch (qIndex) {
+      case 0:
+        return "Let's start with the basics: **What is your age and are you single or married?**\n\n(If married, please also tell me your spouse's age!)";
+      case 1:
+        return "**What state do you live in?**";
+      case 2:
+        return isMarried
+          ? "**Are you a W-2 employee, self-employed, or something else?** And what about your spouse?"
+          : "**Are you a W-2 employee, self-employed, or something else?**";
+      case 3:
+        return isMarried
+          ? "**What's your annual income, and what's your spouse's annual income?** (Before taxes)\n\nAlso, does any of that include bonuses or variable compensation?"
+          : "**What's your annual income?** (Before taxes)\n\nDoes any of that include bonuses or variable compensation?";
+      case 4:
+        return "**What are your current account balances?**\n\n• Pre-tax (401k, Traditional IRA)\n• Roth (Roth IRA, Roth 401k)\n• Taxable brokerage\n• Cash/savings\n\n(Just give me the numbers - $0 is fine if you don't have one!)";
+      case 5:
+        return "Finally, **what age would you like to retire?** (Even if it feels unrealistic right now!)";
+      default:
+        return null; // No more pre-scripted questions, will call API
+    }
+  };
+
+  // Simple client-side parsing of user responses
+  const parseUserResponse = (userInput: string, qIndex: number, currentData: ExtractedData): Partial<ExtractedData> => {
+    const input = userInput.toLowerCase();
+    const extracted: Partial<ExtractedData> = {};
+
+    // Parse numbers from input
+    const numbers = userInput.match(/\$?[\d,]+k?/gi)?.map(n => {
+      const cleaned = n.replace(/[$,]/g, '');
+      if (cleaned.endsWith('k')) {
+        return parseFloat(cleaned.slice(0, -1)) * 1000;
+      }
+      return parseFloat(cleaned);
+    }) || [];
+
+    switch (qIndex) {
+      case 0: // Age and marital status (+ spouse age if married)
+        // Extract age (first number in response)
+        if (numbers.length > 0) {
+          extracted.age = numbers[0];
+        }
+        // Extract marital status
+        if (input.includes('married')) {
+          extracted.maritalStatus = 'married';
+          // If married and 2+ numbers, second is spouse age
+          if (numbers.length > 1) {
+            extracted.spouseAge = numbers[1];
+          }
+        } else if (input.includes('single')) {
+          extracted.maritalStatus = 'single';
+        }
+        break;
+
+      case 1: // State
+        // Extract state abbreviation or name
+        // Try common patterns: "CA", "California", "I live in Texas", etc.
+        const stateMatch = userInput.match(/\b([A-Z]{2})\b/); // 2-letter state code
+        if (stateMatch) {
+          extracted.state = stateMatch[1];
+        } else {
+          // Store full answer, API will parse it
+          extracted.state = userInput.trim();
+        }
+        break;
+
+      case 2: // Employment type
+        const isMarried = currentData.maritalStatus === 'married';
+
+        // Detect employment types
+        const detectEmploymentType = (text: string): 'w2' | 'self-employed' | 'k1' | 'other' => {
+          if (text.includes('w2') || text.includes('w-2') || text.includes('employee')) {
+            return 'w2';
+          } else if (text.includes('self-employed') || text.includes('self employed') ||
+                     text.includes('freelance') || text.includes('contractor') || text.includes('1099')) {
+            return 'self-employed';
+          } else if (text.includes('k1') || text.includes('k-1') || text.includes('partner')) {
+            return 'k1';
+          }
+          return 'other';
+        };
+
+        extracted.employmentType1 = detectEmploymentType(input);
+
+        if (isMarried) {
+          // Look for spouse indicators: "spouse", "wife", "husband", "they", "she", "he"
+          // Split on common separators and check second part
+          const parts = input.split(/\band\b|\,|\;|\./);
+          if (parts.length > 1) {
+            extracted.employmentType2 = detectEmploymentType(parts[1]);
+          } else {
+            // Default to same as person 1
+            extracted.employmentType2 = extracted.employmentType1;
+          }
+        }
+        break;
+
+      case 3: // Income + bonus
+        const isMarriedIncome = currentData.maritalStatus === 'married';
+
+        // Extract income(s)
+        if (numbers.length > 0) {
+          extracted.annualIncome1 = numbers[0];
+        }
+        if (numbers.length > 1 && isMarriedIncome) {
+          extracted.annualIncome2 = numbers[1];
+        }
+
+        // Detect bonus information - store for API to process
+        // Look for: "bonus", "$X bonus", "X in bonuses", etc.
+        // We'll let the API handle the details, just flag it
+        if (input.includes('bonus') && !input.includes('no bonus')) {
+          // Store original response for API to extract bonus details
+          (extracted as any).bonusInfo = userInput;
+        }
+        break;
+
+      case 4: // Account balances
+        // Try to extract 4 numbers: traditional, roth, taxable, cash
+        if (numbers.length >= 1) extracted.currentTraditional = numbers[0];
+        if (numbers.length >= 2) extracted.currentRoth = numbers[1];
+        if (numbers.length >= 3) extracted.currentTaxable = numbers[2];
+        if (numbers.length >= 4) extracted.currentCash = numbers[3];
+        break;
+
+      case 5: // Retirement age
+        // Extract retirement age (should be a single number)
+        if (numbers.length > 0) {
+          extracted.retirementAge = numbers[0];
+        }
+        break;
+    }
+
+    return extracted;
+  };
 
   // Initial greeting - start sequential conversation
   const startGreeting = async () => {
     console.log('[AIConsole] Starting greeting...');
 
     // Show instant pre-scripted greeting with first question
-    const greetingMessage = `Hello! I'm here to help you set up your retirement calculator. I'll ask you questions one at a time to make this easy.
+    const greetingMessage = `Hello! I'm here to help you set up your retirement calculator. I'll ask you a few questions to get started.
 
-Let's start with the basics: **What is your age and marital status?** (single or married)`;
+${getNextQuestion(0, {})}`;
 
     setMessages([
       { role: 'assistant', content: greetingMessage, timestamp: Date.now() },
     ]);
+    setQuestionIndex(0);
     setPhase('data-collection');
   };
 
-  // Send user message and auto-trigger AI processing
+  // Send user message and handle next step (question or API call)
   const handleSend = async () => {
     if (!input.trim() || isProcessing) return;
 
+    const userInput = input.trim();
     const userMessage: ConversationMessage = {
       role: 'user',
-      content: input.trim(),
+      content: userInput,
       timestamp: Date.now(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
 
-    // Auto-trigger AI processing (sequential conversation)
-    await handleProcess();
+    // Parse user's response and extract data
+    const parsed = parseUserResponse(userInput, questionIndex, extractedData);
+    const updatedData = { ...extractedData, ...parsed };
+    setExtractedData(updatedData);
+
+    console.log('[AIConsole] Parsed data:', parsed, 'Updated data:', updatedData);
+
+    // Check if we have more pre-scripted questions
+    const nextQ = getNextQuestion(questionIndex + 1, updatedData);
+
+    if (nextQ) {
+      // Ask next pre-scripted question (no API call)
+      const nextMessage: ConversationMessage = {
+        role: 'assistant',
+        content: nextQ,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, nextMessage]);
+      setQuestionIndex(questionIndex + 1);
+    } else {
+      // All basic questions answered - now call API to process everything
+      await handleProcess();
+    }
   };
 
   // Process conversation with AI (sequential mode)
@@ -145,30 +328,18 @@ Let's start with the basics: **What is your age and marital status?** (single or
 
       setExtractedData(result.extractedData);
       setAssumptions(result.assumptions);
-      setMissingFields(result.missingFields);
+      setMissingFields([]); // Always empty now
 
-      // Determine phase based on results
-      if (result.missingFields.length > 0) {
-        setPhase('data-collection'); // Continue collection
+      // Always move to assumptions review (no more questions)
+      setPhase('assumptions-review');
 
-        // Add AI's next question
-        const nextQuestion: ConversationMessage = {
-          role: 'assistant',
-          content: result.nextQuestion || result.summary,
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, nextQuestion]);
-      } else {
-        setPhase('assumptions-review'); // Move to review
-
-        // Add completion message
-        const completionMessage: ConversationMessage = {
-          role: 'assistant',
-          content: result.summary,
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, completionMessage]);
-      }
+      // Add completion message
+      const completionMessage: ConversationMessage = {
+        role: 'assistant',
+        content: result.summary,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, completionMessage]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process responses';
       console.error('[AIConsole] Processing error:', errorMessage);
@@ -194,10 +365,12 @@ Let's start with the basics: **What is your age and marital status?** (single or
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Send on Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux)
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       handleSend();
     }
+    // Allow plain Enter and Shift+Enter for line breaks (no preventDefault)
   };
 
   // Show assumptions review when in assumptions-review phase
@@ -205,39 +378,44 @@ Let's start with the basics: **What is your age and marital status?** (single or
 
   return (
     <div
-      className="fixed inset-0 md:flex md:flex-row bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"
+      className="fixed inset-0 bg-black h-screen"
+      style={{ height: '100dvh' }}
       role="main"
       aria-label="AI-powered retirement planning onboarding"
     >
       {/* Main Console */}
-      <div className="h-full w-full md:flex-1 flex flex-col">
-        {/* Header */}
-        <div className="flex-shrink-0 flex items-center justify-between px-3 py-3 sm:px-6 sm:py-4 border-b border-slate-800 bg-slate-950/50 backdrop-blur">
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-100">Retirement Planning Console</h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              {phase === 'greeting' && 'Initializing...'}
-              {phase === 'data-collection' && 'Gathering information'}
-              {phase === 'assumptions-review' && 'Reviewing assumptions'}
-              {phase === 'refinement' && 'Refining your plan'}
-              {phase === 'complete' && 'Complete'}
+      <div className="h-full w-full flex flex-col">
+        {/* Header - Terminal Style */}
+        <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 sm:px-6 sm:py-3 border-b border-gray-800 bg-black">
+          <div className="font-mono">
+            <h2 className="text-sm sm:text-base text-green-400">
+              <span className="text-gray-500">$ </span>
+              retirement-wizard <span className="text-gray-600">--interactive</span>
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5 ml-2">
+              {phase === 'greeting' && '[initializing...]'}
+              {phase === 'data-collection' && '[collecting data...]'}
+              {phase === 'assumptions-review' && '[review mode]'}
+              {phase === 'refinement' && '[refining...]'}
+              {phase === 'complete' && '[complete ✓]'}
             </p>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleSkip}
-            className="text-slate-300 hover:text-slate-100 hover:bg-slate-800 text-xs sm:text-sm min-h-[44px] px-4"
+            className="font-mono text-gray-400 hover:text-gray-200 hover:bg-gray-900 text-xs min-h-[32px] px-3"
             aria-label="Skip AI onboarding and proceed to manual data entry"
           >
-            <span className="hidden sm:inline">Skip to Manual Entry</span>
-            <span className="sm:hidden">Skip</span>
+            <span className="hidden sm:inline">^C exit</span>
+            <span className="sm:hidden">exit</span>
           </Button>
         </div>
 
         {/* Messages Area - Scrollable */}
         <div
-          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 space-y-3 sm:space-y-4"
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 pb-24 space-y-4 bg-black"
           role="log"
           aria-live="polite"
           aria-label="Conversation messages"
@@ -287,7 +465,11 @@ Let's start with the basics: **What is your age and marital status?** (single or
           )}
 
           {messages.map((message, index) => (
-            <MessageBubble key={`${message.timestamp}-${index}`} message={message} />
+            <MessageBubble
+              key={`${message.timestamp}-${index}`}
+              message={message}
+              isLatest={index === messages.length - 1 && message.role === 'assistant'}
+            />
           ))}
 
           {showAssumptionsReview && assumptions.length > 0 && (
@@ -331,13 +513,17 @@ Let's start with the basics: **What is your age and marital status?** (single or
         </div>
 
         {/* Input Area - Fixed at bottom */}
-        <div className="flex-shrink-0 border-t border-slate-800 bg-slate-950 backdrop-blur p-3 sm:p-4">
+        <div
+          className="flex-shrink-0 border-t border-gray-800 bg-black px-3 sm:px-4 pt-3 sm:pt-4"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+        >
           <ConsoleInput
             ref={inputRef}
             value={input}
             onChange={setInput}
             onSend={handleSend}
             onKeyDown={handleKeyDown}
+            onFocus={handleTextareaFocus}
             disabled={isProcessing || phase === 'complete'}
             placeholder={
               isProcessing

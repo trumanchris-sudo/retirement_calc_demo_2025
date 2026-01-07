@@ -350,6 +350,26 @@ export function mapAIDataToCalculator(
     cPost2: Math.round(cPost2),
     cMatch2: Math.round(cMatch2),
 
+    // Housing & Expenses (from API assumptions)
+    ...(extractedData.monthlyMortgageRent !== undefined && {
+      monthlyMortgageRent: extractedData.monthlyMortgageRent,
+    }),
+    ...(extractedData.monthlyUtilities !== undefined && {
+      monthlyUtilities: extractedData.monthlyUtilities,
+    }),
+    ...(extractedData.monthlyInsurancePropertyTax !== undefined && {
+      monthlyInsurancePropertyTax: extractedData.monthlyInsurancePropertyTax,
+    }),
+    ...(extractedData.monthlyHealthcareP1 !== undefined && {
+      monthlyHealthcareP1: extractedData.monthlyHealthcareP1,
+    }),
+    ...(extractedData.monthlyHealthcareP2 !== undefined && {
+      monthlyHealthcareP2: extractedData.monthlyHealthcareP2,
+    }),
+    ...(extractedData.monthlyOtherExpenses !== undefined && {
+      monthlyOtherExpenses: extractedData.monthlyOtherExpenses,
+    }),
+
     // Rates & Assumptions
     retRate: DEFAULT_ASSUMPTIONS.retRate,
     infRate: DEFAULT_ASSUMPTIONS.infRate,

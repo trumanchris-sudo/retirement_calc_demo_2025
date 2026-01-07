@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { AIConsole } from './AIConsole';
 import { mapAIDataToCalculator } from '@/lib/aiOnboardingMapper';
 import { saveSharedIncomeData } from '@/lib/sharedIncomeData';
@@ -16,6 +16,31 @@ interface OnboardingWizardProps {
 
 export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWizardProps) {
   const { updateConfig } = usePlanConfig();
+
+  // Lock scroll when wizard is open (iOS Safari fix)
+  useEffect(() => {
+    if (isOpen) {
+      // Save current scroll position
+      const scrollY = window.scrollY;
+
+      // Add class to lock scroll
+      document.documentElement.classList.add('wizard-open');
+      document.body.classList.add('wizard-open');
+
+      // Store scroll position for restoration
+      document.body.style.top = `-${scrollY}px`;
+
+      return () => {
+        // Remove lock class
+        document.documentElement.classList.remove('wizard-open');
+        document.body.classList.remove('wizard-open');
+
+        // Restore scroll position
+        document.body.style.top = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [isOpen]);
 
   const handleComplete = useCallback(
     async (extractedData: ExtractedData, assumptions: AssumptionWithReasoning[]) => {
@@ -78,7 +103,8 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-full max-h-full h-screen w-screen p-0 m-0"
+        className="max-w-full w-screen p-0 m-0"
+        style={{ height: '100dvh', maxHeight: '100dvh' }}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <AIConsole onComplete={handleComplete} onSkip={handleSkip} />

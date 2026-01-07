@@ -378,18 +378,28 @@ export default function SelfEmployed2026Page() {
         >
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <Label className="flex items-center">
-                Total Annual Compensation (Gross)
-                <InfoTooltip content="Your total K-1 income including both guaranteed payments and distributive share" />
-              </Label>
-              <Input value={grossCompensation} setter={setGrossCompensation} />
+              <Input
+                label={
+                  <span className="flex items-center">
+                    Total Annual Compensation (Gross)
+                    <InfoTooltip content="Your total K-1 income including both guaranteed payments and distributive share" />
+                  </span>
+                }
+                value={grossCompensation}
+                setter={setGrossCompensation}
+              />
             </div>
             <div>
-              <Label className="flex items-center">
-                Guaranteed Payments
-                <InfoTooltip content="The portion subject to self-employment tax (like W-2 wages). The remainder is your distributive share." />
-              </Label>
-              <Input value={guaranteedPayments} setter={setGuaranteedPayments} />
+              <Input
+                label={
+                  <span className="flex items-center">
+                    Guaranteed Payments
+                    <InfoTooltip content="The portion subject to self-employment tax (like W-2 wages). The remainder is your distributive share." />
+                  </span>
+                }
+                value={guaranteedPayments}
+                setter={setGuaranteedPayments}
+              />
             </div>
           </div>
 
@@ -564,8 +574,11 @@ export default function SelfEmployed2026Page() {
           description="Your retirement contributions and health benefits"
         >
           <div>
-            <Label>Your Age</Label>
-            <Input value={age} setter={setAge} />
+            <Input
+              label="Your Age"
+              value={age}
+              setter={setAge}
+            />
             <p className="text-xs text-muted-foreground mt-1">
               Age {age}: Max 401(k) is ${max401k.toLocaleString()}
               {age >= 50 && age < 60 && " (includes $8,000 catch-up)"}

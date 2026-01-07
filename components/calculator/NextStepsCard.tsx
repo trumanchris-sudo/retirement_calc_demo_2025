@@ -2,7 +2,8 @@
 
 import { LightbulbIcon, TrendingUp, DollarSign, Calendar, Shield } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import type { CalculationResult, BatchSummary } from '@/types/calculator'
+import type { CalculationResult } from '@/types/calculator'
+import type { BatchSummary } from '@/types/planner'
 
 interface NextStepsCardProps {
   result: CalculationResult | null
@@ -36,8 +37,9 @@ function generateSuggestions(
 
   // Determine success rate
   let successRate = 0
-  if (batchSummary && batchSummary.successRate !== undefined) {
-    successRate = batchSummary.successRate
+  if (batchSummary && batchSummary.probRuin !== undefined) {
+    // Calculate success rate from probability of ruin
+    successRate = (1 - batchSummary.probRuin) * 100
   } else {
     const survivalYears = result.survYrs || 0
     const totalYears = result.yrsToSim || 1
@@ -107,7 +109,7 @@ function generateSuggestions(
   }
 
   // Tax optimization suggestion (if heavy taxable withdrawals)
-  const totalTax = result.tax?.total || 0
+  const totalTax = result.tax?.tot || 0
   const withdrawal = result.wd || 1
   const effectiveTaxRate = (totalTax / withdrawal) * 100
 
