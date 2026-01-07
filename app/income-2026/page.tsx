@@ -97,10 +97,10 @@ export default function Income2026Page() {
   const [federalWithholdingExtra] = useState(0);
   const [stateWithholdingExtra] = useState(0);
 
-  // Housing
+  // Housing - NO HARDCODED DEFAULTS, read from PlanConfig SSOT
   const [housingType, setHousingType] = useState<"rent" | "own">("own");
   const [rentPayment, setRentPayment] = useState(0);
-  const [mortgagePayment, setMortgagePayment] = useState(5859);
+  const [mortgagePayment, setMortgagePayment] = useState(0); // Will be set from PlanConfig
   const [propertyTaxAnnual] = useState(25000);
   const [homeInsuranceAnnual] = useState(10000);
   const [floodInsuranceAnnual] = useState(3500);
@@ -197,6 +197,26 @@ export default function Income2026Page() {
 
     if (planConfig.marital === 'married' && planConfig.cPre2 && planConfig.cPre2 > 0) {
       setP2PreTax401k(planConfig.cPre2);
+    }
+
+    // Load mortgage payment from PlanConfig (SSOT)
+    if (planConfig.monthlyMortgageRent && planConfig.monthlyMortgageRent > 0) {
+      setMortgagePayment(planConfig.monthlyMortgageRent);
+      console.log('[INCOME-2026] ✅ Loaded mortgage from PlanConfig SSOT:', planConfig.monthlyMortgageRent);
+    }
+
+    // Load bonus and first pay date from PlanConfig (SSOT)
+    if (planConfig.eoyBonusAmount && planConfig.eoyBonusAmount > 0) {
+      setP1Bonus(planConfig.eoyBonusAmount);
+      console.log('[INCOME-2026] ✅ Loaded EOY bonus from PlanConfig SSOT:', planConfig.eoyBonusAmount);
+    }
+    if (planConfig.eoyBonusMonth) {
+      setP1BonusMonth(planConfig.eoyBonusMonth);
+      console.log('[INCOME-2026] ✅ Loaded bonus month from PlanConfig SSOT:', planConfig.eoyBonusMonth);
+    }
+    if (planConfig.firstPayDate) {
+      setP1FirstPayDate(planConfig.firstPayDate);
+      console.log('[INCOME-2026] ✅ Loaded first pay date from PlanConfig SSOT:', planConfig.firstPayDate);
     }
 
     // Priority 2: Fall back to budget context estimates if PlanConfig is empty

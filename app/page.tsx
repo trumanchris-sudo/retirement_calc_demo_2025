@@ -63,6 +63,7 @@ import OptimizationTab from "@/components/calculator/OptimizationTab";
 import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
 import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexibilityChart";
 import { RothConversionOptimizer } from "@/components/calculator/RothConversionOptimizer";
+import { SSOTTab } from "@/components/calculator/SSOTTab";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
@@ -7064,6 +7065,13 @@ export default function App() {
             </div>
           </CardContent>
         </Card>
+        </AnimatedSection>
+        </TabPanel>
+
+        {/* SSOT Tab - Single Source of Truth */}
+        <TabPanel id="ssot" activeTab={activeMainTab}>
+        <AnimatedSection animation="fade-in" delay={100}>
+          <SSOTTab />
         </AnimatedSection>
         </TabPanel>
 

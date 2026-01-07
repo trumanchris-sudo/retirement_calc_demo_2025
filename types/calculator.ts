@@ -86,6 +86,12 @@ export interface CalculatorInputs {
   annualIncome1: number;
   annualIncome2?: number;
 
+  // Income Calculator Details (for paycheck projection)
+  monthlyMortgageRent?: number;
+  eoyBonusAmount?: number;
+  eoyBonusMonth?: string;
+  firstPayDate?: string;
+
   // Starting Balances
   emergencyFund: number;  // Separate emergency fund (yields inflation rate only)
   sTax: number;           // Starting taxable brokerage balance
