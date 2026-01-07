@@ -1209,48 +1209,49 @@ export default function App() {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   // Read core fields directly from PlanConfig (single source of truth)
-  const marital = planConfig.marital || 'single';
-  const age1 = planConfig.age1 || 35;
-  const age2 = planConfig.age2 || 33;
-  const retAge = planConfig.retAge || 65;
+  // Using ?? (nullish coalescing) instead of || to preserve legitimate 0 values
+  const marital = planConfig.marital ?? 'single';
+  const age1 = planConfig.age1 ?? 35;
+  const age2 = planConfig.age2 ?? 33;
+  const retAge = planConfig.retAge ?? 65;
 
   // Employment & Income
-  const employmentType1 = planConfig.employmentType1 || 'w2';
+  const employmentType1 = planConfig.employmentType1 ?? 'w2';
   const employmentType2 = planConfig.employmentType2;
-  const annualIncome1 = planConfig.annualIncome1 || 100000;
-  const annualIncome2 = planConfig.annualIncome2 || 0;
+  const annualIncome1 = planConfig.annualIncome1 ?? 100000;
+  const annualIncome2 = planConfig.annualIncome2 ?? 0;
 
   // Current Account Balances
-  const emergencyFund = planConfig.emergencyFund || 20000;
-  const sTax = planConfig.sTax || 50000;
-  const sPre = planConfig.sPre || 150000;
-  const sPost = planConfig.sPost || 25000;
+  const emergencyFund = planConfig.emergencyFund ?? 20000;
+  const sTax = planConfig.sTax ?? 50000;
+  const sPre = planConfig.sPre ?? 150000;
+  const sPost = planConfig.sPost ?? 25000;
 
   // Annual Contributions
-  const cTax1 = planConfig.cTax1 || 12000;
-  const cPre1 = planConfig.cPre1 || 23000;
-  const cPost1 = planConfig.cPost1 || 7000;
-  const cMatch1 = planConfig.cMatch1 || 0;
-  const cTax2 = planConfig.cTax2 || 8000;
-  const cPre2 = planConfig.cPre2 || 23000;
-  const cPost2 = planConfig.cPost2 || 7000;
-  const cMatch2 = planConfig.cMatch2 || 0;
+  const cTax1 = planConfig.cTax1 ?? 12000;
+  const cPre1 = planConfig.cPre1 ?? 23000;
+  const cPost1 = planConfig.cPost1 ?? 7000;
+  const cMatch1 = planConfig.cMatch1 ?? 0;
+  const cTax2 = planConfig.cTax2 ?? 8000;
+  const cPre2 = planConfig.cPre2 ?? 23000;
+  const cPost2 = planConfig.cPost2 ?? 7000;
+  const cMatch2 = planConfig.cMatch2 ?? 0;
 
   // Return and Withdrawal Assumptions
-  const retRate = planConfig.retRate || 9.8;
-  const infRate = planConfig.infRate || 2.6;
-  const stateRate = planConfig.stateRate || 0;
+  const retRate = planConfig.retRate ?? 9.8;
+  const infRate = planConfig.infRate ?? 2.6;
+  const stateRate = planConfig.stateRate ?? 0;
   const incContrib = planConfig.incContrib ?? false;
-  const incRate = planConfig.incRate || 4.5;
-  const wdRate = planConfig.wdRate || 3.5;
-  const dividendYield = planConfig.dividendYield || 2.0;
+  const incRate = planConfig.incRate ?? 4.5;
+  const wdRate = planConfig.wdRate ?? 3.5;
+  const dividendYield = planConfig.dividendYield ?? 2.0;
 
   // Social Security Benefits
   const includeSS = planConfig.includeSS ?? true;
-  const ssIncome = planConfig.ssIncome || 75000;
-  const ssClaimAge = planConfig.ssClaimAge || 67;
-  const ssIncome2 = planConfig.ssIncome2 || 75000;
-  const ssClaimAge2 = planConfig.ssClaimAge2 || 67;
+  const ssIncome = planConfig.ssIncome ?? 75000;
+  const ssClaimAge = planConfig.ssClaimAge ?? 67;
+  const ssIncome2 = planConfig.ssIncome2 ?? 75000;
+  const ssClaimAge2 = planConfig.ssClaimAge2 ?? 67;
 
   // Family & Children (for generational wealth calculations)
   const [numChildren, setNumChildren] = useState(0);
@@ -2258,6 +2259,26 @@ export default function App() {
     // NOTE: The wizard has already updated PlanConfig context.
     // No need to sync - we read directly from planConfig now!
 
+    // Validate that critical fields are set
+    const criticalFields = {
+      age1: planConfig.age1,
+      retAge: planConfig.retAge,
+      marital: planConfig.marital,
+      annualIncome1: planConfig.annualIncome1,
+      employmentType1: planConfig.employmentType1,
+    };
+
+    const missingFields = Object.entries(criticalFields)
+      .filter(([_, value]) => value === undefined || value === null)
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+      console.warn('[ONBOARDING] Missing critical fields after wizard completion:', missingFields);
+      console.warn('[ONBOARDING] Current PlanConfig:', planConfig);
+    } else {
+      console.log('[ONBOARDING] All critical fields validated successfully');
+    }
+
     // Close wizard
     setIsWizardOpen(false);
 
@@ -2268,7 +2289,7 @@ export default function App() {
     setTimeout(() => {
       calc();
     }, 300);
-  }, []); // calc is stable, no need in deps (used in setTimeout)
+  }, [planConfig, calc]); // Include planConfig and calc in dependencies
 
   const calc = useCallback(async () => {
     console.log('[CALC] Starting calculation...');
@@ -3171,6 +3192,7 @@ export default function App() {
       inputs: {
         // Use planConfig as source (single source of truth)
         marital, age1, age2, retAge,
+        employmentType1, employmentType2, annualIncome1, annualIncome2,
         emergencyFund, sTax, sPre, sPost,
         cTax1, cPre1, cPost1, cMatch1,
         cTax2, cPre2, cPost2, cMatch2,
@@ -3194,7 +3216,9 @@ export default function App() {
     setSavedScenarios(updated);
     localStorage.setItem('retirement-scenarios', JSON.stringify(updated));
     setScenarioName("");
-  }, [res, scenarioName, savedScenarios, marital, age1, age2, retAge, emergencyFund, sTax, sPre, sPost,
+  }, [res, scenarioName, savedScenarios, marital, age1, age2, retAge,
+      employmentType1, employmentType2, annualIncome1, annualIncome2,
+      emergencyFund, sTax, sPre, sPost,
       cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
       retRate, infRate, stateRate, incContrib, incRate, wdRate, dividendYield,
       includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2]);
@@ -3217,6 +3241,11 @@ export default function App() {
       age2: inp.age2 ?? 30,
       retAge: inp.retAge ?? 65,
       marital: inp.marital ?? 'single',
+      // Employment & Income
+      employmentType1: inp.employmentType1 ?? 'w2',
+      employmentType2: inp.employmentType2,
+      annualIncome1: inp.annualIncome1 ?? 100000,
+      annualIncome2: inp.annualIncome2 ?? 0,
       // Current Balances
       emergencyFund: inp.emergencyFund ?? 0,
       sTax: inp.sTax ?? 0,
@@ -5315,9 +5344,10 @@ export default function App() {
                   <CardContent>
                     {(() => {
                       // Route to self-employed calculator if either person is not W-2
+                      // Only check spouse employment type if married
                       const usesSelfEmployed =
                         (planConfig.employmentType1 && planConfig.employmentType1 !== 'w2') ||
-                        (planConfig.employmentType2 && planConfig.employmentType2 !== 'w2');
+                        (marital === 'married' && planConfig.employmentType2 && planConfig.employmentType2 !== 'w2');
                       const targetPath = usesSelfEmployed ? '/self-employed-2026' : '/income-2026';
                       const plannerName = usesSelfEmployed ? '2026 Self-Employed Planner' : '2026 Income Planner';
 
