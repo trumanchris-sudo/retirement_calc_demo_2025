@@ -20,24 +20,14 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
   // Lock scroll when wizard is open (iOS Safari fix)
   useEffect(() => {
     if (isOpen) {
-      // Save current scroll position
-      const scrollY = window.scrollY;
-
-      // Add class to lock scroll
+      // Add class to lock scroll (only overflow: hidden, no position: fixed)
       document.documentElement.classList.add('wizard-open');
       document.body.classList.add('wizard-open');
-
-      // Store scroll position for restoration
-      document.body.style.top = `-${scrollY}px`;
 
       return () => {
         // Remove lock class
         document.documentElement.classList.remove('wizard-open');
         document.body.classList.remove('wizard-open');
-
-        // Restore scroll position
-        document.body.style.top = '';
-        window.scrollTo(0, scrollY);
       };
     }
   }, [isOpen]);

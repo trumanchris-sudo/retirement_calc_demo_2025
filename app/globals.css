@@ -12,12 +12,10 @@ html {
 }
 
 /* Lock scroll when wizard is open - iOS Safari fix */
+/* Only prevent scrolling, don't fix position (causes keyboard issues on iOS) */
 html.wizard-open,
 body.wizard-open {
   overflow: hidden !important;
-  position: fixed !important;
-  width: 100% !important;
-  height: 100% !important;
 }
 
 /* Monospace for numbers */
