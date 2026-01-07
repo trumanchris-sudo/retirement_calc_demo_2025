@@ -39,6 +39,16 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Lock body scroll when wizard opens
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = useCallback(() => {
     if (!messagesContainerRef.current) return;
@@ -50,15 +60,29 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, scrollToBottom]);
+  }, [messages.length, scrollToBottom]);
 
-  // Scroll to bottom when textarea is focused (handles mobile keyboard)
+  // Prevent Safari from scrolling document on input focus
   const handleTextareaFocus = useCallback(() => {
-    // Immediate scroll to ensure last message is visible above keyboard
-    scrollToBottom();
-    // Additional scroll after keyboard animation completes
-    setTimeout(scrollToBottom, 300);
-  }, [scrollToBottom]);
+    // Only run on iOS
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      // Force document to stay at top, prevent Safari's default scroll behavior
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+
+      // Also force it again after a tiny delay (Safari sometimes scrolls after focus)
+      setTimeout(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      }, 10);
+    }
+
+    // Scroll messages container to bottom so last question is visible
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, []);
 
   // Load state from localStorage on mount
   useEffect(() => {
