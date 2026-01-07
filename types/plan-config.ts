@@ -121,6 +121,10 @@ export function createDefaultPlanConfig(): PlanConfig {
     walkSeries: 'nominal',
     seed: 12345,
 
+    // Scenario Testing
+    inflationShockRate: null,
+    inflationShockDuration: 0,
+
     // Generational Wealth
     showGen: false,
     hypPerBen: 30000,
