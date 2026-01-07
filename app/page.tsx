@@ -68,7 +68,6 @@ import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import { wizardDataToAppState } from "@/lib/onboardingMapper";
 import type { OnboardingWizardData } from "@/types/onboarding";
 
 // Import types
@@ -1199,7 +1198,7 @@ ScenarioComparisonChart.displayName = 'ScenarioComparisonChart';
 
 export default function App() {
   const { setImplied } = useBudget();
-  const { config: planConfig, updateConfig: updatePlanConfig } = usePlanConfig();
+  const { config: planConfig, updateConfig: updatePlanConfig, isDirty: configIsDirty } = usePlanConfig();
 
   // Onboarding wizard state
   const {
@@ -1209,118 +1208,94 @@ export default function App() {
   } = useOnboarding();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
-  // Personal Information
-  const [personalInfo, setPersonalInfo] = useState({
-    marital: "single" as FilingStatus,
-    age1: 35,
-    age2: 33,
-    retAge: 65,
-  });
+  // Read core fields directly from PlanConfig (single source of truth)
+  const marital = planConfig.marital || 'single';
+  const age1 = planConfig.age1 || 35;
+  const age2 = planConfig.age2 || 33;
+  const retAge = planConfig.retAge || 65;
+
+  // Employment & Income
+  const employmentType1 = planConfig.employmentType1 || 'w2';
+  const employmentType2 = planConfig.employmentType2;
+  const annualIncome1 = planConfig.annualIncome1 || 100000;
+  const annualIncome2 = planConfig.annualIncome2 || 0;
+
+  // Current Account Balances
+  const emergencyFund = planConfig.emergencyFund || 20000;
+  const sTax = planConfig.sTax || 50000;
+  const sPre = planConfig.sPre || 150000;
+  const sPost = planConfig.sPost || 25000;
+
+  // Annual Contributions
+  const cTax1 = planConfig.cTax1 || 12000;
+  const cPre1 = planConfig.cPre1 || 23000;
+  const cPost1 = planConfig.cPost1 || 7000;
+  const cMatch1 = planConfig.cMatch1 || 0;
+  const cTax2 = planConfig.cTax2 || 8000;
+  const cPre2 = planConfig.cPre2 || 23000;
+  const cPost2 = planConfig.cPost2 || 7000;
+  const cMatch2 = planConfig.cMatch2 || 0;
+
+  // Return and Withdrawal Assumptions
+  const retRate = planConfig.retRate || 9.8;
+  const infRate = planConfig.infRate || 2.6;
+  const stateRate = planConfig.stateRate || 0;
+  const incContrib = planConfig.incContrib ?? false;
+  const incRate = planConfig.incRate || 4.5;
+  const wdRate = planConfig.wdRate || 3.5;
+  const dividendYield = planConfig.dividendYield || 2.0;
+
+  // Social Security Benefits
+  const includeSS = planConfig.includeSS ?? true;
+  const ssIncome = planConfig.ssIncome || 75000;
+  const ssClaimAge = planConfig.ssClaimAge || 67;
+  const ssIncome2 = planConfig.ssIncome2 || 75000;
+  const ssClaimAge2 = planConfig.ssClaimAge2 || 67;
 
   // Family & Children (for generational wealth calculations)
-  // Note: additionalChildrenExpected is declared later with generational wealth vars
   const [numChildren, setNumChildren] = useState(0);
   const [childrenAges, setChildrenAges] = useState<number[]>([]);
 
-  // Employment & Income
-  const [employmentInfo, setEmploymentInfo] = useState({
-    employmentType1: 'w2' as const,
-    employmentType2: undefined as 'w2' | 'self-employed' | 'both' | 'retired' | 'other' | undefined,
-    annualIncome1: 100000,
-    annualIncome2: 0,
-  });
+  // Helper setter functions - now using updatePlanConfig
+  const markDirty = () => res && setIsDirty(true);
 
-  // Current Account Balances
-  const [currentBalances, setCurrentBalances] = useState({
-    emergencyFund: 20000,  // Emergency fund (yields inflation rate only)
-    sTax: 50000,
-    sPre: 150000,
-    sPost: 25000,
-  });
+  const setMarital = (value: FilingStatus) => { updatePlanConfig({ marital: value }, 'user-entered'); markDirty(); };
+  const setAge1 = (value: number) => { updatePlanConfig({ age1: value }, 'user-entered'); markDirty(); };
+  const setAge2 = (value: number) => { updatePlanConfig({ age2: value }, 'user-entered'); markDirty(); };
+  const setRetAge = (value: number) => { updatePlanConfig({ retAge: value }, 'user-entered'); markDirty(); };
 
-  // Annual Contributions
-  const [contributions, setContributions] = useState({
-    cTax1: 12000,
-    cPre1: 23000,
-    cPost1: 7000,
-    cMatch1: 0,
-    cTax2: 8000,
-    cPre2: 23000,
-    cPost2: 7000,
-    cMatch2: 0,
-  });
+  const setEmploymentType1 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other') => { updatePlanConfig({ employmentType1: value }, 'user-entered'); markDirty(); };
+  const setEmploymentType2 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other' | undefined) => { updatePlanConfig({ employmentType2: value }, 'user-entered'); markDirty(); };
+  const setAnnualIncome1 = (value: number) => { updatePlanConfig({ annualIncome1: value }, 'user-entered'); markDirty(); };
+  const setAnnualIncome2 = (value: number) => { updatePlanConfig({ annualIncome2: value }, 'user-entered'); markDirty(); };
 
-  // Return and Withdrawal Assumptions
-  const [assumptions, setAssumptions] = useState({
-    retRate: 9.8,
-    infRate: 2.6,
-    stateRate: 0,
-    incContrib: false, // Changed from true to false
-    incRate: 4.5,
-    wdRate: 3.5,
-    dividendYield: 2.0, // Annual dividend/interest yield for taxable accounts
-  });
+  const setEmergencyFund = (value: number) => { updatePlanConfig({ emergencyFund: value }, 'user-entered'); markDirty(); };
+  const setSTax = (value: number) => { updatePlanConfig({ sTax: value }, 'user-entered'); markDirty(); };
+  const setSPre = (value: number) => { updatePlanConfig({ sPre: value }, 'user-entered'); markDirty(); };
+  const setSPost = (value: number) => { updatePlanConfig({ sPost: value }, 'user-entered'); markDirty(); };
 
-  // Social Security Benefits
-  const [socialSecurity, setSocialSecurity] = useState({
-    includeSS: true,
-    ssIncome: 75000, // Primary - Avg career earnings for SS calc
-    ssClaimAge: 67, // Primary - Full retirement age
-    ssIncome2: 75000, // Spouse - Avg career earnings for SS calc
-    ssClaimAge2: 67, // Spouse - Full retirement age
-  });
+  const setCTax1 = (value: number) => { updatePlanConfig({ cTax1: value }, 'user-entered'); markDirty(); };
+  const setCPre1 = (value: number) => { updatePlanConfig({ cPre1: value }, 'user-entered'); markDirty(); };
+  const setCPost1 = (value: number) => { updatePlanConfig({ cPost1: value }, 'user-entered'); markDirty(); };
+  const setCMatch1 = (value: number) => { updatePlanConfig({ cMatch1: value }, 'user-entered'); markDirty(); };
+  const setCTax2 = (value: number) => { updatePlanConfig({ cTax2: value }, 'user-entered'); markDirty(); };
+  const setCPre2 = (value: number) => { updatePlanConfig({ cPre2: value }, 'user-entered'); markDirty(); };
+  const setCPost2 = (value: number) => { updatePlanConfig({ cPost2: value }, 'user-entered'); markDirty(); };
+  const setCMatch2 = (value: number) => { updatePlanConfig({ cMatch2: value }, 'user-entered'); markDirty(); };
 
-  // Destructure for backward compatibility with existing code
-  const { marital, age1, age2, retAge } = personalInfo;
-  const { employmentType1, employmentType2, annualIncome1, annualIncome2 } = employmentInfo;
-  const { emergencyFund, sTax, sPre, sPost } = currentBalances;
-  const { cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2 } = contributions;
-  const { retRate, infRate, stateRate, incContrib, incRate, wdRate, dividendYield } = assumptions;
-  const { includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2 } = socialSecurity;
+  const setRetRate = (value: number) => { updatePlanConfig({ retRate: value }, 'user-entered'); markDirty(); };
+  const setInfRate = (value: number) => { updatePlanConfig({ infRate: value }, 'user-entered'); markDirty(); };
+  const setStateRate = (value: number) => { updatePlanConfig({ stateRate: value }, 'user-entered'); markDirty(); };
+  const setIncContrib = (value: boolean) => { updatePlanConfig({ incContrib: value }, 'user-entered'); markDirty(); };
+  const setIncRate = (value: number) => { updatePlanConfig({ incRate: value }, 'user-entered'); markDirty(); };
+  const setWdRate = (value: number) => { updatePlanConfig({ wdRate: value }, 'user-entered'); markDirty(); };
+  const setDividendYield = (value: number) => { updatePlanConfig({ dividendYield: value }, 'user-entered'); markDirty(); };
 
-  // Helper setter functions for grouped state objects (with dirty tracking)
-  const markDirty = () => res && setIsDirty(true); // Only mark dirty if we have results
-
-  const setMarital = (value: FilingStatus) => { setPersonalInfo(prev => ({ ...prev, marital: value })); markDirty(); };
-  const setAge1 = (value: number) => { setPersonalInfo(prev => ({ ...prev, age1: value })); markDirty(); };
-  const setAge2 = (value: number) => { setPersonalInfo(prev => ({ ...prev, age2: value })); markDirty(); };
-  const setRetAge = (value: number) => { setPersonalInfo(prev => ({ ...prev, retAge: value })); markDirty(); };
-
-  // Family setters (numChildren and childrenAges are now standalone)
-  // Note: setAdditionalChildrenExpected is declared later with generational wealth vars
-
-  const setEmploymentType1 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other') => { setEmploymentInfo(prev => ({ ...prev, employmentType1: value })); markDirty(); };
-  const setEmploymentType2 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other' | undefined) => { setEmploymentInfo(prev => ({ ...prev, employmentType2: value })); markDirty(); };
-  const setAnnualIncome1 = (value: number) => { setEmploymentInfo(prev => ({ ...prev, annualIncome1: value })); markDirty(); };
-  const setAnnualIncome2 = (value: number) => { setEmploymentInfo(prev => ({ ...prev, annualIncome2: value })); markDirty(); };
-
-  const setEmergencyFund = (value: number) => { setCurrentBalances(prev => ({ ...prev, emergencyFund: value })); markDirty(); };
-  const setSTax = (value: number) => { setCurrentBalances(prev => ({ ...prev, sTax: value })); markDirty(); };
-  const setSPre = (value: number) => { setCurrentBalances(prev => ({ ...prev, sPre: value })); markDirty(); };
-  const setSPost = (value: number) => { setCurrentBalances(prev => ({ ...prev, sPost: value })); markDirty(); };
-
-  const setCTax1 = (value: number) => { setContributions(prev => ({ ...prev, cTax1: value })); markDirty(); };
-  const setCPre1 = (value: number) => { setContributions(prev => ({ ...prev, cPre1: value })); markDirty(); };
-  const setCPost1 = (value: number) => { setContributions(prev => ({ ...prev, cPost1: value })); markDirty(); };
-  const setCMatch1 = (value: number) => { setContributions(prev => ({ ...prev, cMatch1: value })); markDirty(); };
-  const setCTax2 = (value: number) => { setContributions(prev => ({ ...prev, cTax2: value })); markDirty(); };
-  const setCPre2 = (value: number) => { setContributions(prev => ({ ...prev, cPre2: value })); markDirty(); };
-  const setCPost2 = (value: number) => { setContributions(prev => ({ ...prev, cPost2: value })); markDirty(); };
-  const setCMatch2 = (value: number) => { setContributions(prev => ({ ...prev, cMatch2: value })); markDirty(); };
-
-  const setRetRate = (value: number) => { setAssumptions(prev => ({ ...prev, retRate: value })); markDirty(); };
-  const setInfRate = (value: number) => { setAssumptions(prev => ({ ...prev, infRate: value })); markDirty(); };
-  const setStateRate = (value: number) => { setAssumptions(prev => ({ ...prev, stateRate: value })); markDirty(); };
-  const setIncContrib = (value: boolean) => { setAssumptions(prev => ({ ...prev, incContrib: value })); markDirty(); };
-  const setIncRate = (value: number) => { setAssumptions(prev => ({ ...prev, incRate: value })); markDirty(); };
-  const setWdRate = (value: number) => { setAssumptions(prev => ({ ...prev, wdRate: value })); markDirty(); };
-  const setDividendYield = (value: number) => { setAssumptions(prev => ({ ...prev, dividendYield: value })); markDirty(); };
-
-  const setIncludeSS = (value: boolean) => { setSocialSecurity(prev => ({ ...prev, includeSS: value })); markDirty(); };
-  const setSSIncome = (value: number) => { setSocialSecurity(prev => ({ ...prev, ssIncome: value })); markDirty(); };
-  const setSSClaimAge = (value: number) => { setSocialSecurity(prev => ({ ...prev, ssClaimAge: value })); markDirty(); };
-  const setSSIncome2 = (value: number) => { setSocialSecurity(prev => ({ ...prev, ssIncome2: value })); markDirty(); };
-  const setSSClaimAge2 = (value: number) => { setSocialSecurity(prev => ({ ...prev, ssClaimAge2: value })); markDirty(); };
+  const setIncludeSS = (value: boolean) => { updatePlanConfig({ includeSS: value }, 'user-entered'); markDirty(); };
+  const setSSIncome = (value: number) => { updatePlanConfig({ ssIncome: value }, 'user-entered'); markDirty(); };
+  const setSSClaimAge = (value: number) => { updatePlanConfig({ ssClaimAge: value }, 'user-entered'); markDirty(); };
+  const setSSIncome2 = (value: number) => { updatePlanConfig({ ssIncome2: value }, 'user-entered'); markDirty(); };
+  const setSSClaimAge2 = (value: number) => { updatePlanConfig({ ssClaimAge2: value }, 'user-entered'); markDirty(); };
 
   // Healthcare costs (post-retirement)
   const [includeMedicare, setIncludeMedicare] = useState(true);
@@ -2278,52 +2253,10 @@ export default function App() {
   // Handler for wizard completion
   const handleWizardComplete = useCallback(async (wizardData: OnboardingWizardData | any) => {
     console.log('[ONBOARDING] Wizard completed', wizardData);
-    console.log('[ONBOARDING] PlanConfig has been updated by wizard, syncing to local state...');
+    console.log('[ONBOARDING] PlanConfig has been updated by wizard');
 
     // NOTE: The wizard has already updated PlanConfig context.
-    // We need to sync PlanConfig → local state for backward compatibility
-    // (until we fully migrate calc() to use PlanConfig directly)
-
-    // Check if this is from AI onboarding (has age/marital directly) or old wizard (has currentStep)
-    const isAIOnboarding = !('currentStep' in wizardData);
-
-    let appState;
-    if (isAIOnboarding) {
-      console.log('[ONBOARDING] Processing AI onboarding data');
-      // AI onboarding already returns calculator inputs format
-      appState = wizardData;
-    } else {
-      console.log('[ONBOARDING] Processing traditional wizard data');
-      // Map wizard data to app state
-      appState = wizardDataToAppState(wizardData);
-    }
-
-    // Update all the app state values (for backward compatibility during transition)
-    // TODO Phase 3: Remove these once calc() reads from PlanConfig directly
-    setPersonalInfo({
-      marital: appState.marital,
-      age1: appState.age1,
-      age2: appState.age2,
-      retAge: appState.retAge,
-    });
-
-    setContributions({
-      cTax1: appState.cTax1,
-      cPre1: appState.cPre1,
-      cPost1: appState.cPost1,
-      cMatch1: appState.cMatch1,
-      cTax2: appState.cTax2,
-      cPre2: appState.cPre2,
-      cPost2: appState.cPost2,
-      cMatch2: appState.cMatch2,
-    });
-
-    setAssumptions((prev) => ({
-      ...prev,
-      wdRate: appState.wdRate,
-    }));
-
-    console.log('[ONBOARDING] State synced successfully');
+    // No need to sync - we read directly from planConfig now!
 
     // Close wizard
     setIsWizardOpen(false);
@@ -2335,7 +2268,7 @@ export default function App() {
     setTimeout(() => {
       calc();
     }, 300);
-  }, []);
+  }, [calc]);
 
   const calc = useCallback(async () => {
     console.log('[CALC] Starting calculation...');
