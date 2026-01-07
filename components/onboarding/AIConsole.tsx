@@ -39,16 +39,6 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Lock body scroll when wizard opens
-  useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, []);
-
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = useCallback(() => {
     if (!messagesContainerRef.current) return;
@@ -62,19 +52,8 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     scrollToBottom();
   }, [messages.length, scrollToBottom]);
 
-  // Prevent Safari from scrolling document on input focus
+  // Scroll messages to bottom when textarea gets focus
   const handleTextareaFocus = useCallback(() => {
-    // Only run on iOS
-    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-      // Force document to stay at top, prevent Safari's default scroll behavior
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-
-      // Also force it again after a tiny delay (Safari sometimes scrolls after focus)
-      setTimeout(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-      }, 10);
-    }
-
     // Scroll messages container to bottom so last question is visible
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
