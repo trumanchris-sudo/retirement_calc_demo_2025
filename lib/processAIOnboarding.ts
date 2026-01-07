@@ -6,7 +6,8 @@
 import type { ExtractedData, AssumptionWithReasoning } from '@/types/ai-onboarding';
 
 export interface ProcessOnboardingParams {
-  conversationText: string; // All user responses combined
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>; // Full conversation
+  extractedData?: ExtractedData; // Data collected so far
 }
 
 export interface MissingField {
@@ -20,6 +21,7 @@ export interface ProcessOnboardingResult {
   assumptions: AssumptionWithReasoning[];
   missingFields: MissingField[];
   summary: string;
+  nextQuestion?: string; // Next question to ask (for sequential conversation)
 }
 
 export async function processAIOnboarding(

@@ -1,5 +1,9 @@
 /**
  * Maps onboarding wizard data to main app state
+ *
+ * LEGACY: Used by old 4-step manual wizard.
+ * New AI wizard writes directly to PlanConfig context.
+ * Kept for backward compatibility with manual wizard fallback.
  */
 
 import type { OnboardingWizardData } from '@/types/onboarding'
