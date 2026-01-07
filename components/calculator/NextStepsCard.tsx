@@ -2,7 +2,8 @@
 
 import { LightbulbIcon, TrendingUp, DollarSign, Calendar, Shield } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import type { CalculationResult, BatchSummary } from '@/types/calculator'
+import type { CalculationResult } from '@/types/calculator'
+import type { BatchSummary } from '@/types/planner'
 
 interface NextStepsCardProps {
   result: CalculationResult | null
@@ -107,7 +108,7 @@ function generateSuggestions(
   }
 
   // Tax optimization suggestion (if heavy taxable withdrawals)
-  const totalTax = result.tax?.total || 0
+  const totalTax = result.tax?.tot || 0
   const withdrawal = result.wd || 1
   const effectiveTaxRate = (totalTax / withdrawal) * 100
 

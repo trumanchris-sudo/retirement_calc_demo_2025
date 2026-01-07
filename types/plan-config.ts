@@ -122,7 +122,6 @@ export function createDefaultPlanConfig(): PlanConfig {
     seed: 12345,
 
     // Bond Glide Path
-    allocationStrategy: 'age-based',
     bondStartPct: 20,
     bondEndPct: 60,
     bondStartAge: 40,

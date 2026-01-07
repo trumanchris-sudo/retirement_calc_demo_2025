@@ -1,6 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { WealthTrajectoryChart } from '../components/Charts/WealthTrajectoryChart';
 import { MonteCarloHistogram } from '../components/Charts/MonteCarloHistogram';
 import { formatCurrency } from '@/lib/pdf/utils/format';
