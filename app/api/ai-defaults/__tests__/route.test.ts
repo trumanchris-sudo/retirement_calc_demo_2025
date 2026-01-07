@@ -1,14 +1,17 @@
+// @ts-nocheck
 /**
  * Tests for AI Defaults API endpoint
  *
  * TODO: These are placeholder tests showing the structure.
  * To run these tests, you'll need to:
- * 1. Install Jest: `npm install --save-dev jest @types/jest ts-jest`
+ * 1. Install Jest: `npm install --save-dev jest @types/jest ts-jest @jest/globals`
  * 2. Configure Jest for Next.js
  * 3. Mock the Anthropic SDK
+ * 4. Remove @ts-nocheck directive above once Jest is installed
  */
 
-import { describe, it, expect, jest, beforeEach } from '@jest/globals'
+// Commented out until Jest is installed - uncomment after running: npm install --save-dev jest @types/jest @jest/globals ts-jest
+// import { describe, it, expect, jest, beforeEach } from '@jest/globals'
 // import { POST } from '../route'
 // import { NextRequest } from 'next/server'
 
