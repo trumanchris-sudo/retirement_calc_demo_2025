@@ -40,7 +40,11 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'end',
+      inline: 'nearest'
+    });
   }, []);
 
   useEffect(() => {
@@ -49,10 +53,11 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
 
   // Scroll to bottom when textarea is focused (handles mobile keyboard)
   const handleTextareaFocus = useCallback(() => {
-    // Small delay to let keyboard animation complete
-    setTimeout(() => {
-      scrollToBottom();
-    }, 300);
+    // Multiple scroll attempts to handle mobile keyboard animation
+    scrollToBottom(); // Immediate
+    setTimeout(scrollToBottom, 100); // Early check
+    setTimeout(scrollToBottom, 300); // Mid check
+    setTimeout(scrollToBottom, 600); // Final check after keyboard fully open
   }, [scrollToBottom]);
 
   // Load state from localStorage on mount
@@ -405,7 +410,7 @@ ${getNextQuestion(0, {})}`;
 
         {/* Messages Area - Scrollable */}
         <div
-          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 pb-64 space-y-4 bg-black"
+          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 pb-96 space-y-4 bg-black"
           role="log"
           aria-live="polite"
           aria-label="Conversation messages"

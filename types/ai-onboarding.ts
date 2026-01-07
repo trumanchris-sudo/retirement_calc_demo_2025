@@ -61,6 +61,14 @@ export interface ExtractedData {
   savingsRateTraditional2?: number;
   savingsRateRoth2?: number;
 
+  // Housing & Expenses (from API assumptions)
+  monthlyMortgageRent?: number;
+  monthlyUtilities?: number;
+  monthlyInsurancePropertyTax?: number;
+  monthlyHealthcareP1?: number;
+  monthlyHealthcareP2?: number;
+  monthlyOtherExpenses?: number;
+
   // Goals
   retirementAge?: number;
   desiredRetirementSpending?: number;
