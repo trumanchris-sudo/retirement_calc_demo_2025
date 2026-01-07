@@ -15,6 +15,7 @@ import { ConsoleInput } from './ConsoleInput';
 import { DataSummaryPanel } from './DataSummaryPanel';
 import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 
 interface AIConsoleProps {
   onComplete: (data: ExtractedData, assumptions: AssumptionWithReasoning[]) => void;
@@ -39,6 +40,9 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Get keyboard height for iOS Safari
+  const keyboardInset = useKeyboardInset();
+
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = useCallback(() => {
     if (!messagesContainerRef.current) return;
@@ -52,15 +56,23 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     scrollToBottom();
   }, [messages.length, scrollToBottom]);
 
-  // Scroll messages to bottom when textarea gets focus
+  // Scroll messages to bottom when textarea gets focus (iOS keyboard fix)
   const handleTextareaFocus = useCallback(() => {
-    // Scroll messages container to bottom so last question is visible
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: messagesContainerRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
+    // Use preventScroll to avoid iOS Safari jumping to weird positions
+    if (inputRef.current) {
+      inputRef.current.focus({ preventScroll: true });
     }
+
+    // Then smoothly scroll the messages container to bottom
+    // This ensures the latest question is visible above the keyboard
+    requestAnimationFrame(() => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTo({
+          top: messagesContainerRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+    });
   }, []);
 
   // Load state from localStorage on mount
@@ -412,10 +424,13 @@ ${getNextQuestion(0, {})}`;
           </Button>
         </div>
 
-        {/* Messages Area - Scrollable */}
+        {/* Messages Area - Scrollable with keyboard-aware padding */}
         <div
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 pb-24 space-y-4 bg-black"
+          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 space-y-4 bg-black"
+          style={{
+            paddingBottom: `calc(${keyboardInset}px + env(safe-area-inset-bottom, 0px) + 6rem)`,
+          }}
           role="log"
           aria-live="polite"
           aria-label="Conversation messages"
@@ -512,10 +527,12 @@ ${getNextQuestion(0, {})}`;
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area - Fixed at bottom */}
+        {/* Input Area - Fixed at bottom with keyboard-aware padding */}
         <div
           className="flex-shrink-0 border-t border-gray-800 bg-black px-3 sm:px-4 pt-3 sm:pt-4"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+          style={{
+            paddingBottom: `calc(${keyboardInset}px + env(safe-area-inset-bottom, 0px) + 0.75rem)`,
+          }}
         >
           <ConsoleInput
             ref={inputRef}
