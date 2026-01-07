@@ -45,6 +45,7 @@ export interface ExtractedData {
   employmentType2?: EmploymentType;
   annualIncome1?: number;
   annualIncome2?: number;
+  bonusInfo?: string; // Raw bonus information for API to parse
 
   // Current Portfolio Balances
   emergencyFund?: number;

@@ -30,35 +30,51 @@ export async function POST(request: NextRequest) {
       fieldsCollected: Object.keys(extractedData || {}).length
     });
 
-    const systemPrompt = `You are a retirement planning assistant. The client has collected basic information from the user. Your job is to:
+    const systemPrompt = `You are a retirement planning assistant. The client has collected 6 key questions from the user:
 
+1. Age, marital status, and spouse age (if married)
+2. State of residence
+3. Employment type (W-2, self-employed, K-1, or other) for both spouses
+4. Annual income(s) and bonus information
+5. Account balances (traditional, Roth, taxable, cash)
+6. Target retirement age
+
+Your job is to:
 1. Validate and refine the data collected
-2. Make reasonable assumptions for ALL missing fields
-3. Generate a complete retirement plan configuration
+2. Extract bonus details if provided (bonusInfo field)
+3. Make reasonable assumptions for ALL remaining missing fields
+4. Generate a complete retirement plan configuration
 
 USER PROVIDED DATA (from client-side collection):
 ${JSON.stringify(extractedData, null, 2)}
 
-REQUIRED ASSUMPTIONS - Fill in ALL missing fields with reasonable defaults:
+DATA VALIDATION AND EXTRACTION:
 
-CRITICAL FIELDS (use conversation context if mentioned, otherwise assume):
-- age: User's age (REQUIRED from conversation)
-- maritalStatus: "single" or "married" (REQUIRED from conversation)
-- annualIncome1: Annual income person 1 (REQUIRED from conversation)
-- annualIncome2: Annual income person 2 (if married, REQUIRED from conversation)
-- employmentType1: Assume "w2" unless self-employment mentioned
-- employmentType2: Assume "w2" unless self-employment mentioned
+CRITICAL FIELDS (should be provided by user):
+- age: User's age (REQUIRED from Q1)
+- spouseAge: Spouse's age if married (from Q1)
+- maritalStatus: "single" or "married" (from Q1)
+- state: State abbreviation (from Q2) - affects tax calculations
+- employmentType1: "w2", "self-employed", "k1", or "other" (from Q3)
+- employmentType2: Same options (from Q3, if married)
+- annualIncome1: Annual income person 1 (from Q4)
+- annualIncome2: Annual income person 2 if married (from Q4)
+- retirementAge: Target retirement age (from Q6)
 
-ACCOUNT BALANCES (use user values if provided, otherwise assume $0):
+BONUS INFORMATION (if bonusInfo field provided):
+- Parse bonusInfo to extract:
+  - Annual bonus amounts for person 1 and/or person 2
+  - Bonus payment month(s)
+  - Whether bonus is variable or fixed
+- If mentioned but no specific amounts, assume 10% of base salary
+
+ACCOUNT BALANCES (from Q5, use provided values or $0):
 - currentTraditional: Traditional IRA/401k balance
 - currentRoth: Roth IRA/401k balance
 - currentTaxable: Taxable brokerage balance
 - currentCash: Savings/emergency fund balance
 
-RETIREMENT ASSUMPTIONS (make reasonable assumptions):
-- retirementAge: Assume 65 if not specified
-- spouseAge: If married, calculate from context or assume 2 years younger than user
-- state: Assume "CA" (California) if not specified - affects tax calculations
+ASSUMPTIONS TO MAKE FOR REMAINING FIELDS:
 
 CONTRIBUTION RATES (assume standard rates based on income):
 - contributionRate1Traditional: Assume 6% if income < $150k, 10% if >= $150k

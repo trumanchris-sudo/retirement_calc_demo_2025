@@ -92,13 +92,21 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
 
     switch (qIndex) {
       case 0:
-        return "Let's start with the basics: **What is your age and are you single or married?**";
+        return "Let's start with the basics: **What is your age and are you single or married?**\n\n(If married, please also tell me your spouse's age!)";
       case 1:
-        return isMarried
-          ? "Great! Now let's talk income. **What's your annual income, and what's your spouse's annual income?** (Just rough numbers are fine!)"
-          : "Got it! Now let's talk income. **What's your annual income?** (Just a rough number is fine!)";
+        return "**What state do you live in?**";
       case 2:
-        return "Perfect! Now, **what are your current account balances?**\n\n• Traditional IRA/401k\n• Roth IRA/401k\n• Taxable brokerage\n• Savings/emergency fund\n\n(Just give me the numbers - $0 is fine if you don't have one!)";
+        return isMarried
+          ? "**Are you a W-2 employee, self-employed, or something else?** And what about your spouse?"
+          : "**Are you a W-2 employee, self-employed, or something else?**";
+      case 3:
+        return isMarried
+          ? "**What's your annual income, and what's your spouse's annual income?** (Before taxes)\n\nAlso, does any of that include bonuses or variable compensation?"
+          : "**What's your annual income?** (Before taxes)\n\nDoes any of that include bonuses or variable compensation?";
+      case 4:
+        return "**What are your current account balances?**\n\n• Pre-tax (401k, Traditional IRA)\n• Roth (Roth IRA, Roth 401k)\n• Taxable brokerage\n• Cash/savings\n\n(Just give me the numbers - $0 is fine if you don't have one!)";
+      case 5:
+        return "Finally, **what age would you like to retire?** (Even if it feels unrealistic right now!)";
       default:
         return null; // No more pre-scripted questions, will call API
     }
@@ -119,7 +127,7 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     }) || [];
 
     switch (qIndex) {
-      case 0: // Age and marital status
+      case 0: // Age and marital status (+ spouse age if married)
         // Extract age (first number in response)
         if (numbers.length > 0) {
           extracted.age = numbers[0];
@@ -127,31 +135,91 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
         // Extract marital status
         if (input.includes('married')) {
           extracted.maritalStatus = 'married';
+          // If married and 2+ numbers, second is spouse age
+          if (numbers.length > 1) {
+            extracted.spouseAge = numbers[1];
+          }
         } else if (input.includes('single')) {
           extracted.maritalStatus = 'single';
         }
         break;
 
-      case 1: // Income
-        if (numbers.length > 0) {
-          extracted.annualIncome1 = numbers[0];
-        }
-        if (numbers.length > 1 && currentData.maritalStatus === 'married') {
-          extracted.annualIncome2 = numbers[1];
-        }
-        // Assume W2 employment by default
-        extracted.employmentType1 = 'w2';
-        if (currentData.maritalStatus === 'married') {
-          extracted.employmentType2 = 'w2';
+      case 1: // State
+        // Extract state abbreviation or name
+        // Try common patterns: "CA", "California", "I live in Texas", etc.
+        const stateMatch = userInput.match(/\b([A-Z]{2})\b/); // 2-letter state code
+        if (stateMatch) {
+          extracted.state = stateMatch[1];
+        } else {
+          // Store full answer, API will parse it
+          extracted.state = userInput.trim();
         }
         break;
 
-      case 2: // Account balances
+      case 2: // Employment type
+        const isMarried = currentData.maritalStatus === 'married';
+
+        // Detect employment types
+        const detectEmploymentType = (text: string): 'w2' | 'self-employed' | 'k1' | 'other' => {
+          if (text.includes('w2') || text.includes('w-2') || text.includes('employee')) {
+            return 'w2';
+          } else if (text.includes('self-employed') || text.includes('self employed') ||
+                     text.includes('freelance') || text.includes('contractor') || text.includes('1099')) {
+            return 'self-employed';
+          } else if (text.includes('k1') || text.includes('k-1') || text.includes('partner')) {
+            return 'k1';
+          }
+          return 'other';
+        };
+
+        extracted.employmentType1 = detectEmploymentType(input);
+
+        if (isMarried) {
+          // Look for spouse indicators: "spouse", "wife", "husband", "they", "she", "he"
+          // Split on common separators and check second part
+          const parts = input.split(/\band\b|\,|\;|\./);
+          if (parts.length > 1) {
+            extracted.employmentType2 = detectEmploymentType(parts[1]);
+          } else {
+            // Default to same as person 1
+            extracted.employmentType2 = extracted.employmentType1;
+          }
+        }
+        break;
+
+      case 3: // Income + bonus
+        const isMarriedIncome = currentData.maritalStatus === 'married';
+
+        // Extract income(s)
+        if (numbers.length > 0) {
+          extracted.annualIncome1 = numbers[0];
+        }
+        if (numbers.length > 1 && isMarriedIncome) {
+          extracted.annualIncome2 = numbers[1];
+        }
+
+        // Detect bonus information - store for API to process
+        // Look for: "bonus", "$X bonus", "X in bonuses", etc.
+        // We'll let the API handle the details, just flag it
+        if (input.includes('bonus') && !input.includes('no bonus')) {
+          // Store original response for API to extract bonus details
+          (extracted as any).bonusInfo = userInput;
+        }
+        break;
+
+      case 4: // Account balances
         // Try to extract 4 numbers: traditional, roth, taxable, cash
         if (numbers.length >= 1) extracted.currentTraditional = numbers[0];
         if (numbers.length >= 2) extracted.currentRoth = numbers[1];
         if (numbers.length >= 3) extracted.currentTaxable = numbers[2];
         if (numbers.length >= 4) extracted.currentCash = numbers[3];
+        break;
+
+      case 5: // Retirement age
+        // Extract retirement age (should be a single number)
+        if (numbers.length > 0) {
+          extracted.retirementAge = numbers[0];
+        }
         break;
     }
 
