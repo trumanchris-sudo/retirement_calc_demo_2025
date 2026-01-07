@@ -33,6 +33,7 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const [hasProcessed, setHasProcessed] = useState(false);
   const [phase, setPhase] = useState<ConversationPhase>('greeting');
   const [error, setError] = useState<string | null>(null);
+  const [questionIndex, setQuestionIndex] = useState(0); // Track which pre-scripted question we're on
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -82,36 +83,132 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [messages, extractedData, assumptions, phase]);
 
+  // Pre-scripted questions (no API calls needed for these)
+  const getNextQuestion = (qIndex: number, currentData: ExtractedData): string | null => {
+    // Check if married from current data
+    const isMarried = currentData.maritalStatus === 'married';
+
+    switch (qIndex) {
+      case 0:
+        return "Let's start with the basics: **What is your age and are you single or married?**";
+      case 1:
+        return isMarried
+          ? "Great! Now let's talk income. **What's your annual income, and what's your spouse's annual income?** (Just rough numbers are fine!)"
+          : "Got it! Now let's talk income. **What's your annual income?** (Just a rough number is fine!)";
+      case 2:
+        return "Perfect! Now, **what are your current account balances?**\n\n• Traditional IRA/401k\n• Roth IRA/401k\n• Taxable brokerage\n• Savings/emergency fund\n\n(Just give me the numbers - $0 is fine if you don't have one!)";
+      default:
+        return null; // No more pre-scripted questions, will call API
+    }
+  };
+
+  // Simple client-side parsing of user responses
+  const parseUserResponse = (userInput: string, qIndex: number, currentData: ExtractedData): Partial<ExtractedData> => {
+    const input = userInput.toLowerCase();
+    const extracted: Partial<ExtractedData> = {};
+
+    // Parse numbers from input
+    const numbers = userInput.match(/\$?[\d,]+k?/gi)?.map(n => {
+      const cleaned = n.replace(/[$,]/g, '');
+      if (cleaned.endsWith('k')) {
+        return parseFloat(cleaned.slice(0, -1)) * 1000;
+      }
+      return parseFloat(cleaned);
+    }) || [];
+
+    switch (qIndex) {
+      case 0: // Age and marital status
+        // Extract age (first number in response)
+        if (numbers.length > 0) {
+          extracted.age = numbers[0];
+        }
+        // Extract marital status
+        if (input.includes('married')) {
+          extracted.maritalStatus = 'married';
+        } else if (input.includes('single')) {
+          extracted.maritalStatus = 'single';
+        }
+        break;
+
+      case 1: // Income
+        if (numbers.length > 0) {
+          extracted.annualIncome1 = numbers[0];
+        }
+        if (numbers.length > 1 && currentData.maritalStatus === 'married') {
+          extracted.annualIncome2 = numbers[1];
+        }
+        // Assume W2 employment by default
+        extracted.employmentType1 = 'w2';
+        if (currentData.maritalStatus === 'married') {
+          extracted.employmentType2 = 'w2';
+        }
+        break;
+
+      case 2: // Account balances
+        // Try to extract 4 numbers: traditional, roth, taxable, cash
+        if (numbers.length >= 1) extracted.currentTraditional = numbers[0];
+        if (numbers.length >= 2) extracted.currentRoth = numbers[1];
+        if (numbers.length >= 3) extracted.currentTaxable = numbers[2];
+        if (numbers.length >= 4) extracted.currentCash = numbers[3];
+        break;
+    }
+
+    return extracted;
+  };
+
   // Initial greeting - start sequential conversation
   const startGreeting = async () => {
     console.log('[AIConsole] Starting greeting...');
 
     // Show instant pre-scripted greeting with first question
-    const greetingMessage = `Hello! I'm here to help you set up your retirement calculator. I'll ask you questions one at a time to make this easy.
+    const greetingMessage = `Hello! I'm here to help you set up your retirement calculator. I'll ask you a few questions to get started.
 
-Let's start with the basics: **What is your age and marital status?** (single or married)`;
+${getNextQuestion(0, {})}`;
 
     setMessages([
       { role: 'assistant', content: greetingMessage, timestamp: Date.now() },
     ]);
+    setQuestionIndex(0);
     setPhase('data-collection');
   };
 
-  // Send user message and auto-trigger AI processing
+  // Send user message and handle next step (question or API call)
   const handleSend = async () => {
     if (!input.trim() || isProcessing) return;
 
+    const userInput = input.trim();
     const userMessage: ConversationMessage = {
       role: 'user',
-      content: input.trim(),
+      content: userInput,
       timestamp: Date.now(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
 
-    // Auto-trigger AI processing (sequential conversation)
-    await handleProcess();
+    // Parse user's response and extract data
+    const parsed = parseUserResponse(userInput, questionIndex, extractedData);
+    const updatedData = { ...extractedData, ...parsed };
+    setExtractedData(updatedData);
+
+    console.log('[AIConsole] Parsed data:', parsed, 'Updated data:', updatedData);
+
+    // Check if we have more pre-scripted questions
+    const nextQ = getNextQuestion(questionIndex + 1, updatedData);
+
+    if (nextQ) {
+      // Ask next pre-scripted question (no API call)
+      const nextMessage: ConversationMessage = {
+        role: 'assistant',
+        content: nextQ,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, nextMessage]);
+      setQuestionIndex(questionIndex + 1);
+    } else {
+      // All basic questions answered - now call API to process everything
+      await handleProcess();
+    }
   };
 
   // Process conversation with AI (sequential mode)
@@ -237,7 +334,7 @@ Let's start with the basics: **What is your age and marital status?** (single or
 
         {/* Messages Area - Scrollable */}
         <div
-          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 space-y-3 sm:space-y-4"
+          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 pb-32 space-y-3 sm:space-y-4"
           role="log"
           aria-live="polite"
           aria-label="Conversation messages"
