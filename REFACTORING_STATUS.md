@@ -4,7 +4,7 @@
 
 This document tracks the implementation of a unified PlanConfig system to serve as the single source of truth across the entire retirement calculator application (Configure, Results, Wizard, 2026 Planner, Budget, etc.).
 
-**Overall Progress: ~60% Complete**
+**Overall Progress: ~75% Complete**
 
 ---
 
@@ -287,6 +287,92 @@ updatePlanConfig({
 - No more localStorage sync issues
 - Data provenance tracked with 'user-entered' source
 
+### 10. Phase 5 - Polish & User Features (Complete ✅)
+
+**Files Created:**
+- `/components/form/NumericInput.tsx`
+- `/lib/scenarioManager.ts`
+- `/components/calculator/ScenarioManager.tsx`
+
+**What Was Done:**
+- ✅ Created NumericInput component with Ctrl+A fix
+- ✅ Added comprehensive number formatting with commas
+- ✅ Implemented scenario save/load/compare functionality
+- ✅ Added import/export for scenario sharing
+- ✅ Validation utilities already existed (fieldValidation.ts)
+
+**Implementation Highlights:**
+
+**NumericInput Component:**
+```typescript
+export function NumericInput({
+  value,
+  onChange,
+  min,
+  max,
+  prefix, // e.g., "$"
+  suffix, // e.g., "%"
+  formatOnBlur = true,
+  allowNegative = false,
+  decimalPlaces = 0,
+}: NumericInputProps) {
+  // Fixes Ctrl+A bug - prevents selecting whole page
+  const handleKeyDown = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+      e.preventDefault();
+      e.stopPropagation();
+      inputRef.current?.select(); // Select only this field
+    }
+  };
+
+  // Formats with commas on blur: 1000000 → 1,000,000
+  const handleBlur = () => {
+    setDisplayValue(formatNumber(value, decimalPlaces, formatOnBlur));
+  };
+}
+```
+
+**Scenario Manager:**
+```typescript
+// Save current plan as scenario
+saveScenario(config, "Conservative Plan", "7% returns, max contributions");
+
+// Load a scenario
+const scenario = loadScenario(scenarioId);
+setConfig(scenario.config);
+
+// Compare multiple scenarios
+const { scenarios, comparison } = compareScenarios([id1, id2, id3]);
+
+// Export for sharing
+const json = exportScenarios();
+
+// Import from file
+importScenarios(jsonString);
+```
+
+**ScenarioManager Component:**
+- Full UI for saving, loading, and managing scenarios
+- One-click save current plan
+- Browse and load saved scenarios
+- Duplicate scenarios for experimentation
+- Export/import for backup and sharing
+- Shows created/updated timestamps
+
+**Key Benefits:**
+- **NumericInput:** No more accidentally selecting whole page with Ctrl+A
+- **Formatting:** Numbers display cleanly with commas (1,000,000 vs 1000000)
+- **Scenarios:** Users can save multiple retirement plans and compare
+- **Sharing:** Export scenarios to share with spouse/advisor
+- **Experimentation:** Try different strategies without losing work
+
+**User Workflows Enabled:**
+1. Save "Conservative 7%" plan
+2. Save "Aggressive 10%" plan
+3. Save "Retire Early at 55" plan
+4. Compare side-by-side
+5. Export all for financial advisor review
+
 ---
 
 ## 🚧 IN PROGRESS
@@ -517,11 +603,11 @@ interface SavedScenario {
 - ✅ Add "Apply to Main Plan" button functionality
 - ✅ Backward compatible with legacy localStorage (not removed, just deprioritized)
 
-### Phase 5: Polish (4-6 hours)
-- ⏳ NumericInput component
-- ⏳ Input validation
-- ⏳ Scenario management
-- ⏳ Clean up legacy code
+### Phase 5: Polish & User Features (DONE ✅)
+- ✅ NumericInput component with Ctrl+A fix
+- ✅ Input validation (utilities already exist in fieldValidation.ts)
+- ✅ Scenario management (save/load/compare/import/export)
+- ⏳ Clean up legacy code (deferred - depends on Phase 3 full completion)
 
 ---
 
