@@ -217,6 +217,26 @@ export function mergeConfigUpdates(
     }
   });
 
+  // If marital status is changing to 'single', clear spouse-related fields
+  if (updates.marital === 'single' && current.marital !== 'single') {
+    return {
+      ...current,
+      ...updates,
+      // Clear spouse-related fields (use defaults)
+      age2: 30,
+      employmentType2: undefined,
+      annualIncome2: 0,
+      cTax2: 0,
+      cPre2: 0,
+      cPost2: 0,
+      cMatch2: 0,
+      ssIncome2: 0,
+      ssClaimAge2: 67,
+      updatedAt: now,
+      fieldMetadata: newFieldMetadata,
+    };
+  }
+
   return {
     ...current,
     ...updates,
