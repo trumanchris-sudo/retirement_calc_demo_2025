@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { useBudget } from "@/lib/budget-context";
+import { usePlanConfig } from "@/lib/plan-config-context";
 import { loadSharedIncomeData, clearSharedIncomeData, hasRecentIncomeData } from "@/lib/sharedIncomeData";
 import {
   FilingStatus,
@@ -41,6 +42,7 @@ import {
 
 export default function SelfEmployed2026Page() {
   useBudget();
+  const { config: planConfig, updateConfig: updatePlanConfig } = usePlanConfig();
 
   // ============================================================================
   // STATE MANAGEMENT
@@ -119,35 +121,55 @@ export default function SelfEmployed2026Page() {
   // ============================================================================
 
   // Auto-fill from AI Onboarding data (only for self-employed users)
+  // Pre-populate form from PlanConfig (single source of truth)
   useEffect(() => {
-    if (hasRecentIncomeData()) {
-      const sharedData = loadSharedIncomeData();
-      if (
-        sharedData &&
-        sharedData.source === 'ai-onboarding' &&
-        (sharedData.employmentType1 === 'self-employed' || sharedData.employmentType1 === 'both')
-      ) {
-        console.log('[SELF-EMPLOYED-2026] Loading data from AI onboarding:', sharedData);
+    console.log('[SELF-EMPLOYED-2026] Pre-populating from PlanConfig:', planConfig);
 
-        // Set filing status
-        setFilingStatus(sharedData.maritalStatus === 'married' ? 'mfj' : 'single');
+    // Priority 1: Use direct values from PlanConfig if available
+    if (planConfig.marital) {
+      setFilingStatus(planConfig.marital === 'married' ? 'mfj' : 'single');
+    }
 
-        // Set guaranteed payments (estimate from annual income)
-        setGuaranteedPayments(sharedData.annualIncome1);
+    // Check if user is self-employed
+    const isSelfEmployed = planConfig.employmentType1 === 'self-employed' || planConfig.employmentType1 === 'both';
 
-        // If married and spouse has income, set spouse W-2 income
-        if (sharedData.maritalStatus === 'married' && sharedData.annualIncome2) {
-          setSpouseW2Income(sharedData.annualIncome2);
+    if (isSelfEmployed && planConfig.annualIncome1 && planConfig.annualIncome1 > 0) {
+      setGuaranteedPayments(planConfig.annualIncome1);
+      console.log('[SELF-EMPLOYED-2026] Loaded Person 1 income from PlanConfig:', planConfig.annualIncome1);
+    }
+
+    if (planConfig.marital === 'married' && planConfig.annualIncome2 && planConfig.annualIncome2 > 0) {
+      setSpouseW2Income(planConfig.annualIncome2);
+      console.log('[SELF-EMPLOYED-2026] Loaded Person 2 (spouse) income from PlanConfig:', planConfig.annualIncome2);
+    }
+
+    // Pre-fill retirement contributions from PlanConfig
+    if (planConfig.cPre1 && planConfig.cPre1 > 0) {
+      setTraditional401k(planConfig.cPre1);
+    }
+
+    // Priority 2: Fall back to legacy sharedIncomeData for backward compatibility
+    if (!isSelfEmployed || !planConfig.annualIncome1) {
+      if (hasRecentIncomeData()) {
+        const sharedData = loadSharedIncomeData();
+        if (
+          sharedData &&
+          sharedData.source === 'ai-onboarding' &&
+          (sharedData.employmentType1 === 'self-employed' || sharedData.employmentType1 === 'both')
+        ) {
+          console.log('[SELF-EMPLOYED-2026] Found legacy AI onboarding data:', sharedData);
+          setGuaranteedPayments(sharedData.annualIncome1);
+          if (sharedData.maritalStatus === 'married' && sharedData.annualIncome2) {
+            setSpouseW2Income(sharedData.annualIncome2);
+          }
+          setIsFromAIOnboarding(true);
+          setShowAIBanner(true);
         }
-
-        // Show banner and set flag
-        setIsFromAIOnboarding(true);
-        setShowAIBanner(true);
-
-        console.log('[SELF-EMPLOYED-2026] Successfully auto-filled from AI onboarding');
       }
     }
-  }, []); // Run once on mount
+
+    console.log('[SELF-EMPLOYED-2026] Form pre-populated successfully');
+  }, [planConfig]); // Re-run when PlanConfig changes
 
   // Clear and start fresh
   const handleClearAIData = () => {
@@ -160,6 +182,27 @@ export default function SelfEmployed2026Page() {
     setGuaranteedPayments(550000);
     setSpouseW2Income(145000);
     console.log('[SELF-EMPLOYED-2026] Cleared AI onboarding data');
+  };
+
+  // Apply 2026 self-employed planner values to main retirement plan
+  const handleApplyToMainPlan = () => {
+    console.log('[SELF-EMPLOYED-2026] Applying values to main retirement plan (PlanConfig)');
+
+    const isMarried = filingStatus === 'mfj';
+
+    updatePlanConfig({
+      marital: isMarried ? 'married' : 'single',
+      employmentType1: 'self-employed',
+      annualIncome1: guaranteedPayments,
+      annualIncome2: isMarried ? spouseW2Income : 0,
+      cPre1: traditional401k,
+      cPost1: roth401k,
+      cPre2: isMarried ? spouseTraditional401k : 0,
+      cPost2: isMarried ? spouseRoth401k : 0,
+    }, 'user-entered');
+
+    alert('✅ Your self-employed 2026 data has been applied to your main retirement plan!');
+    console.log('[SELF-EMPLOYED-2026] Successfully updated PlanConfig with 2026 values');
   };
 
   // ============================================================================
@@ -698,10 +741,20 @@ export default function SelfEmployed2026Page() {
         </SectionCard>
 
         {/* CALCULATE BUTTON */}
-        <div className="flex justify-center pb-8">
+        <div className="flex justify-center gap-4 pb-8">
           <Button size="lg" onClick={handleCalculate} className="flex items-center gap-2">
             <Calculator className="w-5 h-5" />
             Calculate 2026 Tax & Cash Flow
+          </Button>
+
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={handleApplyToMainPlan}
+            className="flex items-center gap-2"
+            title="Save these values to your main retirement plan"
+          >
+            <Sparkles className="w-5 h-5" /> Apply to Main Plan
           </Button>
         </div>
 
