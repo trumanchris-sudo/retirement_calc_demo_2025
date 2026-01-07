@@ -2286,10 +2286,11 @@ export default function App() {
     setActiveMainTab('all');
 
     // Run the calculation after a brief moment
+    // Note: calc is defined below, so we reference it in setTimeout (not in deps)
     setTimeout(() => {
       calc();
     }, 300);
-  }, [planConfig, calc]); // Include planConfig and calc in dependencies
+  }, [planConfig]); // Only include planConfig - calc is referenced in setTimeout closure
 
   const calc = useCallback(async () => {
     console.log('[CALC] Starting calculation...');

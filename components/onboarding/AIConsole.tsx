@@ -188,14 +188,18 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
         const isMarried = currentData.maritalStatus === 'married';
 
         // Detect employment types
-        const detectEmploymentType = (text: string): 'w2' | 'self-employed' | 'k1' | 'other' => {
+        const detectEmploymentType = (text: string): 'w2' | 'self-employed' | 'both' | 'retired' | 'other' => {
           if (text.includes('w2') || text.includes('w-2') || text.includes('employee')) {
             return 'w2';
           } else if (text.includes('self-employed') || text.includes('self employed') ||
-                     text.includes('freelance') || text.includes('contractor') || text.includes('1099')) {
+                     text.includes('freelance') || text.includes('contractor') || text.includes('1099') ||
+                     text.includes('k1') || text.includes('k-1') || text.includes('partner')) {
+            // K-1 partnership income is similar to self-employment
             return 'self-employed';
-          } else if (text.includes('k1') || text.includes('k-1') || text.includes('partner')) {
-            return 'k1';
+          } else if (text.includes('both')) {
+            return 'both';
+          } else if (text.includes('retired') || text.includes('retirement')) {
+            return 'retired';
           }
           return 'other';
         };
@@ -236,11 +240,11 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
         break;
 
       case 4: // Account balances
-        // Try to extract 4 numbers: traditional, roth, taxable, cash
+        // Try to extract 4 numbers: traditional, roth, taxable, cash/emergency fund
         if (numbers.length >= 1) extracted.currentTraditional = numbers[0];
         if (numbers.length >= 2) extracted.currentRoth = numbers[1];
         if (numbers.length >= 3) extracted.currentTaxable = numbers[2];
-        if (numbers.length >= 4) extracted.currentCash = numbers[3];
+        if (numbers.length >= 4) extracted.emergencyFund = numbers[3];
         break;
 
       case 5: // Retirement age
