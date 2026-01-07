@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { processAIOnboarding } from '@/lib/processAIOnboarding';
+import { processAIOnboarding, type MissingField } from '@/lib/processAIOnboarding';
 import type {
   ConversationMessage,
   ExtractedData,
@@ -14,7 +14,7 @@ import { AssumptionsReview } from './AssumptionsReview';
 import { ConsoleInput } from './ConsoleInput';
 import { DataSummaryPanel } from './DataSummaryPanel';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, AlertCircle } from 'lucide-react';
 
 interface AIConsoleProps {
   onComplete: (data: ExtractedData, assumptions: AssumptionWithReasoning[]) => void;
@@ -29,6 +29,8 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const [input, setInput] = useState('');
   const [extractedData, setExtractedData] = useState<ExtractedData>({});
   const [assumptions, setAssumptions] = useState<AssumptionWithReasoning[]>([]);
+  const [missingFields, setMissingFields] = useState<MissingField[]>([]);
+  const [hasProcessed, setHasProcessed] = useState(false);
   const [phase, setPhase] = useState<ConversationPhase>('greeting');
   const [error, setError] = useState<string | null>(null);
 
@@ -133,7 +135,7 @@ You can answer in any format - I'll understand!`;
 
     setIsProcessing(true);
     setError(null);
-    setPhase('assumptions-review');
+    setHasProcessed(true);
 
     console.log('[AIConsole] Processing responses...');
 
@@ -149,10 +151,22 @@ You can answer in any format - I'll understand!`;
         conversationText: userResponses,
       });
 
-      console.log('[AIConsole] Processing complete');
+      console.log('[AIConsole] Processing complete', {
+        fieldsExtracted: Object.keys(result.extractedData).length,
+        assumptionsMade: result.assumptions.length,
+        missingFieldsCount: result.missingFields.length,
+      });
 
       setExtractedData(result.extractedData);
       setAssumptions(result.assumptions);
+      setMissingFields(result.missingFields);
+
+      // Determine phase based on results
+      if (result.missingFields.length > 0) {
+        setPhase('data-collection'); // Stay in collection, show missing fields
+      } else {
+        setPhase('assumptions-review'); // Move to review
+      }
 
       // Add summary message
       const summaryMessage: ConversationMessage = {
@@ -167,6 +181,7 @@ You can answer in any format - I'll understand!`;
       console.error('[AIConsole] Processing error:', errorMessage);
       setError(errorMessage);
       setPhase('data-collection');
+      setHasProcessed(false); // Allow retry
     } finally {
       setIsProcessing(false);
     }
@@ -287,12 +302,43 @@ You can answer in any format - I'll understand!`;
             <div className="flex justify-center py-4">
               <Button
                 onClick={handleProcess}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white min-h-[48px] px-6"
+                disabled={isProcessing}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white min-h-[48px] px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Process my responses with AI"
               >
                 <Sparkles className="w-5 h-5 mr-2" aria-hidden="true" />
-                Process My Responses
+                {isProcessing ? 'Analyzing...' : 'Process My Responses'}
               </Button>
+            </div>
+          )}
+
+          {/* Missing Fields Panel */}
+          {missingFields.length > 0 && hasProcessed && (
+            <div
+              className="bg-amber-950/50 border-2 border-amber-700 rounded-lg p-4 sm:p-6"
+              role="region"
+              aria-label="Missing information"
+            >
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-6 h-6 text-amber-400 flex-shrink-0 mt-1" aria-hidden="true" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg text-amber-100 mb-2">Still Need Information</h3>
+                  <p className="text-sm text-amber-200 mb-3">
+                    I've extracted what you provided, but need a few more details to complete your plan:
+                  </p>
+                  <ul className="space-y-2 mb-4" role="list">
+                    {missingFields.map(field => (
+                      <li key={field.field} className="text-amber-200">
+                        <span className="font-medium text-amber-100">{field.displayName}</span>
+                        <span className="text-sm text-amber-300 block ml-4 mt-1">→ {field.description}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-sm text-amber-300 bg-amber-950/50 rounded px-3 py-2 border border-amber-800">
+                    💡 Please provide these details above, then click "Process My Responses" again.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 

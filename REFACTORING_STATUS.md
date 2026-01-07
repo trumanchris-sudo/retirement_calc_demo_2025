@@ -4,7 +4,7 @@
 
 This document tracks the implementation of a unified PlanConfig system to serve as the single source of truth across the entire retirement calculator application (Configure, Results, Wizard, 2026 Planner, Budget, etc.).
 
-**Overall Progress: ~30% Complete**
+**Overall Progress: ~45% Complete**
 
 ---
 
@@ -106,117 +106,87 @@ const [age, setAge] = usePlanConfigField('age1');
 }
 ```
 
+### 6. AIConsole Component Updates (EPIC 1 - Complete)
+
+**Files Modified:**
+- `/components/onboarding/AIConsole.tsx`
+
+**What Was Done:**
+1. ✅ Added `missingFields` state
+2. ✅ Added `hasProcessed` flag
+3. ✅ Updated `handleProcess()`:
+   - Sets phase to 'data-collection' if missingFields.length > 0
+   - Sets phase to 'assumptions-review' if complete
+   - Allows re-processing when user adds more input
+4. ✅ Added UI for displaying missing fields panel with amber warning styling
+5. ✅ Prevented "stuck in Processing..." state with proper button states
+
+**Key Features:**
+```typescript
+// Missing fields state
+const [missingFields, setMissingFields] = useState<MissingField[]>([]);
+const [hasProcessed, setHasProcessed] = useState(false);
+
+// Smart phase transition
+if (result.missingFields.length > 0) {
+  setPhase('data-collection'); // Stay in collection
+} else {
+  setPhase('assumptions-review'); // Move to review
+}
+```
+
+**Missing Fields Panel UI:**
+- Amber warning box with AlertCircle icon
+- Lists each missing field with description
+- Clear call-to-action to provide details and reprocess
+- Fully accessible with ARIA labels
+
+### 7. Wizard Integration with PlanConfig (P0.2 - Complete)
+
+**Files Modified:**
+- `/components/onboarding/OnboardingWizard.tsx`
+
+**What Was Done:**
+- ✅ Imported `usePlanConfig()` hook
+- ✅ Updated `handleComplete()` to write to PlanConfig context
+- ✅ All AI-extracted data now flows to single source of truth
+- ✅ Assumptions saved to config with metadata
+- ✅ Maintained legacy sharedIncomeData support (will be removed in Phase 4)
+
+**Implementation:**
+```typescript
+const { updateConfig } = usePlanConfig();
+
+const handleComplete = async (extractedData, assumptions) => {
+  const { generatedAssumptions, ...calculatorInputs } = mapAIDataToCalculator(
+    extractedData, assumptions
+  );
+
+  // Write to PlanConfig context (single source of truth)
+  updateConfig(calculatorInputs, 'ai-suggested');
+
+  // Save assumptions to config
+  if (generatedAssumptions?.length > 0) {
+    updateConfig({ assumptions: generatedAssumptions }, 'ai-suggested');
+  }
+
+  // Legacy support + trigger parent
+  await onComplete(calculatorInputs);
+  onClose();
+};
+```
+
 ---
 
 ## 🚧 IN PROGRESS
 
-### AIConsole Component Updates (EPIC 1 - Partial)
-
-**Files Being Modified:**
-- `/components/onboarding/AIConsole.tsx`
-
-**What Needs to Happen:**
-1. ✅ Add `missingFields` state
-2. ✅ Add `hasProcessed` flag
-3. ⏳ Update `handleProcess()`:
-   - Set phase to 'data-collection' if missingFields.length > 0
-   - Set phase to 'assumptions-review' if complete
-   - Don't allow re-processing unless user adds more input
-4. ⏳ Add UI for displaying missing fields panel
-5. ⏳ Prevent "stuck in Processing..." state
+_No tasks currently in progress_
 
 ---
 
 ## 📋 TODO - HIGH PRIORITY
 
-### 1. Complete AIConsole Refactor (EPIC 1.1, 1.2, 1.3, 1.4)
-
-**File:** `/components/onboarding/AIConsole.tsx`
-
-**Remaining Work:**
-
-a) **Add Missing Fields Panel UI:**
-```tsx
-{missingFields.length > 0 && (
-  <div className="bg-amber-950/50 border-2 border-amber-700 rounded-lg p-4">
-    <h3 className="font-semibold text-amber-100 mb-2">Still Needed:</h3>
-    <ul className="space-y-2">
-      {missingFields.map(field => (
-        <li key={field.field} className="text-amber-200">
-          <span className="font-medium">{field.displayName}</span>
-          <span className="text-sm text-amber-300 ml-2">- {field.description}</span>
-        </li>
-      ))}
-    </ul>
-    <p className="text-sm text-amber-300 mt-3">
-      Please provide these details, then click "Process My Responses" again.
-    </p>
-  </div>
-)}
-```
-
-b) **Fix "Process My Responses" Button State:**
-```tsx
-<Button
-  onClick={handleProcess}
-  disabled={isProcessing || messages.filter(m => m.role === 'user').length === 0}
-  className="..."
->
-  {isProcessing ? 'Analyzing...' : 'Process My Responses'}
-</Button>
-```
-
-c) **Update handleProcess Logic:**
-- Don't move to assumptions-review if missingFields.length > 0
-- Show missing fields panel instead
-- Allow user to add more messages and re-process
-
-### 2. Wire Wizard to PlanConfig (P0.2 - Critical)
-
-**File:** `/components/onboarding/OnboardingWizard.tsx`
-
-**Current Flow:**
-```
-AIConsole → onComplete(extractedData, assumptions)
-→ mapAIDataToCalculator()
-→ scattered setState calls in page.tsx
-```
-
-**New Flow:**
-```
-AIConsole → onComplete(extractedData, assumptions)
-→ updatePlanConfig (via context)
-→ onParentComplete (trigger calc)
-```
-
-**Implementation:**
-```tsx
-import { usePlanConfig } from '@/lib/plan-config-context';
-
-export function OnboardingWizard({ ... }) {
-  const { updateConfig } = usePlanConfig();
-
-  const handleComplete = useCallback(async (extractedData, assumptions) => {
-    // Map AI data to calculator format
-    const { generatedAssumptions, ...calculatorInputs } = mapAIDataToCalculator(
-      extractedData,
-      assumptions
-    );
-
-    // Write to PlanConfig context
-    updateConfig(calculatorInputs, 'ai-suggested');
-
-    // Save assumptions to config
-    updateConfig({ assumptions: generatedAssumptions }, 'ai-suggested');
-
-    // Trigger parent completion (runs calc, closes wizard)
-    await onComplete(calculatorInputs);
-    onClose();
-  }, [updateConfig, onComplete, onClose]);
-}
-```
-
-### 3. Refactor app/page.tsx to Use PlanConfig (P0.1 - Critical)
+### 1. Refactor app/page.tsx to Use PlanConfig (P0.1 - Critical)
 
 **File:** `/app/page.tsx`
 
@@ -413,16 +383,16 @@ interface SavedScenario {
 
 ## 🎯 IMPLEMENTATION ROADMAP
 
-### Phase 1: Core Infrastructure (DONE)
+### Phase 1: Core Infrastructure (DONE ✅)
 - ✅ PlanConfig type system
 - ✅ PlanConfig context/provider
 - ✅ Improved Claude prompts
 - ✅ missingFields in API response
 
-### Phase 2: Wizard Integration (NEXT - 4-6 hours)
-- ⏳ Complete AIConsole refactor
-- ⏳ Wire wizard to PlanConfig
-- ⏳ Add missing fields UI
+### Phase 2: Wizard Integration (DONE ✅)
+- ✅ Complete AIConsole refactor
+- ✅ Wire wizard to PlanConfig
+- ✅ Add missing fields UI
 
 ### Phase 3: Main App Refactor (MAJOR - 8-12 hours)
 - ⏳ Refactor page.tsx to use PlanConfig

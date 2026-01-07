@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import { AIConsole } from './AIConsole';
 import { mapAIDataToCalculator } from '@/lib/aiOnboardingMapper';
 import { saveSharedIncomeData } from '@/lib/sharedIncomeData';
+import { usePlanConfig } from '@/lib/plan-config-context';
 import type { ExtractedData, AssumptionWithReasoning } from '@/types/ai-onboarding';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
@@ -14,6 +15,8 @@ interface OnboardingWizardProps {
 }
 
 export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWizardProps) {
+  const { updateConfig } = usePlanConfig();
+
   const handleComplete = useCallback(
     async (extractedData: ExtractedData, assumptions: AssumptionWithReasoning[]) => {
       try {
@@ -28,7 +31,17 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
         console.log('[OnboardingWizard] Mapped calculator inputs:', calculatorInputs);
         console.log('[OnboardingWizard] Generated assumptions:', generatedAssumptions);
 
-        // Save income data for income calculators
+        // Write to PlanConfig context (single source of truth)
+        console.log('[OnboardingWizard] Writing to PlanConfig context...');
+        updateConfig(calculatorInputs, 'ai-suggested');
+
+        // Save assumptions to config
+        if (generatedAssumptions && generatedAssumptions.length > 0) {
+          updateConfig({ assumptions: generatedAssumptions }, 'ai-suggested');
+        }
+        console.log('[OnboardingWizard] PlanConfig updated successfully');
+
+        // Save income data for income calculators (legacy support - will be removed in Phase 4)
         saveSharedIncomeData({
           maritalStatus: extractedData.maritalStatus ?? 'single',
           state: extractedData.state,
@@ -40,9 +53,9 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
           timestamp: Date.now(),
         });
 
-        console.log('[OnboardingWizard] Saved shared income data');
+        console.log('[OnboardingWizard] Saved shared income data (legacy)');
 
-        // Pass to calculator
+        // Pass to calculator (this will be simplified in Phase 3 when page.tsx uses PlanConfig)
         console.log('[OnboardingWizard] Calling parent onComplete...');
         await onComplete(calculatorInputs);
 
@@ -55,7 +68,7 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
         alert(`Error completing onboarding: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     },
-    [onComplete, onClose]
+    [updateConfig, onComplete, onClose]
   );
 
   const handleSkip = useCallback(() => {
