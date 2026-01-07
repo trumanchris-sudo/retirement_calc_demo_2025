@@ -38,26 +38,25 @@ export const ConsoleInput = forwardRef<HTMLTextAreaElement, ConsoleInputProps>(
             aria-label="Your response to the AI assistant"
             aria-describedby={disabled ? undefined : "enter-hint"}
             className={cn(
-              'w-full px-3 py-3 sm:px-4 bg-slate-900 border-2 border-slate-600 rounded-lg',
-              'text-slate-100 placeholder:text-slate-400',
-              'focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400',
-              'text-base sm:text-sm', // Use 16px on mobile to prevent zoom
+              'w-full px-3 py-2 bg-black border border-gray-700 rounded',
+              'text-gray-200 placeholder:text-gray-600',
+              'focus:outline-none focus:border-green-500',
+              'font-mono text-sm',
               'resize-none',
-              'transition-all duration-200',
-              'max-h-[200px] overflow-y-auto', // Allow scrolling within textarea
+              'max-h-[200px] overflow-y-auto',
               disabled && 'opacity-50 cursor-not-allowed'
             )}
             style={{
-              fontSize: '16px', // Prevent iOS zoom
+              fontSize: '14px',
             }}
           />
           {/* Only show Cmd+Enter hint on desktop */}
           <div
             id="enter-hint"
-            className="hidden sm:block absolute right-3 top-3 pointer-events-none"
+            className="hidden sm:block absolute right-3 top-2 pointer-events-none"
           >
-            <span className="text-xs text-slate-400 font-mono">
-              ⌘/Ctrl + ↵
+            <span className="text-xs text-gray-600 font-mono">
+              ^Enter
             </span>
           </div>
         </div>
@@ -68,16 +67,16 @@ export const ConsoleInput = forwardRef<HTMLTextAreaElement, ConsoleInputProps>(
           type="button"
           aria-label="Send message to AI assistant"
           className={cn(
-            'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700',
-            'text-white shadow-lg',
+            'bg-gray-900 border border-gray-700 hover:bg-gray-800 hover:border-green-500',
+            'text-green-400 font-mono text-xs',
             'transition-all duration-200',
-            'min-w-[48px] min-h-[48px] flex-shrink-0', // 48px minimum touch target
+            'min-w-[64px] min-h-[40px] flex-shrink-0',
             'disabled:opacity-50 disabled:cursor-not-allowed',
-            'flex items-center justify-center'
+            'flex items-center justify-center gap-1'
           )}
         >
-          <Send className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
-          <span className="sr-only">Send</span>
+          <span>send</span>
+          <Send className="w-3 h-3" aria-hidden="true" />
         </Button>
       </div>
     );

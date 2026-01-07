@@ -362,39 +362,42 @@ ${getNextQuestion(0, {})}`;
 
   return (
     <div
-      className="fixed inset-0 md:flex md:flex-row bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"
+      className="fixed inset-0 md:flex md:flex-row bg-black"
       role="main"
       aria-label="AI-powered retirement planning onboarding"
     >
       {/* Main Console */}
       <div className="h-full w-full md:flex-1 flex flex-col">
-        {/* Header */}
-        <div className="flex-shrink-0 flex items-center justify-between px-3 py-3 sm:px-6 sm:py-4 border-b border-slate-800 bg-slate-950/50 backdrop-blur">
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-100">Retirement Planning Console</h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              {phase === 'greeting' && 'Initializing...'}
-              {phase === 'data-collection' && 'Gathering information'}
-              {phase === 'assumptions-review' && 'Reviewing assumptions'}
-              {phase === 'refinement' && 'Refining your plan'}
-              {phase === 'complete' && 'Complete'}
+        {/* Header - Terminal Style */}
+        <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 sm:px-6 sm:py-3 border-b border-gray-800 bg-black">
+          <div className="font-mono">
+            <h2 className="text-sm sm:text-base text-green-400">
+              <span className="text-gray-500">$ </span>
+              retirement-wizard <span className="text-gray-600">--interactive</span>
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5 ml-2">
+              {phase === 'greeting' && '[initializing...]'}
+              {phase === 'data-collection' && '[collecting data...]'}
+              {phase === 'assumptions-review' && '[review mode]'}
+              {phase === 'refinement' && '[refining...]'}
+              {phase === 'complete' && '[complete ✓]'}
             </p>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleSkip}
-            className="text-slate-300 hover:text-slate-100 hover:bg-slate-800 text-xs sm:text-sm min-h-[44px] px-4"
+            className="font-mono text-gray-400 hover:text-gray-200 hover:bg-gray-900 text-xs min-h-[32px] px-3"
             aria-label="Skip AI onboarding and proceed to manual data entry"
           >
-            <span className="hidden sm:inline">Skip to Manual Entry</span>
-            <span className="sm:hidden">Skip</span>
+            <span className="hidden sm:inline">^C exit</span>
+            <span className="sm:hidden">exit</span>
           </Button>
         </div>
 
         {/* Messages Area - Scrollable */}
         <div
-          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 pb-32 space-y-3 sm:space-y-4"
+          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 pb-32 space-y-4 bg-black"
           role="log"
           aria-live="polite"
           aria-label="Conversation messages"
@@ -444,7 +447,11 @@ ${getNextQuestion(0, {})}`;
           )}
 
           {messages.map((message, index) => (
-            <MessageBubble key={`${message.timestamp}-${index}`} message={message} />
+            <MessageBubble
+              key={`${message.timestamp}-${index}`}
+              message={message}
+              isLatest={index === messages.length - 1 && message.role === 'assistant'}
+            />
           ))}
 
           {showAssumptionsReview && assumptions.length > 0 && (
@@ -488,7 +495,7 @@ ${getNextQuestion(0, {})}`;
         </div>
 
         {/* Input Area - Fixed at bottom */}
-        <div className="flex-shrink-0 border-t border-slate-800 bg-slate-950 backdrop-blur p-3 sm:p-4">
+        <div className="flex-shrink-0 border-t border-gray-800 bg-black p-3 sm:p-4">
           <ConsoleInput
             ref={inputRef}
             value={input}
