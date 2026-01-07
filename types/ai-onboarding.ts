@@ -102,6 +102,7 @@ export interface AIOnboardingState {
   extractedData: ExtractedData;
   assumptions: AssumptionWithReasoning[];
   currentPhase: ConversationPhase;
+  questionIndex?: number;  // Track which pre-scripted question we're on
   lastUpdated: number;
   sessionId?: string;  // Optional session tracking
 }

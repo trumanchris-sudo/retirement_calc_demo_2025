@@ -5313,14 +5313,27 @@ export default function App() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Link href="/income-2026">
-                      <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
-                        View 2026 Income Planner →
-                      </Button>
-                    </Link>
-                    <p className="text-xs text-blue-600 mt-2">
-                      Fields will be pre-populated based on your {fmt(cPre1 + cPre2)} annual contributions
-                    </p>
+                    {(() => {
+                      // Route to self-employed calculator if either person is not W-2
+                      const usesSelfEmployed =
+                        (planConfig.employmentType1 && planConfig.employmentType1 !== 'w2') ||
+                        (planConfig.employmentType2 && planConfig.employmentType2 !== 'w2');
+                      const targetPath = usesSelfEmployed ? '/self-employed-2026' : '/income-2026';
+                      const plannerName = usesSelfEmployed ? '2026 Self-Employed Planner' : '2026 Income Planner';
+
+                      return (
+                        <>
+                          <Link href={targetPath}>
+                            <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+                              View {plannerName} →
+                            </Button>
+                          </Link>
+                          <p className="text-xs text-blue-600 mt-2">
+                            Fields will be pre-populated based on your {fmt(cPre1 + cPre2)} annual contributions
+                          </p>
+                        </>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               </div>

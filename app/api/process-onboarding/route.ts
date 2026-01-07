@@ -30,51 +30,88 @@ export async function POST(request: NextRequest) {
       fieldsCollected: Object.keys(extractedData || {}).length
     });
 
-    const systemPrompt = `You are a friendly retirement planning assistant conducting a sequential conversation. Your job is to:
+    const systemPrompt = `You are a retirement planning assistant. The client has collected basic information from the user. Your job is to:
 
-1. Extract data from the user's latest response
-2. Acknowledge what they provided
-3. Ask the NEXT chunked question to collect missing information
-4. Be conversational and friendly (not robotic)
+1. Validate and refine the data collected
+2. Make reasonable assumptions for ALL missing fields
+3. Generate a complete retirement plan configuration
 
-CONVERSATION FLOW:
-- Ask ONE question at a time
-- Group related fields together (e.g., "What are your current account balances across traditional IRA/401k, Roth IRA/401k, taxable brokerage and savings/emergency?")
-- Acknowledge what the user provided before asking the next question
-- Be flexible with user's response format
+USER PROVIDED DATA (from client-side collection):
+${JSON.stringify(extractedData, null, 2)}
 
-QUESTION SEQUENCE (logical order):
-1. Age and marital status
-2. Annual income (theirs, and spouse if married)
-3. Current account balances (grouped: traditional, Roth, taxable, savings)
-4. Contribution rates or amounts (grouped: traditional, Roth, taxable, employer match)
-5. Target retirement age
-6. State (for tax calculations)
-7. Spouse age (if married)
-8. Any other missing critical fields
+REQUIRED ASSUMPTIONS - Fill in ALL missing fields with reasonable defaults:
 
-CRITICAL RULES - DO NOT GUESS:
-- State: Only if user mentions it
-- Spouse income/age: Only if married AND user provides
-- Account balances: Only if user specifies
-- Contribution rates: Only if user mentions
-- Retirement age: Only if user specifies
+CRITICAL FIELDS (use conversation context if mentioned, otherwise assume):
+- age: User's age (REQUIRED from conversation)
+- maritalStatus: "single" or "married" (REQUIRED from conversation)
+- annualIncome1: Annual income person 1 (REQUIRED from conversation)
+- annualIncome2: Annual income person 2 (if married, REQUIRED from conversation)
+- employmentType1: Assume "w2" unless self-employment mentioned
+- employmentType2: Assume "w2" unless self-employment mentioned
 
-SAFE ASSUMPTIONS (if not specified):
-- employmentType1: "w2" if income mentioned (medium confidence)
-- maritalStatus: "single" if no spouse mentioned (medium confidence)
+ACCOUNT BALANCES (use user values if provided, otherwise assume $0):
+- currentTraditional: Traditional IRA/401k balance
+- currentRoth: Roth IRA/401k balance
+- currentTaxable: Taxable brokerage balance
+- currentCash: Savings/emergency fund balance
+
+RETIREMENT ASSUMPTIONS (make reasonable assumptions):
+- retirementAge: Assume 65 if not specified
+- spouseAge: If married, calculate from context or assume 2 years younger than user
+- state: Assume "CA" (California) if not specified - affects tax calculations
+
+CONTRIBUTION RATES (assume standard rates based on income):
+- contributionRate1Traditional: Assume 6% if income < $150k, 10% if >= $150k
+- contributionRate1Roth: Assume 4% if income < $150k, 5% if >= $150k
+- contributionRateTaxable: Assume 5% of income
+- employerMatch1Percent: Assume 50% match up to 6% (3% effective)
+- contributionRate2Traditional: Same logic as person 1 (if married)
+- contributionRate2Roth: Same logic as person 1 (if married)
+- employerMatch2Percent: Same as person 1 (if married)
+
+HOUSING EXPENSES (assume reasonable monthly costs):
+- monthlyMortgageRent: Assume $3000/month if married, $2000/month if single
+- monthlyUtilities: Assume $300/month
+- monthlyInsurancePropertyTax: Assume $500/month if married, $350/month if single
+
+HEALTHCARE (assume standard costs):
+- monthlyHealthcareP1: Assume $600/month pre-retirement, will adjust for post-retirement
+- monthlyHealthcareP2: Assume $600/month if married
+
+OTHER EXPENSES (assume reasonable defaults):
+- monthlyOtherExpenses: Assume $2000/month if married, $1500/month if single
+
+DO NOT ask for more information. Make ALL necessary assumptions with medium confidence and clear reasoning.
 
 Return JSON with this structure:
 {
   "extractedData": {
-    "age": number | null,
-    "maritalStatus": "single" | "married" | null,
-    "annualIncome1": number | null,
-    "currentTraditional": number | null,
-    "currentRoth": number | null,
-    "currentTaxable": number | null,
-    "currentCash": number | null,
-    ...
+    "age": number,
+    "maritalStatus": "single" | "married",
+    "annualIncome1": number,
+    "annualIncome2": number (if married),
+    "employmentType1": "w2" | "self-employed" | "k1" | "other",
+    "employmentType2": "w2" | "self-employed" | "k1" | "other" (if married),
+    "currentTraditional": number,
+    "currentRoth": number,
+    "currentTaxable": number,
+    "currentCash": number,
+    "retirementAge": number,
+    "spouseAge": number (if married),
+    "state": string,
+    "contributionRate1Traditional": number (as decimal, e.g. 0.06 for 6%),
+    "contributionRate1Roth": number,
+    "contributionRateTaxable": number,
+    "employerMatch1Percent": number,
+    "contributionRate2Traditional": number (if married),
+    "contributionRate2Roth": number (if married),
+    "employerMatch2Percent": number (if married),
+    "monthlyMortgageRent": number,
+    "monthlyUtilities": number,
+    "monthlyInsurancePropertyTax": number,
+    "monthlyHealthcareP1": number,
+    "monthlyHealthcareP2": number (if married),
+    "monthlyOtherExpenses": number
   },
   "assumptions": [
     {
@@ -86,43 +123,44 @@ Return JSON with this structure:
       "userProvided": false
     }
   ],
-  "missingFields": [
-    {
-      "field": "fieldName",
-      "displayName": "Human Readable Name",
-      "description": "Why needed"
-    }
-  ],
-  "nextQuestion": "The next chunked question to ask (null if complete)",
-  "summary": "What was just collected"
+  "missingFields": [],
+  "summary": "Friendly summary of what was collected and assumed"
 }
 
 EXAMPLE:
-User: "I'm 35 and single, I make $100k"
+User conversation indicates: 35, single, $100k income, $50k in 401k, $20k Roth, $10k taxable, $15k cash
 Response: {
   "extractedData": {
     "age": 35,
     "maritalStatus": "single",
     "annualIncome1": 100000,
-    "employmentType1": "w2"
+    "employmentType1": "w2",
+    "currentTraditional": 50000,
+    "currentRoth": 20000,
+    "currentTaxable": 10000,
+    "currentCash": 15000,
+    "retirementAge": 65,
+    "state": "CA",
+    "contributionRate1Traditional": 0.06,
+    "contributionRate1Roth": 0.04,
+    "contributionRateTaxable": 0.05,
+    "employerMatch1Percent": 0.03,
+    "monthlyMortgageRent": 2000,
+    "monthlyUtilities": 300,
+    "monthlyInsurancePropertyTax": 350,
+    "monthlyHealthcareP1": 600,
+    "monthlyOtherExpenses": 1500
   },
   "assumptions": [
-    {"field": "employmentType1", "displayName": "Employment Type", "value": "w2", "reasoning": "Most common for stated income", "confidence": "medium"}
+    {"field": "employmentType1", "displayName": "Employment Type", "value": "w2", "reasoning": "Standard W-2 employment assumed for salary", "confidence": "high", "userProvided": false},
+    {"field": "retirementAge", "displayName": "Retirement Age", "value": 65, "reasoning": "Standard retirement age", "confidence": "medium", "userProvided": false},
+    {"field": "state", "displayName": "State", "value": "CA", "reasoning": "California assumed for tax calculations", "confidence": "low", "userProvided": false},
+    {"field": "contributionRate1Traditional", "displayName": "Traditional 401k Contribution Rate", "value": 0.06, "reasoning": "Standard 6% contribution for income level", "confidence": "medium", "userProvided": false},
+    {"field": "monthlyMortgageRent", "displayName": "Monthly Housing Cost", "value": 2000, "reasoning": "Average rent for single person in California", "confidence": "medium", "userProvided": false}
   ],
-  "missingFields": [
-    {"field": "currentTraditional", "displayName": "Traditional 401k/IRA", "description": "Current balance"},
-    {"field": "currentRoth", "displayName": "Roth 401k/IRA", "description": "Current balance"},
-    {"field": "currentTaxable", "displayName": "Taxable Brokerage", "description": "Current balance"},
-    {"field": "currentCash", "displayName": "Savings/Emergency", "description": "Current balance"}
-  ],
-  "nextQuestion": "Great! Got it - you're 35, single, making $100k. What are your current account balances across traditional IRA/401k, Roth IRA/401k, taxable brokerage and savings/emergency? (Just give me the numbers, I'll understand!)",
-  "summary": "Collected age, marital status, and income"
+  "missingFields": [],
+  "summary": "Great! I've set up your retirement plan with the information you provided. I've made some reasonable assumptions about retirement age (65), contribution rates (6% traditional, 4% Roth), and monthly expenses. You can review and adjust these on the next screen."
 }`;
-
-    // Build the prompt with current extracted data context
-    const contextPrompt = extractedData && Object.keys(extractedData).length > 0
-      ? `Current extracted data so far:\n${JSON.stringify(extractedData, null, 2)}\n\nConversation history is provided. Extract new data from the latest user message and ask the next question.`
-      : 'This is the beginning of the conversation. Extract data from the user\'s message and ask the next question.';
 
     // Convert conversation history to Anthropic format
     const messages = conversationHistory.map((msg: { role: string; content: string }) => ({
@@ -133,7 +171,7 @@ Response: {
     // Add the extraction instruction
     messages.push({
       role: 'user',
-      content: `${contextPrompt}\n\nReturn only valid JSON with extractedData, assumptions, missingFields, nextQuestion, and summary. No other text.`
+      content: `Based on the conversation above, extract all provided data, make reasonable assumptions for ALL missing fields (retirement age, contribution rates, housing costs, healthcare, etc.), and return ONLY valid JSON with extractedData, assumptions, missingFields (empty array), and summary. No other text.`
     });
 
     const response = await anthropic.messages.create({

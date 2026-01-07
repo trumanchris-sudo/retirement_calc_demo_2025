@@ -793,6 +793,51 @@ export default function Income2026Page() {
     );
   };
 
+  // Helper component for dual date fields
+  const DualDateField = ({ label, idPrefix, value1, onChange1, value2, onChange2 }: {
+    label: string;
+    idPrefix: string;
+    value1: string;
+    onChange1: (v: string) => void;
+    value2: string;
+    onChange2: (v: string) => void;
+  }) => {
+    const wrappedOnChange1 = (val: string) => {
+      onChange1(val);
+      handleInputChange();
+    };
+    const wrappedOnChange2 = (val: string) => {
+      onChange2(val);
+      handleInputChange();
+    };
+    return (
+      <div className={isMarried ? "grid grid-cols-2 gap-4" : ""}>
+        <div className="space-y-2">
+          <Label htmlFor={`${idPrefix}-your`}>{label} (Your)</Label>
+          <UIInput
+            id={`${idPrefix}-your`}
+            type="date"
+            value={value1}
+            onChange={(e) => wrappedOnChange1(e.target.value)}
+            className="w-full"
+          />
+        </div>
+        {isMarried && (
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-spouse`}>{label} (Spouse)</Label>
+            <UIInput
+              id={`${idPrefix}-spouse`}
+              type="date"
+              value={value2}
+              onChange={(e) => wrappedOnChange2(e.target.value)}
+              className="w-full"
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <TopBanner />
@@ -905,19 +950,7 @@ export default function Income2026Page() {
                   <DualSelectField label="Bonus Payment Month" idPrefix="bonus-month" value1={p1BonusMonth} onChange1={setP1BonusMonth} value2={p2BonusMonth} onChange2={setP2BonusMonth} options={months.slice(0, 12)} />
                   <DualInputField label="Estimated Monthly Overtime" value1={p1OvertimeMonthly} onChange1={setP1OvertimeMonthly} value2={p2OvertimeMonthly} onChange2={setP2OvertimeMonthly} />
                   <DualSelectField label="Pay Frequency" idPrefix="pay-frequency" value1={p1PayFrequency} onChange1={(v) => setP1PayFrequency(v as PayFrequency)} value2={p2PayFrequency} onChange2={(v) => setP2PayFrequency(v as PayFrequency)} options={["biweekly", "semimonthly", "monthly", "weekly"]} />
-                  
-                  <div className={isMarried ? "grid grid-cols-2 gap-4" : ""}>
-                    <div className="space-y-2">
-                      <Label htmlFor="p1-first-pay-date">First Pay Date (Your)</Label>
-                      <UIInput id="p1-first-pay-date" type="date" value={p1FirstPayDate} onChange={(e) => setP1FirstPayDate(e.target.value)} className="w-full" />
-                    </div>
-                    {isMarried && (
-                      <div className="space-y-2">
-                        <Label htmlFor="p2-first-pay-date">First Pay Date (Spouse)</Label>
-                        <UIInput id="p2-first-pay-date" type="date" value={p2FirstPayDate} onChange={(e) => setP2FirstPayDate(e.target.value)} className="w-full" />
-                      </div>
-                    )}
-                  </div>
+                  <DualDateField label="First Pay Date" idPrefix="first-pay-date" value1={p1FirstPayDate} onChange1={setP1FirstPayDate} value2={p2FirstPayDate} onChange2={setP2FirstPayDate} />
                 </div>
               </div>
 

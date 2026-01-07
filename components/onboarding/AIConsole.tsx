@@ -57,6 +57,7 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
         setExtractedData(state.extractedData);
         setAssumptions(state.assumptions);
         setPhase(state.currentPhase);
+        setQuestionIndex(state.questionIndex || 0);
         console.log('[AIConsole] Restored state from localStorage');
       } catch (e) {
         console.error('[AIConsole] Failed to load saved onboarding state:', e);
@@ -78,10 +79,11 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
       extractedData,
       assumptions,
       currentPhase: phase,
+      questionIndex,
       lastUpdated: Date.now(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [messages, extractedData, assumptions, phase]);
+  }, [messages, extractedData, assumptions, phase, questionIndex]);
 
   // Pre-scripted questions (no API calls needed for these)
   const getNextQuestion = (qIndex: number, currentData: ExtractedData): string | null => {
@@ -242,30 +244,18 @@ ${getNextQuestion(0, {})}`;
 
       setExtractedData(result.extractedData);
       setAssumptions(result.assumptions);
-      setMissingFields(result.missingFields);
+      setMissingFields([]); // Always empty now
 
-      // Determine phase based on results
-      if (result.missingFields.length > 0) {
-        setPhase('data-collection'); // Continue collection
+      // Always move to assumptions review (no more questions)
+      setPhase('assumptions-review');
 
-        // Add AI's next question
-        const nextQuestion: ConversationMessage = {
-          role: 'assistant',
-          content: result.nextQuestion || result.summary,
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, nextQuestion]);
-      } else {
-        setPhase('assumptions-review'); // Move to review
-
-        // Add completion message
-        const completionMessage: ConversationMessage = {
-          role: 'assistant',
-          content: result.summary,
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, completionMessage]);
-      }
+      // Add completion message
+      const completionMessage: ConversationMessage = {
+        role: 'assistant',
+        content: result.summary,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, completionMessage]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process responses';
       console.error('[AIConsole] Processing error:', errorMessage);
@@ -291,10 +281,12 @@ ${getNextQuestion(0, {})}`;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Send on Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux)
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       handleSend();
     }
+    // Allow plain Enter and Shift+Enter for line breaks (no preventDefault)
   };
 
   // Show assumptions review when in assumptions-review phase
