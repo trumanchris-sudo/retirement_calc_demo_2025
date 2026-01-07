@@ -36,14 +36,15 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const [questionIndex, setQuestionIndex] = useState(0); // Track which pre-scripted question we're on
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({
+    if (!messagesContainerRef.current) return;
+    messagesContainerRef.current.scrollTo({
+      top: messagesContainerRef.current.scrollHeight,
       behavior: 'smooth',
-      block: 'end',
-      inline: 'nearest'
     });
   }, []);
 
@@ -53,11 +54,10 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
 
   // Scroll to bottom when textarea is focused (handles mobile keyboard)
   const handleTextareaFocus = useCallback(() => {
-    // Multiple scroll attempts to handle mobile keyboard animation
-    scrollToBottom(); // Immediate
-    setTimeout(scrollToBottom, 100); // Early check
-    setTimeout(scrollToBottom, 300); // Mid check
-    setTimeout(scrollToBottom, 600); // Final check after keyboard fully open
+    // Immediate scroll to ensure last message is visible above keyboard
+    scrollToBottom();
+    // Additional scroll after keyboard animation completes
+    setTimeout(scrollToBottom, 300);
   }, [scrollToBottom]);
 
   // Load state from localStorage on mount
@@ -411,7 +411,8 @@ ${getNextQuestion(0, {})}`;
 
         {/* Messages Area - Scrollable */}
         <div
-          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 pb-4 space-y-4 bg-black"
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 pb-24 space-y-4 bg-black"
           role="log"
           aria-live="polite"
           aria-label="Conversation messages"
@@ -509,7 +510,10 @@ ${getNextQuestion(0, {})}`;
         </div>
 
         {/* Input Area - Fixed at bottom */}
-        <div className="flex-shrink-0 border-t border-gray-800 bg-black p-3 sm:p-4">
+        <div
+          className="flex-shrink-0 border-t border-gray-800 bg-black px-3 sm:px-4 pt-3 sm:pt-4"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+        >
           <ConsoleInput
             ref={inputRef}
             value={input}

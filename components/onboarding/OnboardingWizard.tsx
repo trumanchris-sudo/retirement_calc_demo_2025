@@ -78,7 +78,8 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-full max-h-full h-screen w-screen p-0 m-0"
+        className="max-w-full w-screen p-0 m-0"
+        style={{ height: '100dvh', maxHeight: '100dvh' }}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <AIConsole onComplete={handleComplete} onSkip={handleSkip} />
