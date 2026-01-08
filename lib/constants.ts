@@ -112,19 +112,23 @@ export const getNetWorthBracket = (age: number) => {
  * S&P 500 Total Return (Year-over-Year %)
  * Original: 1928-2024 (97 years of historical data)
  * Conservative adjustments:
- * 1. Capped extreme returns at ±30% to prevent unrealistic compound growth
- * 2. Added half-values for more moderate scenarios
+ * 1. Capped extreme returns at ±15% to prevent unrealistic compound growth
+ *    (±30% still produced $125K → $30M projections, too optimistic)
+ * 2. Added half-values (±7.5% max) for more moderate scenarios
  * 3. Creates 194 data points total for robust Monte Carlo sampling
+ * 4. Results in realistic long-term averages (~7-9% instead of 12-15%)
  * Source: S&P 500 Total Return including dividends
  */
 export const SP500_START_YEAR = 1928;
 export const SP500_END_YEAR = 2024;
 
 // Cap for extreme returns - prevents unrealistic long-term compounding
-const MAX_RETURN = 30.0;  // Cap gains at 30%
-const MIN_RETURN = -30.0; // Cap losses at -30%
+// Reduced to ±15% after testing showed ±30% still produced unrealistic projections
+// (e.g., $125K starting balance growing to $30M+ over 30 years)
+const MAX_RETURN = 15.0;  // Cap gains at 15% (very good year, but realistic)
+const MIN_RETURN = -15.0; // Cap losses at -15% (bad year, but not catastrophic)
 
-// Original historical data (97 years) - capped at ±30%
+// Original historical data (97 years) - will be capped at ±15%
 const SP500_ORIGINAL_RAW = [
   // 1928-1940 (13 years)
   43.81, -8.30, -25.12, -43.84, -8.64, 49.98, -1.19, 46.74, 31.94, 35.34, -35.34, 29.28, -1.10,
