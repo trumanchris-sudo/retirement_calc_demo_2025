@@ -1481,7 +1481,7 @@ export default function App() {
   const searchParams = useSearchParams();
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && ['all', 'configure', 'results', 'stress', 'legacy', 'budget', 'optimize', 'math', 'checkUs'].includes(tab)) {
+    if (tab && ['all', 'configure', 'ssot', 'results', 'stress', 'legacy', 'optimize', 'math', 'checkUs'].includes(tab)) {
       setActiveMainTab(tab as MainTabId);
     }
   }, [searchParams]);
@@ -1906,17 +1906,20 @@ export default function App() {
       }
 
       const worker = workerRef.current;
+      // Generate unique request ID to match response
+      const requestId = `legacy_${Date.now()}_${Math.random()}`;
 
       const handleMessage = (e: MessageEvent) => {
         if (!e.data) return;
 
-        const { type, result, error } = e.data;
+        const { type, result, error, requestId: responseId } = e.data;
 
-        if (type === 'legacy-complete') {
+        // Only process messages for this specific request
+        if (type === 'legacy-complete' && responseId === requestId) {
           worker.removeEventListener('message', handleMessage);
           worker.removeEventListener('error', handleError);
           resolve(result);
-        } else if (type === 'error') {
+        } else if (type === 'error' && responseId === requestId) {
           worker.removeEventListener('message', handleMessage);
           worker.removeEventListener('error', handleError);
           reject(new Error(error));
@@ -1931,7 +1934,7 @@ export default function App() {
 
       worker.addEventListener('message', handleMessage);
       worker.addEventListener('error', handleError);
-      worker.postMessage({ type: 'legacy', params });
+      worker.postMessage({ type: 'legacy', params, requestId });
     });
   }, []);
 
@@ -2485,8 +2488,10 @@ export default function App() {
         console.log('[CALC] Calculating estate tax...');
         const yearOfDeath = CURR_YEAR + (LIFE_EXP - older); // Death at LIFE_EXP age
         const estateTax = calcEstateTax(eolWealth, marital, yearOfDeath, assumeTaxCutsExtended);
-        const netEstate = eolWealth - estateTax;
-        console.log('[CALC] Estate tax calculated - year:', yearOfDeath, 'estateTax:', estateTax, 'netEstate:', netEstate);
+        // Scale estate tax to real dollars for consistent chart display
+        const realEstateTax = estateTax * (eolReal / eolWealth);
+        const netEstate = eolReal - realEstateTax;
+        console.log('[CALC] Estate tax calculated - year:', yearOfDeath, 'estateTax:', estateTax, 'realEstateTax:', realEstateTax, 'netEstate:', netEstate);
 
         // Generational payout calculation (if enabled) - Monte Carlo version
         // NOW OPTIMIZED: Uses early-exit, decade chunking, and early termination for 90-99% speedup
@@ -2818,8 +2823,9 @@ export default function App() {
           yrsToSim,
           eol: eolWealth,
           eolReal,  // Real (inflation-adjusted) EOL wealth for comparisons
-          estateTax,
-          netEstate,
+          estateTax: realEstateTax,  // IMPORTANT: Use real estate tax to match real EOL accounts
+          estateTaxNominal: estateTax,  // Store nominal for reference
+          netEstate,  // Already in real dollars
           eolAccounts: {
             // IMPORTANT: Use eolReal (not eolWealth) so chart matches Plan Summary Card
             // Both show real dollars (today's purchasing power) for consistency
@@ -3352,7 +3358,8 @@ export default function App() {
 
           // Only recalculate if changes were made
           if (hasChanges) {
-            setInputsModified(true);
+            // Don't set inputsModified=true because we're immediately recalculating
+            // The calc() function will set inputsModified=false when complete
 
             // Use requestAnimationFrame for better timing
             requestAnimationFrame(() => {
@@ -4333,7 +4340,7 @@ export default function App() {
               {/* PAGE 6: LIFETIME WEALTH FLOW */}
               <section className="print-section print-page-break-after">
                 <header className="mb-4 border-b-2 border-gray-900 pb-3">
-                  <h2 className="text-xl font-bold text-black">Lifetime Wealth Flow</h2>
+                  <h2 className="text-xl font-bold text-black">Real Lifetime Wealth Flow Chart</h2>
                   <p className="text-xs text-gray-700 mt-1">From end-of-life wealth to net inheritance (all values in today's dollars)</p>
                 </header>
 
@@ -4352,8 +4359,10 @@ export default function App() {
                               { name: `Net to Heirs — ${fmt(res.netEstate || res.eol)}` },
                             ],
                             links: (() => {
-                              const taxRatio = (res.estateTax || 0) / res.eol;
-                              const heirRatio = (res.netEstate || res.eol) / res.eol;
+                              // Use eolReal for ratios since all values are in real dollars
+                              const totalReal = res.eolReal || res.eol;
+                              const taxRatio = (res.estateTax || 0) / totalReal;
+                              const heirRatio = (res.netEstate || totalReal) / totalReal;
                               const links = [];
 
                               // Taxable flows (soft orange)
@@ -4973,14 +4982,14 @@ export default function App() {
                 }
               />
               <FlippingStatCard
-                title="After-Tax Income"
+                title="Real After-Tax Income"
                 value={fmt(res.wdReal)}
-                sub="Year 1 real spending"
+                sub="Year 1 inflation-adjusted spending"
                 color="emerald"
                 backContent={
                   <>
                     <div className="flip-card-header">
-                      <span className="flip-card-title">After-Tax Income - Details</span>
+                      <span className="flip-card-title">Real After-Tax Income - Details</span>
                       <span className="flip-card-icon text-xs print-hide flip-hint">Click to flip back ↻</span>
                     </div>
                     <div className="flip-card-body-details">
@@ -5029,7 +5038,7 @@ export default function App() {
                 <Card className="border-2 border-slate-200 dark:border-slate-700">
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
-                        <span>Lifetime Wealth Flow</span>
+                        <span>Real Lifetime Wealth Flow Chart</span>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -5066,8 +5075,10 @@ export default function App() {
                             { name: `Net to Heirs — ${fmt(res.netEstate || res.eol)}` },
                           ],
                           links: (() => {
-                            const taxRatio = (res.estateTax || 0) / res.eol;
-                            const heirRatio = (res.netEstate || res.eol) / res.eol;
+                            // Use eolReal for ratios since all values are in real dollars
+                            const totalReal = res.eolReal || res.eol;
+                            const taxRatio = (res.estateTax || 0) / totalReal;
+                            const heirRatio = (res.netEstate || totalReal) / totalReal;
 
                             const links = [];
 
@@ -5859,7 +5870,7 @@ export default function App() {
                     ? `Assumes constant ${retRate}% annual return`
                     : 'Based on historical market data (1928-2024)',
                   successRate: res.probRuin !== undefined ? (1 - res.probRuin) * 100 : 100,
-                  eolWealth: res.eol,
+                  eolWealth: res.eolReal,  // Use real dollars for consistency
                   withdrawalAmount: res.wdReal
                 }}
                 showComparison={false}
@@ -7335,8 +7346,8 @@ export default function App() {
         </TabPanel>
         )}
 
-        {/* Budget Tab - Hide from All-in-One tab (contains Retirement Timeline & Implied Budget) */}
-        {activeMainTab !== 'all' && (
+        {/* Budget Tab - HIDDEN per user request (contains Retirement Timeline & Implied Budget) */}
+        {false && (
         <TabPanel id="budget" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           {/* Retirement Timeline - First element */}

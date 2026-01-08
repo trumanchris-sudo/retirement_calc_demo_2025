@@ -175,7 +175,7 @@ export function PlanSummaryCard({ result, batchSummary }: PlanSummaryCardProps) 
             </div>
             <p className="text-2xl font-bold">{fmt(safeWithdrawal)}</p>
             <p className="text-xs text-muted-foreground">
-              In retirement (inflation-adjusted)
+              In retirement (real)
             </p>
           </div>
 

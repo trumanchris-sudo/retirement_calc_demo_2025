@@ -55,6 +55,16 @@ export const RiskSummaryCard = React.memo(function RiskSummaryCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Explanation Box */}
+        <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <h4 className="text-xs font-semibold mb-1 text-blue-900 dark:text-blue-100">What Success Rate Means</h4>
+          <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+            We ran 1,000 different market scenarios. <strong>Success Rate</strong> shows the percentage where
+            your portfolio lasted through retirement without running out. For example, 90% means your plan
+            succeeded in 900 out of 1,000 scenarios. Higher is better!
+          </p>
+        </div>
+
         {/* Current Scenario */}
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -85,9 +95,9 @@ export const RiskSummaryCard = React.memo(function RiskSummaryCard({
             {currentScenario.eolWealth !== undefined && (
               <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div>
-                  <div className="text-xs text-muted-foreground">End-of-Life Wealth</div>
+                  <div className="text-xs text-muted-foreground">End-of-Life Wealth (real)</div>
                   <div className="text-lg font-semibold">
-                    ${currentScenario.eolWealth.toLocaleString()}
+                    ${Math.round(currentScenario.eolWealth).toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -96,9 +106,9 @@ export const RiskSummaryCard = React.memo(function RiskSummaryCard({
             {currentScenario.withdrawalAmount !== undefined && (
               <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div>
-                  <div className="text-xs text-muted-foreground">Annual Withdrawal</div>
+                  <div className="text-xs text-muted-foreground">Annual Withdrawal (real)</div>
                   <div className="text-lg font-semibold">
-                    ${currentScenario.withdrawalAmount.toLocaleString()}
+                    ${Math.round(currentScenario.withdrawalAmount).toLocaleString()}
                   </div>
                 </div>
               </div>

@@ -18,7 +18,8 @@ const tabs: Array<{ id: MainTabId; label: string; description: string }> = [
   { id: 'results', label: 'Results', description: 'View your projections' },
   { id: 'stress', label: 'Stress Tests', description: 'Test market scenarios' },
   { id: 'legacy', label: 'Legacy Planning', description: 'Generational wealth' },
-  { id: 'budget', label: 'Budget', description: 'Timeline and budget insights' },
+  // Budget tab hidden per user request (contains Retirement Timeline & Implied Budget)
+  // { id: 'budget', label: 'Budget', description: 'Timeline and budget insights' },
   { id: 'optimize', label: 'Optimize', description: 'Find your freedom date' },
   { id: 'checkUs', label: 'Check Us', description: 'Verify our calculations' },
   { id: 'math', label: 'Math', description: 'Understanding the calculations' },

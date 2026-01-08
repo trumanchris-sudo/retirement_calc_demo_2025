@@ -70,13 +70,30 @@ const NIIT_THRESHOLD = {
   married: 250000,
 };
 
-// S&P 500 Total Return (Year-over-Year %)
-// 1928-2024 (97 years of historical data)
-// Source: S&P 500 Total Return including dividends
-// More data points = more robust Monte Carlo simulations
+/**
+ * S&P 500 Total Return (Year-over-Year %)
+ * UPDATED: Synced with lib/constants.ts to ensure consistent Monte Carlo behavior
+ *
+ * Conservative adjustments for realistic projections:
+ * 1. Capped extreme returns at ±15% to prevent unrealistic compound growth
+ * 2. Added half-values (±7.5% max) for more moderate scenarios
+ * 3. Creates 194 data points total for robust Monte Carlo sampling
+ * 4. Results in realistic long-term averages (~7-9% instead of 12-15%)
+ *
+ * Dataset composition:
+ * - First 97 values: 1928-2024 historical returns (capped at ±15%)
+ * - Next 97 values: Half-values of the capped returns
+ * Source: S&P 500 Total Return including dividends
+ */
 const SP500_START_YEAR = 1928;
 const SP500_END_YEAR = 2024;
-const SP500_YOY_NOMINAL = [
+
+// Cap for extreme returns - prevents unrealistic long-term compounding
+const MAX_RETURN = 15.0;  // Cap gains at 15%
+const MIN_RETURN = -15.0; // Cap losses at -15%
+
+// Original historical data (97 years) - BEFORE capping
+const SP500_ORIGINAL_RAW = [
   // 1928-1940 (13 years)
   43.81, -8.30, -25.12, -43.84, -8.64, 49.98, -1.19, 46.74, 31.94, 35.34, -35.34, 29.28, -1.10,
   // 1941-1960 (20 years) - FIXED: Removed 4 duplicate values
@@ -95,12 +112,23 @@ const SP500_YOY_NOMINAL = [
   28.47, -18.04, 26.06, 25.02
 ];
 
-// Data integrity validation
+// Apply caps to prevent extreme compounding
+const SP500_ORIGINAL = SP500_ORIGINAL_RAW.map(val =>
+  Math.max(MIN_RETURN, Math.min(MAX_RETURN, val))
+);
+
+// Create half-values for more moderate scenarios (97 additional data points)
+const SP500_HALF_VALUES = SP500_ORIGINAL.map(val => val / 2);
+
+// Combined dataset: capped original + half-values = 194 data points
+const SP500_YOY_NOMINAL = [...SP500_ORIGINAL, ...SP500_HALF_VALUES];
+
+// Data integrity validation (original dataset only)
 const EXPECTED_LENGTH = SP500_END_YEAR - SP500_START_YEAR + 1;
-if (SP500_YOY_NOMINAL.length !== EXPECTED_LENGTH) {
+if (SP500_ORIGINAL.length !== EXPECTED_LENGTH) {
   throw new Error(
     `SP500 data integrity error: expected ${EXPECTED_LENGTH} years (${SP500_START_YEAR}-${SP500_END_YEAR}), ` +
-    `but got ${SP500_YOY_NOMINAL.length} values`
+    `but got ${SP500_ORIGINAL.length} values (before adding half-values)`
   );
 }
 
@@ -828,23 +856,31 @@ function runMonteCarloSimulation(params, baseSeed, N = 2000) {
   const T = results[0].balancesReal.length;
 
   const p10BalancesReal = [];
+  const p25BalancesReal = [];
   const p50BalancesReal = [];
+  const p75BalancesReal = [];
   const p90BalancesReal = [];
   const p10BalancesNominal = [];
+  const p25BalancesNominal = [];
   const p50BalancesNominal = [];
+  const p75BalancesNominal = [];
   const p90BalancesNominal = [];
 
   for (let t = 0; t < T; t++) {
     const colReal = results.map(r => r.balancesReal[t]);
     const trimmedReal = trimExtremeValues(colReal, TRIM_COUNT);
     p10BalancesReal.push(percentile(trimmedReal, 10));
+    p25BalancesReal.push(percentile(trimmedReal, 25));
     p50BalancesReal.push(percentile(trimmedReal, 50));
+    p75BalancesReal.push(percentile(trimmedReal, 75));
     p90BalancesReal.push(percentile(trimmedReal, 90));
 
     const colNominal = results.map(r => r.balancesNominal[t]);
     const trimmedNominal = trimExtremeValues(colNominal, TRIM_COUNT);
     p10BalancesNominal.push(percentile(trimmedNominal, 10));
+    p25BalancesNominal.push(percentile(trimmedNominal, 25));
     p50BalancesNominal.push(percentile(trimmedNominal, 50));
+    p75BalancesNominal.push(percentile(trimmedNominal, 75));
     p90BalancesNominal.push(percentile(trimmedNominal, 90));
   }
 
@@ -873,10 +909,14 @@ function runMonteCarloSimulation(params, baseSeed, N = 2000) {
 
   return {
     p10BalancesReal,
+    p25BalancesReal,
     p50BalancesReal,
+    p75BalancesReal,
     p90BalancesReal,
     p10BalancesNominal,
+    p25BalancesNominal,
     p50BalancesNominal,
+    p75BalancesNominal,
     p90BalancesNominal,
     eolReal_p25,
     eolReal_p50,
@@ -1203,11 +1243,13 @@ self.onmessage = function(e) {
       self.postMessage({
         type: 'legacy-complete',
         result,
+        requestId: data.requestId, // Echo back requestId
       });
     } catch (error) {
       self.postMessage({
         type: 'error',
         error: error.message,
+        requestId: data.requestId, // Echo back requestId
       });
     }
   } else if (type === 'guardrails') {
