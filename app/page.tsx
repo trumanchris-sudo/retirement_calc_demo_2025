@@ -2821,9 +2821,11 @@ export default function App() {
           estateTax,
           netEstate,
           eolAccounts: {
-            taxable: eolWealth * initialTaxableRatio,  // Use actual user's ratios
-            pretax: eolWealth * initialPretaxRatio,
-            roth: eolWealth * initialRothRatio,
+            // IMPORTANT: Use eolReal (not eolWealth) so chart matches Plan Summary Card
+            // Both show real dollars (today's purchasing power) for consistency
+            taxable: eolReal * initialTaxableRatio,
+            pretax: eolReal * initialPretaxRatio,
+            roth: eolReal * initialRothRatio,
           },
           totalRMDs: 0,
           genPayout,
@@ -4332,7 +4334,7 @@ export default function App() {
               <section className="print-section print-page-break-after">
                 <header className="mb-4 border-b-2 border-gray-900 pb-3">
                   <h2 className="text-xl font-bold text-black">Lifetime Wealth Flow</h2>
-                  <p className="text-xs text-gray-700 mt-1">From end-of-life wealth to net inheritance</p>
+                  <p className="text-xs text-gray-700 mt-1">From end-of-life wealth to net inheritance (all values in today's dollars)</p>
                 </header>
 
                 {res.eolAccounts && res.eol > 0 ? (
@@ -5041,7 +5043,7 @@ export default function App() {
                         </Button>
                       </CardTitle>
                       <CardDescription className="flex items-center justify-between">
-                        <span>From end-of-life wealth to net inheritance</span>
+                        <span>From end-of-life wealth to net inheritance (all values in today's dollars)</span>
                         {res.probRuin !== undefined && (
                           <span className="text-xs text-muted-foreground">
                             Probability of Running Out: <span className="font-semibold">{(res.probRuin * 100).toFixed(0)}%</span>
