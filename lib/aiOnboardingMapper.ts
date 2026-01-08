@@ -222,6 +222,45 @@ export function mapAIDataToCalculator(
     }
   }
 
+  // === Income Details (Bonus, First Pay Date) ===
+  // Parse bonusInfo if present (e.g., "$15,000 in December")
+  let eoyBonusAmount: number | undefined;
+  let eoyBonusMonth: string | undefined;
+
+  if (extractedData.bonusInfo) {
+    const bonusText = extractedData.bonusInfo.toLowerCase();
+
+    // Extract dollar amount
+    const dollarMatch = bonusText.match(/\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/);
+    if (dollarMatch) {
+      eoyBonusAmount = parseFloat(dollarMatch[1].replace(/,/g, ''));
+    } else {
+      // Try to find plain number
+      const numberMatch = bonusText.match(/(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/);
+      if (numberMatch) {
+        eoyBonusAmount = parseFloat(numberMatch[1].replace(/,/g, ''));
+      }
+    }
+
+    // Extract month
+    const months = ['january', 'february', 'march', 'april', 'may', 'june',
+                    'july', 'august', 'september', 'october', 'november', 'december'];
+    for (const month of months) {
+      if (bonusText.includes(month)) {
+        eoyBonusMonth = month.charAt(0).toUpperCase() + month.slice(1);
+        break;
+      }
+    }
+
+    if (eoyBonusAmount) {
+      console.log('[aiOnboardingMapper] Parsed bonus:', {
+        raw: extractedData.bonusInfo,
+        amount: eoyBonusAmount,
+        month: eoyBonusMonth || 'December (default)',
+      });
+    }
+  }
+
   // === Retirement Goals ===
   // IMPORTANT: Use user-specified retirement age if provided, don't override it
   const retAge = extractedData.retirementAge ?? calculateRecommendedRetirementAge(age1, annualIncome1);
@@ -340,6 +379,11 @@ export function mapAIDataToCalculator(
     employmentType2,
     annualIncome1,
     annualIncome2,
+
+    // Income Calculator Details
+    ...(eoyBonusAmount !== undefined && { eoyBonusAmount }),
+    ...(eoyBonusMonth && { eoyBonusMonth }),
+    // TODO: Add firstPayDate extraction from wizard conversation
 
     // Current Balances
     emergencyFund,
