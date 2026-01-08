@@ -1475,6 +1475,7 @@ export default function App() {
   const [activeMainTab, setActiveMainTab] = useState<MainTabId>('all');
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [inputsModified, setInputsModified] = useState(false);
+  const [isFromWizard, setIsFromWizard] = useState(false); // Track if calculation triggered from wizard completion
 
   // Handle tab switching via URL query params
   const searchParams = useSearchParams();
@@ -2243,8 +2244,8 @@ export default function App() {
     setIsLoadingAi(true);
     setIsRunning(true);
 
-    // Start cinematic Monte Carlo sequence only from All-in-One or Configure tabs
-    if (activeMainTab === 'all' || activeMainTab === 'configure') {
+    // Start cinematic Monte Carlo sequence from All-in-One, Configure tabs, or Wizard completion
+    if (activeMainTab === 'all' || activeMainTab === 'configure' || isFromWizard) {
       console.log('[CALC] Playing splash animation');
       splashRef.current?.play();
     }
@@ -2860,13 +2861,14 @@ export default function App() {
       setInputsModified(false);
 
       // NAVIGATION BEHAVIOR:
-      // - First calculation from Configure tab → Navigate to Results tab and scroll to top
+      // - First calculation from Configure tab OR Wizard completion → Navigate to Results tab and scroll to top
       // - Recalculate from ANY other location → Stay on current tab, don't scroll
-      const shouldNavigate = isFirstCalculation && activeMainTab === 'configure';
+      const shouldNavigate = (isFirstCalculation && activeMainTab === 'configure') || isFromWizard;
 
       if (shouldNavigate) {
-        // First calculation from Configure tab: switch to Results and scroll
+        // First calculation from Configure tab or Wizard: switch to Results and scroll
         setActiveMainTab('results');
+        setIsFromWizard(false); // Reset flag after navigation
         setTimeout(() => {
           window.scrollTo({ top: 0, behavior: 'smooth' });
           setOlderAgeForAnalysis(olderAgeForAI);
@@ -2896,7 +2898,7 @@ export default function App() {
     retMode, seed, walkSeries, historicalYear,
     inflationShockRate, inflationShockDuration,
     includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2, hypBenAgesStr,
-    activeMainTab, setActiveMainTab,
+    activeMainTab, setActiveMainTab, isFromWizard,
     runMonteCarloViaWorker, fetchAiInsight,
     includeMedicare, medicarePremium, medicalInflation,
     irmaaThresholdSingle, irmaaThresholdMarried, irmaaSurcharge,
@@ -3225,9 +3227,24 @@ export default function App() {
   if (shouldShowWizard) {
     return (
       <OnboardingWizardPage
-        onComplete={() => {
+        onComplete={async () => {
+          console.log('[WIZARD] Wizard completed, triggering auto-calculation...');
           markOnboardingComplete();
-          // Calculator will auto-run via useEffect when PlanConfig updates
+
+          // Give user a moment to see "Looks Good" before transitioning
+          await new Promise(resolve => setTimeout(resolve, 300));
+
+          // Mark that we're coming from wizard to trigger:
+          // 1. WORK→DIE→RETIRE animation
+          // 2. Auto-navigate to Results tab after calculation
+          setIsFromWizard(true);
+
+          // Auto-run calculation
+          // The calc() function will:
+          // 1. Play WORK→DIE→RETIRE animation (because isFromWizard=true)
+          // 2. Run calculation in background
+          // 3. Navigate to Results tab and scroll to top
+          calc();
         }}
         onSkip={() => {
           markOnboardingComplete();
