@@ -116,10 +116,11 @@ export function OnboardingWizardPage({ onComplete, onSkip }: OnboardingWizardPag
   }, []);
 
   // Full-page layout with proper mobile support
+  // Use h-[100dvh] for dynamic viewport height (accounts for iOS browser bars)
   // Push wizard top down when keyboard appears to keep it centered in visible viewport
   return (
     <div
-      className="min-h-[100dvh] flex flex-col bg-black text-white transition-all duration-200 ease-out"
+      className="h-[100dvh] flex flex-col bg-black text-white transition-all duration-200 ease-out"
       style={{
         paddingTop: keyboardOffset > 0 ? `${keyboardOffset}px` : '0'
       }}

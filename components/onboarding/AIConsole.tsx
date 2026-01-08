@@ -426,13 +426,13 @@ ${getNextQuestion(0, {})}`;
         {/* Messages Area - scroll container */}
         <main
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto bg-black"
+          className="flex-1 overflow-y-auto flex flex-col bg-black"
           role="log"
           aria-live="polite"
           aria-label="Conversation messages"
         >
-          {/* Inner wrapper: anchors content to bottom when there's not enough to fill */}
-          <div className="flex flex-col justify-end min-h-full px-3 py-3 sm:px-6 sm:py-4 space-y-4">
+          {/* Inner wrapper: uses mt-auto to anchor content to bottom when space available */}
+          <div className="mt-auto flex flex-col px-3 py-3 sm:px-6 sm:py-4 space-y-4">
           {error && (
             <div
               role="alert"
@@ -522,8 +522,8 @@ ${getNextQuestion(0, {})}`;
             </>
           )}
 
-          <div ref={messagesEndRef} />
-          </div> {/* Close inner wrapper - anchors content to bottom */}
+          <div ref={messagesEndRef} className="h-px w-full" />
+          </div> {/* Close inner wrapper with mt-auto */}
         </main>
 
         {/* Input Area - Sticky to bottom of scroll container */}
