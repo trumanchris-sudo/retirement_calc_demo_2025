@@ -2419,16 +2419,20 @@ export default function App() {
         }
         console.log('[CALC] Data reconstruction complete, data length:', data.length);
 
-        // Use median values for key metrics
+        // Use conservative average (P25-P50) for key metrics instead of median (P50)
+        // This provides more conservative projections by averaging 25th and 50th percentiles
         console.log('[CALC] Calculating key metrics...');
         const finReal = batchSummary.p50BalancesReal[yrsToRet];
         const finNom = finReal * Math.pow(1 + infl, yrsToRet);
-        const wdRealY1 = batchSummary.y1AfterTaxReal_p50;
+
+        // Conservative: average of P25 and P50 (more conservative than median alone)
+        const wdRealY1 = (batchSummary.y1AfterTaxReal_p25 + batchSummary.y1AfterTaxReal_p50) / 2;
         const infAdj = Math.pow(1 + infl, yrsToRet);
         const wdAfterY1 = wdRealY1 * infAdj;
         const wdGrossY1 = wdAfterY1 / (1 - 0.15); // rough estimate, actual tax rate varies
 
-        const eolReal = batchSummary.eolReal_p50;
+        // Conservative: average of P25 and P50 (more conservative than median alone)
+        const eolReal = (batchSummary.eolReal_p25 + batchSummary.eolReal_p50) / 2;
         const yearsFrom2025 = yrsToRet + yrsToSim;
         const eolWealth = eolReal * Math.pow(1 + infl, yearsFrom2025);
         console.log('[CALC] Key metrics calculated - finReal:', finReal, 'eolWealth:', eolWealth);
@@ -3854,7 +3858,7 @@ export default function App() {
                   <h2 className="text-xl font-bold text-black">Wealth Accumulation Projection</h2>
                   <p className="text-xs text-gray-700 mt-1">
                     {walkSeries === 'trulyRandom'
-                      ? 'Monte Carlo Simulation: Showing median (P50) outcome with "cone of uncertainty" (P10-P90 range). The shaded area represents the range of 80% of possible outcomes across 1,000 simulations.'
+                      ? 'Monte Carlo Simulation: Showing conservative average (P25-P50) outcome with "cone of uncertainty" (P10-P90 range). The shaded area represents the range of 80% of possible outcomes across 1,000 simulations. Key metrics use the average of 25th-50th percentile for more conservative projections.'
                       : 'Deterministic projection based on fixed return assumptions'}
                   </p>
                 </header>
@@ -7562,7 +7566,7 @@ export default function App() {
                   <ul className="list-disc pl-6 space-y-1 text-gray-700">
                     <li><strong>Fixed Return:</strong> All accounts grow by a constant rate (e.g., 9.8%) each year: Balance<sub>year+1</sub> = Balance<sub>year</sub> × (1 + r)</li>
                     <li><strong>Random Walk:</strong> Returns are randomly sampled from 97 years of historical S&amp;P 500 data (1928-2024), using a seeded pseudo-random number generator for reproducibility. Each year gets a different historical return, bootstrapped with replacement.</li>
-                    <li><strong>Truly Random (Monte Carlo):</strong> Runs 1,000 independent simulations, each with different sequences of returns randomly sampled from 97 years of S&amp;P 500 historical data (1928-2024, including Great Depression, stagflation, dot-com crash, 2008 crisis). Reports median outcomes and calculates probability of portfolio depletion based on actual simulation results—captures real sequence risk without idealized assumptions.</li>
+                    <li><strong>Truly Random (Monte Carlo):</strong> Runs 1,000 independent simulations, each with different sequences of returns randomly sampled from 97 years of S&amp;P 500 historical data (1928-2024, including Great Depression, stagflation, dot-com crash, 2008 crisis). Reports conservative average outcomes (P25-P50 percentile) and calculates probability of portfolio depletion based on actual simulation results—captures real sequence risk without idealized assumptions.</li>
                   </ul>
                 </div>
 
