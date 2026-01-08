@@ -15,7 +15,6 @@ import { ConsoleInput } from './ConsoleInput';
 import { DataSummaryPanel } from './DataSummaryPanel';
 import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, AlertCircle } from 'lucide-react';
-import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 
 interface AIConsoleProps {
   onComplete: (data: ExtractedData, assumptions: AssumptionWithReasoning[]) => void;
@@ -40,40 +39,38 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Get keyboard height for iOS Safari
-  const keyboardInset = useKeyboardInset();
-
-  // Auto-scroll to bottom when new messages arrive
+  // Scroll to bottom helper - snap instantly, no smooth animation
   const scrollToBottom = useCallback(() => {
-    if (!messagesContainerRef.current) return;
-    messagesContainerRef.current.scrollTo({
-      top: messagesContainerRef.current.scrollHeight,
-      behavior: 'smooth',
-    });
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
   }, []);
 
+  // Auto-scroll when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages.length, scrollToBottom]);
 
-  // Scroll messages to bottom when textarea gets focus (iOS keyboard fix)
+  // Scroll to bottom when textarea gets focus (after keyboard animation)
   const handleTextareaFocus = useCallback(() => {
-    // Use preventScroll to avoid iOS Safari jumping to weird positions
-    if (inputRef.current) {
-      inputRef.current.focus({ preventScroll: true });
-    }
+    // Let Safari bring keyboard up, then snap to bottom
+    setTimeout(scrollToBottom, 50);
+  }, [scrollToBottom]);
 
-    // Then smoothly scroll the messages container to bottom
-    // This ensures the latest question is visible above the keyboard
-    requestAnimationFrame(() => {
-      if (messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTo({
-          top: messagesContainerRef.current.scrollHeight,
-          behavior: 'smooth',
-        });
+  // Re-scroll when keyboard resizes viewport (iOS)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const vv = window.visualViewport;
+    const handler = () => {
+      if (document.activeElement === inputRef.current) {
+        scrollToBottom();
       }
-    });
-  }, []);
+    };
+
+    vv.addEventListener('resize', handler);
+    return () => vv.removeEventListener('resize', handler);
+  }, [scrollToBottom]);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -188,14 +185,18 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
         const isMarried = currentData.maritalStatus === 'married';
 
         // Detect employment types
-        const detectEmploymentType = (text: string): 'w2' | 'self-employed' | 'k1' | 'other' => {
+        const detectEmploymentType = (text: string): 'w2' | 'self-employed' | 'both' | 'retired' | 'other' => {
           if (text.includes('w2') || text.includes('w-2') || text.includes('employee')) {
             return 'w2';
           } else if (text.includes('self-employed') || text.includes('self employed') ||
-                     text.includes('freelance') || text.includes('contractor') || text.includes('1099')) {
+                     text.includes('freelance') || text.includes('contractor') || text.includes('1099') ||
+                     text.includes('k1') || text.includes('k-1') || text.includes('partner')) {
+            // K-1 partnership income is similar to self-employment
             return 'self-employed';
-          } else if (text.includes('k1') || text.includes('k-1') || text.includes('partner')) {
-            return 'k1';
+          } else if (text.includes('both')) {
+            return 'both';
+          } else if (text.includes('retired') || text.includes('retirement')) {
+            return 'retired';
           }
           return 'other';
         };
@@ -236,17 +237,20 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
         break;
 
       case 4: // Account balances
-        // Try to extract 4 numbers: traditional, roth, taxable, cash
+        // Try to extract 4 numbers: traditional, roth, taxable, cash/emergency fund
         if (numbers.length >= 1) extracted.currentTraditional = numbers[0];
         if (numbers.length >= 2) extracted.currentRoth = numbers[1];
         if (numbers.length >= 3) extracted.currentTaxable = numbers[2];
-        if (numbers.length >= 4) extracted.currentCash = numbers[3];
+        if (numbers.length >= 4) extracted.emergencyFund = numbers[3];
         break;
 
       case 5: // Retirement age
         // Extract retirement age (should be a single number)
         if (numbers.length > 0) {
           extracted.retirementAge = numbers[0];
+          console.log('[AIConsole] Parsed retirement age:', numbers[0], 'from input:', userInput);
+        } else {
+          console.warn('[AIConsole] No retirement age found in input:', userInput);
         }
         break;
     }
@@ -389,52 +393,46 @@ ${getNextQuestion(0, {})}`;
   const showAssumptionsReview = phase === 'assumptions-review' || phase === 'refinement';
 
   return (
-    <div
-      className="fixed inset-0 bg-black h-screen"
-      style={{ height: '100dvh' }}
-      role="main"
-      aria-label="AI-powered retirement planning onboarding"
-    >
-      {/* Main Console */}
-      <div className="h-full w-full flex flex-col">
-        {/* Header - Terminal Style */}
-        <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 sm:px-6 sm:py-3 border-b border-gray-800 bg-black">
-          <div className="font-mono">
-            <h2 className="text-sm sm:text-base text-green-400">
-              <span className="text-gray-500">$ </span>
-              retirement-wizard <span className="text-gray-600">--interactive</span>
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5 ml-2">
-              {phase === 'greeting' && '[initializing...]'}
-              {phase === 'data-collection' && '[collecting data...]'}
-              {phase === 'assumptions-review' && '[review mode]'}
-              {phase === 'refinement' && '[refining...]'}
-              {phase === 'complete' && '[complete ✓]'}
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSkip}
-            className="font-mono text-gray-400 hover:text-gray-200 hover:bg-gray-900 text-xs min-h-[32px] px-3"
-            aria-label="Skip AI onboarding and proceed to manual data entry"
-          >
-            <span className="hidden sm:inline">^C exit</span>
-            <span className="sm:hidden">exit</span>
-          </Button>
+    <div className="flex flex-col flex-1 overflow-hidden bg-black">
+      {/* Header - Terminal Style */}
+      <header className="shrink-0 flex items-center justify-between px-3 py-2 sm:px-6 sm:py-3 border-b border-gray-800 bg-black">
+        <div className="font-mono">
+          <h2 className="text-sm sm:text-base text-green-400">
+            <span className="text-gray-500">$ </span>
+            retirement-wizard <span className="text-gray-600">--interactive</span>
+          </h2>
+          <p className="text-xs text-gray-500 mt-0.5 ml-2">
+            {phase === 'greeting' && '[initializing...]'}
+            {phase === 'data-collection' && '[collecting data...]'}
+            {phase === 'assumptions-review' && '[review mode]'}
+            {phase === 'refinement' && '[refining...]'}
+            {phase === 'complete' && '[complete ✓]'}
+          </p>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSkip}
+          className="font-mono text-gray-400 hover:text-gray-200 hover:bg-gray-900 text-xs min-h-[32px] px-3"
+          aria-label="Skip AI onboarding and proceed to manual data entry"
+        >
+          <span className="hidden sm:inline">^C exit</span>
+          <span className="sm:hidden">exit</span>
+        </Button>
+      </header>
 
-        {/* Messages Area - Scrollable with keyboard-aware padding */}
-        <div
+      {/* Scrollable content container with sticky input */}
+      <div className="flex-1 overflow-y-auto flex flex-col">
+        {/* Messages Area - scroll container */}
+        <main
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 space-y-4 bg-black"
-          style={{
-            paddingBottom: `calc(${keyboardInset}px + env(safe-area-inset-bottom, 0px) + 6rem)`,
-          }}
+          className="flex-1 overflow-y-auto flex flex-col bg-black"
           role="log"
           aria-live="polite"
           aria-label="Conversation messages"
         >
+          {/* Inner wrapper: uses mt-auto to anchor content to bottom when space available */}
+          <div className="mt-auto flex flex-col px-3 py-3 sm:px-6 sm:py-4 space-y-4">
           {error && (
             <div
               role="alert"
@@ -524,16 +522,12 @@ ${getNextQuestion(0, {})}`;
             </>
           )}
 
-          <div ref={messagesEndRef} />
-        </div>
+          <div ref={messagesEndRef} className="h-px w-full" />
+          </div> {/* Close inner wrapper with mt-auto */}
+        </main>
 
-        {/* Input Area - Fixed at bottom with keyboard-aware padding */}
-        <div
-          className="flex-shrink-0 border-t border-gray-800 bg-black px-3 sm:px-4 pt-3 sm:pt-4"
-          style={{
-            paddingBottom: `calc(${keyboardInset}px + env(safe-area-inset-bottom, 0px) + 0.75rem)`,
-          }}
-        >
+        {/* Input Area - Sticky to bottom of scroll container */}
+        <footer className="sticky bottom-0 border-t border-gray-800 bg-black px-3 sm:px-4 py-3 pb-[env(safe-area-inset-bottom)]">
           <ConsoleInput
             ref={inputRef}
             value={input}
@@ -558,12 +552,7 @@ ${getNextQuestion(0, {})}`;
               <span>Analyzing your responses and generating smart assumptions...</span>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Side Panel - Data Summary - Hidden on mobile, visible on desktop */}
-      <div className="hidden md:block md:w-80 border-l border-slate-800">
-        <DataSummaryPanel extractedData={extractedData} assumptions={assumptions} />
+        </footer>
       </div>
     </div>
   );

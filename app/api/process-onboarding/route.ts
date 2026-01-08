@@ -40,17 +40,23 @@ export async function POST(request: NextRequest) {
 6. Target retirement age
 
 Your job is to:
-1. Validate and refine the data collected
+1. **PRESERVE all user-provided values from extractedData - DO NOT override them**
 2. Extract bonus details if provided (bonusInfo field)
-3. Make reasonable assumptions for ALL remaining missing fields
+3. Make reasonable assumptions ONLY for fields that are missing or undefined
 4. Generate a complete retirement plan configuration
 
 USER PROVIDED DATA (from client-side collection):
 ${JSON.stringify(extractedData, null, 2)}
 
+CRITICAL INSTRUCTION:
+- If a field exists in extractedData with a valid value, YOU MUST USE THAT VALUE
+- DO NOT "improve" or "suggest better" values for fields the user already provided
+- Example: If retirementAge is 65, keep it 65. Do NOT suggest 55 or 60.
+- Only make assumptions for fields that are missing (null/undefined/not present)
+
 DATA VALIDATION AND EXTRACTION:
 
-CRITICAL FIELDS (should be provided by user):
+CRITICAL FIELDS (should be provided by user - USE THESE VALUES):
 - age: User's age (REQUIRED from Q1)
 - spouseAge: Spouse's age if married (from Q1)
 - maritalStatus: "single" or "married" (from Q1)
@@ -59,7 +65,11 @@ CRITICAL FIELDS (should be provided by user):
 - employmentType2: Same options (from Q3, if married)
 - annualIncome1: Annual income person 1 (from Q4)
 - annualIncome2: Annual income person 2 if married (from Q4)
-- retirementAge: Target retirement age (from Q6)
+- retirementAge: Target retirement age (from Q6) - **NEVER override this**
+- currentTraditional: Traditional IRA/401k balance (from Q5)
+- currentRoth: Roth IRA/401k balance (from Q5)
+- currentTaxable: Taxable brokerage balance (from Q5)
+- emergencyFund: Savings/emergency fund balance (from Q5)
 
 BONUS INFORMATION (if bonusInfo field provided):
 - Parse bonusInfo to extract:
@@ -68,13 +78,7 @@ BONUS INFORMATION (if bonusInfo field provided):
   - Whether bonus is variable or fixed
 - If mentioned but no specific amounts, assume 10% of base salary
 
-ACCOUNT BALANCES (from Q5, use provided values or $0):
-- currentTraditional: Traditional IRA/401k balance
-- currentRoth: Roth IRA/401k balance
-- currentTaxable: Taxable brokerage balance
-- currentCash: Savings/emergency fund balance
-
-ASSUMPTIONS TO MAKE FOR REMAINING FIELDS:
+ASSUMPTIONS TO MAKE ONLY FOR MISSING FIELDS:
 
 CONTRIBUTION RATES (assume standard rates based on income):
 - contributionRate1Traditional: Assume 6% if income < $150k, 10% if >= $150k
@@ -97,7 +101,7 @@ HEALTHCARE (assume standard costs):
 OTHER EXPENSES (assume reasonable defaults):
 - monthlyOtherExpenses: Assume $2000/month if married, $1500/month if single
 
-DO NOT ask for more information. Make ALL necessary assumptions with medium confidence and clear reasoning.
+DO NOT ask for more information. Make ALL necessary assumptions for MISSING fields only with medium confidence and clear reasoning.
 
 Return JSON with this structure:
 {
@@ -111,7 +115,7 @@ Return JSON with this structure:
     "currentTraditional": number,
     "currentRoth": number,
     "currentTaxable": number,
-    "currentCash": number,
+    "emergencyFund": number,
     "retirementAge": number,
     "spouseAge": number (if married),
     "state": string,
@@ -136,7 +140,7 @@ Return JSON with this structure:
       "value": any,
       "reasoning": "Why this was assumed",
       "confidence": "high" | "medium" | "low",
-      "userProvided": false
+      "userProvided": boolean (true if from conversation, false if assumed)
     }
   ],
   "missingFields": [],
@@ -144,7 +148,7 @@ Return JSON with this structure:
 }
 
 EXAMPLE:
-User conversation indicates: 35, single, $100k income, $50k in 401k, $20k Roth, $10k taxable, $15k cash
+User conversation indicates: 35, single, $100k income, $50k in 401k, $20k Roth, $10k taxable, $15k cash, retire at 65
 Response: {
   "extractedData": {
     "age": 35,
@@ -154,7 +158,7 @@ Response: {
     "currentTraditional": 50000,
     "currentRoth": 20000,
     "currentTaxable": 10000,
-    "currentCash": 15000,
+    "emergencyFund": 15000,
     "retirementAge": 65,
     "state": "CA",
     "contributionRate1Traditional": 0.06,
@@ -169,13 +173,13 @@ Response: {
   },
   "assumptions": [
     {"field": "employmentType1", "displayName": "Employment Type", "value": "w2", "reasoning": "Standard W-2 employment assumed for salary", "confidence": "high", "userProvided": false},
-    {"field": "retirementAge", "displayName": "Retirement Age", "value": 65, "reasoning": "Standard retirement age", "confidence": "medium", "userProvided": false},
-    {"field": "state", "displayName": "State", "value": "CA", "reasoning": "California assumed for tax calculations", "confidence": "low", "userProvided": false},
+    {"field": "retirementAge", "displayName": "Retirement Age", "value": 65, "reasoning": "User stated target retirement age", "confidence": "high", "userProvided": true},
+    {"field": "state", "displayName": "State", "value": "CA", "reasoning": "User provided state", "confidence": "high", "userProvided": true},
     {"field": "contributionRate1Traditional", "displayName": "Traditional 401k Contribution Rate", "value": 0.06, "reasoning": "Standard 6% contribution for income level", "confidence": "medium", "userProvided": false},
     {"field": "monthlyMortgageRent", "displayName": "Monthly Housing Cost", "value": 2000, "reasoning": "Average rent for single person in California", "confidence": "medium", "userProvided": false}
   ],
   "missingFields": [],
-  "summary": "Great! I've set up your retirement plan with the information you provided. I've made some reasonable assumptions about retirement age (65), contribution rates (6% traditional, 4% Roth), and monthly expenses. You can review and adjust these on the next screen."
+  "summary": "Great! I've set up your retirement plan with the information you provided. I've made some reasonable assumptions about contribution rates (6% traditional, 4% Roth) and monthly expenses. You can review and adjust these on the next screen."
 }`;
 
     // Convert conversation history to Anthropic format

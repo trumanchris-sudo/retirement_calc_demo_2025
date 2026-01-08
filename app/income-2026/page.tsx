@@ -97,10 +97,10 @@ export default function Income2026Page() {
   const [federalWithholdingExtra] = useState(0);
   const [stateWithholdingExtra] = useState(0);
 
-  // Housing
+  // Housing - NO HARDCODED DEFAULTS, read from PlanConfig SSOT
   const [housingType, setHousingType] = useState<"rent" | "own">("own");
   const [rentPayment, setRentPayment] = useState(0);
-  const [mortgagePayment, setMortgagePayment] = useState(5859);
+  const [mortgagePayment, setMortgagePayment] = useState(0); // Will be set from PlanConfig
   const [propertyTaxAnnual] = useState(25000);
   const [homeInsuranceAnnual] = useState(10000);
   const [floodInsuranceAnnual] = useState(3500);
@@ -199,6 +199,26 @@ export default function Income2026Page() {
       setP2PreTax401k(planConfig.cPre2);
     }
 
+    // Load mortgage payment from PlanConfig (SSOT)
+    if (planConfig.monthlyMortgageRent && planConfig.monthlyMortgageRent > 0) {
+      setMortgagePayment(planConfig.monthlyMortgageRent);
+      console.log('[INCOME-2026] ✅ Loaded mortgage from PlanConfig SSOT:', planConfig.monthlyMortgageRent);
+    }
+
+    // Load bonus and first pay date from PlanConfig (SSOT)
+    if (planConfig.eoyBonusAmount && planConfig.eoyBonusAmount > 0) {
+      setP1Bonus(planConfig.eoyBonusAmount);
+      console.log('[INCOME-2026] ✅ Loaded EOY bonus from PlanConfig SSOT:', planConfig.eoyBonusAmount);
+    }
+    if (planConfig.eoyBonusMonth) {
+      setP1BonusMonth(planConfig.eoyBonusMonth);
+      console.log('[INCOME-2026] ✅ Loaded bonus month from PlanConfig SSOT:', planConfig.eoyBonusMonth);
+    }
+    if (planConfig.firstPayDate) {
+      setP1FirstPayDate(planConfig.firstPayDate);
+      console.log('[INCOME-2026] ✅ Loaded first pay date from PlanConfig SSOT:', planConfig.firstPayDate);
+    }
+
     // Priority 2: Fall back to budget context estimates if PlanConfig is empty
     if (!planConfig.annualIncome1 || planConfig.annualIncome1 === 0) {
       if (implied && implied.grossIncome > 0) {
@@ -230,6 +250,31 @@ export default function Income2026Page() {
 
     console.log('[INCOME-2026] Form pre-populated successfully');
   }, [planConfig, implied]); // Re-run when PlanConfig or budget context changes
+
+  // Bidirectional sync: write back to PlanConfig (SSOT) when income fields change
+  const updateMortgageInSSOT = (value: number) => {
+    setMortgagePayment(value);
+    updatePlanConfig({ monthlyMortgageRent: value }, 'user-entered');
+    console.log('[INCOME-2026] ✍️ Wrote mortgage to PlanConfig SSOT:', value);
+  };
+
+  const updateBonusInSSOT = (amount: number) => {
+    setP1Bonus(amount);
+    updatePlanConfig({ eoyBonusAmount: amount }, 'user-entered');
+    console.log('[INCOME-2026] ✍️ Wrote bonus amount to PlanConfig SSOT:', amount);
+  };
+
+  const updateBonusMonthInSSOT = (month: string) => {
+    setP1BonusMonth(month);
+    updatePlanConfig({ eoyBonusMonth: month }, 'user-entered');
+    console.log('[INCOME-2026] ✍️ Wrote bonus month to PlanConfig SSOT:', month);
+  };
+
+  const updateFirstPayDateInSSOT = (date: string) => {
+    setP1FirstPayDate(date);
+    updatePlanConfig({ firstPayDate: date }, 'user-entered');
+    console.log('[INCOME-2026] ✍️ Wrote first pay date to PlanConfig SSOT:', date);
+  };
 
   // Clear and start fresh
   const handleClearAIData = () => {
@@ -946,11 +991,11 @@ export default function Income2026Page() {
                 <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Income Sources</h4>
                 <div className="space-y-4">
                   <DualInputField label="Base Annual Salary" value1={p1BaseIncome} onChange1={setP1BaseIncome} value2={p2BaseIncome} onChange2={setP2BaseIncome} />
-                  <DualInputField label="Annual Bonus" value1={p1Bonus} onChange1={setP1Bonus} value2={p2Bonus} onChange2={setP2Bonus} />
-                  <DualSelectField label="Bonus Payment Month" idPrefix="bonus-month" value1={p1BonusMonth} onChange1={setP1BonusMonth} value2={p2BonusMonth} onChange2={setP2BonusMonth} options={months.slice(0, 12)} />
+                  <DualInputField label="Annual Bonus" value1={p1Bonus} onChange1={updateBonusInSSOT} value2={p2Bonus} onChange2={setP2Bonus} />
+                  <DualSelectField label="Bonus Payment Month" idPrefix="bonus-month" value1={p1BonusMonth} onChange1={updateBonusMonthInSSOT} value2={p2BonusMonth} onChange2={setP2BonusMonth} options={months.slice(0, 12)} />
                   <DualInputField label="Estimated Monthly Overtime" value1={p1OvertimeMonthly} onChange1={setP1OvertimeMonthly} value2={p2OvertimeMonthly} onChange2={setP2OvertimeMonthly} />
                   <DualSelectField label="Pay Frequency" idPrefix="pay-frequency" value1={p1PayFrequency} onChange1={(v) => setP1PayFrequency(v as PayFrequency)} value2={p2PayFrequency} onChange2={(v) => setP2PayFrequency(v as PayFrequency)} options={["biweekly", "semimonthly", "monthly", "weekly"]} />
-                  <DualDateField label="First Pay Date" idPrefix="first-pay-date" value1={p1FirstPayDate} onChange1={setP1FirstPayDate} value2={p2FirstPayDate} onChange2={setP2FirstPayDate} />
+                  <DualDateField label="First Pay Date" idPrefix="first-pay-date" value1={p1FirstPayDate} onChange1={updateFirstPayDateInSSOT} value2={p2FirstPayDate} onChange2={setP2FirstPayDate} />
                 </div>
               </div>
 
@@ -983,7 +1028,7 @@ export default function Income2026Page() {
                     {housingType === "rent" ? (
                         <Input label="Monthly Rent" value={rentPayment} setter={(v) => { setRentPayment(v); handleInputChange(); }} onInputChange={handleInputChange} />
                     ) : (
-                        <Input label="Monthly Mortgage" value={mortgagePayment} setter={(v) => { setMortgagePayment(v); handleInputChange(); }} defaultValue={5859} onInputChange={handleInputChange} />
+                        <Input label="Monthly Mortgage" value={mortgagePayment} setter={(v) => { updateMortgageInSSOT(v); handleInputChange(); }} onInputChange={handleInputChange} />
                     )}
                     <Input label="Household Expenses" value={householdExpenses} setter={(v) => { setHouseholdExpenses(v); handleInputChange(); }} onInputChange={handleInputChange} />
                     <Input label="Discretionary" value={discretionarySpending} setter={(v) => { setDiscretionarySpending(v); handleInputChange(); }} onInputChange={handleInputChange} />

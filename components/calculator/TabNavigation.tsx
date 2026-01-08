@@ -3,7 +3,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-export type MainTabId = 'all' | 'configure' | 'results' | 'stress' | 'legacy' | 'budget' | 'optimize' | 'math' | 'checkUs';
+export type MainTabId = 'all' | 'configure' | 'ssot' | 'results' | 'stress' | 'legacy' | 'budget' | 'optimize' | 'math' | 'checkUs';
 
 export interface TabNavigationProps {
   activeTab: MainTabId;
@@ -14,6 +14,7 @@ export interface TabNavigationProps {
 const tabs: Array<{ id: MainTabId; label: string; description: string }> = [
   { id: 'all', label: 'All-in-One', description: 'Classic view with everything' },
   { id: 'configure', label: 'Configure', description: 'Set up your retirement plan' },
+  { id: 'ssot', label: 'SSOT', description: 'Single Source of Truth - Master data view' },
   { id: 'results', label: 'Results', description: 'View your projections' },
   { id: 'stress', label: 'Stress Tests', description: 'Test market scenarios' },
   { id: 'legacy', label: 'Legacy Planning', description: 'Generational wealth' },

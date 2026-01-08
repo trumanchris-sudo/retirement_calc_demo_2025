@@ -63,12 +63,12 @@ import OptimizationTab from "@/components/calculator/OptimizationTab";
 import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
 import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexibilityChart";
 import { RothConversionOptimizer } from "@/components/calculator/RothConversionOptimizer";
+import { SSOTTab } from "@/components/calculator/SSOTTab";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
-import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { OnboardingWizardPage } from "@/components/onboarding/OnboardingWizardPage";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import type { OnboardingWizardData } from "@/types/onboarding";
 
 // Import types
 import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress, BondGlidePath } from "@/types/calculator";
@@ -1200,13 +1200,12 @@ export default function App() {
   const { setImplied } = useBudget();
   const { config: planConfig, updateConfig: updatePlanConfig, isDirty: configIsDirty } = usePlanConfig();
 
-  // Onboarding wizard state
+  // Onboarding wizard state - validate both flag AND config data
   const {
-    hasCompletedOnboarding,
-    wizardData,
-    updateWizardStep,
-  } = useOnboarding();
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
+    shouldShowWizard,
+    markOnboardingComplete,
+    resetOnboarding,
+  } = useOnboarding(planConfig);
 
   // Read core fields directly from PlanConfig (single source of truth)
   // Using ?? (nullish coalescing) instead of || to preserve legitimate 0 values
@@ -2229,67 +2228,12 @@ export default function App() {
     }
   }, []);
 
-  // Auto-open wizard for first-time users with no saved config
-  useEffect(() => {
-    // Only auto-open if:
-    // 1. User hasn't completed onboarding
-    // 2. No existing results (first visit)
-    // 3. Loader has completed
-    if (!hasCompletedOnboarding && !res && loaderComplete) {
-      // Small delay to let the page settle
-      const timer = setTimeout(() => {
-        setIsWizardOpen(true);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [hasCompletedOnboarding, res, loaderComplete]);
-
   // Save results view mode preference
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('wdr_results_view_mode', resultsViewMode)
     }
   }, [resultsViewMode]);
-
-  // Handler for wizard completion
-  const handleWizardComplete = useCallback(async (wizardData: OnboardingWizardData | any) => {
-    console.log('[ONBOARDING] Wizard completed', wizardData);
-    console.log('[ONBOARDING] PlanConfig has been updated by wizard');
-
-    // NOTE: The wizard has already updated PlanConfig context.
-    // No need to sync - we read directly from planConfig now!
-
-    // Validate that critical fields are set
-    const criticalFields = {
-      age1: planConfig.age1,
-      retAge: planConfig.retAge,
-      marital: planConfig.marital,
-      annualIncome1: planConfig.annualIncome1,
-      employmentType1: planConfig.employmentType1,
-    };
-
-    const missingFields = Object.entries(criticalFields)
-      .filter(([_, value]) => value === undefined || value === null)
-      .map(([key]) => key);
-
-    if (missingFields.length > 0) {
-      console.warn('[ONBOARDING] Missing critical fields after wizard completion:', missingFields);
-      console.warn('[ONBOARDING] Current PlanConfig:', planConfig);
-    } else {
-      console.log('[ONBOARDING] All critical fields validated successfully');
-    }
-
-    // Close wizard
-    setIsWizardOpen(false);
-
-    // Switch to All-in-One tab
-    setActiveMainTab('all');
-
-    // Run the calculation after a brief moment
-    setTimeout(() => {
-      calc();
-    }, 300);
-  }, [planConfig, calc]); // Include planConfig and calc in dependencies
 
   const calc = useCallback(async () => {
     console.log('[CALC] Starting calculation...');
@@ -3277,6 +3221,22 @@ export default function App() {
     }, 'user-entered');
   }, [updatePlanConfig]);
 
+  // Show wizard IMMEDIATELY if user hasn't completed onboarding (no brand loader)
+  if (shouldShowWizard) {
+    return (
+      <OnboardingWizardPage
+        onComplete={() => {
+          markOnboardingComplete();
+          // Calculator will auto-run via useEffect when PlanConfig updates
+        }}
+        onSkip={() => {
+          markOnboardingComplete();
+        }}
+      />
+    );
+  }
+
+  // Only show brand loader for calculator (not for wizard)
   return (
     <>
       {!loaderComplete && (
@@ -3391,10 +3351,15 @@ export default function App() {
             </div>
             <Button
               variant="outline"
-              onClick={() => setIsWizardOpen(true)}
+              onClick={() => {
+                if (confirm('This will reset the wizard and reload the page. Continue?')) {
+                  resetOnboarding();
+                  window.location.reload();
+                }
+              }}
               className="w-full sm:w-auto sm:shrink-0"
             >
-              Guided Setup
+              Restart Wizard
             </Button>
           </div>
           {res && (
@@ -7104,6 +7069,13 @@ export default function App() {
         </AnimatedSection>
         </TabPanel>
 
+        {/* SSOT Tab - Single Source of Truth */}
+        <TabPanel id="ssot" activeTab={activeMainTab}>
+        <AnimatedSection animation="fade-in" delay={100}>
+          <SSOTTab />
+        </AnimatedSection>
+        </TabPanel>
+
         {/* Generational Wealth Modeling - Legacy Tab */}
         <TabPanel id="legacy" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
@@ -7967,13 +7939,6 @@ export default function App() {
           </svg>
         </button>
       )}
-
-      {/* ONBOARDING WIZARD */}
-      <OnboardingWizard
-        isOpen={isWizardOpen}
-        onClose={() => setIsWizardOpen(false)}
-        onComplete={handleWizardComplete}
-      />
     </>
   );
 }

@@ -6,14 +6,44 @@ import type {
   OnboardingSavingsData,
   OnboardingGoalsData,
 } from '@/types/onboarding'
+import type { CalculatorInputs } from '@/types/calculator'
 
 const ONBOARDING_STORAGE_KEY = 'wdr_onboarding_state'
 const WIZARD_PROGRESS_KEY = 'wdr_wizard_progress'
 
 /**
+ * Check if PlanConfig has minimum required data to skip wizard
+ * Per user constraint: don't hide wizard unless flag is true AND config is valid
+ */
+function isPlanConfigComplete(config: Partial<CalculatorInputs>): boolean {
+  const required = [
+    config.marital,
+    config.age1,
+    config.retAge,
+    config.annualIncome1,
+    // At least one balance field should be present
+    config.sTax !== undefined || config.sPre !== undefined || config.sPost !== undefined,
+  ]
+
+  const isComplete = required.every((field) => field !== undefined && field !== null)
+
+  if (!isComplete) {
+    console.log('[useOnboarding] PlanConfig incomplete, showing wizard:', {
+      marital: config.marital,
+      age1: config.age1,
+      retAge: config.retAge,
+      annualIncome1: config.annualIncome1,
+      hasBalances: config.sTax !== undefined || config.sPre !== undefined || config.sPost !== undefined,
+    })
+  }
+
+  return isComplete
+}
+
+/**
  * Hook for managing onboarding state and wizard progress
  */
-export function useOnboarding() {
+export function useOnboarding(planConfig?: Partial<CalculatorInputs>) {
   const [onboardingState, setOnboardingState] = useState<OnboardingState>(() => {
     if (typeof window === 'undefined') {
       return { hasCompletedOnboarding: false }
@@ -153,8 +183,14 @@ export function useOnboarding() {
     }
   }, [])
 
+  // Validate both flag AND config data
+  // Don't hide wizard unless both are true
+  const shouldShowWizard =
+    !onboardingState.hasCompletedOnboarding || (planConfig ? !isPlanConfigComplete(planConfig) : true)
+
   return {
     hasCompletedOnboarding: onboardingState.hasCompletedOnboarding,
+    shouldShowWizard,
     wizardData,
     markOnboardingComplete,
     resetOnboarding,
