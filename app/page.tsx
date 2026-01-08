@@ -3358,7 +3358,8 @@ export default function App() {
 
           // Only recalculate if changes were made
           if (hasChanges) {
-            setInputsModified(true);
+            // Don't set inputsModified=true because we're immediately recalculating
+            // The calc() function will set inputsModified=false when complete
 
             // Use requestAnimationFrame for better timing
             requestAnimationFrame(() => {
