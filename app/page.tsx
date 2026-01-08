@@ -2820,8 +2820,9 @@ export default function App() {
           yrsToSim,
           eol: eolWealth,
           eolReal,  // Real (inflation-adjusted) EOL wealth for comparisons
-          estateTax,
-          netEstate,
+          estateTax: realEstateTax,  // IMPORTANT: Use real estate tax to match real EOL accounts
+          estateTaxNominal: estateTax,  // Store nominal for reference
+          netEstate,  // Already in real dollars
           eolAccounts: {
             // IMPORTANT: Use eolReal (not eolWealth) so chart matches Plan Summary Card
             // Both show real dollars (today's purchasing power) for consistency
@@ -4354,8 +4355,10 @@ export default function App() {
                               { name: `Net to Heirs — ${fmt(res.netEstate || res.eol)}` },
                             ],
                             links: (() => {
-                              const taxRatio = (res.estateTax || 0) / res.eol;
-                              const heirRatio = (res.netEstate || res.eol) / res.eol;
+                              // Use eolReal for ratios since all values are in real dollars
+                              const totalReal = res.eolReal || res.eol;
+                              const taxRatio = (res.estateTax || 0) / totalReal;
+                              const heirRatio = (res.netEstate || totalReal) / totalReal;
                               const links = [];
 
                               // Taxable flows (soft orange)
@@ -5068,8 +5071,10 @@ export default function App() {
                             { name: `Net to Heirs — ${fmt(res.netEstate || res.eol)}` },
                           ],
                           links: (() => {
-                            const taxRatio = (res.estateTax || 0) / res.eol;
-                            const heirRatio = (res.netEstate || res.eol) / res.eol;
+                            // Use eolReal for ratios since all values are in real dollars
+                            const totalReal = res.eolReal || res.eol;
+                            const taxRatio = (res.estateTax || 0) / totalReal;
+                            const heirRatio = (res.netEstate || totalReal) / totalReal;
 
                             const links = [];
 
