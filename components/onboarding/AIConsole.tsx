@@ -52,23 +52,24 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     scrollToBottom();
   }, [messages.length, scrollToBottom]);
 
-  // Scroll messages to bottom when textarea gets focus (iOS keyboard fix)
-  const handleTextareaFocus = useCallback(() => {
-    // Use preventScroll to avoid iOS Safari jumping to weird positions
-    if (inputRef.current) {
-      inputRef.current.focus({ preventScroll: true });
-    }
+  // Let Safari handle viewport scrolling naturally when keyboard appears
+  // Just ensure messages are scrolled to bottom after keyboard animation
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
 
-    // Then smoothly scroll the messages container to bottom
-    // This ensures the latest question is visible above the keyboard
-    requestAnimationFrame(() => {
-      if (messagesContainerRef.current) {
+    const handler = () => {
+      // After keyboard resize, scroll messages to bottom if input is focused
+      if (document.activeElement === inputRef.current && messagesContainerRef.current) {
         messagesContainerRef.current.scrollTo({
           top: messagesContainerRef.current.scrollHeight,
           behavior: 'smooth',
         });
       }
-    });
+    };
+
+    vv.addEventListener('resize', handler);
+    return () => vv.removeEventListener('resize', handler);
   }, []);
 
   // Load state from localStorage on mount
@@ -529,7 +530,6 @@ ${getNextQuestion(0, {})}`;
             onChange={setInput}
             onSend={handleSend}
             onKeyDown={handleKeyDown}
-            onFocus={handleTextareaFocus}
             disabled={isProcessing || phase === 'complete'}
             placeholder={
               isProcessing
