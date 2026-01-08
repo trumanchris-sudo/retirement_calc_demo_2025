@@ -1189,7 +1189,7 @@ function simulateRealPerBeneficiaryPayout(
 // ===============================
 
 self.onmessage = function(e) {
-  const { type, params, baseSeed, N } = e.data;
+  const { type, params, baseSeed, N, requestId } = e.data;
 
   if (type === 'run') {
     try {
@@ -1243,13 +1243,13 @@ self.onmessage = function(e) {
       self.postMessage({
         type: 'legacy-complete',
         result,
-        requestId: data.requestId, // Echo back requestId
+        requestId, // Echo back requestId
       });
     } catch (error) {
       self.postMessage({
         type: 'error',
         error: error.message,
-        requestId: data.requestId, // Echo back requestId
+        requestId, // Echo back requestId
       });
     }
   } else if (type === 'guardrails') {
