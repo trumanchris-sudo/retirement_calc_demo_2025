@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { AIConsole } from './AIConsole';
 import { mapAIDataToCalculator } from '@/lib/aiOnboardingMapper';
 import { saveSharedIncomeData } from '@/lib/sharedIncomeData';
@@ -85,10 +85,45 @@ export function OnboardingWizardPage({ onComplete, onSkip }: OnboardingWizardPag
     onSkip();
   }, [onSkip]);
 
+  // Track keyboard offset to push wizard up when keyboard appears
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  // Detect keyboard and push entire wizard up by keyboard height
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const vv = window.visualViewport;
+
+    const handleResize = () => {
+      // Calculate keyboard height: viewport shrinks when keyboard appears
+      const keyboardHeight = window.innerHeight - vv.height;
+
+      // Only apply offset when keyboard is actually showing (height > 100px threshold)
+      // This prevents minor viewport changes from triggering the offset
+      if (keyboardHeight > 100) {
+        setKeyboardOffset(keyboardHeight);
+      } else {
+        setKeyboardOffset(0);
+      }
+    };
+
+    vv.addEventListener('resize', handleResize);
+
+    // Initial check
+    handleResize();
+
+    return () => vv.removeEventListener('resize', handleResize);
+  }, []);
+
   // Full-page layout with proper mobile support
-  // Use min-h-[100dvh] instead of fixed inset-0 for iOS keyboard compatibility
+  // Push wizard top down when keyboard appears to keep it centered in visible viewport
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-black text-white">
+    <div
+      className="min-h-[100dvh] flex flex-col bg-black text-white transition-all duration-200 ease-out"
+      style={{
+        paddingTop: keyboardOffset > 0 ? `${keyboardOffset}px` : '0'
+      }}
+    >
       <AIConsole onComplete={handleComplete} onSkip={handleSkip} />
     </div>
   );
