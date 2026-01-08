@@ -1332,6 +1332,29 @@ export default function App() {
   const [parentAgeAtFirstChild, setParentAgeAtFirstChild] = useState(30);
   const [childSpacingYears, setChildSpacingYears] = useState(3);
 
+  // Sync PlanConfig numChildren to legacy planning defaults
+  useEffect(() => {
+    const numChildren = planConfig.numChildren ?? 0;
+    const childAges = planConfig.childrenAges ?? [];
+
+    // Respect user's input - if they say 0 children, show 0 children
+    if (numChildren === 0) {
+      setHypStartBens(0);
+      setChildrenCurrentAges("");
+      setNumberOfChildren(0);
+    } else if (childAges.length > 0) {
+      // Use actual children ages from wizard
+      setHypStartBens(childAges.length);
+      setChildrenCurrentAges(childAges.join(", "));
+      setNumberOfChildren(childAges.length);
+    } else if (numChildren > 0) {
+      // User specified number of children but no ages - use defaults
+      setHypStartBens(numChildren);
+      setNumberOfChildren(numChildren);
+      // Keep existing childrenCurrentAges defaults or generate reasonable ones
+    }
+  }, [planConfig.numChildren, planConfig.childrenAges]);
+
   const [totalFertilityRate, setTotalFertilityRate] = useState(2.1); // Children per person (lifetime)
   const [generationLength, setGenerationLength] = useState(30); // Average age when having children
   const [fertilityWindowStart, setFertilityWindowStart] = useState(25);
