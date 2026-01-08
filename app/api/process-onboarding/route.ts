@@ -124,11 +124,11 @@ HEALTHCARE (assume standard costs):
 OTHER EXPENSES (SCALE WITH INCOME AND LIFESTYLE):
 - monthlyOtherExpenses: Scale based on combined annual income (groceries, dining, shopping, travel, etc.):
   * <$100k: $2,000/month if married, $1,500/month if single
-  * $100k-$200k: $3,000/month if married, $2,200/month if single
-  * $200k-$400k: $5,000/month if married, $3,500/month if single
-  * $400k-$700k: $8,000/month if married, $5,500/month if single
-  * $700k+: $12,000/month if married, $8,000/month if single
-  * Conservative estimate: 12-18% of gross income for discretionary spending
+  * $100k-$200k: $2,500/month if married, $2,000/month if single
+  * $200k-$400k: $4,000/month if married, $3,000/month if single
+  * $400k-$700k: $6,000/month if married, $4,500/month if single
+  * $700k+: $7,500/month if married, $5,500/month if single
+  * Conservative baseline: ~10-12% of gross income for non-housing discretionary
 
 DO NOT ask for more information. Make ALL necessary assumptions for MISSING fields only with medium confidence and clear reasoning.
 
@@ -228,11 +228,11 @@ Response: {
     "monthlyInsurancePropertyTax": 1200,
     "monthlyHealthcareP1": 600,
     "monthlyHealthcareP2": 600,
-    "monthlyOtherExpenses": 12000
+    "monthlyOtherExpenses": 7500
   },
   "assumptions": [
     {"field": "monthlyMortgageRent", "displayName": "Monthly Housing Cost", "value": 9000, "reasoning": "Scaled to $900k combined income (12% of gross monthly)", "confidence": "medium", "userProvided": false},
-    {"field": "monthlyOtherExpenses", "displayName": "Other Monthly Expenses", "value": 12000, "reasoning": "Lifestyle expenses scaled to high-earner income bracket (15% of gross)", "confidence": "medium", "userProvided": false}
+    {"field": "monthlyOtherExpenses", "displayName": "Other Monthly Expenses", "value": 7500, "reasoning": "Conservative discretionary spending baseline (10% of gross)", "confidence": "medium", "userProvided": false}
   ],
   "missingFields": [],
   "summary": "I've set up your retirement plan with conservative expense assumptions scaled to your income level. You can adjust these estimates in the next screen."
