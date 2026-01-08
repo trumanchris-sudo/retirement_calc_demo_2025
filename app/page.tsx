@@ -1467,9 +1467,9 @@ export default function App() {
   });
   const [showBackToTop, setShowBackToTop] = useState(false); // Show back-to-top button after scrolling
   const [activeChartTab, setActiveChartTab] = useState("accumulation"); // Track active chart tab
-  const [loaderComplete, setLoaderComplete] = useState(false); // Always show loader on mount
-  const [loaderHandoff, setLoaderHandoff] = useState(false); // Track when handoff starts
-  const [cubeAppended, setCubeAppended] = useState(false); // Track when cube animation completes
+  const [loaderComplete, setLoaderComplete] = useState(true); // DISABLED - skip loader to not interfere with wizard transition
+  const [loaderHandoff, setLoaderHandoff] = useState(true); // DISABLED - skip loader
+  const [cubeAppended, setCubeAppended] = useState(true); // DISABLED - skip loader
 
   // Tabbed interface state - foundation for future reorganization
   const [activeMainTab, setActiveMainTab] = useState<MainTabId>('all');
@@ -3253,16 +3253,17 @@ export default function App() {
     );
   }
 
-  // Only show brand loader for calculator (not for wizard)
+  // Brand loader DISABLED - was interfering with wizard → calculator transition
   return (
     <>
-      {!loaderComplete && (
+      {/* BrandLoader disabled - uncomment if needed in future */}
+      {/* {!loaderComplete && (
         <BrandLoader
           onHandoffStart={() => setLoaderHandoff(true)}
           onCubeAppended={() => setCubeAppended(true)}
           onComplete={() => setLoaderComplete(true)}
         />
-      )}
+      )} */}
 
       {/* Full-screen Monte Carlo splash */}
       <CyberpunkSplash ref={splashRef} />
