@@ -6416,7 +6416,8 @@ export default function App() {
           </>
         )}
 
-        {/* Input Form - Hide from print */}
+        {/* Input Form - Hide from print and All-in-One tab */}
+        {activeMainTab !== 'all' && (
         <TabPanel id="configure" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           <Card className="print:hidden">
@@ -7086,15 +7087,19 @@ export default function App() {
         </Card>
         </AnimatedSection>
         </TabPanel>
+        )}
 
-        {/* SSOT Tab - Single Source of Truth */}
+        {/* SSOT Tab - Single Source of Truth - Hide from All-in-One tab */}
+        {activeMainTab !== 'all' && (
         <TabPanel id="ssot" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           <SSOTTab />
         </AnimatedSection>
         </TabPanel>
+        )}
 
-        {/* Generational Wealth Modeling - Legacy Tab */}
+        {/* Generational Wealth Modeling - Legacy Tab - Hide from All-in-One tab */}
+        {activeMainTab !== 'all' && (
         <TabPanel id="legacy" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           <Card className="print:hidden">
@@ -7322,8 +7327,10 @@ export default function App() {
           </Card>
         </AnimatedSection>
         </TabPanel>
+        )}
 
-        {/* Budget Tab */}
+        {/* Budget Tab - Hide from All-in-One tab (contains Retirement Timeline & Implied Budget) */}
+        {activeMainTab !== 'all' && (
         <TabPanel id="budget" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           {/* Retirement Timeline - First element */}
@@ -7472,6 +7479,7 @@ export default function App() {
           })()}
         </AnimatedSection>
         </TabPanel>
+        )}
 
         {/* Optimize Tab */}
         <TabPanel id="optimize" activeTab={activeMainTab}>
