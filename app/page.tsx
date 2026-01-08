@@ -1332,6 +1332,29 @@ export default function App() {
   const [parentAgeAtFirstChild, setParentAgeAtFirstChild] = useState(30);
   const [childSpacingYears, setChildSpacingYears] = useState(3);
 
+  // Sync PlanConfig numChildren to legacy planning defaults
+  useEffect(() => {
+    const numChildren = planConfig.numChildren ?? 0;
+    const childAges = planConfig.childrenAges ?? [];
+
+    // Respect user's input - if they say 0 children, show 0 children
+    if (numChildren === 0) {
+      setHypStartBens(0);
+      setChildrenCurrentAges("");
+      setNumberOfChildren(0);
+    } else if (childAges.length > 0) {
+      // Use actual children ages from wizard
+      setHypStartBens(childAges.length);
+      setChildrenCurrentAges(childAges.join(", "));
+      setNumberOfChildren(childAges.length);
+    } else if (numChildren > 0) {
+      // User specified number of children but no ages - use defaults
+      setHypStartBens(numChildren);
+      setNumberOfChildren(numChildren);
+      // Keep existing childrenCurrentAges defaults or generate reasonable ones
+    }
+  }, [planConfig.numChildren, planConfig.childrenAges]);
+
   const [totalFertilityRate, setTotalFertilityRate] = useState(2.1); // Children per person (lifetime)
   const [generationLength, setGenerationLength] = useState(30); // Average age when having children
   const [fertilityWindowStart, setFertilityWindowStart] = useState(25);
@@ -3251,11 +3274,19 @@ export default function App() {
           // 2. Auto-navigate to Results tab after calculation
           setIsFromWizard(true);
 
+          // CRITICAL: Wait for React to update planConfig and re-render
+          // The wizard updates planConfig in OnboardingWizardPage.handleComplete,
+          // but calc() needs to wait for the component to re-render with new values
+          // before reading age1, age2, retAge, etc. from planConfig
+          console.log('[WIZARD] Waiting for planConfig to propagate...');
+          await new Promise(resolve => setTimeout(resolve, 100));
+
           // Auto-run calculation
           // The calc() function will:
           // 1. Play WORK→DIE→RETIRE animation (because isFromWizard=true)
           // 2. Run calculation in background
           // 3. Navigate to Results tab and scroll to top
+          console.log('[WIZARD] Triggering calc() with updated planConfig values');
           calc();
         }}
         onSkip={() => {

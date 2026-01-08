@@ -71,6 +71,62 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
         </p>
       </div>
 
+      {/* Contribution Breakdown Card - Show if contribution assumptions exist */}
+      {(() => {
+        const cPre1 = assumptions.find(a => a.field === 'cPre1');
+        const cPost1 = assumptions.find(a => a.field === 'cPost1');
+        const cTax1 = assumptions.find(a => a.field === 'cTax1');
+        const annualIncome1 = assumptions.find(a => a.field === 'annualIncome1');
+
+        if (cPre1 && cPost1 && cTax1 && annualIncome1) {
+          const totalContributions = cPre1.value + cPost1.value + cTax1.value;
+          const savingsRate = ((totalContributions / annualIncome1.value) * 100).toFixed(1);
+
+          return (
+            <div className="bg-gradient-to-br from-green-950/30 to-blue-950/30 border-2 border-green-700/50 rounded-lg p-4">
+              <h4 className="text-md font-semibold text-green-100 mb-2 flex items-center gap-2">
+                <span aria-hidden="true">💰</span> Your Savings Strategy
+              </h4>
+              <p className="text-sm text-green-200 mb-3">
+                Your <strong>${totalContributions.toLocaleString()}</strong> annual savings
+                (<strong>{savingsRate}% of income</strong>) is allocated across accounts for tax diversification:
+              </p>
+              <div className="space-y-2 mb-3">
+                <div className="flex items-center justify-between text-sm bg-slate-800/50 rounded px-3 py-2">
+                  <span className="text-slate-200">
+                    <strong>{((cPre1.value / totalContributions) * 100).toFixed(0)}%</strong> → Pre-tax 401(k)
+                  </span>
+                  <span className="text-blue-300 font-semibold">
+                    ${cPre1.value.toLocaleString()} <span className="text-slate-400">({((cPre1.value / annualIncome1.value) * 100).toFixed(1)}% of income)</span>
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm bg-slate-800/50 rounded px-3 py-2">
+                  <span className="text-slate-200">
+                    <strong>{((cPost1.value / totalContributions) * 100).toFixed(0)}%</strong> → Roth IRA
+                  </span>
+                  <span className="text-blue-300 font-semibold">
+                    ${cPost1.value.toLocaleString()} <span className="text-slate-400">({((cPost1.value / annualIncome1.value) * 100).toFixed(1)}% of income)</span>
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm bg-slate-800/50 rounded px-3 py-2">
+                  <span className="text-slate-200">
+                    <strong>{((cTax1.value / totalContributions) * 100).toFixed(0)}%</strong> → Taxable account
+                  </span>
+                  <span className="text-blue-300 font-semibold">
+                    ${cTax1.value.toLocaleString()} <span className="text-slate-400">({((cTax1.value / annualIncome1.value) * 100).toFixed(1)}% of income)</span>
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-green-200/80 italic">
+                This split provides tax diversification: pre-tax reduces current taxes, Roth grows tax-free,
+                and taxable offers flexibility before retirement age.
+              </p>
+            </div>
+          );
+        }
+        return null;
+      })()}
+
       <div className="grid gap-3" role="list" aria-label="List of assumptions">
         {assumptions.map((assumption, index) => {
           const currentValue = userEdits[assumption.field] !== undefined
