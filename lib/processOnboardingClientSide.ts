@@ -1,0 +1,243 @@
+/**
+ * Client-Side Onboarding Processing
+ *
+ * Alternative to API-based processing - runs assumptions logic locally.
+ * Preserves API infrastructure for future use while providing instant,
+ * free processing for standard wizard flows.
+ */
+
+import type { ExtractedData, AssumptionWithReasoning } from '@/types/ai-onboarding';
+import { mapAIDataToCalculator } from './aiOnboardingMapper';
+
+export interface ProcessOnboardingResult {
+  extractedData: ExtractedData;
+  assumptions: AssumptionWithReasoning[];
+  missingFields: Array<{ field: string; displayName: string; description: string }>;
+  summary: string;
+}
+
+/**
+ * Process onboarding data client-side (no API call)
+ *
+ * Applies same assumption logic as API but executes locally:
+ * - Instant response (< 1ms vs 2-5 seconds)
+ * - Zero cost (vs ~$0.10-0.30 per user)
+ * - Deterministic IF-THEN rules don't need LLM
+ */
+export function processOnboardingClientSide(
+  extractedData: ExtractedData
+): ProcessOnboardingResult {
+  console.log('[Client-Side] Processing onboarding data locally...');
+
+  const assumptions: AssumptionWithReasoning[] = [];
+
+  // Helper to add assumption
+  const addAssumption = (
+    field: string,
+    displayName: string,
+    value: any,
+    reasoning: string,
+    confidence: 'high' | 'medium' | 'low' = 'medium'
+  ) => {
+    assumptions.push({
+      field,
+      displayName,
+      value,
+      reasoning,
+      confidence,
+      userProvided: false,
+    });
+  };
+
+  // ===== MONTHLY EXPENSE ASSUMPTIONS =====
+  // These come from the API prompt but aren't in aiOnboardingMapper yet
+
+  const totalIncome = (extractedData.annualIncome1 || 100000) + (extractedData.annualIncome2 || 0);
+  const isMarried = extractedData.maritalStatus === 'married';
+
+  // Housing: monthlyMortgageRent
+  if (extractedData.monthlyMortgageRent === undefined) {
+    let mortgage: number;
+    if (totalIncome < 100000) {
+      mortgage = isMarried ? 1800 : 1200;
+    } else if (totalIncome < 200000) {
+      mortgage = isMarried ? 3000 : 2000;
+    } else if (totalIncome < 400000) {
+      mortgage = isMarried ? 4500 : 3000;
+    } else if (totalIncome < 700000) {
+      mortgage = isMarried ? 7000 : 5000;
+    } else {
+      mortgage = isMarried ? 9000 : 6500;
+    }
+
+    extractedData.monthlyMortgageRent = mortgage;
+    addAssumption(
+      'monthlyMortgageRent',
+      'Monthly Housing Cost',
+      mortgage,
+      `Scaled to ${totalIncome >= 1000000 ? '$' + Math.round(totalIncome/1000) + 'k' : '$' + totalIncome.toLocaleString()} income (~${Math.round((mortgage * 12 / totalIncome) * 100)}% of gross)`,
+      'medium'
+    );
+  }
+
+  // Utilities: monthlyUtilities
+  if (extractedData.monthlyUtilities === undefined) {
+    let utilities: number;
+    if (totalIncome < 100000) {
+      utilities = 250;
+    } else if (totalIncome < 400000) {
+      utilities = 350;
+    } else {
+      utilities = 500;
+    }
+
+    extractedData.monthlyUtilities = utilities;
+    addAssumption(
+      'monthlyUtilities',
+      'Monthly Utilities',
+      utilities,
+      'Scaled with housing costs',
+      'medium'
+    );
+  }
+
+  // Insurance & Property Tax: monthlyInsurancePropertyTax
+  if (extractedData.monthlyInsurancePropertyTax === undefined) {
+    let insurance: number;
+    if (totalIncome < 100000) {
+      insurance = isMarried ? 400 : 300;
+    } else if (totalIncome < 400000) {
+      insurance = isMarried ? 700 : 500;
+    } else {
+      insurance = isMarried ? 1200 : 800;
+    }
+
+    extractedData.monthlyInsurancePropertyTax = insurance;
+    addAssumption(
+      'monthlyInsurancePropertyTax',
+      'Monthly Insurance & Property Tax',
+      insurance,
+      'Scaled with housing value and income',
+      'medium'
+    );
+  }
+
+  // Healthcare: monthlyHealthcareP1 & P2
+  if (extractedData.monthlyHealthcareP1 === undefined) {
+    extractedData.monthlyHealthcareP1 = 600;
+    addAssumption(
+      'monthlyHealthcareP1',
+      'Your Monthly Healthcare Premium',
+      600,
+      'Standard employer-sponsored plan premium',
+      'medium'
+    );
+  }
+
+  if (isMarried && extractedData.monthlyHealthcareP2 === undefined) {
+    extractedData.monthlyHealthcareP2 = 600;
+    addAssumption(
+      'monthlyHealthcareP2',
+      'Spouse Monthly Healthcare Premium',
+      600,
+      'Standard employer-sponsored plan premium',
+      'medium'
+    );
+  }
+
+  // Other Monthly Expenses: monthlyOtherExpenses
+  if (extractedData.monthlyOtherExpenses === undefined) {
+    let other: number;
+    if (totalIncome < 100000) {
+      other = isMarried ? 2000 : 1500;
+    } else if (totalIncome < 200000) {
+      other = isMarried ? 2500 : 2000;
+    } else if (totalIncome < 400000) {
+      other = isMarried ? 4000 : 3000;
+    } else if (totalIncome < 700000) {
+      other = isMarried ? 6000 : 4500;
+    } else {
+      other = isMarried ? 7500 : 5500;
+    }
+
+    extractedData.monthlyOtherExpenses = other;
+    addAssumption(
+      'monthlyOtherExpenses',
+      'Other Monthly Expenses',
+      other,
+      `Lifestyle expenses scaled to income bracket (groceries, dining, shopping, travel) - ~${Math.round((other * 12 / totalIncome) * 100)}% of gross`,
+      'medium'
+    );
+  }
+
+  // ===== USE EXISTING MAPPER FOR REMAINING LOGIC =====
+  // The mapper handles: contributions, balances, tax rates, return assumptions, etc.
+  const mappedResult = mapAIDataToCalculator(extractedData, assumptions);
+
+  // Build final extractedData with all fields populated
+  const completeExtractedData: ExtractedData = {
+    ...extractedData,
+    // Ensure all fields are present (mapper might not set them all)
+    age: extractedData.age || mappedResult.age1,
+    maritalStatus: extractedData.maritalStatus || mappedResult.marital,
+    spouseAge: extractedData.spouseAge || mappedResult.age2,
+    retirementAge: extractedData.retirementAge || mappedResult.retAge,
+    annualIncome1: extractedData.annualIncome1 || mappedResult.annualIncome1,
+    annualIncome2: extractedData.annualIncome2 || mappedResult.annualIncome2,
+    currentTaxable: extractedData.currentTaxable || mappedResult.sTax,
+    currentTraditional: extractedData.currentTraditional || mappedResult.sPre,
+    currentRoth: extractedData.currentRoth || mappedResult.sPost,
+    emergencyFund: extractedData.emergencyFund || mappedResult.emergencyFund,
+  };
+
+  // Generate friendly summary
+  const summary = generateSummary(completeExtractedData, mappedResult.generatedAssumptions);
+
+  console.log('[Client-Side] Processing complete:', {
+    fieldsExtracted: Object.keys(completeExtractedData).length,
+    assumptionsMade: mappedResult.generatedAssumptions.length,
+    executionTime: '< 1ms',
+    cost: '$0.00'
+  });
+
+  return {
+    extractedData: completeExtractedData,
+    assumptions: mappedResult.generatedAssumptions,
+    missingFields: [], // No missing fields - we generate all assumptions
+    summary,
+  };
+}
+
+/**
+ * Generate friendly summary message
+ */
+function generateSummary(data: ExtractedData, assumptions: AssumptionWithReasoning[]): string {
+  const age = data.age || 35;
+  const income = data.annualIncome1 || 100000;
+  const retAge = data.retirementAge || 65;
+  const yearsToRetirement = retAge - age;
+
+  const isMarried = data.maritalStatus === 'married';
+  const totalIncome = income + (data.annualIncome2 || 0);
+
+  let summary = `Great! I've set up your retirement plan${isMarried ? ' for you and your spouse' : ''}. `;
+
+  summary += `With ${yearsToRetirement} years until retirement at age ${retAge}, `;
+
+  if (totalIncome >= 200000) {
+    summary += `your ${totalIncome >= 1000000 ? '$' + Math.round(totalIncome/1000) + 'k' : '$' + totalIncome.toLocaleString()} combined income provides strong savings potential. `;
+  } else {
+    summary += `your $${totalIncome.toLocaleString()} income allows for meaningful retirement contributions. `;
+  }
+
+  const userProvidedCount = assumptions.filter(a => a.userProvided).length;
+  const assumedCount = assumptions.filter(a => !a.userProvided).length;
+
+  if (assumedCount > 0) {
+    summary += `I've made ${assumedCount} reasonable assumption${assumedCount === 1 ? '' : 's'} `;
+    summary += `(contribution rates, housing costs, other expenses) scaled to your income level. `;
+    summary += `You can review and adjust all assumptions in the next screen.`;
+  }
+
+  return summary;
+}

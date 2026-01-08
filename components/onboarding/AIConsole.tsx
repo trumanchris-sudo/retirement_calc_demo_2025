@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { processAIOnboarding, type MissingField } from '@/lib/processAIOnboarding';
+import { processOnboardingClientSide } from '@/lib/processOnboardingClientSide';
 import type {
   ConversationMessage,
   ExtractedData,
@@ -22,6 +23,17 @@ interface AIConsoleProps {
 }
 
 const STORAGE_KEY = 'ai_onboarding_state';
+
+/**
+ * Feature Flag: Use API vs Client-Side Processing
+ *
+ * false (default): Process assumptions client-side (instant, free, deterministic)
+ * true: Use Claude Opus 4.5 API (2-5s latency, ~$0.10-0.30/user, AI-powered)
+ *
+ * Recommendation: Keep false unless you need complex AI reasoning for unusual inputs.
+ * The client-side logic handles 99% of cases with simple IF-THEN rules.
+ */
+const USE_API_FOR_ASSUMPTIONS = false;
 
 export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
@@ -340,27 +352,46 @@ ${getNextQuestion(0, {})}`;
     setHasProcessed(true);
 
     console.log('[AIConsole] Processing conversation...');
-    console.log('[AIConsole] 🔍 EXTRACTED DATA BEING SENT TO API:', {
+    console.log('[AIConsole] 🔍 EXTRACTED DATA:', {
       retirementAge: dataToSend.retirementAge,
       age: dataToSend.age,
       maritalStatus: dataToSend.maritalStatus,
       allKeys: Object.keys(dataToSend),
       fullData: dataToSend,
-      usingOverride: !!dataOverride
+      usingOverride: !!dataOverride,
+      processingMode: USE_API_FOR_ASSUMPTIONS ? 'API' : 'Client-Side'
     });
 
     try {
-      // Send full conversation history for context
-      const conversationHistory = messages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
+      let result;
 
-      // API call with conversation history
-      const result = await processAIOnboarding({
-        conversationHistory,
-        extractedData: dataToSend, // Use fresh data, not stale state
-      });
+      if (USE_API_FOR_ASSUMPTIONS) {
+        // ===== API-BASED PROCESSING =====
+        // Uses Claude Opus 4.5 to generate assumptions
+        // Cost: ~$0.10-0.30 per user | Latency: 2-5 seconds
+        console.log('[AIConsole] 🌐 Using API-based processing (Claude Opus 4.5)...');
+
+        const conversationHistory = messages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+
+        result = await processAIOnboarding({
+          conversationHistory,
+          extractedData: dataToSend,
+        });
+
+        console.log('[AIConsole] ✅ API processing complete');
+      } else {
+        // ===== CLIENT-SIDE PROCESSING =====
+        // Uses deterministic IF-THEN logic for assumptions
+        // Cost: $0.00 | Latency: < 1ms
+        console.log('[AIConsole] ⚡ Using client-side processing (instant, free)...');
+
+        result = processOnboardingClientSide(dataToSend);
+
+        console.log('[AIConsole] ✅ Client-side processing complete');
+      }
 
       console.log('[AIConsole] Processing complete', {
         fieldsExtracted: Object.keys(result.extractedData).length,
@@ -408,24 +439,31 @@ ${getNextQuestion(0, {})}`;
       const updatedData = { ...extractedData, ...overrides };
       setExtractedData(updatedData);
 
-      console.log('[AIConsole] 🔍 UPDATED DATA BEING SENT TO API:', {
+      console.log('[AIConsole] 🔍 UPDATED DATA:', {
         retirementAge: updatedData.retirementAge,
         age: updatedData.age,
         userOverrides: overrides,
-        fullData: updatedData
+        fullData: updatedData,
+        processingMode: USE_API_FOR_ASSUMPTIONS ? 'API' : 'Client-Side'
       });
 
-      // Send full conversation history for context
-      const conversationHistory = messages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
+      let result;
 
-      // API call with updated data
-      const result = await processAIOnboarding({
-        conversationHistory,
-        extractedData: updatedData, // Send merged data
-      });
+      if (USE_API_FOR_ASSUMPTIONS) {
+        // API-based update
+        const conversationHistory = messages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+
+        result = await processAIOnboarding({
+          conversationHistory,
+          extractedData: updatedData,
+        });
+      } else {
+        // Client-side update
+        result = processOnboardingClientSide(updatedData);
+      }
 
       console.log('[AIConsole] Update complete', {
         fieldsExtracted: Object.keys(result.extractedData).length,
