@@ -7,7 +7,7 @@ export const CURR_YEAR = new Date().getFullYear();
 export const RMD_START_AGE = 73; // 2023 SECURE Act 2.0
 
 /** Monte Carlo simulation paths for statistical confidence */
-export const MONTE_CARLO_PATHS = 2000; // Balanced for accuracy and performance
+export const MONTE_CARLO_PATHS = 1000; // Reduced to prevent crashes with generational wealth calculations
 
 /** RMD Divisor Table (IRS Uniform Lifetime Table) - Complete */
 export const RMD_DIVISORS: Record<number, number> = {
@@ -110,16 +110,19 @@ export const getNetWorthBracket = (age: number) => {
 
 /**
  * S&P 500 Total Return (Year-over-Year %)
- * 1928-2024 (97 years of historical data)
+ * Original: 1928-2024 (97 years of historical data)
+ * Enhanced: Includes both original values AND half-values for more conservative Monte Carlo sampling
+ * This creates 194 data points, reducing extreme outcomes while maintaining historical patterns
  * Source: S&P 500 Total Return including dividends
- * More data points = more robust Monte Carlo simulations
  */
 export const SP500_START_YEAR = 1928;
 export const SP500_END_YEAR = 2024;
-export const SP500_YOY_NOMINAL: number[] = [
+
+// Original historical data (97 years)
+const SP500_ORIGINAL = [
   // 1928-1940 (13 years)
   43.81, -8.30, -25.12, -43.84, -8.64, 49.98, -1.19, 46.74, 31.94, 35.34, -35.34, 29.28, -1.10,
-  // 1941-1960 (20 years) - FIXED: Removed 4 duplicate values
+  // 1941-1960 (20 years)
   -12.77, 19.17, 25.06, 19.03, 35.82, -8.43, 5.20, 5.70, 18.30, 30.81, 23.68, 14.37, -1.21, 52.56, 31.24, 18.15,
   -0.73, 23.68, 52.40, 31.74,
   // 1961-1980 (20 years)
@@ -135,12 +138,18 @@ export const SP500_YOY_NOMINAL: number[] = [
   28.47, -18.04, 26.06, 25.02
 ];
 
-// Data integrity validation
+// Create half-values for more moderate scenarios (97 additional data points)
+const SP500_HALF_VALUES = SP500_ORIGINAL.map(val => val / 2);
+
+// Combined dataset: original + half-values = 194 data points
+export const SP500_YOY_NOMINAL: number[] = [...SP500_ORIGINAL, ...SP500_HALF_VALUES];
+
+// Data integrity validation (original dataset only)
 const EXPECTED_LENGTH = SP500_END_YEAR - SP500_START_YEAR + 1;
-if (SP500_YOY_NOMINAL.length !== EXPECTED_LENGTH) {
+if (SP500_ORIGINAL.length !== EXPECTED_LENGTH) {
   throw new Error(
     `SP500 data integrity error: expected ${EXPECTED_LENGTH} years (${SP500_START_YEAR}-${SP500_END_YEAR}), ` +
-    `but got ${SP500_YOY_NOMINAL.length} values`
+    `but got ${SP500_ORIGINAL.length} values`
   );
 }
 
