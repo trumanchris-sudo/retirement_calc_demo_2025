@@ -1906,17 +1906,20 @@ export default function App() {
       }
 
       const worker = workerRef.current;
+      // Generate unique request ID to match response
+      const requestId = `legacy_${Date.now()}_${Math.random()}`;
 
       const handleMessage = (e: MessageEvent) => {
         if (!e.data) return;
 
-        const { type, result, error } = e.data;
+        const { type, result, error, requestId: responseId } = e.data;
 
-        if (type === 'legacy-complete') {
+        // Only process messages for this specific request
+        if (type === 'legacy-complete' && responseId === requestId) {
           worker.removeEventListener('message', handleMessage);
           worker.removeEventListener('error', handleError);
           resolve(result);
-        } else if (type === 'error') {
+        } else if (type === 'error' && responseId === requestId) {
           worker.removeEventListener('message', handleMessage);
           worker.removeEventListener('error', handleError);
           reject(new Error(error));
@@ -1931,7 +1934,7 @@ export default function App() {
 
       worker.addEventListener('message', handleMessage);
       worker.addEventListener('error', handleError);
-      worker.postMessage({ type: 'legacy', params });
+      worker.postMessage({ type: 'legacy', params, requestId });
     });
   }, []);
 

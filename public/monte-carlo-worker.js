@@ -1231,11 +1231,13 @@ self.onmessage = function(e) {
       self.postMessage({
         type: 'legacy-complete',
         result,
+        requestId: data.requestId, // Echo back requestId
       });
     } catch (error) {
       self.postMessage({
         type: 'error',
         error: error.message,
+        requestId: data.requestId, // Echo back requestId
       });
     }
   } else if (type === 'guardrails') {
