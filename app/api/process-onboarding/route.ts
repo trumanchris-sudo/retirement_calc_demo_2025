@@ -30,6 +30,14 @@ export async function POST(request: NextRequest) {
       fieldsCollected: Object.keys(extractedData || {}).length
     });
 
+    console.log('[Process Onboarding] 🔍 RECEIVED EXTRACTED DATA:', {
+      retirementAge: extractedData?.retirementAge,
+      age: extractedData?.age,
+      maritalStatus: extractedData?.maritalStatus,
+      allKeys: Object.keys(extractedData || {}),
+      fullData: extractedData
+    });
+
     const systemPrompt = `You are a retirement planning assistant. The client has collected 6 key questions from the user:
 
 1. Age, marital status, and spouse age (if married)
@@ -48,11 +56,14 @@ Your job is to:
 USER PROVIDED DATA (from client-side collection):
 ${JSON.stringify(extractedData, null, 2)}
 
-CRITICAL INSTRUCTION:
-- If a field exists in extractedData with a valid value, YOU MUST USE THAT VALUE
+⚠️ ⚠️ ⚠️ CRITICAL INSTRUCTION - READ THIS CAREFULLY ⚠️ ⚠️ ⚠️
+- If a field exists in extractedData with a valid value, YOU MUST USE THAT EXACT VALUE
 - DO NOT "improve" or "suggest better" values for fields the user already provided
-- Example: If retirementAge is 65, keep it 65. Do NOT suggest 55 or 60.
-- Only make assumptions for fields that are missing (null/undefined/not present)
+- DO NOT override user values based on income, lifestyle, or any other factor
+- ESPECIALLY FOR RETIREMENT AGE: If retirementAge is provided above, USE THAT EXACT NUMBER
+- Example: If retirementAge is 65, keep it 65. Do NOT suggest 55, 60, or any other number.
+- Example: If retirementAge is 70, keep it 70. Do NOT suggest 65.
+- Only make assumptions for fields that are MISSING (null/undefined/not present in extractedData above)
 
 DATA VALIDATION AND EXTRACTION:
 
@@ -89,17 +100,35 @@ CONTRIBUTION RATES (assume standard rates based on income):
 - contributionRate2Roth: Same logic as person 1 (if married)
 - employerMatch2Percent: Same as person 1 (if married)
 
-HOUSING EXPENSES (assume reasonable monthly costs):
-- monthlyMortgageRent: Assume $3000/month if married, $2000/month if single
-- monthlyUtilities: Assume $300/month
-- monthlyInsurancePropertyTax: Assume $500/month if married, $350/month if single
+HOUSING EXPENSES (SCALE WITH INCOME - use these guidelines):
+- monthlyMortgageRent: Scale based on combined annual income:
+  * <$100k: $1,800/month if married, $1,200/month if single
+  * $100k-$200k: $3,000/month if married, $2,000/month if single
+  * $200k-$400k: $4,500/month if married, $3,000/month if single
+  * $400k-$700k: $7,000/month if married, $5,000/month if single
+  * $700k+: $9,000/month if married, $6,500/month if single
+  * Use approximately 12-16% of gross monthly income as conservative guideline
+- monthlyUtilities: Scale with housing:
+  * <$100k income: $250/month
+  * $100k-$400k: $350/month
+  * $400k+: $500/month
+- monthlyInsurancePropertyTax: Scale with housing:
+  * <$100k income: $400/month if married, $300/month if single
+  * $100k-$400k: $700/month if married, $500/month if single
+  * $400k+: $1,200/month if married, $800/month if single
 
 HEALTHCARE (assume standard costs):
 - monthlyHealthcareP1: Assume $600/month pre-retirement, will adjust for post-retirement
 - monthlyHealthcareP2: Assume $600/month if married
 
-OTHER EXPENSES (assume reasonable defaults):
-- monthlyOtherExpenses: Assume $2000/month if married, $1500/month if single
+OTHER EXPENSES (SCALE WITH INCOME AND LIFESTYLE):
+- monthlyOtherExpenses: Scale based on combined annual income (groceries, dining, shopping, travel, etc.):
+  * <$100k: $2,000/month if married, $1,500/month if single
+  * $100k-$200k: $2,500/month if married, $2,000/month if single
+  * $200k-$400k: $4,000/month if married, $3,000/month if single
+  * $400k-$700k: $6,000/month if married, $4,500/month if single
+  * $700k+: $7,500/month if married, $5,500/month if single
+  * Conservative baseline: ~10-12% of gross income for non-housing discretionary
 
 DO NOT ask for more information. Make ALL necessary assumptions for MISSING fields only with medium confidence and clear reasoning.
 
@@ -147,8 +176,8 @@ Return JSON with this structure:
   "summary": "Friendly summary of what was collected and assumed"
 }
 
-EXAMPLE:
-User conversation indicates: 35, single, $100k income, $50k in 401k, $20k Roth, $10k taxable, $15k cash, retire at 65
+EXAMPLE 1 (Moderate Income):
+User: 35, single, $100k income, $50k in 401k, $20k Roth, $10k taxable, $15k cash, retire at 65
 Response: {
   "extractedData": {
     "age": 35,
@@ -166,20 +195,47 @@ Response: {
     "contributionRateTaxable": 0.05,
     "employerMatch1Percent": 0.03,
     "monthlyMortgageRent": 2000,
-    "monthlyUtilities": 300,
-    "monthlyInsurancePropertyTax": 350,
+    "monthlyUtilities": 350,
+    "monthlyInsurancePropertyTax": 500,
     "monthlyHealthcareP1": 600,
-    "monthlyOtherExpenses": 1500
+    "monthlyOtherExpenses": 2500
   },
   "assumptions": [
     {"field": "employmentType1", "displayName": "Employment Type", "value": "w2", "reasoning": "Standard W-2 employment assumed for salary", "confidence": "high", "userProvided": false},
     {"field": "retirementAge", "displayName": "Retirement Age", "value": 65, "reasoning": "User stated target retirement age", "confidence": "high", "userProvided": true},
-    {"field": "state", "displayName": "State", "value": "CA", "reasoning": "User provided state", "confidence": "high", "userProvided": true},
-    {"field": "contributionRate1Traditional", "displayName": "Traditional 401k Contribution Rate", "value": 0.06, "reasoning": "Standard 6% contribution for income level", "confidence": "medium", "userProvided": false},
-    {"field": "monthlyMortgageRent", "displayName": "Monthly Housing Cost", "value": 2000, "reasoning": "Average rent for single person in California", "confidence": "medium", "userProvided": false}
+    {"field": "monthlyMortgageRent", "displayName": "Monthly Housing Cost", "value": 2000, "reasoning": "Scaled to $100k income (24% of gross)", "confidence": "medium", "userProvided": false},
+    {"field": "monthlyOtherExpenses", "displayName": "Other Monthly Expenses", "value": 2500, "reasoning": "Lifestyle expenses scaled to $100k income bracket", "confidence": "medium", "userProvided": false}
   ],
   "missingFields": [],
-  "summary": "Great! I've set up your retirement plan with the information you provided. I've made some reasonable assumptions about contribution rates (6% traditional, 4% Roth) and monthly expenses. You can review and adjust these on the next screen."
+  "summary": "Great! I've set up your retirement plan. I've made some reasonable assumptions about contribution rates (6% traditional, 4% Roth) and monthly expenses scaled to your income level."
+}
+
+EXAMPLE 2 (High Income):
+User: 40, married, $500k income (person 1), $400k income (person 2), retire at 65
+Response: {
+  "extractedData": {
+    "age": 40,
+    "maritalStatus": "married",
+    "annualIncome1": 500000,
+    "annualIncome2": 400000,
+    "employmentType1": "w2",
+    "employmentType2": "w2",
+    "retirementAge": 65,
+    "contributionRate1Traditional": 0.10,
+    "contributionRate1Roth": 0.05,
+    "monthlyMortgageRent": 9000,
+    "monthlyUtilities": 500,
+    "monthlyInsurancePropertyTax": 1200,
+    "monthlyHealthcareP1": 600,
+    "monthlyHealthcareP2": 600,
+    "monthlyOtherExpenses": 7500
+  },
+  "assumptions": [
+    {"field": "monthlyMortgageRent", "displayName": "Monthly Housing Cost", "value": 9000, "reasoning": "Scaled to $900k combined income (12% of gross monthly)", "confidence": "medium", "userProvided": false},
+    {"field": "monthlyOtherExpenses", "displayName": "Other Monthly Expenses", "value": 7500, "reasoning": "Conservative discretionary spending baseline (10% of gross)", "confidence": "medium", "userProvided": false}
+  ],
+  "missingFields": [],
+  "summary": "I've set up your retirement plan with conservative expense assumptions scaled to your income level. You can adjust these estimates in the next screen."
 }`;
 
     // Convert conversation history to Anthropic format
@@ -220,6 +276,23 @@ Response: {
       fieldsExtracted: Object.keys(result.extractedData).length,
       assumptionsMade: result.assumptions.length,
     });
+
+    console.log('[Process Onboarding] 🔍 RETURNING TO CLIENT:', {
+      retirementAge: result.extractedData?.retirementAge,
+      age: result.extractedData?.age,
+      maritalStatus: result.extractedData?.maritalStatus
+    });
+
+    // Verify retirement age wasn't changed
+    if (extractedData?.retirementAge && result.extractedData?.retirementAge !== extractedData.retirementAge) {
+      console.error('[Process Onboarding] ❌❌❌ ERROR: AI CHANGED RETIREMENT AGE!', {
+        userProvided: extractedData.retirementAge,
+        aiReturned: result.extractedData.retirementAge
+      });
+      // Override it back to user value
+      result.extractedData.retirementAge = extractedData.retirementAge;
+      console.log('[Process Onboarding] ✅ CORRECTED: Forcing retirement age back to', extractedData.retirementAge);
+    }
 
     return NextResponse.json(result);
   } catch (error) {
