@@ -580,6 +580,332 @@ export function SSOTTab() {
         </CardContent>
       </Card>
 
+      {/* Monthly Expenses */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Monthly Expenses</CardTitle>
+          <CardDescription>Monthly budget items from AI onboarding</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="ssot-monthlyMortgageRent" className="flex items-center gap-2">
+                Mortgage/Rent
+                <FieldBadge field="monthlyMortgageRent" />
+              </Label>
+              <Input
+                id="ssot-monthlyMortgageRent"
+                type="number"
+                min="0"
+                step="100"
+                value={config.monthlyMortgageRent ?? 0}
+                onChange={(e) => updateField('monthlyMortgageRent', parseInt(e.target.value) || 0)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ssot-monthlyUtilities" className="flex items-center gap-2">
+                Utilities
+                <FieldBadge field="monthlyUtilities" />
+              </Label>
+              <Input
+                id="ssot-monthlyUtilities"
+                type="number"
+                min="0"
+                step="50"
+                value={config.monthlyUtilities ?? 0}
+                onChange={(e) => updateField('monthlyUtilities', parseInt(e.target.value) || 0)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ssot-monthlyInsurancePropertyTax" className="flex items-center gap-2">
+                Insurance & Property Tax
+                <FieldBadge field="monthlyInsurancePropertyTax" />
+              </Label>
+              <Input
+                id="ssot-monthlyInsurancePropertyTax"
+                type="number"
+                min="0"
+                step="50"
+                value={config.monthlyInsurancePropertyTax ?? 0}
+                onChange={(e) => updateField('monthlyInsurancePropertyTax', parseInt(e.target.value) || 0)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ssot-monthlyHealthcareP1" className="flex items-center gap-2">
+                Your Healthcare Premium
+                <FieldBadge field="monthlyHealthcareP1" />
+              </Label>
+              <Input
+                id="ssot-monthlyHealthcareP1"
+                type="number"
+                min="0"
+                step="50"
+                value={config.monthlyHealthcareP1 ?? 0}
+                onChange={(e) => updateField('monthlyHealthcareP1', parseInt(e.target.value) || 0)}
+              />
+            </div>
+
+            {config.marital === 'married' && (
+              <div className="space-y-2">
+                <Label htmlFor="ssot-monthlyHealthcareP2" className="flex items-center gap-2">
+                  Spouse Healthcare Premium
+                  <FieldBadge field="monthlyHealthcareP2" />
+                </Label>
+                <Input
+                  id="ssot-monthlyHealthcareP2"
+                  type="number"
+                  min="0"
+                  step="50"
+                  value={config.monthlyHealthcareP2 ?? 0}
+                  onChange={(e) => updateField('monthlyHealthcareP2', parseInt(e.target.value) || 0)}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="ssot-monthlyOtherExpenses" className="flex items-center gap-2">
+                Other Monthly Expenses
+                <FieldBadge field="monthlyOtherExpenses" />
+              </Label>
+              <Input
+                id="ssot-monthlyOtherExpenses"
+                type="number"
+                min="0"
+                step="100"
+                value={config.monthlyOtherExpenses ?? 0}
+                onChange={(e) => updateField('monthlyOtherExpenses', parseInt(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Bonus & Variable Compensation */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Bonus & Variable Compensation</CardTitle>
+          <CardDescription>End-of-year bonuses and variable pay details</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="ssot-eoyBonusAmount" className="flex items-center gap-2">
+                Annual Bonus Amount
+                <FieldBadge field="eoyBonusAmount" />
+              </Label>
+              <Input
+                id="ssot-eoyBonusAmount"
+                type="number"
+                min="0"
+                step="1000"
+                value={config.eoyBonusAmount ?? 0}
+                onChange={(e) => updateField('eoyBonusAmount', parseInt(e.target.value) || 0)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ssot-eoyBonusMonth" className="flex items-center gap-2">
+                Bonus Payment Month
+                <FieldBadge field="eoyBonusMonth" />
+              </Label>
+              <Select
+                value={config.eoyBonusMonth ?? 'December'}
+                onValueChange={(value) => updateField('eoyBonusMonth', value)}
+              >
+                <SelectTrigger id="ssot-eoyBonusMonth">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="January">January</SelectItem>
+                  <SelectItem value="February">February</SelectItem>
+                  <SelectItem value="March">March</SelectItem>
+                  <SelectItem value="April">April</SelectItem>
+                  <SelectItem value="May">May</SelectItem>
+                  <SelectItem value="June">June</SelectItem>
+                  <SelectItem value="July">July</SelectItem>
+                  <SelectItem value="August">August</SelectItem>
+                  <SelectItem value="September">September</SelectItem>
+                  <SelectItem value="October">October</SelectItem>
+                  <SelectItem value="November">November</SelectItem>
+                  <SelectItem value="December">December</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ssot-firstPayDate" className="flex items-center gap-2">
+                First Pay Date (YYYY-MM-DD)
+                <FieldBadge field="firstPayDate" />
+              </Label>
+              <Input
+                id="ssot-firstPayDate"
+                type="text"
+                placeholder="2025-01-01"
+                value={config.firstPayDate ?? ''}
+                onChange={(e) => updateField('firstPayDate', e.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Social Security */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Social Security</CardTitle>
+          <CardDescription>Social Security benefits and claiming strategy</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="ssot-includeSS" className="flex items-center gap-2">
+              <input
+                id="ssot-includeSS"
+                type="checkbox"
+                checked={config.includeSS ?? true}
+                onChange={(e) => updateField('includeSS', e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              Include Social Security Benefits
+              <FieldBadge field="includeSS" />
+            </Label>
+          </div>
+
+          {config.includeSS && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ssot-ssIncome" className="flex items-center gap-2">
+                  Your SS Benefit Basis (Annual Income)
+                  <FieldBadge field="ssIncome" />
+                </Label>
+                <Input
+                  id="ssot-ssIncome"
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value={config.ssIncome ?? 0}
+                  onChange={(e) => updateField('ssIncome', parseInt(e.target.value) || 0)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ssot-ssClaimAge" className="flex items-center gap-2">
+                  Your Claim Age
+                  <FieldBadge field="ssClaimAge" />
+                </Label>
+                <Input
+                  id="ssot-ssClaimAge"
+                  type="number"
+                  min="62"
+                  max="70"
+                  value={config.ssClaimAge ?? 67}
+                  onChange={(e) => updateField('ssClaimAge', parseInt(e.target.value) || 67)}
+                />
+              </div>
+
+              {config.marital === 'married' && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="ssot-ssIncome2" className="flex items-center gap-2">
+                      Spouse SS Benefit Basis
+                      <FieldBadge field="ssIncome2" />
+                    </Label>
+                    <Input
+                      id="ssot-ssIncome2"
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={config.ssIncome2 ?? 0}
+                      onChange={(e) => updateField('ssIncome2', parseInt(e.target.value) || 0)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="ssot-ssClaimAge2" className="flex items-center gap-2">
+                      Spouse Claim Age
+                      <FieldBadge field="ssClaimAge2" />
+                    </Label>
+                    <Input
+                      id="ssot-ssClaimAge2"
+                      type="number"
+                      min="62"
+                      max="70"
+                      value={config.ssClaimAge2 ?? 67}
+                      onChange={(e) => updateField('ssClaimAge2', parseInt(e.target.value) || 67)}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Family Planning */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Family Planning</CardTitle>
+          <CardDescription>Children information for legacy wealth calculations</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="ssot-numChildren" className="flex items-center gap-2">
+                Number of Children
+                <FieldBadge field="numChildren" />
+              </Label>
+              <Input
+                id="ssot-numChildren"
+                type="number"
+                min="0"
+                max="20"
+                value={config.numChildren ?? 0}
+                onChange={(e) => updateField('numChildren', parseInt(e.target.value) || 0)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ssot-additionalChildrenExpected" className="flex items-center gap-2">
+                Additional Children Expected
+                <FieldBadge field="additionalChildrenExpected" />
+              </Label>
+              <Input
+                id="ssot-additionalChildrenExpected"
+                type="number"
+                min="0"
+                max="10"
+                value={config.additionalChildrenExpected ?? 0}
+                onChange={(e) => updateField('additionalChildrenExpected', parseInt(e.target.value) || 0)}
+              />
+            </div>
+
+            {config.numChildren > 0 && (
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="ssot-childrenAges" className="flex items-center gap-2">
+                  Children Ages (comma-separated)
+                  <FieldBadge field="childrenAges" />
+                </Label>
+                <Input
+                  id="ssot-childrenAges"
+                  type="text"
+                  placeholder="5, 8, 12"
+                  value={config.childrenAges?.join(', ') ?? ''}
+                  onChange={(e) => {
+                    const ages = e.target.value
+                      .split(',')
+                      .map(s => parseInt(s.trim()))
+                      .filter(n => !isNaN(n));
+                    updateField('childrenAges', ages);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Debug: Full PlanConfig JSON */}
       <Card>
         <CardHeader>
