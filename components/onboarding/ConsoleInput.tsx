@@ -43,14 +43,11 @@ export const ConsoleInput = forwardRef<HTMLTextAreaElement, ConsoleInputProps>(
               'w-full px-3 py-2 bg-black border border-gray-700 rounded',
               'text-gray-200 placeholder:text-gray-600',
               'focus:outline-none focus:border-green-500',
-              'font-mono text-sm',
+              'font-mono text-base', // 16px to prevent iOS auto-zoom
               'resize-none',
               'max-h-[200px] overflow-y-auto',
               disabled && 'opacity-50 cursor-not-allowed'
             )}
-            style={{
-              fontSize: '14px',
-            }}
           />
           {/* Only show Cmd+Enter hint on desktop */}
           <div

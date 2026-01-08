@@ -13,7 +13,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 5,
+  maximumScale: 1, // Prevent zoom on iOS Safari when focusing inputs
+  userScalable: false,
+  themeColor: '#000000', // Match app black background
 }
 
 export default function RootLayout({

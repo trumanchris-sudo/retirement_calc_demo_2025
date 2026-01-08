@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fix iOS Safari white background behind keyboard */
+html,
+body {
+  background-color: #000000;
+  overscroll-behavior-y: none; /* Prevents "bouncing" past limits */
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
