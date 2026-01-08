@@ -1481,7 +1481,7 @@ export default function App() {
   const searchParams = useSearchParams();
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && ['all', 'configure', 'results', 'stress', 'legacy', 'budget', 'optimize', 'math', 'checkUs'].includes(tab)) {
+    if (tab && ['all', 'configure', 'ssot', 'results', 'stress', 'legacy', 'optimize', 'math', 'checkUs'].includes(tab)) {
       setActiveMainTab(tab as MainTabId);
     }
   }, [searchParams]);
@@ -7346,8 +7346,8 @@ export default function App() {
         </TabPanel>
         )}
 
-        {/* Budget Tab - Hide from All-in-One tab (contains Retirement Timeline & Implied Budget) */}
-        {activeMainTab !== 'all' && (
+        {/* Budget Tab - HIDDEN per user request (contains Retirement Timeline & Implied Budget) */}
+        {false && (
         <TabPanel id="budget" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           {/* Retirement Timeline - First element */}
