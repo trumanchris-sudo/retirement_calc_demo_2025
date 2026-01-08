@@ -52,26 +52,6 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     scrollToBottom();
   }, [messages.length, scrollToBottom]);
 
-  // Let Safari handle viewport scrolling naturally when keyboard appears
-  // Just ensure messages are scrolled to bottom after keyboard animation
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const handler = () => {
-      // After keyboard resize, scroll messages to bottom if input is focused
-      if (document.activeElement === inputRef.current && messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTo({
-          top: messagesContainerRef.current.scrollHeight,
-          behavior: 'smooth',
-        });
-      }
-    };
-
-    vv.addEventListener('resize', handler);
-    return () => vv.removeEventListener('resize', handler);
-  }, []);
-
   // Load state from localStorage on mount
   useEffect(() => {
     const savedState = localStorage.getItem(STORAGE_KEY);
@@ -393,42 +373,43 @@ ${getNextQuestion(0, {})}`;
   const showAssumptionsReview = phase === 'assumptions-review' || phase === 'refinement';
 
   return (
-    <>
+    <div className="flex flex-col flex-1 overflow-hidden bg-black">
       {/* Header - Terminal Style */}
-      <header className="flex-shrink-0 flex items-center justify-between px-3 py-2 sm:px-6 sm:py-3 border-b border-gray-800 bg-black">
-          <div className="font-mono">
-            <h2 className="text-sm sm:text-base text-green-400">
-              <span className="text-gray-500">$ </span>
-              retirement-wizard <span className="text-gray-600">--interactive</span>
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5 ml-2">
-              {phase === 'greeting' && '[initializing...]'}
-              {phase === 'data-collection' && '[collecting data...]'}
-              {phase === 'assumptions-review' && '[review mode]'}
-              {phase === 'refinement' && '[refining...]'}
-              {phase === 'complete' && '[complete ✓]'}
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSkip}
-            className="font-mono text-gray-400 hover:text-gray-200 hover:bg-gray-900 text-xs min-h-[32px] px-3"
-            aria-label="Skip AI onboarding and proceed to manual data entry"
-          >
-            <span className="hidden sm:inline">^C exit</span>
-            <span className="sm:hidden">exit</span>
-          </Button>
+      <header className="shrink-0 flex items-center justify-between px-3 py-2 sm:px-6 sm:py-3 border-b border-gray-800 bg-black">
+        <div className="font-mono">
+          <h2 className="text-sm sm:text-base text-green-400">
+            <span className="text-gray-500">$ </span>
+            retirement-wizard <span className="text-gray-600">--interactive</span>
+          </h2>
+          <p className="text-xs text-gray-500 mt-0.5 ml-2">
+            {phase === 'greeting' && '[initializing...]'}
+            {phase === 'data-collection' && '[collecting data...]'}
+            {phase === 'assumptions-review' && '[review mode]'}
+            {phase === 'refinement' && '[refining...]'}
+            {phase === 'complete' && '[complete ✓]'}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSkip}
+          className="font-mono text-gray-400 hover:text-gray-200 hover:bg-gray-900 text-xs min-h-[32px] px-3"
+          aria-label="Skip AI onboarding and proceed to manual data entry"
+        >
+          <span className="hidden sm:inline">^C exit</span>
+          <span className="sm:hidden">exit</span>
+        </Button>
       </header>
 
-      {/* Messages Area - Scrollable main content */}
-      <main
-        ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 space-y-4 bg-black"
-        role="log"
-        aria-live="polite"
-        aria-label="Conversation messages"
-      >
+      {/* Scrollable content container with sticky input */}
+      <div className="flex-1 overflow-y-auto flex flex-col" ref={messagesContainerRef}>
+        {/* Messages Area */}
+        <main
+          className="flex-1 px-3 py-3 sm:px-6 sm:py-4 space-y-4"
+          role="log"
+          aria-live="polite"
+          aria-label="Conversation messages"
+        >
           {error && (
             <div
               role="alert"
@@ -519,11 +500,10 @@ ${getNextQuestion(0, {})}`;
           )}
 
           <div ref={messagesEndRef} />
-      </main>
+        </main>
 
-      {/* Input Area - Footer at bottom of page (not viewport-fixed) */}
-      <footer className="flex-shrink-0 border-t border-gray-800 bg-black px-3 sm:px-4 py-3">
-
+        {/* Input Area - Sticky to bottom of scroll container */}
+        <footer className="sticky bottom-0 border-t border-gray-800 bg-black px-3 sm:px-4 py-3 pb-[env(safe-area-inset-bottom)]">
           <ConsoleInput
             ref={inputRef}
             value={input}
@@ -541,13 +521,14 @@ ${getNextQuestion(0, {})}`;
                 : 'Type your response...'
             }
           />
-        {isProcessing && (
-          <div className="flex items-center gap-2 mt-2 text-sm text-slate-300" role="status" aria-live="polite">
-            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-            <span>Analyzing your responses and generating smart assumptions...</span>
-          </div>
-        )}
-      </footer>
-    </>
+          {isProcessing && (
+            <div className="flex items-center gap-2 mt-2 text-sm text-slate-300" role="status" aria-live="polite">
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+              <span>Analyzing your responses and generating smart assumptions...</span>
+            </div>
+          )}
+        </footer>
+      </div>
+    </div>
   );
 }
