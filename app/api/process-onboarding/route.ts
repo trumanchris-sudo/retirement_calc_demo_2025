@@ -30,6 +30,14 @@ export async function POST(request: NextRequest) {
       fieldsCollected: Object.keys(extractedData || {}).length
     });
 
+    console.log('[Process Onboarding] 🔍 RECEIVED EXTRACTED DATA:', {
+      retirementAge: extractedData?.retirementAge,
+      age: extractedData?.age,
+      maritalStatus: extractedData?.maritalStatus,
+      allKeys: Object.keys(extractedData || {}),
+      fullData: extractedData
+    });
+
     const systemPrompt = `You are a retirement planning assistant. The client has collected 6 key questions from the user:
 
 1. Age, marital status, and spouse age (if married)
@@ -48,11 +56,14 @@ Your job is to:
 USER PROVIDED DATA (from client-side collection):
 ${JSON.stringify(extractedData, null, 2)}
 
-CRITICAL INSTRUCTION:
-- If a field exists in extractedData with a valid value, YOU MUST USE THAT VALUE
+⚠️ ⚠️ ⚠️ CRITICAL INSTRUCTION - READ THIS CAREFULLY ⚠️ ⚠️ ⚠️
+- If a field exists in extractedData with a valid value, YOU MUST USE THAT EXACT VALUE
 - DO NOT "improve" or "suggest better" values for fields the user already provided
-- Example: If retirementAge is 65, keep it 65. Do NOT suggest 55 or 60.
-- Only make assumptions for fields that are missing (null/undefined/not present)
+- DO NOT override user values based on income, lifestyle, or any other factor
+- ESPECIALLY FOR RETIREMENT AGE: If retirementAge is provided above, USE THAT EXACT NUMBER
+- Example: If retirementAge is 65, keep it 65. Do NOT suggest 55, 60, or any other number.
+- Example: If retirementAge is 70, keep it 70. Do NOT suggest 65.
+- Only make assumptions for fields that are MISSING (null/undefined/not present in extractedData above)
 
 DATA VALIDATION AND EXTRACTION:
 
@@ -220,6 +231,23 @@ Response: {
       fieldsExtracted: Object.keys(result.extractedData).length,
       assumptionsMade: result.assumptions.length,
     });
+
+    console.log('[Process Onboarding] 🔍 RETURNING TO CLIENT:', {
+      retirementAge: result.extractedData?.retirementAge,
+      age: result.extractedData?.age,
+      maritalStatus: result.extractedData?.maritalStatus
+    });
+
+    // Verify retirement age wasn't changed
+    if (extractedData?.retirementAge && result.extractedData?.retirementAge !== extractedData.retirementAge) {
+      console.error('[Process Onboarding] ❌❌❌ ERROR: AI CHANGED RETIREMENT AGE!', {
+        userProvided: extractedData.retirementAge,
+        aiReturned: result.extractedData.retirementAge
+      });
+      // Override it back to user value
+      result.extractedData.retirementAge = extractedData.retirementAge;
+      console.log('[Process Onboarding] ✅ CORRECTED: Forcing retirement age back to', extractedData.retirementAge);
+    }
 
     return NextResponse.json(result);
   } catch (error) {

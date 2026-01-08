@@ -246,11 +246,17 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
 
       case 5: // Retirement age
         // Extract retirement age (should be a single number)
+        // More aggressive parsing: match any digits
+        const ageMatch = userInput.match(/\d+/);
         if (numbers.length > 0) {
           extracted.retirementAge = numbers[0];
-          console.log('[AIConsole] Parsed retirement age:', numbers[0], 'from input:', userInput);
+          console.log('[AIConsole] ✅ PARSED RETIREMENT AGE:', numbers[0], 'from input:', userInput);
+        } else if (ageMatch) {
+          // Fallback: just raw digits
+          extracted.retirementAge = parseInt(ageMatch[0]);
+          console.log('[AIConsole] ✅ PARSED RETIREMENT AGE (fallback):', ageMatch[0], 'from input:', userInput);
         } else {
-          console.warn('[AIConsole] No retirement age found in input:', userInput);
+          console.error('[AIConsole] ❌ FAILED TO PARSE RETIREMENT AGE from input:', userInput);
         }
         break;
     }
@@ -322,6 +328,13 @@ ${getNextQuestion(0, {})}`;
     setHasProcessed(true);
 
     console.log('[AIConsole] Processing conversation...');
+    console.log('[AIConsole] 🔍 EXTRACTED DATA BEING SENT TO API:', {
+      retirementAge: extractedData.retirementAge,
+      age: extractedData.age,
+      maritalStatus: extractedData.maritalStatus,
+      allKeys: Object.keys(extractedData),
+      fullData: extractedData
+    });
 
     try {
       // Send full conversation history for context
