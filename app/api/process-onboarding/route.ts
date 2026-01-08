@@ -100,17 +100,35 @@ CONTRIBUTION RATES (assume standard rates based on income):
 - contributionRate2Roth: Same logic as person 1 (if married)
 - employerMatch2Percent: Same as person 1 (if married)
 
-HOUSING EXPENSES (assume reasonable monthly costs):
-- monthlyMortgageRent: Assume $3000/month if married, $2000/month if single
-- monthlyUtilities: Assume $300/month
-- monthlyInsurancePropertyTax: Assume $500/month if married, $350/month if single
+HOUSING EXPENSES (SCALE WITH INCOME - use these guidelines):
+- monthlyMortgageRent: Scale based on combined annual income:
+  * <$100k: $1,800/month if married, $1,200/month if single
+  * $100k-$200k: $3,000/month if married, $2,000/month if single
+  * $200k-$400k: $4,500/month if married, $3,000/month if single
+  * $400k-$700k: $7,000/month if married, $5,000/month if single
+  * $700k+: $9,000/month if married, $6,500/month if single
+  * Use approximately 12-16% of gross monthly income as conservative guideline
+- monthlyUtilities: Scale with housing:
+  * <$100k income: $250/month
+  * $100k-$400k: $350/month
+  * $400k+: $500/month
+- monthlyInsurancePropertyTax: Scale with housing:
+  * <$100k income: $400/month if married, $300/month if single
+  * $100k-$400k: $700/month if married, $500/month if single
+  * $400k+: $1,200/month if married, $800/month if single
 
 HEALTHCARE (assume standard costs):
 - monthlyHealthcareP1: Assume $600/month pre-retirement, will adjust for post-retirement
 - monthlyHealthcareP2: Assume $600/month if married
 
-OTHER EXPENSES (assume reasonable defaults):
-- monthlyOtherExpenses: Assume $2000/month if married, $1500/month if single
+OTHER EXPENSES (SCALE WITH INCOME AND LIFESTYLE):
+- monthlyOtherExpenses: Scale based on combined annual income (groceries, dining, shopping, travel, etc.):
+  * <$100k: $2,000/month if married, $1,500/month if single
+  * $100k-$200k: $3,000/month if married, $2,200/month if single
+  * $200k-$400k: $5,000/month if married, $3,500/month if single
+  * $400k-$700k: $8,000/month if married, $5,500/month if single
+  * $700k+: $12,000/month if married, $8,000/month if single
+  * Conservative estimate: 12-18% of gross income for discretionary spending
 
 DO NOT ask for more information. Make ALL necessary assumptions for MISSING fields only with medium confidence and clear reasoning.
 
@@ -158,8 +176,8 @@ Return JSON with this structure:
   "summary": "Friendly summary of what was collected and assumed"
 }
 
-EXAMPLE:
-User conversation indicates: 35, single, $100k income, $50k in 401k, $20k Roth, $10k taxable, $15k cash, retire at 65
+EXAMPLE 1 (Moderate Income):
+User: 35, single, $100k income, $50k in 401k, $20k Roth, $10k taxable, $15k cash, retire at 65
 Response: {
   "extractedData": {
     "age": 35,
@@ -177,20 +195,47 @@ Response: {
     "contributionRateTaxable": 0.05,
     "employerMatch1Percent": 0.03,
     "monthlyMortgageRent": 2000,
-    "monthlyUtilities": 300,
-    "monthlyInsurancePropertyTax": 350,
+    "monthlyUtilities": 350,
+    "monthlyInsurancePropertyTax": 500,
     "monthlyHealthcareP1": 600,
-    "monthlyOtherExpenses": 1500
+    "monthlyOtherExpenses": 2500
   },
   "assumptions": [
     {"field": "employmentType1", "displayName": "Employment Type", "value": "w2", "reasoning": "Standard W-2 employment assumed for salary", "confidence": "high", "userProvided": false},
     {"field": "retirementAge", "displayName": "Retirement Age", "value": 65, "reasoning": "User stated target retirement age", "confidence": "high", "userProvided": true},
-    {"field": "state", "displayName": "State", "value": "CA", "reasoning": "User provided state", "confidence": "high", "userProvided": true},
-    {"field": "contributionRate1Traditional", "displayName": "Traditional 401k Contribution Rate", "value": 0.06, "reasoning": "Standard 6% contribution for income level", "confidence": "medium", "userProvided": false},
-    {"field": "monthlyMortgageRent", "displayName": "Monthly Housing Cost", "value": 2000, "reasoning": "Average rent for single person in California", "confidence": "medium", "userProvided": false}
+    {"field": "monthlyMortgageRent", "displayName": "Monthly Housing Cost", "value": 2000, "reasoning": "Scaled to $100k income (24% of gross)", "confidence": "medium", "userProvided": false},
+    {"field": "monthlyOtherExpenses", "displayName": "Other Monthly Expenses", "value": 2500, "reasoning": "Lifestyle expenses scaled to $100k income bracket", "confidence": "medium", "userProvided": false}
   ],
   "missingFields": [],
-  "summary": "Great! I've set up your retirement plan with the information you provided. I've made some reasonable assumptions about contribution rates (6% traditional, 4% Roth) and monthly expenses. You can review and adjust these on the next screen."
+  "summary": "Great! I've set up your retirement plan. I've made some reasonable assumptions about contribution rates (6% traditional, 4% Roth) and monthly expenses scaled to your income level."
+}
+
+EXAMPLE 2 (High Income):
+User: 40, married, $500k income (person 1), $400k income (person 2), retire at 65
+Response: {
+  "extractedData": {
+    "age": 40,
+    "maritalStatus": "married",
+    "annualIncome1": 500000,
+    "annualIncome2": 400000,
+    "employmentType1": "w2",
+    "employmentType2": "w2",
+    "retirementAge": 65,
+    "contributionRate1Traditional": 0.10,
+    "contributionRate1Roth": 0.05,
+    "monthlyMortgageRent": 9000,
+    "monthlyUtilities": 500,
+    "monthlyInsurancePropertyTax": 1200,
+    "monthlyHealthcareP1": 600,
+    "monthlyHealthcareP2": 600,
+    "monthlyOtherExpenses": 12000
+  },
+  "assumptions": [
+    {"field": "monthlyMortgageRent", "displayName": "Monthly Housing Cost", "value": 9000, "reasoning": "Scaled to $900k combined income (12% of gross monthly)", "confidence": "medium", "userProvided": false},
+    {"field": "monthlyOtherExpenses", "displayName": "Other Monthly Expenses", "value": 12000, "reasoning": "Lifestyle expenses scaled to high-earner income bracket (15% of gross)", "confidence": "medium", "userProvided": false}
+  ],
+  "missingFields": [],
+  "summary": "I've set up your retirement plan with conservative expense assumptions scaled to your income level. You can adjust these estimates in the next screen."
 }`;
 
     // Convert conversation history to Anthropic format
