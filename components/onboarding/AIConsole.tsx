@@ -15,7 +15,6 @@ import { ConsoleInput } from './ConsoleInput';
 import { DataSummaryPanel } from './DataSummaryPanel';
 import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, AlertCircle } from 'lucide-react';
-import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 
 interface AIConsoleProps {
   onComplete: (data: ExtractedData, assumptions: AssumptionWithReasoning[]) => void;
@@ -39,9 +38,6 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  // Get keyboard height for iOS Safari
-  const keyboardInset = useKeyboardInset();
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = useCallback(() => {
@@ -396,16 +392,9 @@ ${getNextQuestion(0, {})}`;
   const showAssumptionsReview = phase === 'assumptions-review' || phase === 'refinement';
 
   return (
-    <div
-      className="fixed inset-0 bg-black h-screen"
-      style={{ height: '100dvh' }}
-      role="main"
-      aria-label="AI-powered retirement planning onboarding"
-    >
-      {/* Main Console */}
-      <div className="h-full w-full flex flex-col">
-        {/* Header - Terminal Style */}
-        <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 sm:px-6 sm:py-3 border-b border-gray-800 bg-black">
+    <>
+      {/* Header - Terminal Style */}
+      <header className="flex-shrink-0 flex items-center justify-between px-3 py-2 sm:px-6 sm:py-3 border-b border-gray-800 bg-black">
           <div className="font-mono">
             <h2 className="text-sm sm:text-base text-green-400">
               <span className="text-gray-500">$ </span>
@@ -429,19 +418,16 @@ ${getNextQuestion(0, {})}`;
             <span className="hidden sm:inline">^C exit</span>
             <span className="sm:hidden">exit</span>
           </Button>
-        </div>
+      </header>
 
-        {/* Messages Area - Scrollable with keyboard-aware padding */}
-        <div
-          ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 space-y-4 bg-black"
-          style={{
-            paddingBottom: `calc(${keyboardInset}px + env(safe-area-inset-bottom, 0px) + 6rem)`,
-          }}
-          role="log"
-          aria-live="polite"
-          aria-label="Conversation messages"
-        >
+      {/* Messages Area - Scrollable main content */}
+      <main
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 space-y-4 bg-black"
+        role="log"
+        aria-live="polite"
+        aria-label="Conversation messages"
+      >
           {error && (
             <div
               role="alert"
@@ -532,15 +518,11 @@ ${getNextQuestion(0, {})}`;
           )}
 
           <div ref={messagesEndRef} />
-        </div>
+      </main>
 
-        {/* Input Area - Fixed at bottom with keyboard-aware padding */}
-        <div
-          className="flex-shrink-0 border-t border-gray-800 bg-black px-3 sm:px-4 pt-3 sm:pt-4"
-          style={{
-            paddingBottom: `calc(${keyboardInset}px + env(safe-area-inset-bottom, 0px) + 0.75rem)`,
-          }}
-        >
+      {/* Input Area - Footer at bottom of page (not viewport-fixed) */}
+      <footer className="flex-shrink-0 border-t border-gray-800 bg-black px-3 sm:px-4 py-3">
+
           <ConsoleInput
             ref={inputRef}
             value={input}
@@ -559,19 +541,13 @@ ${getNextQuestion(0, {})}`;
                 : 'Type your response...'
             }
           />
-          {isProcessing && (
-            <div className="flex items-center gap-2 mt-2 text-sm text-slate-300" role="status" aria-live="polite">
-              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-              <span>Analyzing your responses and generating smart assumptions...</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Side Panel - Data Summary - Hidden on mobile, visible on desktop */}
-      <div className="hidden md:block md:w-80 border-l border-slate-800">
-        <DataSummaryPanel extractedData={extractedData} assumptions={assumptions} />
-      </div>
-    </div>
+        {isProcessing && (
+          <div className="flex items-center gap-2 mt-2 text-sm text-slate-300" role="status" aria-live="polite">
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+            <span>Analyzing your responses and generating smart assumptions...</span>
+          </div>
+        )}
+      </footer>
+    </>
   );
 }

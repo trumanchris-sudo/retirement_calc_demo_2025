@@ -85,9 +85,10 @@ export function OnboardingWizardPage({ onComplete, onSkip }: OnboardingWizardPag
     onSkip();
   }, [onSkip]);
 
-  // Full-page layout (no dialog)
+  // Full-page layout with proper mobile support
+  // Use min-h-[100dvh] instead of fixed inset-0 for iOS keyboard compatibility
   return (
-    <div className="fixed inset-0 bg-black">
+    <div className="min-h-[100dvh] flex flex-col bg-black text-white">
       <AIConsole onComplete={handleComplete} onSkip={handleSkip} />
     </div>
   );

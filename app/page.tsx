@@ -3221,8 +3221,8 @@ export default function App() {
     }, 'user-entered');
   }, [updatePlanConfig]);
 
-  // Show wizard if user hasn't completed onboarding or PlanConfig is incomplete
-  if (shouldShowWizard && loaderComplete) {
+  // Show wizard IMMEDIATELY if user hasn't completed onboarding (no brand loader)
+  if (shouldShowWizard) {
     return (
       <OnboardingWizardPage
         onComplete={() => {
@@ -3236,6 +3236,7 @@ export default function App() {
     );
   }
 
+  // Only show brand loader for calculator (not for wizard)
   return (
     <>
       {!loaderComplete && (
