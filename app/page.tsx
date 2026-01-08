@@ -1467,14 +1467,15 @@ export default function App() {
   });
   const [showBackToTop, setShowBackToTop] = useState(false); // Show back-to-top button after scrolling
   const [activeChartTab, setActiveChartTab] = useState("accumulation"); // Track active chart tab
-  const [loaderComplete, setLoaderComplete] = useState(false); // Always show loader on mount
-  const [loaderHandoff, setLoaderHandoff] = useState(false); // Track when handoff starts
-  const [cubeAppended, setCubeAppended] = useState(false); // Track when cube animation completes
+  const [loaderComplete, setLoaderComplete] = useState(true); // DISABLED - skip loader to not interfere with wizard transition
+  const [loaderHandoff, setLoaderHandoff] = useState(true); // DISABLED - skip loader
+  const [cubeAppended, setCubeAppended] = useState(true); // DISABLED - skip loader
 
   // Tabbed interface state - foundation for future reorganization
   const [activeMainTab, setActiveMainTab] = useState<MainTabId>('all');
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [inputsModified, setInputsModified] = useState(false);
+  const [isFromWizard, setIsFromWizard] = useState(false); // Track if calculation triggered from wizard completion
 
   // Handle tab switching via URL query params
   const searchParams = useSearchParams();
@@ -2243,8 +2244,8 @@ export default function App() {
     setIsLoadingAi(true);
     setIsRunning(true);
 
-    // Start cinematic Monte Carlo sequence only from All-in-One or Configure tabs
-    if (activeMainTab === 'all' || activeMainTab === 'configure') {
+    // Start cinematic Monte Carlo sequence from All-in-One, Configure tabs, or Wizard completion
+    if (activeMainTab === 'all' || activeMainTab === 'configure' || isFromWizard) {
       console.log('[CALC] Playing splash animation');
       splashRef.current?.play();
     }
@@ -2418,16 +2419,20 @@ export default function App() {
         }
         console.log('[CALC] Data reconstruction complete, data length:', data.length);
 
-        // Use median values for key metrics
+        // Use conservative average (P25-P50) for key metrics instead of median (P50)
+        // This provides more conservative projections by averaging 25th and 50th percentiles
         console.log('[CALC] Calculating key metrics...');
         const finReal = batchSummary.p50BalancesReal[yrsToRet];
         const finNom = finReal * Math.pow(1 + infl, yrsToRet);
-        const wdRealY1 = batchSummary.y1AfterTaxReal_p50;
+
+        // Conservative: average of P25 and P50 (more conservative than median alone)
+        const wdRealY1 = (batchSummary.y1AfterTaxReal_p25 + batchSummary.y1AfterTaxReal_p50) / 2;
         const infAdj = Math.pow(1 + infl, yrsToRet);
         const wdAfterY1 = wdRealY1 * infAdj;
         const wdGrossY1 = wdAfterY1 / (1 - 0.15); // rough estimate, actual tax rate varies
 
-        const eolReal = batchSummary.eolReal_p50;
+        // Conservative: average of P25 and P50 (more conservative than median alone)
+        const eolReal = (batchSummary.eolReal_p25 + batchSummary.eolReal_p50) / 2;
         const yearsFrom2025 = yrsToRet + yrsToSim;
         const eolWealth = eolReal * Math.pow(1 + infl, yearsFrom2025);
         console.log('[CALC] Key metrics calculated - finReal:', finReal, 'eolWealth:', eolWealth);
@@ -2816,9 +2821,11 @@ export default function App() {
           estateTax,
           netEstate,
           eolAccounts: {
-            taxable: eolWealth * initialTaxableRatio,  // Use actual user's ratios
-            pretax: eolWealth * initialPretaxRatio,
-            roth: eolWealth * initialRothRatio,
+            // IMPORTANT: Use eolReal (not eolWealth) so chart matches Plan Summary Card
+            // Both show real dollars (today's purchasing power) for consistency
+            taxable: eolReal * initialTaxableRatio,
+            pretax: eolReal * initialPretaxRatio,
+            roth: eolReal * initialRothRatio,
           },
           totalRMDs: 0,
           genPayout,
@@ -2860,13 +2867,14 @@ export default function App() {
       setInputsModified(false);
 
       // NAVIGATION BEHAVIOR:
-      // - First calculation from Configure tab → Navigate to Results tab and scroll to top
+      // - First calculation from Configure tab OR Wizard completion → Navigate to Results tab and scroll to top
       // - Recalculate from ANY other location → Stay on current tab, don't scroll
-      const shouldNavigate = isFirstCalculation && activeMainTab === 'configure';
+      const shouldNavigate = (isFirstCalculation && activeMainTab === 'configure') || isFromWizard;
 
       if (shouldNavigate) {
-        // First calculation from Configure tab: switch to Results and scroll
+        // First calculation from Configure tab or Wizard: switch to Results and scroll
         setActiveMainTab('results');
+        setIsFromWizard(false); // Reset flag after navigation
         setTimeout(() => {
           window.scrollTo({ top: 0, behavior: 'smooth' });
           setOlderAgeForAnalysis(olderAgeForAI);
@@ -2896,7 +2904,7 @@ export default function App() {
     retMode, seed, walkSeries, historicalYear,
     inflationShockRate, inflationShockDuration,
     includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2, hypBenAgesStr,
-    activeMainTab, setActiveMainTab,
+    activeMainTab, setActiveMainTab, isFromWizard,
     runMonteCarloViaWorker, fetchAiInsight,
     includeMedicare, medicarePremium, medicalInflation,
     irmaaThresholdSingle, irmaaThresholdMarried, irmaaSurcharge,
@@ -3225,9 +3233,24 @@ export default function App() {
   if (shouldShowWizard) {
     return (
       <OnboardingWizardPage
-        onComplete={() => {
+        onComplete={async () => {
+          console.log('[WIZARD] Wizard completed, triggering auto-calculation...');
           markOnboardingComplete();
-          // Calculator will auto-run via useEffect when PlanConfig updates
+
+          // Give user a moment to see "Looks Good" before transitioning
+          await new Promise(resolve => setTimeout(resolve, 300));
+
+          // Mark that we're coming from wizard to trigger:
+          // 1. WORK→DIE→RETIRE animation
+          // 2. Auto-navigate to Results tab after calculation
+          setIsFromWizard(true);
+
+          // Auto-run calculation
+          // The calc() function will:
+          // 1. Play WORK→DIE→RETIRE animation (because isFromWizard=true)
+          // 2. Run calculation in background
+          // 3. Navigate to Results tab and scroll to top
+          calc();
         }}
         onSkip={() => {
           markOnboardingComplete();
@@ -3236,16 +3259,17 @@ export default function App() {
     );
   }
 
-  // Only show brand loader for calculator (not for wizard)
+  // Brand loader DISABLED - was interfering with wizard → calculator transition
   return (
     <>
-      {!loaderComplete && (
+      {/* BrandLoader disabled - uncomment if needed in future */}
+      {/* {!loaderComplete && (
         <BrandLoader
           onHandoffStart={() => setLoaderHandoff(true)}
           onCubeAppended={() => setCubeAppended(true)}
           onComplete={() => setLoaderComplete(true)}
         />
-      )}
+      )} */}
 
       {/* Full-screen Monte Carlo splash */}
       <CyberpunkSplash ref={splashRef} />
@@ -3836,7 +3860,7 @@ export default function App() {
                   <h2 className="text-xl font-bold text-black">Wealth Accumulation Projection</h2>
                   <p className="text-xs text-gray-700 mt-1">
                     {walkSeries === 'trulyRandom'
-                      ? 'Monte Carlo Simulation: Showing median (P50) outcome with "cone of uncertainty" (P10-P90 range). The shaded area represents the range of 80% of possible outcomes across 1,000 simulations.'
+                      ? 'Monte Carlo Simulation: Showing conservative average (P25-P50) outcome with "cone of uncertainty" (P10-P90 range). The shaded area represents the range of 80% of possible outcomes across 1,000 simulations. Key metrics use the average of 25th-50th percentile for more conservative projections.'
                       : 'Deterministic projection based on fixed return assumptions'}
                   </p>
                 </header>
@@ -4310,7 +4334,7 @@ export default function App() {
               <section className="print-section print-page-break-after">
                 <header className="mb-4 border-b-2 border-gray-900 pb-3">
                   <h2 className="text-xl font-bold text-black">Lifetime Wealth Flow</h2>
-                  <p className="text-xs text-gray-700 mt-1">From end-of-life wealth to net inheritance</p>
+                  <p className="text-xs text-gray-700 mt-1">From end-of-life wealth to net inheritance (all values in today's dollars)</p>
                 </header>
 
                 {res.eolAccounts && res.eol > 0 ? (
@@ -5019,7 +5043,7 @@ export default function App() {
                         </Button>
                       </CardTitle>
                       <CardDescription className="flex items-center justify-between">
-                        <span>From end-of-life wealth to net inheritance</span>
+                        <span>From end-of-life wealth to net inheritance (all values in today's dollars)</span>
                         {res.probRuin !== undefined && (
                           <span className="text-xs text-muted-foreground">
                             Probability of Running Out: <span className="font-semibold">{(res.probRuin * 100).toFixed(0)}%</span>
@@ -6398,7 +6422,8 @@ export default function App() {
           </>
         )}
 
-        {/* Input Form - Hide from print */}
+        {/* Input Form - Hide from print and All-in-One tab */}
+        {activeMainTab !== 'all' && (
         <TabPanel id="configure" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           <Card className="print:hidden">
@@ -7068,15 +7093,19 @@ export default function App() {
         </Card>
         </AnimatedSection>
         </TabPanel>
+        )}
 
-        {/* SSOT Tab - Single Source of Truth */}
+        {/* SSOT Tab - Single Source of Truth - Hide from All-in-One tab */}
+        {activeMainTab !== 'all' && (
         <TabPanel id="ssot" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           <SSOTTab />
         </AnimatedSection>
         </TabPanel>
+        )}
 
-        {/* Generational Wealth Modeling - Legacy Tab */}
+        {/* Generational Wealth Modeling - Legacy Tab - Hide from All-in-One tab */}
+        {activeMainTab !== 'all' && (
         <TabPanel id="legacy" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           <Card className="print:hidden">
@@ -7304,8 +7333,10 @@ export default function App() {
           </Card>
         </AnimatedSection>
         </TabPanel>
+        )}
 
-        {/* Budget Tab */}
+        {/* Budget Tab - Hide from All-in-One tab (contains Retirement Timeline & Implied Budget) */}
+        {activeMainTab !== 'all' && (
         <TabPanel id="budget" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           {/* Retirement Timeline - First element */}
@@ -7454,6 +7485,7 @@ export default function App() {
           })()}
         </AnimatedSection>
         </TabPanel>
+        )}
 
         {/* Optimize Tab */}
         <TabPanel id="optimize" activeTab={activeMainTab}>
@@ -7536,7 +7568,7 @@ export default function App() {
                   <ul className="list-disc pl-6 space-y-1 text-gray-700">
                     <li><strong>Fixed Return:</strong> All accounts grow by a constant rate (e.g., 9.8%) each year: Balance<sub>year+1</sub> = Balance<sub>year</sub> × (1 + r)</li>
                     <li><strong>Random Walk:</strong> Returns are randomly sampled from 97 years of historical S&amp;P 500 data (1928-2024), using a seeded pseudo-random number generator for reproducibility. Each year gets a different historical return, bootstrapped with replacement.</li>
-                    <li><strong>Truly Random (Monte Carlo):</strong> Runs 1,000 independent simulations, each with different sequences of returns randomly sampled from 97 years of S&amp;P 500 historical data (1928-2024, including Great Depression, stagflation, dot-com crash, 2008 crisis). Reports median outcomes and calculates probability of portfolio depletion based on actual simulation results—captures real sequence risk without idealized assumptions.</li>
+                    <li><strong>Truly Random (Monte Carlo):</strong> Runs 1,000 independent simulations, each with different sequences of returns randomly sampled from 97 years of S&amp;P 500 historical data (1928-2024, including Great Depression, stagflation, dot-com crash, 2008 crisis). Reports conservative average outcomes (P25-P50 percentile) and calculates probability of portfolio depletion based on actual simulation results—captures real sequence risk without idealized assumptions.</li>
                   </ul>
                 </div>
 

@@ -296,7 +296,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
 
       {/* Summary note */}
       <div className="text-center text-xs text-muted-foreground p-4 bg-muted/50 rounded-lg">
-        All optimizations maintain a 95% success rate based on 100+ Monte Carlo simulations per scenario.
+        All optimizations maintain a 95% success rate based on 1,000 Monte Carlo simulations per scenario.
         Results may vary with market conditions and assumptions.
       </div>
     </div>
