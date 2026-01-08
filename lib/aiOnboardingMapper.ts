@@ -199,27 +199,65 @@ export function mapAIDataToCalculator(
   if (marital === 'married' && annualIncome2 > 0) {
     const defaultSavingsRate2 = calculateRecommendedSavingsRate(annualIncome2);
 
-    cPre2 =
-      extractedData.savingsRateTraditional2 ??
-      Math.min(IRS_LIMITS_2026['401k'], annualIncome2 * defaultSavingsRate2 * 0.6);
+    // Joint household logic: If person 1 is maxing out 401k, assume same strategy for person 2
+    const person1IsMaxing401k = cPre1 >= IRS_LIMITS_2026['401k'] * 0.9; // Within 90% of limit
+    const person1IsMaxingRoth = cPost1 >= IRS_LIMITS_2026.ira * 0.9; // Within 90% of limit
 
-    cPost2 =
-      extractedData.savingsRateRoth2 ??
-      Math.min(IRS_LIMITS_2026.ira, annualIncome2 * defaultSavingsRate2 * 0.3);
-
-    cTax2 = extractedData.savingsRateTaxable2 ?? annualIncome2 * defaultSavingsRate2 * 0.1;
-
-    cMatch2 = Math.min(annualIncome2 * 0.06 * 0.5, IRS_LIMITS_2026['401k'] - cPre2);
-
-    if (!extractedData.savingsRateTraditional2) {
+    if (person1IsMaxing401k && !extractedData.savingsRateTraditional2) {
+      // If person 1 maxes 401k, assume person 2 does too (joint income household)
+      cPre2 = Math.min(IRS_LIMITS_2026['401k'], annualIncome2);
       addAssumption(
         'cPre2',
         'Spouse Traditional 401k',
         cPre2,
-        `Recommended ${Math.round((cPre2 / annualIncome2) * 100)}% of spouse income`,
+        'Matching Person 1 max contribution strategy for joint household',
         'medium'
       );
+    } else {
+      cPre2 =
+        extractedData.savingsRateTraditional2 ??
+        Math.min(IRS_LIMITS_2026['401k'], annualIncome2 * defaultSavingsRate2 * 0.6);
+
+      if (!extractedData.savingsRateTraditional2) {
+        addAssumption(
+          'cPre2',
+          'Spouse Traditional 401k',
+          cPre2,
+          `Recommended ${Math.round((cPre2 / annualIncome2) * 100)}% of spouse income`,
+          'medium'
+        );
+      }
     }
+
+    if (person1IsMaxingRoth && !extractedData.savingsRateRoth2) {
+      // If person 1 maxes Roth, assume person 2 does too
+      cPost2 = Math.min(IRS_LIMITS_2026.ira, annualIncome2);
+      addAssumption(
+        'cPost2',
+        'Spouse Roth Contributions',
+        cPost2,
+        'Matching Person 1 max contribution strategy for joint household',
+        'medium'
+      );
+    } else {
+      cPost2 =
+        extractedData.savingsRateRoth2 ??
+        Math.min(IRS_LIMITS_2026.ira, annualIncome2 * defaultSavingsRate2 * 0.3);
+
+      if (!extractedData.savingsRateRoth2) {
+        addAssumption(
+          'cPost2',
+          'Spouse Roth Contributions',
+          cPost2,
+          'Diversifying tax treatment with Roth contributions',
+          'medium'
+        );
+      }
+    }
+
+    cTax2 = extractedData.savingsRateTraditional2 ?? annualIncome2 * defaultSavingsRate2 * 0.1;
+
+    cMatch2 = Math.min(annualIncome2 * 0.06 * 0.5, IRS_LIMITS_2026['401k'] - cPre2);
   }
 
   // === Income Details (Bonus, First Pay Date) ===
