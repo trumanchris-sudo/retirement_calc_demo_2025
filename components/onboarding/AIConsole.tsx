@@ -34,6 +34,8 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const [phase, setPhase] = useState<ConversationPhase>('greeting');
   const [error, setError] = useState<string | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0); // Track which pre-scripted question we're on
+  const [userOverrides, setUserOverrides] = useState<Record<string, any>>({}); // Track user edits to assumptions
+  const [isUpdating, setIsUpdating] = useState(false); // Track if we're re-running API with overrides
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -83,6 +85,10 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
         setAssumptions(state.assumptions);
         setPhase(state.currentPhase);
         setQuestionIndex(state.questionIndex || 0);
+        // Restore user overrides if present (for new sessions)
+        if ((state as any).userOverrides) {
+          setUserOverrides((state as any).userOverrides);
+        }
         console.log('[AIConsole] Restored state from localStorage');
       } catch (e) {
         console.error('[AIConsole] Failed to load saved onboarding state:', e);
@@ -99,16 +105,17 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    const state: AIOnboardingState = {
+    const state: AIOnboardingState & { userOverrides?: Record<string, any> } = {
       conversationHistory: messages,
       extractedData,
       assumptions,
       currentPhase: phase,
       questionIndex,
       lastUpdated: Date.now(),
+      userOverrides, // Save user edits too
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [messages, extractedData, assumptions, phase, questionIndex]);
+  }, [messages, extractedData, assumptions, phase, questionIndex, userOverrides]);
 
   // Pre-scripted questions (no API calls needed for these)
   const getNextQuestion = (qIndex: number, currentData: ExtractedData): string | null => {
@@ -380,6 +387,80 @@ ${getNextQuestion(0, {})}`;
     }
   };
 
+  // Handle user clicking "Update Assumptions" after editing values
+  const handleUpdateAssumptions = async (overrides: Record<string, any>) => {
+    if (isUpdating) return;
+
+    setIsUpdating(true);
+    setError(null);
+    setUserOverrides(overrides); // Save overrides
+
+    console.log('[AIConsole] Updating assumptions with user overrides:', overrides);
+
+    try {
+      // Merge overrides into extractedData
+      const updatedData = { ...extractedData, ...overrides };
+      setExtractedData(updatedData);
+
+      console.log('[AIConsole] 🔍 UPDATED DATA BEING SENT TO API:', {
+        retirementAge: updatedData.retirementAge,
+        age: updatedData.age,
+        userOverrides: overrides,
+        fullData: updatedData
+      });
+
+      // Send full conversation history for context
+      const conversationHistory = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      // API call with updated data
+      const result = await processAIOnboarding({
+        conversationHistory,
+        extractedData: updatedData, // Send merged data
+      });
+
+      console.log('[AIConsole] Update complete', {
+        fieldsExtracted: Object.keys(result.extractedData).length,
+        assumptionsMade: result.assumptions.length,
+      });
+
+      // Merge API results back, but preserve user overrides
+      const finalData = { ...result.extractedData, ...overrides };
+      setExtractedData(finalData);
+
+      // Update assumptions - mark overridden fields as "Confirmed"
+      const updatedAssumptions = result.assumptions.map(assumption => {
+        if (overrides[assumption.field] !== undefined) {
+          return {
+            ...assumption,
+            value: overrides[assumption.field],
+            userProvided: true, // Mark as user-provided
+            confidence: 'high' as const,
+          };
+        }
+        return assumption;
+      });
+
+      setAssumptions(updatedAssumptions);
+
+      // Add update confirmation message
+      const updateMessage: ConversationMessage = {
+        role: 'assistant',
+        content: `✅ Updated ${Object.keys(overrides).length} assumption(s) and recalculated. Please review the updated assumptions below.`,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, updateMessage]);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update assumptions';
+      console.error('[AIConsole] Update error:', errorMessage);
+      setError(errorMessage);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleComplete = (data: ExtractedData, finalAssumptions: AssumptionWithReasoning[]) => {
     // Clear localStorage
     localStorage.removeItem(STORAGE_KEY);
@@ -511,6 +592,8 @@ ${getNextQuestion(0, {})}`;
                   };
                   setMessages((prev) => [...prev, refinementMsg]);
                 }}
+                onUpdateAssumptions={handleUpdateAssumptions}
+                isUpdating={isUpdating}
               />
               <div className="flex justify-center gap-4 py-4">
                 <Button
@@ -518,18 +601,11 @@ ${getNextQuestion(0, {})}`;
                     setPhase('complete');
                     handleComplete(extractedData, assumptions);
                   }}
+                  disabled={isUpdating}
                   className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white min-h-[48px] px-6"
                   aria-label="Confirm and complete onboarding"
                 >
                   Looks Good - Continue
-                </Button>
-                <Button
-                  onClick={handleProcess}
-                  variant="outline"
-                  className="min-h-[48px] px-6"
-                  aria-label="Reprocess responses with refinements"
-                >
-                  Reprocess
                 </Button>
               </div>
             </>
