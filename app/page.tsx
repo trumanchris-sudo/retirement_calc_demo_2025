@@ -3274,11 +3274,19 @@ export default function App() {
           // 2. Auto-navigate to Results tab after calculation
           setIsFromWizard(true);
 
+          // CRITICAL: Wait for React to update planConfig and re-render
+          // The wizard updates planConfig in OnboardingWizardPage.handleComplete,
+          // but calc() needs to wait for the component to re-render with new values
+          // before reading age1, age2, retAge, etc. from planConfig
+          console.log('[WIZARD] Waiting for planConfig to propagate...');
+          await new Promise(resolve => setTimeout(resolve, 100));
+
           // Auto-run calculation
           // The calc() function will:
           // 1. Play WORK→DIE→RETIRE animation (because isFromWizard=true)
           // 2. Run calculation in background
           // 3. Navigate to Results tab and scroll to top
+          console.log('[WIZARD] Triggering calc() with updated planConfig values');
           calc();
         }}
         onSkip={() => {
