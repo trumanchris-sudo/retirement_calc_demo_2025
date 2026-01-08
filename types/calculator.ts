@@ -88,6 +88,11 @@ export interface CalculatorInputs {
 
   // Income Calculator Details (for paycheck projection)
   monthlyMortgageRent?: number;
+  monthlyUtilities?: number;
+  monthlyInsurancePropertyTax?: number;
+  monthlyHealthcareP1?: number;
+  monthlyHealthcareP2?: number;
+  monthlyOtherExpenses?: number;
   eoyBonusAmount?: number;
   eoyBonusMonth?: string;
   firstPayDate?: string;
