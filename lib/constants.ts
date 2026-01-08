@@ -111,15 +111,21 @@ export const getNetWorthBracket = (age: number) => {
 /**
  * S&P 500 Total Return (Year-over-Year %)
  * Original: 1928-2024 (97 years of historical data)
- * Enhanced: Includes both original values AND half-values for more conservative Monte Carlo sampling
- * This creates 194 data points, reducing extreme outcomes while maintaining historical patterns
+ * Conservative adjustments:
+ * 1. Capped extreme returns at ±30% to prevent unrealistic compound growth
+ * 2. Added half-values for more moderate scenarios
+ * 3. Creates 194 data points total for robust Monte Carlo sampling
  * Source: S&P 500 Total Return including dividends
  */
 export const SP500_START_YEAR = 1928;
 export const SP500_END_YEAR = 2024;
 
-// Original historical data (97 years)
-const SP500_ORIGINAL = [
+// Cap for extreme returns - prevents unrealistic long-term compounding
+const MAX_RETURN = 30.0;  // Cap gains at 30%
+const MIN_RETURN = -30.0; // Cap losses at -30%
+
+// Original historical data (97 years) - capped at ±30%
+const SP500_ORIGINAL_RAW = [
   // 1928-1940 (13 years)
   43.81, -8.30, -25.12, -43.84, -8.64, 49.98, -1.19, 46.74, 31.94, 35.34, -35.34, 29.28, -1.10,
   // 1941-1960 (20 years)
@@ -138,10 +144,15 @@ const SP500_ORIGINAL = [
   28.47, -18.04, 26.06, 25.02
 ];
 
+// Apply caps to prevent extreme compounding
+const SP500_ORIGINAL = SP500_ORIGINAL_RAW.map(val =>
+  Math.max(MIN_RETURN, Math.min(MAX_RETURN, val))
+);
+
 // Create half-values for more moderate scenarios (97 additional data points)
 const SP500_HALF_VALUES = SP500_ORIGINAL.map(val => val / 2);
 
-// Combined dataset: original + half-values = 194 data points
+// Combined dataset: capped original + half-values = 194 data points
 export const SP500_YOY_NOMINAL: number[] = [...SP500_ORIGINAL, ...SP500_HALF_VALUES];
 
 // Data integrity validation (original dataset only)
