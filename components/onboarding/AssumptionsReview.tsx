@@ -190,6 +190,20 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
   const isNumber = typeof originalValue === 'number';
   const isBoolean = typeof originalValue === 'boolean';
 
+  // Detect field type for formatting
+  const isCurrencyField = field.toLowerCase().includes('income') ||
+                          field.toLowerCase().includes('salary') ||
+                          field.toLowerCase().includes('bonus') ||
+                          field.toLowerCase().includes('monthly') ||
+                          field.toLowerCase().includes('annual') ||
+                          field.toLowerCase().includes('current') ||
+                          field.toLowerCase().includes('emergency') ||
+                          field.toLowerCase().includes('balance');
+
+  const isPercentageField = field.toLowerCase().includes('rate') ||
+                            field.toLowerCase().includes('match') ||
+                            field.toLowerCase().includes('contribution');
+
   // Handle string/select fields (maritalStatus, state, employmentType, etc.)
   if (field === 'maritalStatus') {
     return (
@@ -240,16 +254,58 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
   }
 
   if (isNumber) {
+    // Format display value based on field type
+    let displayValue = '';
+    let prefix = '';
+    let suffix = '';
+
+    if (isCurrencyField) {
+      // Display as currency: $100,000
+      displayValue = Math.round(value).toLocaleString('en-US');
+      prefix = '$';
+    } else if (isPercentageField) {
+      // Display as percentage: 7.0%
+      // Value is stored as decimal (0.07), display as 7.0
+      displayValue = (value * 100).toFixed(1);
+      suffix = '%';
+    } else {
+      // Default number display
+      displayValue = String(value);
+    }
+
     return (
-      <Input
-        type="number"
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        className="w-full px-3 py-2 bg-slate-700 border-2 border-slate-600 rounded-md text-blue-200 font-semibold text-lg focus:outline-none focus:border-blue-500 transition-colors"
-        step={value > 1000 ? 1000 : value > 100 ? 100 : 1}
-      />
+      <div className="relative">
+        {prefix && (
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-200 font-semibold text-lg pointer-events-none">
+            {prefix}
+          </span>
+        )}
+        <Input
+          type="text"
+          value={isEditing ? displayValue : `${prefix}${displayValue}${suffix}`}
+          onChange={(e) => {
+            let rawValue = e.target.value.replace(/[$,%]/g, '').replace(/,/g, '');
+            if (isPercentageField) {
+              // Convert percentage input to decimal
+              onChange(parseFloat(rawValue) / 100 || 0);
+            } else {
+              onChange(parseFloat(rawValue) || 0);
+            }
+          }}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          className={cn(
+            "w-full px-3 py-2 bg-slate-700 border-2 border-slate-600 rounded-md text-blue-200 font-semibold text-lg focus:outline-none focus:border-blue-500 transition-colors",
+            prefix && "pl-8",
+            suffix && "pr-10"
+          )}
+        />
+        {suffix && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-200 font-semibold text-lg pointer-events-none">
+            {suffix}
+          </span>
+        )}
+      </div>
     );
   }
 

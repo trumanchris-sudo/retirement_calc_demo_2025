@@ -2485,8 +2485,10 @@ export default function App() {
         console.log('[CALC] Calculating estate tax...');
         const yearOfDeath = CURR_YEAR + (LIFE_EXP - older); // Death at LIFE_EXP age
         const estateTax = calcEstateTax(eolWealth, marital, yearOfDeath, assumeTaxCutsExtended);
-        const netEstate = eolWealth - estateTax;
-        console.log('[CALC] Estate tax calculated - year:', yearOfDeath, 'estateTax:', estateTax, 'netEstate:', netEstate);
+        // Scale estate tax to real dollars for consistent chart display
+        const realEstateTax = estateTax * (eolReal / eolWealth);
+        const netEstate = eolReal - realEstateTax;
+        console.log('[CALC] Estate tax calculated - year:', yearOfDeath, 'estateTax:', estateTax, 'realEstateTax:', realEstateTax, 'netEstate:', netEstate);
 
         // Generational payout calculation (if enabled) - Monte Carlo version
         // NOW OPTIMIZED: Uses early-exit, decade chunking, and early termination for 90-99% speedup
@@ -4333,7 +4335,7 @@ export default function App() {
               {/* PAGE 6: LIFETIME WEALTH FLOW */}
               <section className="print-section print-page-break-after">
                 <header className="mb-4 border-b-2 border-gray-900 pb-3">
-                  <h2 className="text-xl font-bold text-black">Lifetime Wealth Flow</h2>
+                  <h2 className="text-xl font-bold text-black">Real Lifetime Wealth Flow Chart</h2>
                   <p className="text-xs text-gray-700 mt-1">From end-of-life wealth to net inheritance (all values in today's dollars)</p>
                 </header>
 
@@ -4973,14 +4975,14 @@ export default function App() {
                 }
               />
               <FlippingStatCard
-                title="After-Tax Income"
+                title="Real After-Tax Income"
                 value={fmt(res.wdReal)}
-                sub="Year 1 real spending"
+                sub="Year 1 inflation-adjusted spending"
                 color="emerald"
                 backContent={
                   <>
                     <div className="flip-card-header">
-                      <span className="flip-card-title">After-Tax Income - Details</span>
+                      <span className="flip-card-title">Real After-Tax Income - Details</span>
                       <span className="flip-card-icon text-xs print-hide flip-hint">Click to flip back ↻</span>
                     </div>
                     <div className="flip-card-body-details">
@@ -5029,7 +5031,7 @@ export default function App() {
                 <Card className="border-2 border-slate-200 dark:border-slate-700">
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
-                        <span>Lifetime Wealth Flow</span>
+                        <span>Real Lifetime Wealth Flow Chart</span>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -5859,7 +5861,7 @@ export default function App() {
                     ? `Assumes constant ${retRate}% annual return`
                     : 'Based on historical market data (1928-2024)',
                   successRate: res.probRuin !== undefined ? (1 - res.probRuin) * 100 : 100,
-                  eolWealth: res.eol,
+                  eolWealth: res.eolReal,  // Use real dollars for consistency
                   withdrawalAmount: res.wdReal
                 }}
                 showComparison={false}

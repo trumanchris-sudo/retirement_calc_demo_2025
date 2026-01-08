@@ -85,9 +85,9 @@ export const RiskSummaryCard = React.memo(function RiskSummaryCard({
             {currentScenario.eolWealth !== undefined && (
               <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div>
-                  <div className="text-xs text-muted-foreground">End-of-Life Wealth</div>
+                  <div className="text-xs text-muted-foreground">End-of-Life Wealth (real)</div>
                   <div className="text-lg font-semibold">
-                    ${currentScenario.eolWealth.toLocaleString()}
+                    ${Math.round(currentScenario.eolWealth).toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -96,9 +96,9 @@ export const RiskSummaryCard = React.memo(function RiskSummaryCard({
             {currentScenario.withdrawalAmount !== undefined && (
               <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div>
-                  <div className="text-xs text-muted-foreground">Annual Withdrawal</div>
+                  <div className="text-xs text-muted-foreground">Annual Withdrawal (real)</div>
                   <div className="text-lg font-semibold">
-                    ${currentScenario.withdrawalAmount.toLocaleString()}
+                    ${Math.round(currentScenario.withdrawalAmount).toLocaleString()}
                   </div>
                 </div>
               </div>
