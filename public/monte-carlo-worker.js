@@ -856,23 +856,31 @@ function runMonteCarloSimulation(params, baseSeed, N = 2000) {
   const T = results[0].balancesReal.length;
 
   const p10BalancesReal = [];
+  const p25BalancesReal = [];
   const p50BalancesReal = [];
+  const p75BalancesReal = [];
   const p90BalancesReal = [];
   const p10BalancesNominal = [];
+  const p25BalancesNominal = [];
   const p50BalancesNominal = [];
+  const p75BalancesNominal = [];
   const p90BalancesNominal = [];
 
   for (let t = 0; t < T; t++) {
     const colReal = results.map(r => r.balancesReal[t]);
     const trimmedReal = trimExtremeValues(colReal, TRIM_COUNT);
     p10BalancesReal.push(percentile(trimmedReal, 10));
+    p25BalancesReal.push(percentile(trimmedReal, 25));
     p50BalancesReal.push(percentile(trimmedReal, 50));
+    p75BalancesReal.push(percentile(trimmedReal, 75));
     p90BalancesReal.push(percentile(trimmedReal, 90));
 
     const colNominal = results.map(r => r.balancesNominal[t]);
     const trimmedNominal = trimExtremeValues(colNominal, TRIM_COUNT);
     p10BalancesNominal.push(percentile(trimmedNominal, 10));
+    p25BalancesNominal.push(percentile(trimmedNominal, 25));
     p50BalancesNominal.push(percentile(trimmedNominal, 50));
+    p75BalancesNominal.push(percentile(trimmedNominal, 75));
     p90BalancesNominal.push(percentile(trimmedNominal, 90));
   }
 
@@ -901,10 +909,14 @@ function runMonteCarloSimulation(params, baseSeed, N = 2000) {
 
   return {
     p10BalancesReal,
+    p25BalancesReal,
     p50BalancesReal,
+    p75BalancesReal,
     p90BalancesReal,
     p10BalancesNominal,
+    p25BalancesNominal,
     p50BalancesNominal,
+    p75BalancesNominal,
     p90BalancesNominal,
     eolReal_p25,
     eolReal_p50,

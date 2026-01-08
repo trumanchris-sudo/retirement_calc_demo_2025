@@ -111,7 +111,9 @@ export type SimResult = {
 // Summary statistics from running multiple seeds for truly random simulations
 export type BatchSummary = {
   p10BalancesReal: number[];
+  p25BalancesReal: number[];
   p50BalancesReal: number[];
+  p75BalancesReal: number[];
   p90BalancesReal: number[];
   eolReal_p10?: number; // Optional for backward compatibility
   eolReal_p25: number;
