@@ -39,18 +39,38 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Scroll to bottom helper - snap instantly, no smooth animation
   const scrollToBottom = useCallback(() => {
-    if (!messagesContainerRef.current) return;
-    messagesContainerRef.current.scrollTo({
-      top: messagesContainerRef.current.scrollHeight,
-      behavior: 'smooth',
-    });
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
   }, []);
 
+  // Auto-scroll when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages.length, scrollToBottom]);
+
+  // Scroll to bottom when textarea gets focus (after keyboard animation)
+  const handleTextareaFocus = useCallback(() => {
+    // Let Safari bring keyboard up, then snap to bottom
+    setTimeout(scrollToBottom, 50);
+  }, [scrollToBottom]);
+
+  // Re-scroll when keyboard resizes viewport (iOS)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const vv = window.visualViewport;
+    const handler = () => {
+      if (document.activeElement === inputRef.current) {
+        scrollToBottom();
+      }
+    };
+
+    vv.addEventListener('resize', handler);
+    return () => vv.removeEventListener('resize', handler);
+  }, [scrollToBottom]);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -402,14 +422,17 @@ ${getNextQuestion(0, {})}`;
       </header>
 
       {/* Scrollable content container with sticky input */}
-      <div className="flex-1 overflow-y-auto flex flex-col" ref={messagesContainerRef}>
-        {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto flex flex-col">
+        {/* Messages Area - scroll container */}
         <main
-          className="flex-1 px-3 py-3 sm:px-6 sm:py-4 space-y-4"
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto bg-black"
           role="log"
           aria-live="polite"
           aria-label="Conversation messages"
         >
+          {/* Inner wrapper: anchors content to bottom when there's not enough to fill */}
+          <div className="flex flex-col justify-end min-h-full px-3 py-3 sm:px-6 sm:py-4 space-y-4">
           {error && (
             <div
               role="alert"
@@ -500,6 +523,7 @@ ${getNextQuestion(0, {})}`;
           )}
 
           <div ref={messagesEndRef} />
+          </div> {/* Close inner wrapper - anchors content to bottom */}
         </main>
 
         {/* Input Area - Sticky to bottom of scroll container */}
@@ -510,6 +534,7 @@ ${getNextQuestion(0, {})}`;
             onChange={setInput}
             onSend={handleSend}
             onKeyDown={handleKeyDown}
+            onFocus={handleTextareaFocus}
             disabled={isProcessing || phase === 'complete'}
             placeholder={
               isProcessing
