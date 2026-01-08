@@ -130,8 +130,22 @@ export default function SelfEmployed2026Page() {
       setFilingStatus(planConfig.marital === 'married' ? 'mfj' : 'single');
     }
 
-    // Check if user is self-employed
-    const isSelfEmployed = planConfig.employmentType1 === 'self-employed' || planConfig.employmentType1 === 'both';
+    // Set ages from PlanConfig
+    if (planConfig.age1) {
+      setAge(planConfig.age1);
+      console.log('[SELF-EMPLOYED-2026] Loaded age from PlanConfig:', planConfig.age1);
+    }
+
+    if (planConfig.age2) {
+      setSpouseAge(planConfig.age2);
+      console.log('[SELF-EMPLOYED-2026] Loaded spouse age from PlanConfig:', planConfig.age2);
+    }
+
+    // Check if user is self-employed (includes K-1 income)
+    const isSelfEmployed =
+      planConfig.employmentType1 === 'self-employed' ||
+      planConfig.employmentType1 === 'both' ||
+      planConfig.employmentType1 === 'k1';
 
     if (isSelfEmployed && planConfig.annualIncome1 && planConfig.annualIncome1 > 0) {
       setGuaranteedPayments(planConfig.annualIncome1);
@@ -146,6 +160,42 @@ export default function SelfEmployed2026Page() {
     // Pre-fill retirement contributions from PlanConfig
     if (planConfig.cPre1 && planConfig.cPre1 > 0) {
       setTraditional401k(planConfig.cPre1);
+      console.log('[SELF-EMPLOYED-2026] Loaded traditional 401k from PlanConfig:', planConfig.cPre1);
+    }
+
+    if (planConfig.cPost1 && planConfig.cPost1 > 0) {
+      setRoth401k(planConfig.cPost1);
+      console.log('[SELF-EMPLOYED-2026] Loaded Roth 401k from PlanConfig:', planConfig.cPost1);
+    }
+
+    // Pre-fill spouse retirement contributions
+    if (planConfig.marital === 'married') {
+      if (planConfig.cPre2 && planConfig.cPre2 > 0) {
+        setSpouseTraditional401k(planConfig.cPre2);
+        console.log('[SELF-EMPLOYED-2026] Loaded spouse traditional 401k from PlanConfig:', planConfig.cPre2);
+      }
+
+      if (planConfig.cPost2 && planConfig.cPost2 > 0) {
+        setSpouseRoth401k(planConfig.cPost2);
+        console.log('[SELF-EMPLOYED-2026] Loaded spouse Roth 401k from PlanConfig:', planConfig.cPost2);
+      }
+    }
+
+    // Pre-fill expenses from PlanConfig (if available)
+    if (planConfig.monthlyMortgageRent && planConfig.monthlyMortgageRent > 0) {
+      setMortgage(planConfig.monthlyMortgageRent);
+      console.log('[SELF-EMPLOYED-2026] Loaded mortgage from PlanConfig:', planConfig.monthlyMortgageRent);
+    }
+
+    if (planConfig.monthlyOtherExpenses && planConfig.monthlyOtherExpenses > 0) {
+      setHouseholdExpenses(planConfig.monthlyOtherExpenses);
+      console.log('[SELF-EMPLOYED-2026] Loaded household expenses from PlanConfig:', planConfig.monthlyOtherExpenses);
+    }
+
+    // State tax rate
+    if (planConfig.stateRate !== undefined) {
+      setStateRate(planConfig.stateRate);
+      console.log('[SELF-EMPLOYED-2026] Loaded state rate from PlanConfig:', planConfig.stateRate);
     }
 
     // Priority 2: Fall back to legacy sharedIncomeData for backward compatibility

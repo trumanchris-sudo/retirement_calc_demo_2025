@@ -115,7 +115,7 @@ Return JSON with this structure:
     "currentTraditional": number,
     "currentRoth": number,
     "currentTaxable": number,
-    "emergencyFund": number,
+    "emergencyFund": number, // Note: field name must match client (was currentCash)
     "retirementAge": number,
     "spouseAge": number (if married),
     "state": string,
