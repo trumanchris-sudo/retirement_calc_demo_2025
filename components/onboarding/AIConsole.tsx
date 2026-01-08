@@ -322,13 +322,18 @@ ${getNextQuestion(0, {})}`;
       setQuestionIndex(questionIndex + 1);
     } else {
       // All basic questions answered - now call API to process everything
-      await handleProcess();
+      // CRITICAL: Pass updatedData directly to avoid stale state
+      await handleProcess(updatedData);
     }
   };
 
   // Process conversation with AI (sequential mode)
-  const handleProcess = async () => {
+  // dataOverride: Use this data instead of state (to avoid React state timing issues)
+  const handleProcess = async (dataOverride?: ExtractedData) => {
     if (isProcessing) return;
+
+    // Use fresh data if provided, otherwise fall back to state
+    const dataToSend = dataOverride || extractedData;
 
     setIsProcessing(true);
     setError(null);
@@ -336,11 +341,12 @@ ${getNextQuestion(0, {})}`;
 
     console.log('[AIConsole] Processing conversation...');
     console.log('[AIConsole] 🔍 EXTRACTED DATA BEING SENT TO API:', {
-      retirementAge: extractedData.retirementAge,
-      age: extractedData.age,
-      maritalStatus: extractedData.maritalStatus,
-      allKeys: Object.keys(extractedData),
-      fullData: extractedData
+      retirementAge: dataToSend.retirementAge,
+      age: dataToSend.age,
+      maritalStatus: dataToSend.maritalStatus,
+      allKeys: Object.keys(dataToSend),
+      fullData: dataToSend,
+      usingOverride: !!dataOverride
     });
 
     try {
@@ -353,7 +359,7 @@ ${getNextQuestion(0, {})}`;
       // API call with conversation history
       const result = await processAIOnboarding({
         conversationHistory,
-        extractedData, // Include what we've collected so far
+        extractedData: dataToSend, // Use fresh data, not stale state
       });
 
       console.log('[AIConsole] Processing complete', {
