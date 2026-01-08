@@ -19,13 +19,6 @@ interface OptimizationTabProps {
   plannedRetirementAge: number;
 }
 
-const SPLURGE_ITEMS = [
-  { name: "Luxury Family Vacation", cost: 25000 },
-  { name: "Patek Philippe Complication", cost: 85000 },
-  { name: "Porsche 911", cost: 140000 },
-  { name: "Vacation Home Down Payment", cost: 300000 },
-];
-
 export default function OptimizationTab({ inputs, currentAge, plannedRetirementAge }: OptimizationTabProps) {
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<OptimizationResult | null>(null);
@@ -171,7 +164,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
           <CardDescription>Your one-time spending capacity (Years 1-5)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="text-center py-4">
+          <div className="text-center py-6">
             <p className="text-lg mb-2">Your Safe Splurge Capacity</p>
             <p className="text-5xl font-bold text-purple-600">
               {formatCurrency(result.maxSplurge)}
@@ -181,39 +174,20 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
             </p>
           </div>
 
-          <div className="space-y-3">
-            {SPLURGE_ITEMS.map((item) => {
-              const affordable = result.maxSplurge >= item.cost;
-              return (
-                <div
-                  key={item.name}
-                  className={`flex items-center justify-between p-4 rounded-lg border-2 ${
-                    affordable
-                      ? 'border-green-300 bg-green-50/50 dark:bg-green-950/20'
-                      : 'border-red-300 bg-red-50/50 dark:bg-red-950/20'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {affordable ? (
-                      <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
-                    ) : (
-                      <XCircle className="h-6 w-6 text-red-600 flex-shrink-0" />
-                    )}
-                    <div>
-                      <p className="font-semibold">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">{formatCurrency(item.cost)}</p>
-                    </div>
-                  </div>
-                  <Badge variant={affordable ? "default" : "destructive"}>
-                    {affordable ? "Affordable" : "Stretch"}
-                  </Badge>
-                </div>
-              );
-            })}
+          {/* Explanation of how this was determined */}
+          <div className="p-4 bg-purple-100/50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+            <h4 className="font-semibold text-sm mb-2 text-purple-900 dark:text-purple-100">How This Was Determined</h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              This represents the maximum one-time expense you could afford in the first 5 years of retirement
+              while still maintaining a <strong>95% success rate</strong> across 1,000 Monte Carlo simulations.
+              We tested scenarios with increasing splurge amounts and found the highest value that doesn't
+              compromise your long-term financial security.
+            </p>
           </div>
 
-          <p className="text-xs text-muted-foreground text-center mt-4">
-            * Based on maintaining 95% success rate with current plan
+          <p className="text-xs text-muted-foreground text-center italic">
+            Whether it's a dream vacation, home renovation, or luxury purchase—this is your safe spending limit
+            without jeopardizing your retirement plan.
           </p>
         </CardContent>
       </Card>
