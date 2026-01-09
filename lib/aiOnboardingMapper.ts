@@ -238,12 +238,14 @@ export function mapAIDataToCalculator(
 
   if (extractedData.contributionTraditional !== undefined) {
     // Use user-provided traditional contribution
-    // For married couples, split between person 1 and person 2 (up to IRS limits)
-    if (marital === 'married') {
-      const perPerson = extractedData.contributionTraditional / 2;
-      cPre1 = Math.min(perPerson, IRS_LIMITS_2026['401k']);
+    // For married couples: assign to person 1 first, overflow to person 2 only if exceeds IRS limit
+    const maxPerPerson = IRS_LIMITS_2026['401k'];
+    if (extractedData.contributionTraditional <= maxPerPerson || marital === 'single') {
+      // Assign entire amount to person 1 if within limit
+      cPre1 = extractedData.contributionTraditional;
     } else {
-      cPre1 = Math.min(extractedData.contributionTraditional, IRS_LIMITS_2026['401k']);
+      // Exceeds limit for one person - assign max to person 1, rest goes to person 2
+      cPre1 = maxPerPerson;
     }
   } else if (extractedData.savingsRateTraditional1 !== undefined) {
     // Legacy field support
@@ -263,12 +265,14 @@ export function mapAIDataToCalculator(
 
   if (extractedData.contributionRoth !== undefined) {
     // Use user-provided Roth contribution
-    // For married couples, split between person 1 and person 2 (up to IRS limits)
-    if (marital === 'married') {
-      const perPerson = extractedData.contributionRoth / 2;
-      cPost1 = Math.min(perPerson, IRS_LIMITS_2026.ira);
+    // For married couples: assign to person 1 first, overflow to person 2 only if exceeds IRS limit
+    const maxPerPerson = IRS_LIMITS_2026.ira;
+    if (extractedData.contributionRoth <= maxPerPerson || marital === 'single') {
+      // Assign entire amount to person 1 if within limit
+      cPost1 = extractedData.contributionRoth;
     } else {
-      cPost1 = Math.min(extractedData.contributionRoth, IRS_LIMITS_2026.ira);
+      // Exceeds limit for one person - assign max to person 1, rest goes to person 2
+      cPost1 = maxPerPerson;
     }
   } else if (extractedData.savingsRateRoth1 !== undefined) {
     // Legacy field support
@@ -327,11 +331,17 @@ export function mapAIDataToCalculator(
     cMatch2 = 0;
 
   if (marital === 'married' && annualIncome2 > 0) {
-    // NEW: If user provided combined contributions, split them
+    // NEW: If user provided combined contributions, calculate overflow to person 2
     if (extractedData.contributionTraditional !== undefined) {
-      // Split traditional contribution between person 1 and person 2
-      const perPerson = extractedData.contributionTraditional / 2;
-      cPre2 = Math.min(perPerson, IRS_LIMITS_2026['401k']);
+      // Only assign overflow to person 2 if total exceeds IRS limit for one person
+      const maxPerPerson = IRS_LIMITS_2026['401k'];
+      if (extractedData.contributionTraditional > maxPerPerson) {
+        // Overflow: person 1 got max, rest goes to person 2
+        cPre2 = Math.min(extractedData.contributionTraditional - maxPerPerson, maxPerPerson);
+      } else {
+        // No overflow: all went to person 1, person 2 gets $0
+        cPre2 = 0;
+      }
     } else if (extractedData.savingsRateTraditional2 !== undefined) {
       // Legacy field support
       cPre2 = extractedData.savingsRateTraditional2;
@@ -363,9 +373,15 @@ export function mapAIDataToCalculator(
     }
 
     if (extractedData.contributionRoth !== undefined) {
-      // Split Roth contribution between person 1 and person 2
-      const perPerson = extractedData.contributionRoth / 2;
-      cPost2 = Math.min(perPerson, IRS_LIMITS_2026.ira);
+      // Only assign overflow to person 2 if total exceeds IRS limit for one person
+      const maxPerPerson = IRS_LIMITS_2026.ira;
+      if (extractedData.contributionRoth > maxPerPerson) {
+        // Overflow: person 1 got max, rest goes to person 2
+        cPost2 = Math.min(extractedData.contributionRoth - maxPerPerson, maxPerPerson);
+      } else {
+        // No overflow: all went to person 1, person 2 gets $0
+        cPost2 = 0;
+      }
     } else if (extractedData.savingsRateRoth2 !== undefined) {
       // Legacy field support
       cPost2 = extractedData.savingsRateRoth2;
