@@ -8,7 +8,7 @@
 'use client';
 
 import React from 'react';
-import { usePlanConfig } from '@/contexts/PlanConfigContext';
+import { usePlanConfig } from '@/lib/plan-config-context';
 
 interface SSOTDebugPanelProps {
   wizardData?: Record<string, any>; // Data explicitly provided by user in wizard
@@ -21,7 +21,7 @@ interface SSOTDebugPanelProps {
 }
 
 export default function SSOTDebugPanel({ wizardData, apiAssumptions }: SSOTDebugPanelProps) {
-  const { planConfig } = usePlanConfig();
+  const { config: planConfig } = usePlanConfig();
 
   // Define all fields we care about tracking
   const criticalFields = [

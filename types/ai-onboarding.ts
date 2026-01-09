@@ -334,4 +334,11 @@ export const FIELD_DISPLAY_NAMES: Record<keyof ExtractedData, string> = {
   savingsRateRoth2: 'Spouse Roth Contributions',
   retirementAge: 'Target Retirement Age',
   desiredRetirementSpending: 'Desired Annual Retirement Spending',
+  bonusInfo: 'Bonus Information',
+  monthlyMortgageRent: 'Monthly Mortgage/Rent',
+  monthlyUtilities: 'Monthly Utilities',
+  monthlyInsurancePropertyTax: 'Monthly Insurance & Property Tax',
+  monthlyHealthcareP1: 'Your Monthly Healthcare Premium',
+  monthlyHealthcareP2: 'Spouse Monthly Healthcare Premium',
+  monthlyOtherExpenses: 'Other Monthly Expenses',
 };

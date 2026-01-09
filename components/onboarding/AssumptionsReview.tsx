@@ -247,18 +247,27 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
   const isBoolean = typeof originalValue === 'boolean';
 
   // Detect field type for formatting
-  const isCurrencyField = field.toLowerCase().includes('income') ||
-                          field.toLowerCase().includes('salary') ||
-                          field.toLowerCase().includes('bonus') ||
-                          field.toLowerCase().includes('monthly') ||
-                          field.toLowerCase().includes('annual') ||
-                          field.toLowerCase().includes('current') ||
-                          field.toLowerCase().includes('emergency') ||
-                          field.toLowerCase().includes('balance');
+  const fieldLower = field.toLowerCase();
 
-  const isPercentageField = field.toLowerCase().includes('rate') ||
-                            field.toLowerCase().includes('match') ||
-                            field.toLowerCase().includes('contribution');
+  // Currency fields: dollar amounts that need $ and commas
+  const isCurrencyField = fieldLower.includes('income') ||
+                          fieldLower.includes('salary') ||
+                          fieldLower.includes('bonus') ||
+                          fieldLower.includes('monthly') ||
+                          fieldLower.includes('annual') ||
+                          fieldLower.includes('current') ||
+                          fieldLower.includes('emergency') ||
+                          fieldLower.includes('balance') ||
+                          // Contribution dollar amounts (cPre1, cPost1, cTax1, cMatch1, etc.)
+                          fieldLower.startsWith('cpre') ||
+                          fieldLower.startsWith('cpost') ||
+                          fieldLower.startsWith('ctax') ||
+                          fieldLower.startsWith('cmatch');
+
+  // Percentage fields: rates stored as decimals (0.07 = 7%)
+  // Explicitly exclude contribution dollar amounts
+  const isPercentageField = (fieldLower.includes('rate') && !fieldLower.startsWith('c')) ||
+                            (fieldLower.includes('savingsrate'));
 
   // Handle string/select fields (maritalStatus, state, employmentType, etc.)
   if (field === 'maritalStatus') {
