@@ -222,17 +222,14 @@ export async function POST(request: NextRequest) {
             stream: true,
           });
 
-          let currentText = '';
-          let currentPhase = phase;
-          let updatedData = { ...extractedData };
-          let updatedAssumptions = [...assumptions];
+          const updatedData = { ...extractedData };
+          const updatedAssumptions = [...assumptions];
 
           // Process the stream
           for await (const event of response) {
             if (event.type === 'content_block_start') {
               if (event.content_block.type === 'text') {
                 // Start of text block
-                currentText = '';
               }
             }
 
@@ -240,7 +237,6 @@ export async function POST(request: NextRequest) {
               if (event.delta.type === 'text_delta') {
                 // Stream text delta
                 const delta = event.delta.text;
-                currentText += delta;
 
                 sendEvent({
                   type: 'message_delta',
@@ -278,13 +274,13 @@ export async function POST(request: NextRequest) {
             for (const block of finalMessage.content) {
               if (block.type === 'tool_use') {
                 const toolName = block.name;
-                const toolInput = block.input as any;
+                const toolInput = block.input as Record<string, unknown>;
 
                 if (toolName === 'update_extracted_data') {
                   // Update extracted data
                   for (const [key, value] of Object.entries(toolInput)) {
                     if (value !== undefined && value !== null) {
-                      updatedData[key as keyof ExtractedData] = value as any;
+                      (updatedData as Record<string, unknown>)[key] = value;
 
                       sendEvent({
                         type: 'data_update',
@@ -314,11 +310,9 @@ export async function POST(request: NextRequest) {
                 }
 
                 if (toolName === 'transition_phase') {
-                  currentPhase = toolInput.newPhase;
-
                   sendEvent({
                     type: 'phase_transition',
-                    newPhase: toolInput.newPhase,
+                    newPhase: toolInput.newPhase as ConversationPhase,
                   });
 
                   if (toolInput.newPhase === 'complete') {

@@ -5,7 +5,6 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import type { ExtractedData, AssumptionWithReasoning } from '@/types/ai-onboarding';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -255,7 +254,7 @@ Response: {
       max_tokens: 4000,
       temperature: 0.7,
       system: systemPrompt,
-      messages: messages as any,
+      messages: messages as Array<{ role: 'user' | 'assistant'; content: string }>,
     });
 
     // Extract JSON from response

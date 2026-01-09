@@ -16,9 +16,6 @@ import {
   Area,
   AreaChart,
   ComposedChart,
-  PieChart,
-  Pie,
-  Cell,
   Sankey,
   Rectangle,
 } from "recharts";
@@ -33,19 +30,16 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { FlippingCard } from "@/components/FlippingCard";
-import { GenerationalResultCard } from "@/components/GenerationalResultCard";
 import { LegacyResultCard } from "@/components/LegacyResultCard";
 import { DynastyTimeline } from "@/components/calculator/DynastyTimeline";
 import AddToWalletButton from "@/components/AddToWalletButton";
 import DownloadCardButton from "@/components/DownloadCardButton";
-import DownloadPDFButton from "@/components/DownloadPDFButton";
 import { LegacyResult } from "@/lib/walletPass";
 import UserInputsPrintSummary from "@/components/UserInputsPrintSummary";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { SliderInput } from "@/components/form/SliderInput";
-import { BrandLoader } from "@/components/BrandLoader";
 import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
 import { Input, Spinner, Tip, TrendingUpIcon } from "@/components/calculator/InputHelpers";
 import { TabNavigation, type MainTabId } from "@/components/calculator/TabNavigation";
@@ -56,13 +50,11 @@ import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
 import { TimelineView } from "@/components/calculator/TimelineView";
 import { PlanSummaryCard } from "@/components/calculator/PlanSummaryCard";
 import { NextStepsCard } from "@/components/calculator/NextStepsCard";
-import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
 import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
 import { CheckUsTab } from "@/components/calculator/CheckUsTab";
 import OptimizationTab from "@/components/calculator/OptimizationTab";
 import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
 import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexibilityChart";
-import { RothConversionOptimizer } from "@/components/calculator/RothConversionOptimizer";
 import { SSOTTab } from "@/components/calculator/SSOTTab";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
@@ -75,8 +67,6 @@ import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, 
 
 // Import from new modules
 import {
-  MAX_GENS,
-  YEARS_PER_GEN,
   LIFE_EXP,
   CURR_YEAR,
   RMD_START_AGE,
@@ -84,22 +74,15 @@ import {
   SS_BEND_POINTS,
   ESTATE_TAX_EXEMPTION,
   ESTATE_TAX_RATE,
-  TAX_BRACKETS,
-  LTCG_BRACKETS,
   NIIT_THRESHOLD,
-  NET_WORTH_DATA,
   getNetWorthBracket,
   SP500_YOY_NOMINAL,
-  SP500_START_YEAR,
   COLOR,
   type ColorKey,
 } from "@/lib/constants";
 
 import {
-  clampNum,
-  toNumber,
   fmt,
-  median,
   percentile,
   realReturn,
   mulberry32,
@@ -108,10 +91,9 @@ import {
 import {
   calculateBondAllocation,
   calculateBlendedReturn,
-  GLIDE_PATH_PRESETS,
 } from "@/lib/bondAllocation";
 
-import { calculateBondReturn, BOND_NOMINAL_AVG, MONTE_CARLO_PATHS } from "@/lib/constants";
+import { calculateBondReturn, BOND_NOMINAL_AVG } from "@/lib/constants";
 
 import type { ReturnMode, WalkSeries, BatchSummary, GuardrailsResult, RothConversionResult } from "@/types/planner";
 
@@ -129,15 +111,11 @@ import {
 
 // Import simulation modules
 import {
-  getBearReturns,
   BEAR_MARKET_SCENARIOS,
-  type BearMarketScenario,
 } from "@/lib/simulation/bearMarkets";
 
 import {
-  getEffectiveInflation,
   INFLATION_SHOCK_SCENARIOS,
-  type InflationShockScenario,
 } from "@/lib/simulation/inflationShocks";
 
 // Import validation utilities
@@ -148,8 +126,6 @@ import {
   validateBalance,
   validate401kContribution,
   validateIRAContribution,
-  validateRate,
-  validateWithdrawalRate
 } from "@/lib/fieldValidation";
 
 // Re-export types for compatibility

@@ -50,32 +50,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build account breakdown text
-    let accountBreakdown = '';
-    if (eolAccounts) {
-      accountBreakdown = `
+    // Build account breakdown text (unused - kept for reference)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _accountBreakdown = eolAccounts ? `
 End-of-Life Account Balances:
 - Taxable Brokerage: $${eolAccounts.taxable.toLocaleString()}
 - Pre-tax (Traditional IRA/401k): $${eolAccounts.pretax.toLocaleString()}
-- Roth IRA: $${eolAccounts.roth.toLocaleString()}`;
-    }
+- Roth IRA: $${eolAccounts.roth.toLocaleString()}` : '';
 
-    // Build RMD analysis
-    const rmdAnalysis = totalRMDs > 0 ? `
+    // Build RMD analysis (unused - kept for reference)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _rmdAnalysis = totalRMDs > 0 ? `
 Required Minimum Distributions (Age 73+):
 - Total RMDs Over Retirement: $${totalRMDs.toLocaleString()}
 - These mandatory withdrawals from pre-tax accounts may push you into higher tax brackets` : '';
 
-    // Build estate tax analysis
-    const estateAnalysis = estateTax > 0 ? `
+    // Build estate tax analysis (unused - kept for reference)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _estateAnalysis = estateTax > 0 ? `
 Estate Tax Impact:
 - Gross Estate: $${endOfLifeWealth.toLocaleString()}
 - Estate Tax (40% over $13.99M): $${estateTax.toLocaleString()}
 - Net Estate to Heirs: $${netEstate.toLocaleString()}
 - Effective Tax Rate on Estate: ${((estateTax / endOfLifeWealth) * 100).toFixed(1)}%` : '';
 
-    // Build Social Security analysis
-    const ssAnalysis = includeSS ? `
+    // Build Social Security analysis (unused - kept for reference)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _ssAnalysis = includeSS ? `
 Social Security Benefits:
 - Average Career Earnings: $${ssIncome.toLocaleString()}/year
 - Claiming Age: ${ssClaimAge}
