@@ -88,11 +88,17 @@ export function mapAIDataToCalculator(
         console.warn('[Mapper] Invalid Traditional contribution (negative):', extractedData.contributionTraditional);
         extractedData.contributionTraditional = 0;
       }
-      // Check against IRS limits (with some buffer for employer match)
-      const maxTraditional = IRS_LIMITS_2026['401k'] * (extractedData.maritalStatus === 'married' ? 2 : 1) * 1.5;
+      // Check against IRS limits - use higher limits for self-employed
+      const isSelfEmployed1 = extractedData.employmentType1 === 'self-employed' || extractedData.employmentType1 === 'k1';
+      const isSelfEmployed2 = extractedData.employmentType2 === 'self-employed' || extractedData.employmentType2 === 'k1';
+      const limit1 = isSelfEmployed1 ? IRS_LIMITS_2026.solo401kTotal : IRS_LIMITS_2026['401k'];
+      const limit2 = isSelfEmployed2 ? IRS_LIMITS_2026.solo401kTotal : IRS_LIMITS_2026['401k'];
+      const maxTraditional = (extractedData.maritalStatus === 'married' ? limit1 + limit2 : limit1) * 1.1; // 10% buffer
+
       if (extractedData.contributionTraditional > maxTraditional) {
         console.warn('[Mapper] Traditional contribution exceeds reasonable limit:', extractedData.contributionTraditional, 'max:', maxTraditional);
-        warnings.push(`Traditional 401k contribution ($${extractedData.contributionTraditional.toLocaleString()}) seems very high for IRS limits`);
+        const accountType = isSelfEmployed1 ? 'Solo 401k/SEP IRA' : '401k';
+        warnings.push(`Traditional ${accountType} contribution ($${extractedData.contributionTraditional.toLocaleString()}) exceeds IRS limits ($${Math.floor(maxTraditional).toLocaleString()})`);
       }
     }
 
@@ -236,16 +242,21 @@ export function mapAIDataToCalculator(
   // NEW: Use direct contribution amounts if provided, otherwise calculate
   let cPre1: number, cPost1: number, cTax1: number, cMatch1: number;
 
+  // Determine max contribution limit based on employment type
+  const isSelfEmployed1 = employmentType1 === 'self-employed' || employmentType1 === 'k1';
+  const maxTraditionalLimit1 = isSelfEmployed1
+    ? IRS_LIMITS_2026.solo401kTotal  // Self-employed can contribute up to $70k via Solo 401k/SEP IRA
+    : IRS_LIMITS_2026['401k'];        // W-2 employees limited to $24.5k
+
   if (extractedData.contributionTraditional !== undefined) {
     // Use user-provided traditional contribution
     // For married couples: assign to person 1 first, overflow to person 2 only if exceeds IRS limit
-    const maxPerPerson = IRS_LIMITS_2026['401k'];
-    if (extractedData.contributionTraditional <= maxPerPerson || marital === 'single') {
+    if (extractedData.contributionTraditional <= maxTraditionalLimit1 || marital === 'single') {
       // Assign entire amount to person 1 if within limit
       cPre1 = extractedData.contributionTraditional;
     } else {
       // Exceeds limit for one person - assign max to person 1, rest goes to person 2
-      cPre1 = maxPerPerson;
+      cPre1 = maxTraditionalLimit1;
     }
   } else if (extractedData.savingsRateTraditional1 !== undefined) {
     // Legacy field support
@@ -253,10 +264,11 @@ export function mapAIDataToCalculator(
   } else {
     // Calculate default based on income
     const defaultSavingsRate = calculateRecommendedSavingsRate(annualIncome1);
-    cPre1 = Math.min(IRS_LIMITS_2026['401k'], annualIncome1 * defaultSavingsRate * 0.6);
+    cPre1 = Math.min(maxTraditionalLimit1, annualIncome1 * defaultSavingsRate * 0.6);
+    const accountType = isSelfEmployed1 ? 'Solo 401k/SEP IRA' : 'Traditional 401k';
     addAssumption(
       'cPre1',
-      'Traditional 401k Contributions',
+      `${accountType} Contributions`,
       cPre1,
       `Recommended ${Math.round((cPre1 / annualIncome1) * 100)}% of income to traditional accounts`,
       'medium'
@@ -331,13 +343,18 @@ export function mapAIDataToCalculator(
     cMatch2 = 0;
 
   if (marital === 'married' && annualIncome2 > 0) {
+    // Determine max contribution limit for person 2 based on their employment type
+    const isSelfEmployed2 = employmentType2 === 'self-employed' || employmentType2 === 'k1';
+    const maxTraditionalLimit2 = isSelfEmployed2
+      ? IRS_LIMITS_2026.solo401kTotal
+      : IRS_LIMITS_2026['401k'];
+
     // NEW: If user provided combined contributions, calculate overflow to person 2
     if (extractedData.contributionTraditional !== undefined) {
-      // Only assign overflow to person 2 if total exceeds IRS limit for one person
-      const maxPerPerson = IRS_LIMITS_2026['401k'];
-      if (extractedData.contributionTraditional > maxPerPerson) {
-        // Overflow: person 1 got max, rest goes to person 2
-        cPre2 = Math.min(extractedData.contributionTraditional - maxPerPerson, maxPerPerson);
+      // Only assign overflow to person 2 if total exceeds person 1's limit
+      if (extractedData.contributionTraditional > maxTraditionalLimit1) {
+        // Overflow: person 1 got max, rest goes to person 2 (up to their limit)
+        cPre2 = Math.min(extractedData.contributionTraditional - maxTraditionalLimit1, maxTraditionalLimit2);
       } else {
         // No overflow: all went to person 1, person 2 gets $0
         cPre2 = 0;
@@ -348,23 +365,25 @@ export function mapAIDataToCalculator(
     } else {
       // Calculate default based on income
       const defaultSavingsRate2 = calculateRecommendedSavingsRate(annualIncome2);
-      const person1IsMaxing401k = cPre1 >= IRS_LIMITS_2026['401k'] * 0.9;
+      const person1IsMaxing401k = cPre1 >= maxTraditionalLimit1 * 0.9;
 
       if (person1IsMaxing401k) {
         // If person 1 maxes 401k, assume person 2 does too
-        cPre2 = Math.min(IRS_LIMITS_2026['401k'], annualIncome2);
+        cPre2 = Math.min(maxTraditionalLimit2, annualIncome2);
+        const accountType2 = isSelfEmployed2 ? 'Solo 401k/SEP IRA' : 'Traditional 401k';
         addAssumption(
           'cPre2',
-          'Spouse Traditional 401k',
+          `Spouse ${accountType2}`,
           cPre2,
           'Matching Person 1 max contribution strategy for joint household',
           'medium'
         );
       } else {
-        cPre2 = Math.min(IRS_LIMITS_2026['401k'], annualIncome2 * defaultSavingsRate2 * 0.6);
+        cPre2 = Math.min(maxTraditionalLimit2, annualIncome2 * defaultSavingsRate2 * 0.6);
+        const accountType2 = isSelfEmployed2 ? 'Solo 401k/SEP IRA' : 'Traditional 401k';
         addAssumption(
           'cPre2',
-          'Spouse Traditional 401k',
+          `Spouse ${accountType2}`,
           cPre2,
           `Recommended ${Math.round((cPre2 / annualIncome2) * 100)}% of spouse income`,
           'medium'

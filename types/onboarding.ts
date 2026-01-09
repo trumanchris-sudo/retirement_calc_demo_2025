@@ -42,6 +42,10 @@ export const IRS_LIMITS_2026 = {
   'ira': 7500,
   'catchUp401k': 8000, // Age 50+
   'catchUpIRA': 1100, // Age 50+
+  // Self-employed limits (Solo 401k, SEP IRA, etc.)
+  'solo401kTotal': 70000, // Total employee + employer contributions
+  'solo401kTotalWithCatchUp': 77000, // Age 50+
+  'sepIRA': 70000, // Lesser of 25% of compensation or this amount
 }
 
 export interface OnboardingGoalsData {
