@@ -2906,7 +2906,9 @@ export default function App() {
 
         // Run Roth conversion optimizer
         console.log('[CALC] Running Roth conversion optimizer...');
-        runRothOptimizer(newRes);
+        if (newRes) {
+          runRothOptimizer(newRes);
+        }
 
         console.log('[CALC] Calculation complete');
 
@@ -7494,7 +7496,7 @@ export default function App() {
           {res && (
             <div className="mb-6">
               <TimelineView
-                result={res}
+                result={res!}
                 currentAge={Math.max(age1, isMar ? age2 : age1)}
                 retirementAge={retAge}
                 spouseAge={Math.min(age1, isMar ? age2 : age1)}

@@ -5,6 +5,9 @@
 import type { FilingStatus } from "@/lib/calculations/taxCalculations";
 import type { ReturnMode, WalkSeries } from "./planner";
 
+// Re-export FilingStatus for components that import from @/types/calculator
+export type { FilingStatus };
+
 // ==================== Bond Glide Path Types ====================
 
 /**
@@ -265,7 +268,8 @@ export interface CalculationResult {
   yrsToSim: number;     // Years simulated in retirement
   eol: number;          // End-of-life wealth (nominal)
   eolReal: number;      // End-of-life wealth (real, inflation-adjusted)
-  estateTax: number;    // Federal estate tax
+  estateTax: number;    // Federal estate tax (real, inflation-adjusted)
+  estateTaxNominal?: number; // Federal estate tax (nominal) for reference
   netEstate: number;    // Net estate after tax
   eolAccounts: AccountBalances; // Account breakdown at EOL
   totalRMDs: number;    // Total RMDs over lifetime

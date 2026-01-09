@@ -20,7 +20,7 @@ function it(name: string, fn: () => void) { fn(); }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function beforeEach(fn: () => void) { fn(); }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const expect = { toBe: () => ({}) };
+const expect = (_value: unknown) => ({ toBe: (_expected: unknown) => {} });
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const jest = { clearAllMocks: () => {} };
 
