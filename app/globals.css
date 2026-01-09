@@ -488,8 +488,8 @@ html {
     display: block !important;
   }
 
-  /* AI Snapshot on first page */
-  .hidden.print\\:block {
+  /* AI Snapshot on first page - use attribute selector for Tailwind class */
+  .hidden[class*="print:block"] {
     display: block !important;
   }
 
@@ -743,8 +743,8 @@ html {
     display: block !important;
   }
 
-  /* Show all card content in print */
-  .hidden:not(.print\\:block) {
+  /* Show all card content in print - use attribute selector for Tailwind class */
+  .hidden:not([class*="print:block"]) {
     display: revert !important;
   }
 
