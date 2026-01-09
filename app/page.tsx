@@ -1207,6 +1207,20 @@ export default function App() {
     resetOnboarding,
   } = useOnboarding(planConfig);
 
+  // AI Documentation Mode - Secret feature (Ctrl+Shift+D)
+  const [isAIDocMode, setIsAIDocMode] = useState(false);
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        setIsAIDocMode(prev => !prev);
+        console.log('[AI Doc Mode]', !isAIDocMode ? 'ACTIVATED ⚡' : 'DEACTIVATED');
+      }
+    };
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  }, [isAIDocMode]);
+
   // Read core fields directly from PlanConfig (single source of truth)
   // Using ?? (nullish coalescing) instead of || to preserve legitimate 0 values
   const marital = planConfig.marital ?? 'single';
@@ -3296,8 +3310,98 @@ export default function App() {
     );
   }
 
+  // Auto-run calculations when entering AI Doc Mode
+  useEffect(() => {
+    if (isAIDocMode && !res) {
+      console.log('[AI Doc Mode] Auto-running calculations...');
+      setTimeout(() => calc(), 100);
+    }
+  }, [isAIDocMode]);
+
   // Brand loader DISABLED - was interfering with wizard → calculator transition
   return (
+    <div className={isAIDocMode ? 'ai-doc-mode-active' : ''}>
+      {/* AI Documentation Mode Header */}
+      {isAIDocMode && (
+        <>
+          <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg z-50 print:hidden">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold mb-2">
+                    🤖 AI Documentation Mode
+                  </h1>
+                  <p className="text-sm opacity-90 mb-3">
+                    All calculator tabs expanded below for AI review. Scroll to see everything or Save as PDF (Ctrl/Cmd+P).
+                  </p>
+                  <div className="flex flex-wrap gap-3 text-xs">
+                    <div className="bg-white/20 rounded px-2 py-1">
+                      📸 Screenshot sections as needed
+                    </div>
+                    <div className="bg-white/20 rounded px-2 py-1">
+                      📄 Ctrl/Cmd+P → Save as PDF
+                    </div>
+                    <div className="bg-white/20 rounded px-2 py-1">
+                      ⌨️ Ctrl+Shift+D to exit
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsAIDocMode(false)}
+                  className="shrink-0 bg-white/20 hover:bg-white/30 rounded px-3 py-1.5 text-sm font-medium transition-colors"
+                >
+                  ✕ Close
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Global styles for doc mode */}
+          <style jsx global>{`
+            .ai-doc-mode-active [role="tabpanel"] {
+              display: block !important;
+              opacity: 1 !important;
+              height: auto !important;
+              overflow: visible !important;
+              margin-bottom: 4rem;
+              padding-bottom: 4rem;
+              border-bottom: 3px solid #e5e7eb;
+              page-break-inside: avoid;
+            }
+
+            .ai-doc-mode-active [role="tabpanel"]:last-child {
+              border-bottom: none;
+            }
+
+            /* Hide tab navigation in doc mode */
+            .ai-doc-mode-active [role="tablist"] {
+              display: none !important;
+            }
+
+            @media print {
+              .ai-doc-mode-active [role="tabpanel"] {
+                page-break-inside: avoid;
+              }
+
+              .ai-doc-mode-active canvas,
+              .ai-doc-mode-active img {
+                max-width: 100% !important;
+                page-break-inside: avoid;
+              }
+            }
+          `}</style>
+
+          {!res && (
+            <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mx-4 mt-4 print:hidden">
+              <p className="text-yellow-800">
+                ⏳ Running calculations... Page will update in a moment.
+              </p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Main app content - normal layout or doc mode both use same JSX */}
     <>
       {/* BrandLoader disabled - uncomment if needed in future */}
       {/* {!loaderComplete && (
@@ -8014,5 +8118,7 @@ export default function App() {
         </button>
       )}
     </>
+    {/* Close ai-doc-mode-active wrapper */}
+    </div>
   );
 }
