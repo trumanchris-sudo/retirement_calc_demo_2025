@@ -86,6 +86,49 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     return () => vv.removeEventListener('resize', handler);
   }, [scrollToBottom]);
 
+  // Pre-scripted questions (no API calls needed for these)
+  const getNextQuestion = useCallback((qIndex: number, currentData: ExtractedData): string | null => {
+    // Check if married from current data
+    const isMarried = currentData.maritalStatus === 'married';
+
+    switch (qIndex) {
+      case 0:
+        return "Let's start with the basics: **What is your age and are you single or married?**\n\n(If married, please also tell me your spouse's age!)";
+      case 1:
+        return "**What state do you live in?**";
+      case 2:
+        return isMarried
+          ? "**Are you a W-2 employee, self-employed, or something else?** And what about your spouse?"
+          : "**Are you a W-2 employee, self-employed, or something else?**";
+      case 3:
+        return isMarried
+          ? "**What's your annual income, and what's your spouse's annual income?** (Before taxes)\n\nAlso, does any of that include bonuses or variable compensation?"
+          : "**What's your annual income?** (Before taxes)\n\nDoes any of that include bonuses or variable compensation?";
+      case 4:
+        return "**What are your current account balances?**\n\n• Pre-tax (401k, Traditional IRA)\n• Roth (Roth IRA, Roth 401k)\n• Taxable brokerage\n• Cash/savings\n\n(Just give me the numbers - $0 is fine if you don't have one!)";
+      case 5:
+        return "Finally, **what age would you like to retire?** (Even if it feels unrealistic right now!)";
+      default:
+        return null; // No more pre-scripted questions, will call API
+    }
+  }, []);
+
+  // Initial greeting - start sequential conversation
+  const startGreeting = useCallback(() => {
+    console.log('[AIConsole] Starting greeting...');
+
+    // Show instant pre-scripted greeting with first question
+    const greetingMessage = `Hello! I'm here to help you set up your retirement calculator. I'll ask you a few questions to get started.
+
+${getNextQuestion(0, {})}`;
+
+    setMessages([
+      { role: 'assistant', content: greetingMessage, timestamp: Date.now() },
+    ]);
+    setQuestionIndex(0);
+    setPhase('data-collection');
+  }, [getNextQuestion]);
+
   // Load state from localStorage on mount
   useEffect(() => {
     const savedState = localStorage.getItem(STORAGE_KEY);
@@ -113,7 +156,7 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
       // Start with greeting if no saved state
       startGreeting();
     }
-  }, []);
+  }, [startGreeting]);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
@@ -128,33 +171,6 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [messages, extractedData, assumptions, phase, questionIndex, userOverrides]);
-
-  // Pre-scripted questions (no API calls needed for these)
-  const getNextQuestion = (qIndex: number, currentData: ExtractedData): string | null => {
-    // Check if married from current data
-    const isMarried = currentData.maritalStatus === 'married';
-
-    switch (qIndex) {
-      case 0:
-        return "Let's start with the basics: **What is your age and are you single or married?**\n\n(If married, please also tell me your spouse's age!)";
-      case 1:
-        return "**What state do you live in?**";
-      case 2:
-        return isMarried
-          ? "**Are you a W-2 employee, self-employed, or something else?** And what about your spouse?"
-          : "**Are you a W-2 employee, self-employed, or something else?**";
-      case 3:
-        return isMarried
-          ? "**What's your annual income, and what's your spouse's annual income?** (Before taxes)\n\nAlso, does any of that include bonuses or variable compensation?"
-          : "**What's your annual income?** (Before taxes)\n\nDoes any of that include bonuses or variable compensation?";
-      case 4:
-        return "**What are your current account balances?**\n\n• Pre-tax (401k, Traditional IRA)\n• Roth (Roth IRA, Roth 401k)\n• Taxable brokerage\n• Cash/savings\n\n(Just give me the numbers - $0 is fine if you don't have one!)";
-      case 5:
-        return "Finally, **what age would you like to retire?** (Even if it feels unrealistic right now!)";
-      default:
-        return null; // No more pre-scripted questions, will call API
-    }
-  };
 
   // Simple client-side parsing of user responses
   const parseUserResponse = (userInput: string, qIndex: number, currentData: ExtractedData): Partial<ExtractedData> => {
@@ -281,22 +297,6 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
     }
 
     return extracted;
-  };
-
-  // Initial greeting - start sequential conversation
-  const startGreeting = async () => {
-    console.log('[AIConsole] Starting greeting...');
-
-    // Show instant pre-scripted greeting with first question
-    const greetingMessage = `Hello! I'm here to help you set up your retirement calculator. I'll ask you a few questions to get started.
-
-${getNextQuestion(0, {})}`;
-
-    setMessages([
-      { role: 'assistant', content: greetingMessage, timestamp: Date.now() },
-    ]);
-    setQuestionIndex(0);
-    setPhase('data-collection');
   };
 
   // Send user message and handle next step (question or API call)

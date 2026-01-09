@@ -160,7 +160,7 @@ export function PlanSummaryCard({ result, batchSummary }: PlanSummaryCardProps) 
               </div>
               <p className="text-2xl font-bold">{successRate.toFixed(0)}%</p>
               <p className="text-xs text-muted-foreground">
-                Chance of not running out
+                Chance of not running out during retirement
               </p>
             </div>
           )}

@@ -33,170 +33,164 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
 
   const hasEdits = Object.keys(userEdits).length > 0;
 
-  const getConfidenceColor = (confidence: 'high' | 'medium' | 'low') => {
-    switch (confidence) {
-      case 'high':
-        return 'bg-green-900/50 text-green-300 border-green-800';
-      case 'medium':
-        return 'bg-yellow-900/50 text-yellow-300 border-yellow-800';
-      case 'low':
-        return 'bg-red-900/50 text-red-300 border-red-800';
-    }
-  };
-
   const getConfidenceIcon = (confidence: 'high' | 'medium' | 'low') => {
     switch (confidence) {
       case 'high':
-        return <Check className="w-4 h-4" />;
+        return <Check className="w-3 h-3" />;
       case 'medium':
-        return <Info className="w-4 h-4" />;
+        return <Info className="w-3 h-3" />;
       case 'low':
-        return <AlertCircle className="w-4 h-4" />;
+        return <AlertCircle className="w-3 h-3" />;
     }
   };
 
+  // Group assumptions by category
+  const groupedAssumptions = {
+    cashSafety: assumptions.filter(a =>
+      a.field === 'emergencyFund' ||
+      (a.field === 'currentTaxable' && !assumptions.find(x => x.field === 'cTax1'))
+    ),
+    retirement: assumptions.filter(a =>
+      a.field === 'currentTraditional' ||
+      a.field === 'currentRoth' ||
+      a.field === 'cPre1' ||
+      a.field === 'cPost1' ||
+      a.field === 'cMatch1' ||
+      a.field === 'cPre2' ||
+      a.field === 'cPost2' ||
+      a.field === 'cMatch2'
+    ),
+    taxableIncome: assumptions.filter(a =>
+      a.field === 'cTax1' ||
+      a.field === 'cTax2' ||
+      a.field === 'annualIncome1' ||
+      a.field === 'annualIncome2' ||
+      a.field === 'age' ||
+      a.field === 'spouseAge' ||
+      a.field === 'retirementAge'
+    ),
+    other: assumptions.filter(a =>
+      a.field === 'maritalStatus' ||
+      a.field === 'employmentType1' ||
+      a.field === 'employmentType2' ||
+      a.field === 'state'
+    )
+  };
+
+  // Filter out empty groups
+  const sections = [
+    { title: 'Cash & Safety', items: groupedAssumptions.cashSafety },
+    { title: 'Retirement Accounts & Contributions', items: groupedAssumptions.retirement },
+    { title: 'Income & Personal Details', items: groupedAssumptions.taxableIncome },
+    { title: 'Employment & Location', items: groupedAssumptions.other },
+  ].filter(section => section.items.length > 0);
+
   return (
     <div
-      className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500"
+      className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500"
       role="region"
       aria-label="Assumptions review"
     >
-      <div className="bg-gradient-to-br from-blue-950/50 to-purple-950/50 border-2 border-blue-700 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-blue-100 mb-2">
-          <span aria-hidden="true">📋</span> Review Assumptions
+      {/* Header */}
+      <div>
+        <h3 className="text-xl font-semibold text-slate-50 mb-2">
+          Review & edit assumptions
         </h3>
-        <p className="text-sm text-blue-200">
-          I've made the following assumptions based on our conversation. Please review them and let me know if
-          anything needs adjustment.
+        <p className="text-sm text-slate-400">
+          The most impactful assumptions are shown below. Other planning assumptions (inflation, returns, tax rates) use standard defaults.
         </p>
       </div>
 
-      {/* Contribution Breakdown Card - Show if contribution assumptions exist */}
-      {(() => {
-        const cPre1 = assumptions.find(a => a.field === 'cPre1');
-        const cPost1 = assumptions.find(a => a.field === 'cPost1');
-        const cTax1 = assumptions.find(a => a.field === 'cTax1');
-        const annualIncome1 = assumptions.find(a => a.field === 'annualIncome1');
+      {/* Sections with grid layout */}
+      {sections.map((section) => (
+        <div key={section.title} className="space-y-3">
+          <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">
+            {section.title}
+          </h4>
 
-        if (cPre1 && cPost1 && cTax1 && annualIncome1) {
-          const totalContributions = cPre1.value + cPost1.value + cTax1.value;
-          const savingsRate = ((totalContributions / annualIncome1.value) * 100).toFixed(1);
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {section.items.map((assumption, index) => {
+              const currentValue = userEdits[assumption.field] !== undefined
+                ? userEdits[assumption.field]
+                : assumption.value;
+              const isEdited = userEdits[assumption.field] !== undefined;
+              const isEditing = editingField === assumption.field;
 
-          return (
-            <div className="bg-gradient-to-br from-green-950/30 to-blue-950/30 border-2 border-green-700/50 rounded-lg p-4">
-              <h4 className="text-md font-semibold text-green-100 mb-2 flex items-center gap-2">
-                <span aria-hidden="true">💰</span> Your Savings Strategy
-              </h4>
-              <p className="text-sm text-green-200 mb-3">
-                Your <strong>${totalContributions.toLocaleString()}</strong> annual savings
-                (<strong>{savingsRate}% of income</strong>) is allocated across accounts for tax diversification:
-              </p>
-              <div className="space-y-2 mb-3">
-                <div className="flex items-center justify-between text-sm bg-slate-800/50 rounded px-3 py-2">
-                  <span className="text-slate-200">
-                    <strong>{((cPre1.value / totalContributions) * 100).toFixed(0)}%</strong> → Pre-tax 401(k)
-                  </span>
-                  <span className="text-blue-300 font-semibold">
-                    ${cPre1.value.toLocaleString()} <span className="text-slate-400">({((cPre1.value / annualIncome1.value) * 100).toFixed(1)}% of income)</span>
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm bg-slate-800/50 rounded px-3 py-2">
-                  <span className="text-slate-200">
-                    <strong>{((cPost1.value / totalContributions) * 100).toFixed(0)}%</strong> → Roth IRA
-                  </span>
-                  <span className="text-blue-300 font-semibold">
-                    ${cPost1.value.toLocaleString()} <span className="text-slate-400">({((cPost1.value / annualIncome1.value) * 100).toFixed(1)}% of income)</span>
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm bg-slate-800/50 rounded px-3 py-2">
-                  <span className="text-slate-200">
-                    <strong>{((cTax1.value / totalContributions) * 100).toFixed(0)}%</strong> → Taxable account
-                  </span>
-                  <span className="text-blue-300 font-semibold">
-                    ${cTax1.value.toLocaleString()} <span className="text-slate-400">({((cTax1.value / annualIncome1.value) * 100).toFixed(1)}% of income)</span>
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-green-200/80 italic">
-                This split provides tax diversification: pre-tax reduces current taxes, Roth grows tax-free,
-                and taxable offers flexibility before retirement age.
-              </p>
-            </div>
-          );
-        }
-        return null;
-      })()}
-
-      <div className="grid gap-3" role="list" aria-label="List of assumptions">
-        {assumptions.map((assumption, index) => {
-          const currentValue = userEdits[assumption.field] !== undefined
-            ? userEdits[assumption.field]
-            : assumption.value;
-          const isEdited = userEdits[assumption.field] !== undefined;
-          const isEditing = editingField === assumption.field;
-
-          return (
-            <div
-              key={`${assumption.field}-${index}`}
-              role="listitem"
-              className={cn(
-                'bg-slate-800 border-2 rounded-lg p-4 transition-all',
-                assumption.userProvided ? 'border-green-700' : 'border-slate-600',
-                isEdited && 'border-blue-500 bg-slate-750'
-              )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h4 className="font-medium text-slate-50">{assumption.displayName}</h4>
-                    {assumption.userProvided && !isEdited && (
-                      <Badge variant="outline" className="bg-green-950 text-green-200 border-green-700">
-                        <Check className="w-3 h-3 mr-1" aria-hidden="true" />
-                        Confirmed
+              return (
+                <div
+                  key={`${assumption.field}-${index}`}
+                  className={cn(
+                    'space-y-2 p-3 rounded-lg border transition-colors',
+                    isEdited
+                      ? 'bg-blue-950/30 border-blue-700/50'
+                      : 'bg-slate-800/50 border-slate-700/50'
+                  )}
+                >
+                  {/* Label with badges */}
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-sm font-medium text-slate-200">
+                      {assumption.displayName}
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {assumption.userProvided && !isEdited && (
+                        <Badge
+                          variant="outline"
+                          className="h-5 px-1.5 text-[10px] bg-green-950/50 text-green-300 border-green-800/50"
+                        >
+                          <Check className="w-2.5 h-2.5 mr-0.5" aria-hidden="true" />
+                          Confirmed
+                        </Badge>
+                      )}
+                      {isEdited && (
+                        <Badge
+                          variant="outline"
+                          className="h-5 px-1.5 text-[10px] bg-blue-950/50 text-blue-300 border-blue-700/50"
+                        >
+                          <Edit2 className="w-2.5 h-2.5 mr-0.5" aria-hidden="true" />
+                          Edited
+                        </Badge>
+                      )}
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'h-5 px-1.5 text-[10px] flex items-center gap-0.5',
+                          assumption.confidence === 'high' && 'bg-slate-700/50 text-slate-400 border-slate-600/50',
+                          assumption.confidence === 'medium' && 'bg-yellow-950/30 text-yellow-400 border-yellow-800/30',
+                          assumption.confidence === 'low' && 'bg-red-950/30 text-red-400 border-red-800/30'
+                        )}
+                        aria-label={`Confidence: ${assumption.confidence}`}
+                      >
+                        {getConfidenceIcon(assumption.confidence)}
+                        <span className="sr-only">{assumption.confidence}</span>
                       </Badge>
-                    )}
-                    {isEdited && (
-                      <Badge variant="outline" className="bg-blue-950 text-blue-200 border-blue-700">
-                        <Edit2 className="w-3 h-3 mr-1" aria-hidden="true" />
-                        Edited
-                      </Badge>
-                    )}
+                    </div>
                   </div>
 
                   {/* Editable input field */}
-                  <div className="mb-2">
-                    <EditableField
-                      value={currentValue}
-                      originalValue={assumption.value}
-                      field={assumption.field}
-                      onChange={(newValue) => handleValueChange(assumption.field, newValue)}
-                      onFocus={() => setEditingField(assumption.field)}
-                      onBlur={() => setEditingField(null)}
-                      isEditing={isEditing}
-                    />
-                  </div>
+                  <EditableField
+                    value={currentValue}
+                    originalValue={assumption.value}
+                    field={assumption.field}
+                    onChange={(newValue) => handleValueChange(assumption.field, newValue)}
+                    onFocus={() => setEditingField(assumption.field)}
+                    onBlur={() => setEditingField(null)}
+                    isEditing={isEditing}
+                  />
 
-                  <p className="text-sm text-slate-300 italic">"{assumption.reasoning}"</p>
+                  {/* Helper text (reasoning) */}
+                  <p className="text-xs text-slate-400 italic">
+                    {assumption.reasoning}
+                  </p>
                 </div>
-
-                <Badge
-                  variant="outline"
-                  className={cn('flex items-center gap-1', getConfidenceColor(assumption.confidence))}
-                  aria-label={`Confidence level: ${assumption.confidence}`}
-                >
-                  {getConfidenceIcon(assumption.confidence)}
-                  <span className="sr-only">{assumption.confidence} confidence</span>
-                  <span aria-hidden="true">{assumption.confidence}</span>
-                </Badge>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
 
       {/* Update Assumptions button - show when user has made edits */}
       {hasEdits && onUpdateAssumptions && (
-        <div className="bg-blue-950/50 border-2 border-blue-700 rounded-lg p-4">
+        <div className="bg-blue-950/30 border border-blue-700/50 rounded-lg p-4">
           <p className="text-sm text-blue-200 mb-3">
             You've made {Object.keys(userEdits).length} change{Object.keys(userEdits).length !== 1 ? 's' : ''}.
             Click below to recalculate assumptions with your updated values.
@@ -219,13 +213,6 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
           </Button>
         </div>
       )}
-
-      {/* Help text for inline editing */}
-      <div className="bg-slate-800 border-2 border-slate-600 rounded-lg p-4">
-        <p className="text-sm text-slate-200 mb-1">
-          💡 <strong>Click any value above to edit it directly.</strong> Your changes will be saved and you can recalculate assumptions with the "Update Assumptions" button.
-        </p>
-      </div>
     </div>
   );
 }
@@ -277,7 +264,7 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
         onChange={(e) => onChange(e.target.value)}
         onFocus={onFocus}
         onBlur={onBlur}
-        className="w-full px-3 py-2 bg-slate-700 border-2 border-slate-600 rounded-md text-blue-200 font-semibold text-lg focus:outline-none focus:border-blue-500 transition-colors"
+        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
       >
         <option value="single">Single</option>
         <option value="married">Married</option>
@@ -292,7 +279,7 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
         onChange={(e) => onChange(e.target.value)}
         onFocus={onFocus}
         onBlur={onBlur}
-        className="w-full px-3 py-2 bg-slate-700 border-2 border-slate-600 rounded-md text-blue-200 font-semibold text-lg focus:outline-none focus:border-blue-500 transition-colors"
+        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
       >
         <option value="w2">W-2 Employee</option>
         <option value="self-employed">Self-Employed</option>
@@ -310,7 +297,7 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
         onChange={(e) => onChange(e.target.value === 'yes')}
         onFocus={onFocus}
         onBlur={onBlur}
-        className="w-full px-3 py-2 bg-slate-700 border-2 border-slate-600 rounded-md text-blue-200 font-semibold text-lg focus:outline-none focus:border-blue-500 transition-colors"
+        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
       >
         <option value="yes">Yes</option>
         <option value="no">No</option>
@@ -319,58 +306,61 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
   }
 
   if (isNumber) {
+    // Handle NaN - NEVER show "NaN" to the user
+    const isValidNumber = !isNaN(value) && isFinite(value);
+
     // Format display value based on field type
     let displayValue = '';
     let prefix = '';
     let suffix = '';
+    let placeholder = '—';
 
-    if (isCurrencyField) {
+    if (!isValidNumber) {
+      // Show empty input with placeholder for invalid numbers
+      displayValue = '';
+    } else if (isCurrencyField) {
       // Display as currency: $100,000
       displayValue = Math.round(value).toLocaleString('en-US');
       prefix = '$';
+      placeholder = '$0';
     } else if (isPercentageField) {
       // Display as percentage: 7.0%
       // Value is stored as decimal (0.07), display as 7.0
       displayValue = (value * 100).toFixed(1);
       suffix = '%';
+      placeholder = '0%';
     } else {
       // Default number display
       displayValue = String(value);
+      placeholder = '0';
     }
 
     return (
-      <div className="relative">
-        {prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-200 font-semibold text-lg pointer-events-none">
-            {prefix}
-          </span>
-        )}
-        <Input
-          type="text"
-          value={isEditing ? displayValue : `${prefix}${displayValue}${suffix}`}
-          onChange={(e) => {
-            let rawValue = e.target.value.replace(/[$,%]/g, '').replace(/,/g, '');
+      <Input
+        type="text"
+        value={isEditing ? displayValue : (isValidNumber ? `${prefix}${displayValue}${suffix}` : '')}
+        placeholder={placeholder}
+        onChange={(e) => {
+          let rawValue = e.target.value.replace(/[$,%]/g, '').replace(/,/g, '');
+          const parsed = parseFloat(rawValue);
+
+          // Only update if we have a valid number
+          if (!isNaN(parsed) && isFinite(parsed)) {
             if (isPercentageField) {
               // Convert percentage input to decimal
-              onChange(parseFloat(rawValue) / 100 || 0);
+              onChange(parsed / 100);
             } else {
-              onChange(parseFloat(rawValue) || 0);
+              onChange(parsed);
             }
-          }}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          className={cn(
-            "w-full px-3 py-2 bg-slate-700 border-2 border-slate-600 rounded-md text-blue-200 font-semibold text-lg focus:outline-none focus:border-blue-500 transition-colors",
-            prefix && "pl-8",
-            suffix && "pr-10"
-          )}
-        />
-        {suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-200 font-semibold text-lg pointer-events-none">
-            {suffix}
-          </span>
-        )}
-      </div>
+          } else if (rawValue === '') {
+            // Allow clearing the field
+            onChange(0);
+          }
+        }}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+      />
     );
   }
 
@@ -378,34 +368,12 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
   return (
     <Input
       type="text"
-      value={value}
+      value={value || ''}
+      placeholder="—"
       onChange={(e) => onChange(e.target.value)}
       onFocus={onFocus}
       onBlur={onBlur}
-      className="w-full px-3 py-2 bg-slate-700 border-2 border-slate-600 rounded-md text-blue-200 font-semibold text-lg focus:outline-none focus:border-blue-500 transition-colors"
+      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
     />
   );
-}
-
-function formatValue(value: any): string {
-  if (typeof value === 'number') {
-    if (value > 1000) {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 0,
-      }).format(value);
-    }
-    return value.toString();
-  }
-
-  if (Array.isArray(value)) {
-    return value.join(', ');
-  }
-
-  if (typeof value === 'boolean') {
-    return value ? 'Yes' : 'No';
-  }
-
-  return String(value);
 }

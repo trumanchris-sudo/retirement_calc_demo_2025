@@ -1133,7 +1133,16 @@ interface ComparisonChartProps {
 
 // Memoized comparison chart for scenario analysis
 const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data, comparisonData, isDarkMode, fmt }) => {
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   return (
   <ResponsiveContainer width="100%" height={400}>
@@ -1498,16 +1507,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
   const [showP90, setShowP90] = useState(false); // Show 90th percentile line
-  const [resultsViewMode, setResultsViewMode] = useState<'quick' | 'detailed'>(() => {
-    // Load from localStorage if available
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('wdr_results_view_mode')
-      if (saved === 'quick' || saved === 'detailed') {
-        return saved
-      }
-    }
-    return 'detailed' // Default to detailed view
-  });
+  const [resultsViewMode, setResultsViewMode] = useState<'quick' | 'detailed'>('detailed');
   const [showBackToTop, setShowBackToTop] = useState(false); // Show back-to-top button after scrolling
   const [activeChartTab, setActiveChartTab] = useState("accumulation"); // Track active chart tab
   const [loaderComplete, setLoaderComplete] = useState(true); // DISABLED - skip loader to not interfere with wizard transition
@@ -2275,6 +2275,16 @@ export default function App() {
     }
   }, []);
 
+  // Load results view mode preference from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('wdr_results_view_mode');
+      if (saved === 'quick' || saved === 'detailed') {
+        setResultsViewMode(saved);
+      }
+    }
+  }, []);
+
   // Save results view mode preference
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -2550,6 +2560,24 @@ export default function App() {
             .map(s => parseInt(s.trim(), 10))
             .filter(n => !isNaN(n) && n >= 0 && n < 90);
           console.log('[CALC] benAges parsed:', benAges);
+
+          // Guard: Skip generational simulation if inputs are degenerate
+          const totalAnnualDist = hypPerBen * Math.max(1, hypStartBens);
+          const hasValidBeneficiaries = benAges.length > 0 && benAges.some(age => age > 0);
+          const hasValidDistribution = hypPerBen > 0 && totalAnnualDist > 0;
+
+          if (!hasValidBeneficiaries || !hasValidDistribution) {
+            console.log('[CALC] Skipping generational simulation - degenerate inputs:', {
+              benAges,
+              hypStartBens,
+              hypPerBen,
+              totalAnnualDist,
+              hasValidBeneficiaries,
+              hasValidDistribution
+            });
+            genPayout = null;
+          } else {
+            try {
 
           // Calculate EOL values for all three percentiles
           console.log('[CALC] Calculating EOL percentiles...');
@@ -2844,6 +2872,12 @@ export default function App() {
             },
             probPerpetual: calculatedProbPerpetual  // Calculated from percentile results, not hardcoded!
           };
+            } catch (genError: unknown) {
+              console.error('[CALC] Generational simulation error:', genError);
+              console.log('[CALC] Continuing with null genPayout due to error');
+              genPayout = null;
+            }
+          }
         }
         console.log('[CALC] Generational payout complete, genPayout:', genPayout ? 'exists' : 'null');
 
@@ -2922,8 +2956,16 @@ export default function App() {
       // - Recalculate from ANY other location → Stay on current tab, don't scroll
       const shouldNavigate = (isFirstCalculation && activeMainTab === 'configure') || isFromWizard;
 
+      console.log('[CALC NAV] Navigation decision:', {
+        shouldNavigate,
+        isFirstCalculation,
+        activeMainTab,
+        isFromWizard
+      });
+
       if (shouldNavigate) {
         // First calculation from Configure tab or Wizard: switch to Results and scroll
+        console.log('[CALC NAV] Navigating to Results tab');
         setActiveMainTab('results');
         setIsFromWizard(false); // Reset flag after navigation
         setTimeout(() => {
@@ -2933,6 +2975,7 @@ export default function App() {
         }, 800); // INCREASED from 100 to 800 to allow AnimatedSection (700ms) to finish
       } else {
         // Recalculate: stay put, no navigation or scrolling
+        console.log('[CALC NAV] Staying on current tab:', activeMainTab);
         setOlderAgeForAnalysis(olderAgeForAI);
         setIsLoadingAi(false);
       }
@@ -2945,6 +2988,7 @@ export default function App() {
     } finally {
       console.log('[CALC] Calculation complete, setting isRunning to false');
       setIsRunning(false);
+      console.log('[CALC] Finished calculation, clearing loading state');
     }
   }, [
     age1, age2, retAge, isMar, sTax, sPre, sPost,
@@ -5610,17 +5654,28 @@ export default function App() {
                             <CardTitle className="text-left">Save & Compare Scenarios</CardTitle>
                             <CardDescription className="text-left">Save different retirement strategies and compare them side-by-side</CardDescription>
                           </div>
-                          <Button
-                            variant={showScenarios ? "default" : "outline"}
-                            size="sm"
+                          <div
+                            role="button"
+                            tabIndex={0}
                             onClick={(e) => {
                               e.stopPropagation();
                               setShowScenarios(!showScenarios);
                             }}
-                            className="no-print"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setShowScenarios(!showScenarios);
+                              }
+                            }}
+                            className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 px-3 no-print cursor-pointer ${
+                              showScenarios
+                                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                : "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                            }`}
                           >
                             {showScenarios ? "Hide" : `Show (${savedScenarios.length})`}
-                          </Button>
+                          </div>
                         </div>
                       </CardHeader>
                     </AccordionTrigger>
@@ -7452,6 +7507,10 @@ export default function App() {
                       <Separator className="my-6" />
                       <div ref={genRef} className="mt-6">
                       {/* Single LegacyResultCard with calculated success rate */}
+                      <p className="text-sm text-muted-foreground mb-4 text-center">
+                        This success rate shows what percentage of simulations leave enough estate
+                        to sustain distributions indefinitely—a higher bar than retirement survival.
+                      </p>
                       <div className="flex justify-center mb-6">
                         <div ref={legacyCardRefLegacy}>
                           <LegacyResultCard

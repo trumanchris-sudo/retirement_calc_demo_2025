@@ -44,39 +44,32 @@ function isPlanConfigComplete(config: Partial<CalculatorInputs>): boolean {
  * Hook for managing onboarding state and wizard progress
  */
 export function useOnboarding(planConfig?: Partial<CalculatorInputs>) {
-  const [onboardingState, setOnboardingState] = useState<OnboardingState>(() => {
-    if (typeof window === 'undefined') {
-      return { hasCompletedOnboarding: false }
-    }
+  const [onboardingState, setOnboardingState] = useState<OnboardingState>({ hasCompletedOnboarding: false })
 
-    try {
-      const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY)
-      if (stored) {
-        return JSON.parse(stored)
+  const [wizardData, setWizardData] = useState<OnboardingWizardData | null>(null)
+
+  // Load from localStorage after mount to avoid hydration mismatch
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY)
+        if (stored) {
+          setOnboardingState(JSON.parse(stored))
+        }
+      } catch (error) {
+        console.error('Failed to load onboarding state:', error)
       }
-    } catch (error) {
-      console.error('Failed to load onboarding state:', error)
-    }
 
-    return { hasCompletedOnboarding: false }
-  })
-
-  const [wizardData, setWizardData] = useState<OnboardingWizardData | null>(() => {
-    if (typeof window === 'undefined') {
-      return null
-    }
-
-    try {
-      const stored = localStorage.getItem(WIZARD_PROGRESS_KEY)
-      if (stored) {
-        return JSON.parse(stored)
+      try {
+        const storedWizard = localStorage.getItem(WIZARD_PROGRESS_KEY)
+        if (storedWizard) {
+          setWizardData(JSON.parse(storedWizard))
+        }
+      } catch (error) {
+        console.error('Failed to load wizard progress:', error)
       }
-    } catch (error) {
-      console.error('Failed to load wizard progress:', error)
     }
-
-    return null
-  })
+  }, [])
 
   // Save onboarding state to localStorage whenever it changes
   useEffect(() => {
