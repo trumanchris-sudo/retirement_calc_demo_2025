@@ -8118,6 +8118,7 @@ export default function App() {
         </button>
       )}
     </>
-    </div> {/* Close ai-doc-mode-active wrapper */}
+    {/* Close ai-doc-mode-active wrapper */}
+    </div>
   );
 }
