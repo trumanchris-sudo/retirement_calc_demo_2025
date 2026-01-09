@@ -988,14 +988,18 @@ async function runTenSeedsAndSummarize(params: Inputs, baseSeed: number): Promis
   // Assume all runs produced the same length T
   const T = results[0].balancesReal.length;
 
-  // Calculate percentiles (p10, p50, p90) series by year
+  // Calculate percentiles (p10, p25, p50, p75, p90) series by year
   const p10BalancesReal: number[] = [];
+  const p25BalancesReal: number[] = [];
   const p50BalancesReal: number[] = [];
+  const p75BalancesReal: number[] = [];
   const p90BalancesReal: number[] = [];
   for (let t = 0; t < T; t++) {
     const col = results.map(r => r.balancesReal[t]);
     p10BalancesReal.push(percentile(col, 10));
+    p25BalancesReal.push(percentile(col, 25));
     p50BalancesReal.push(percentile(col, 50));
+    p75BalancesReal.push(percentile(col, 75));
     p90BalancesReal.push(percentile(col, 90));
   }
 
@@ -1013,7 +1017,9 @@ async function runTenSeedsAndSummarize(params: Inputs, baseSeed: number): Promis
 
   return {
     p10BalancesReal,
+    p25BalancesReal,
     p50BalancesReal,
+    p75BalancesReal,
     p90BalancesReal,
     eolReal_p25,
     eolReal_p50,

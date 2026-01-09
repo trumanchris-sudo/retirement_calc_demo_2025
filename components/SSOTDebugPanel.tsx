@@ -8,7 +8,7 @@
 'use client';
 
 import React from 'react';
-import { usePlanConfig } from '@/contexts/PlanConfigContext';
+import { usePlanConfig } from '@/lib/plan-config-context';
 
 interface SSOTDebugPanelProps {
   wizardData?: Record<string, any>; // Data explicitly provided by user in wizard
