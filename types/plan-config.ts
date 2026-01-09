@@ -9,6 +9,11 @@
 import type { CalculatorInputs } from './calculator';
 
 /**
+ * Source of field updates for tracking
+ */
+export type UpdateSource = 'user-entered' | 'ai-suggested' | 'default' | 'imported';
+
+/**
  * Metadata about which fields were set by user vs AI
  */
 export interface FieldMetadata {
