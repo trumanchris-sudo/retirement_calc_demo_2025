@@ -59,6 +59,103 @@ export function mapAIDataToCalculator(
     });
   };
 
+  // === VALIDATION ===
+  // Validate extracted data before processing
+  const validateData = () => {
+    const warnings: string[] = [];
+
+    // Validate balances (should be non-negative)
+    if (extractedData.currentTraditional !== undefined && extractedData.currentTraditional < 0) {
+      console.warn('[Mapper] Invalid Traditional balance (negative):', extractedData.currentTraditional);
+      extractedData.currentTraditional = 0;
+    }
+    if (extractedData.currentRoth !== undefined && extractedData.currentRoth < 0) {
+      console.warn('[Mapper] Invalid Roth balance (negative):', extractedData.currentRoth);
+      extractedData.currentRoth = 0;
+    }
+    if (extractedData.currentTaxable !== undefined && extractedData.currentTaxable < 0) {
+      console.warn('[Mapper] Invalid Taxable balance (negative):', extractedData.currentTaxable);
+      extractedData.currentTaxable = 0;
+    }
+    if (extractedData.emergencyFund !== undefined && extractedData.emergencyFund < 0) {
+      console.warn('[Mapper] Invalid Emergency fund (negative):', extractedData.emergencyFund);
+      extractedData.emergencyFund = 0;
+    }
+
+    // Validate contributions (should be non-negative and reasonable)
+    if (extractedData.contributionTraditional !== undefined) {
+      if (extractedData.contributionTraditional < 0) {
+        console.warn('[Mapper] Invalid Traditional contribution (negative):', extractedData.contributionTraditional);
+        extractedData.contributionTraditional = 0;
+      }
+      // Check against IRS limits (with some buffer for employer match)
+      const maxTraditional = IRS_LIMITS_2026['401k'] * (extractedData.maritalStatus === 'married' ? 2 : 1) * 1.5;
+      if (extractedData.contributionTraditional > maxTraditional) {
+        console.warn('[Mapper] Traditional contribution exceeds reasonable limit:', extractedData.contributionTraditional, 'max:', maxTraditional);
+        warnings.push(`Traditional 401k contribution ($${extractedData.contributionTraditional.toLocaleString()}) seems very high for IRS limits`);
+      }
+    }
+
+    if (extractedData.contributionRoth !== undefined) {
+      if (extractedData.contributionRoth < 0) {
+        console.warn('[Mapper] Invalid Roth contribution (negative):', extractedData.contributionRoth);
+        extractedData.contributionRoth = 0;
+      }
+      const maxRoth = IRS_LIMITS_2026.ira * (extractedData.maritalStatus === 'married' ? 2 : 1);
+      if (extractedData.contributionRoth > maxRoth * 2) {
+        console.warn('[Mapper] Roth contribution exceeds IRS limits significantly:', extractedData.contributionRoth, 'max:', maxRoth);
+        warnings.push(`Roth contribution ($${extractedData.contributionRoth.toLocaleString()}) exceeds IRS limits ($${maxRoth.toLocaleString()})`);
+      }
+    }
+
+    if (extractedData.contributionTaxable !== undefined && extractedData.contributionTaxable < 0) {
+      console.warn('[Mapper] Invalid Taxable contribution (negative):', extractedData.contributionTaxable);
+      extractedData.contributionTaxable = 0;
+    }
+
+    if (extractedData.contributionMatch !== undefined && extractedData.contributionMatch < 0) {
+      console.warn('[Mapper] Invalid Employer match (negative):', extractedData.contributionMatch);
+      extractedData.contributionMatch = 0;
+    }
+
+    // Validate ages
+    if (extractedData.age !== undefined && (extractedData.age < 18 || extractedData.age > 100)) {
+      console.warn('[Mapper] Invalid age:', extractedData.age);
+      warnings.push(`Age (${extractedData.age}) seems unusual`);
+    }
+
+    if (extractedData.retirementAge !== undefined && extractedData.age !== undefined) {
+      if (extractedData.retirementAge <= extractedData.age) {
+        console.warn('[Mapper] Retirement age must be greater than current age');
+        extractedData.retirementAge = extractedData.age + 10; // Default to 10 years from now
+        warnings.push(`Retirement age adjusted to ${extractedData.retirementAge} (must be greater than current age)`);
+      }
+    }
+
+    // Validate total contributions vs income (warning only)
+    if (extractedData.annualIncome1 !== undefined) {
+      const totalContributions =
+        (extractedData.contributionTraditional || 0) +
+        (extractedData.contributionRoth || 0) +
+        (extractedData.contributionTaxable || 0);
+      const totalIncome = extractedData.annualIncome1 + (extractedData.annualIncome2 || 0);
+
+      if (totalContributions > totalIncome) {
+        console.warn('[Mapper] Total contributions exceed income:', { totalContributions, totalIncome });
+        warnings.push(`Total contributions ($${totalContributions.toLocaleString()}) exceed annual income ($${totalIncome.toLocaleString()}) - verify these numbers`);
+      }
+    }
+
+    if (warnings.length > 0) {
+      console.warn('[Mapper] Validation warnings:', warnings);
+    }
+
+    return warnings;
+  };
+
+  const validationWarnings = validateData();
+  console.log('[Mapper] Validation complete. Warnings:', validationWarnings.length);
+
   // === Personal Information ===
   const age1 = extractedData.age ?? 35;
   const marital = extractedData.maritalStatus ?? 'single';
@@ -136,23 +233,25 @@ export function mapAIDataToCalculator(
   }
 
   // === Annual Savings Contributions ===
-  // Calculate default savings based on income if not provided
-  const defaultSavingsRate = calculateRecommendedSavingsRate(annualIncome1);
+  // NEW: Use direct contribution amounts if provided, otherwise calculate
+  let cPre1: number, cPost1: number, cTax1: number, cMatch1: number;
 
-  const cPre1 =
-    extractedData.savingsRateTraditional1 ??
-    Math.min(IRS_LIMITS_2026['401k'], annualIncome1 * defaultSavingsRate * 0.6);
-
-  const cPost1 =
-    extractedData.savingsRateRoth1 ??
-    Math.min(IRS_LIMITS_2026.ira, annualIncome1 * defaultSavingsRate * 0.3);
-
-  const cTax1 = extractedData.savingsRateTaxable1 ?? annualIncome1 * defaultSavingsRate * 0.1;
-
-  // Employer match: assume 50% match up to 6% of salary
-  const cMatch1 = Math.min(annualIncome1 * 0.06 * 0.5, IRS_LIMITS_2026['401k'] - cPre1);
-
-  if (!extractedData.savingsRateTraditional1) {
+  if (extractedData.contributionTraditional !== undefined) {
+    // Use user-provided traditional contribution
+    // For married couples, split between person 1 and person 2 (up to IRS limits)
+    if (marital === 'married') {
+      const perPerson = extractedData.contributionTraditional / 2;
+      cPre1 = Math.min(perPerson, IRS_LIMITS_2026['401k']);
+    } else {
+      cPre1 = Math.min(extractedData.contributionTraditional, IRS_LIMITS_2026['401k']);
+    }
+  } else if (extractedData.savingsRateTraditional1 !== undefined) {
+    // Legacy field support
+    cPre1 = extractedData.savingsRateTraditional1;
+  } else {
+    // Calculate default based on income
+    const defaultSavingsRate = calculateRecommendedSavingsRate(annualIncome1);
+    cPre1 = Math.min(IRS_LIMITS_2026['401k'], annualIncome1 * defaultSavingsRate * 0.6);
     addAssumption(
       'cPre1',
       'Traditional 401k Contributions',
@@ -162,7 +261,22 @@ export function mapAIDataToCalculator(
     );
   }
 
-  if (!extractedData.savingsRateRoth1) {
+  if (extractedData.contributionRoth !== undefined) {
+    // Use user-provided Roth contribution
+    // For married couples, split between person 1 and person 2 (up to IRS limits)
+    if (marital === 'married') {
+      const perPerson = extractedData.contributionRoth / 2;
+      cPost1 = Math.min(perPerson, IRS_LIMITS_2026.ira);
+    } else {
+      cPost1 = Math.min(extractedData.contributionRoth, IRS_LIMITS_2026.ira);
+    }
+  } else if (extractedData.savingsRateRoth1 !== undefined) {
+    // Legacy field support
+    cPost1 = extractedData.savingsRateRoth1;
+  } else {
+    // Calculate default based on income
+    const defaultSavingsRate = calculateRecommendedSavingsRate(annualIncome1);
+    cPost1 = Math.min(IRS_LIMITS_2026.ira, annualIncome1 * defaultSavingsRate * 0.3);
     addAssumption(
       'cPost1',
       'Roth Contributions',
@@ -172,7 +286,16 @@ export function mapAIDataToCalculator(
     );
   }
 
-  if (!extractedData.savingsRateTaxable1) {
+  if (extractedData.contributionTaxable !== undefined) {
+    // Use user-provided taxable contribution directly
+    cTax1 = extractedData.contributionTaxable;
+  } else if (extractedData.savingsRateTaxable1 !== undefined) {
+    // Legacy field support
+    cTax1 = extractedData.savingsRateTaxable1;
+  } else {
+    // Calculate default based on income
+    const defaultSavingsRate = calculateRecommendedSavingsRate(annualIncome1);
+    cTax1 = annualIncome1 * defaultSavingsRate * 0.1;
     addAssumption(
       'cTax1',
       'Taxable Account Savings',
@@ -182,13 +305,20 @@ export function mapAIDataToCalculator(
     );
   }
 
-  addAssumption(
-    'cMatch1',
-    'Employer Match',
-    cMatch1,
-    'Assumed 50% match up to 6% of salary (industry standard)',
-    'medium'
-  );
+  if (extractedData.contributionMatch !== undefined) {
+    // Use user-provided employer match
+    cMatch1 = extractedData.contributionMatch;
+  } else {
+    // Calculate default: assume 50% match up to 6% of salary
+    cMatch1 = Math.min(annualIncome1 * 0.06 * 0.5, IRS_LIMITS_2026['401k'] - cPre1);
+    addAssumption(
+      'cMatch1',
+      'Employer Match',
+      cMatch1,
+      'Assumed 50% match up to 6% of salary (industry standard)',
+      'medium'
+    );
+  }
 
   // Person 2 contributions (if married)
   let cPre2 = 0,
@@ -197,28 +327,31 @@ export function mapAIDataToCalculator(
     cMatch2 = 0;
 
   if (marital === 'married' && annualIncome2 > 0) {
-    const defaultSavingsRate2 = calculateRecommendedSavingsRate(annualIncome2);
-
-    // Joint household logic: If person 1 is maxing out 401k, assume same strategy for person 2
-    const person1IsMaxing401k = cPre1 >= IRS_LIMITS_2026['401k'] * 0.9; // Within 90% of limit
-    const person1IsMaxingRoth = cPost1 >= IRS_LIMITS_2026.ira * 0.9; // Within 90% of limit
-
-    if (person1IsMaxing401k && !extractedData.savingsRateTraditional2) {
-      // If person 1 maxes 401k, assume person 2 does too (joint income household)
-      cPre2 = Math.min(IRS_LIMITS_2026['401k'], annualIncome2);
-      addAssumption(
-        'cPre2',
-        'Spouse Traditional 401k',
-        cPre2,
-        'Matching Person 1 max contribution strategy for joint household',
-        'medium'
-      );
+    // NEW: If user provided combined contributions, split them
+    if (extractedData.contributionTraditional !== undefined) {
+      // Split traditional contribution between person 1 and person 2
+      const perPerson = extractedData.contributionTraditional / 2;
+      cPre2 = Math.min(perPerson, IRS_LIMITS_2026['401k']);
+    } else if (extractedData.savingsRateTraditional2 !== undefined) {
+      // Legacy field support
+      cPre2 = extractedData.savingsRateTraditional2;
     } else {
-      cPre2 =
-        extractedData.savingsRateTraditional2 ??
-        Math.min(IRS_LIMITS_2026['401k'], annualIncome2 * defaultSavingsRate2 * 0.6);
+      // Calculate default based on income
+      const defaultSavingsRate2 = calculateRecommendedSavingsRate(annualIncome2);
+      const person1IsMaxing401k = cPre1 >= IRS_LIMITS_2026['401k'] * 0.9;
 
-      if (!extractedData.savingsRateTraditional2) {
+      if (person1IsMaxing401k) {
+        // If person 1 maxes 401k, assume person 2 does too
+        cPre2 = Math.min(IRS_LIMITS_2026['401k'], annualIncome2);
+        addAssumption(
+          'cPre2',
+          'Spouse Traditional 401k',
+          cPre2,
+          'Matching Person 1 max contribution strategy for joint household',
+          'medium'
+        );
+      } else {
+        cPre2 = Math.min(IRS_LIMITS_2026['401k'], annualIncome2 * defaultSavingsRate2 * 0.6);
         addAssumption(
           'cPre2',
           'Spouse Traditional 401k',
@@ -229,22 +362,30 @@ export function mapAIDataToCalculator(
       }
     }
 
-    if (person1IsMaxingRoth && !extractedData.savingsRateRoth2) {
-      // If person 1 maxes Roth, assume person 2 does too
-      cPost2 = Math.min(IRS_LIMITS_2026.ira, annualIncome2);
-      addAssumption(
-        'cPost2',
-        'Spouse Roth Contributions',
-        cPost2,
-        'Matching Person 1 max contribution strategy for joint household',
-        'medium'
-      );
+    if (extractedData.contributionRoth !== undefined) {
+      // Split Roth contribution between person 1 and person 2
+      const perPerson = extractedData.contributionRoth / 2;
+      cPost2 = Math.min(perPerson, IRS_LIMITS_2026.ira);
+    } else if (extractedData.savingsRateRoth2 !== undefined) {
+      // Legacy field support
+      cPost2 = extractedData.savingsRateRoth2;
     } else {
-      cPost2 =
-        extractedData.savingsRateRoth2 ??
-        Math.min(IRS_LIMITS_2026.ira, annualIncome2 * defaultSavingsRate2 * 0.3);
+      // Calculate default based on income
+      const defaultSavingsRate2 = calculateRecommendedSavingsRate(annualIncome2);
+      const person1IsMaxingRoth = cPost1 >= IRS_LIMITS_2026.ira * 0.9;
 
-      if (!extractedData.savingsRateRoth2) {
+      if (person1IsMaxingRoth) {
+        // If person 1 maxes Roth, assume person 2 does too
+        cPost2 = Math.min(IRS_LIMITS_2026.ira, annualIncome2);
+        addAssumption(
+          'cPost2',
+          'Spouse Roth Contributions',
+          cPost2,
+          'Matching Person 1 max contribution strategy for joint household',
+          'medium'
+        );
+      } else {
+        cPost2 = Math.min(IRS_LIMITS_2026.ira, annualIncome2 * defaultSavingsRate2 * 0.3);
         addAssumption(
           'cPost2',
           'Spouse Roth Contributions',
@@ -255,9 +396,26 @@ export function mapAIDataToCalculator(
       }
     }
 
-    cTax2 = extractedData.savingsRateTraditional2 ?? annualIncome2 * defaultSavingsRate2 * 0.1;
+    // Taxable contributions for person 2 are always 0 when using new contribution fields
+    // (the user provides combined total which goes to person 1)
+    if (extractedData.contributionTaxable !== undefined) {
+      cTax2 = 0; // Combined total already assigned to cTax1
+    } else if (extractedData.savingsRateTaxable2 !== undefined) {
+      // Legacy field support
+      cTax2 = extractedData.savingsRateTaxable2;
+    } else {
+      // Calculate default
+      const defaultSavingsRate2 = calculateRecommendedSavingsRate(annualIncome2);
+      cTax2 = annualIncome2 * defaultSavingsRate2 * 0.1;
+    }
 
-    cMatch2 = Math.min(annualIncome2 * 0.06 * 0.5, IRS_LIMITS_2026['401k'] - cPre2);
+    // Employer match for person 2
+    if (extractedData.contributionMatch !== undefined) {
+      cMatch2 = 0; // Combined match already assigned to cMatch1
+    } else {
+      // Calculate default
+      cMatch2 = Math.min(annualIncome2 * 0.06 * 0.5, IRS_LIMITS_2026['401k'] - cPre2);
+    }
   }
 
   // === Income Details (Bonus, First Pay Date) ===

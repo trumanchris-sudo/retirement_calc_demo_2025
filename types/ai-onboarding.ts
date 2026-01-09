@@ -53,13 +53,19 @@ export interface ExtractedData {
   currentTraditional?: number;  // Combined 401k + Traditional IRA
   currentRoth?: number;          // Combined Roth 401k + Roth IRA
 
-  // Annual Savings Contributions
+  // Annual Savings Contributions (Legacy - rates/amounts per person)
   savingsRateTaxable1?: number;
   savingsRateTraditional1?: number;
   savingsRateRoth1?: number;
   savingsRateTaxable2?: number;
   savingsRateTraditional2?: number;
   savingsRateRoth2?: number;
+
+  // Annual Savings Contributions (New - total amounts)
+  contributionTraditional?: number;  // Combined Traditional 401k/IRA for both spouses
+  contributionRoth?: number;         // Combined Roth contributions for both spouses
+  contributionTaxable?: number;      // Combined taxable brokerage savings for both spouses
+  contributionMatch?: number;        // Total employer match
 
   // Housing & Expenses (from API assumptions)
   monthlyMortgageRent?: number;
@@ -332,6 +338,10 @@ export const FIELD_DISPLAY_NAMES: Record<keyof ExtractedData, string> = {
   savingsRateTaxable2: 'Spouse Taxable Savings Rate',
   savingsRateTraditional2: 'Spouse Traditional 401k/IRA Contributions',
   savingsRateRoth2: 'Spouse Roth Contributions',
+  contributionTraditional: 'Annual Traditional 401k/IRA Contributions',
+  contributionRoth: 'Annual Roth Contributions',
+  contributionTaxable: 'Annual Taxable Brokerage Savings',
+  contributionMatch: 'Annual Employer Match',
   retirementAge: 'Target Retirement Age',
   desiredRetirementSpending: 'Desired Annual Retirement Spending',
   bonusInfo: 'Bonus Information',
