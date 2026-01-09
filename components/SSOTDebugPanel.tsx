@@ -21,7 +21,7 @@ interface SSOTDebugPanelProps {
 }
 
 export default function SSOTDebugPanel({ wizardData, apiAssumptions }: SSOTDebugPanelProps) {
-  const { planConfig } = usePlanConfig();
+  const { config: planConfig } = usePlanConfig();
 
   // Define all fields we care about tracking
   const criticalFields = [

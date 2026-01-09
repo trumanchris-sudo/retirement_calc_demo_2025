@@ -3408,7 +3408,7 @@ export default function App() {
       )}
 
       {/* Main app content - normal layout or doc mode both use same JSX */}
-    <>
+      <>
       {/* BrandLoader disabled - uncomment if needed in future */}
       {/* {!loaderComplete && (
         <BrandLoader

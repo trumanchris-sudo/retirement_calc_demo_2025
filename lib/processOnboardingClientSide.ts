@@ -174,6 +174,13 @@ export function processOnboardingClientSide(
   // The mapper handles: contributions, balances, tax rates, return assumptions, etc.
   const mappedResult = mapAIDataToCalculator(extractedData, assumptions);
 
+  // Filter out calculator defaults from assumptions (they're not wizard assumptions)
+  // These are standard calculator settings, not onboarding inferences
+  const calculatorDefaults = ['retRate', 'infRate', 'incRate', 'dividendYield', 'wdRate', 'includeSS', 'stateRate'];
+  const wizardAssumptions = mappedResult.generatedAssumptions.filter(
+    a => !calculatorDefaults.includes(a.field)
+  );
+
   // Build final extractedData with all fields populated
   const completeExtractedData: ExtractedData = {
     ...extractedData,
@@ -191,18 +198,19 @@ export function processOnboardingClientSide(
   };
 
   // Generate friendly summary
-  const summary = generateSummary(completeExtractedData, mappedResult.generatedAssumptions);
+  const summary = generateSummary(completeExtractedData, wizardAssumptions);
 
   console.log('[Client-Side] Processing complete:', {
     fieldsExtracted: Object.keys(completeExtractedData).length,
-    assumptionsMade: mappedResult.generatedAssumptions.length,
+    assumptionsMade: wizardAssumptions.length,
+    calculatorDefaultsFiltered: mappedResult.generatedAssumptions.length - wizardAssumptions.length,
     executionTime: '< 1ms',
     cost: '$0.00'
   });
 
   return {
     extractedData: completeExtractedData,
-    assumptions: mappedResult.generatedAssumptions,
+    assumptions: wizardAssumptions, // Only show wizard-specific assumptions, not calculator defaults
     missingFields: [], // No missing fields - we generate all assumptions
     summary,
   };
