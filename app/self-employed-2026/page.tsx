@@ -144,8 +144,7 @@ export default function SelfEmployed2026Page() {
     // Check if user is self-employed (includes K-1 income)
     const isSelfEmployed =
       planConfig.employmentType1 === 'self-employed' ||
-      planConfig.employmentType1 === 'both' ||
-      planConfig.employmentType1 === 'k1';
+      planConfig.employmentType1 === 'both';
 
     if (isSelfEmployed && planConfig.annualIncome1 && planConfig.annualIncome1 > 0) {
       setGuaranteedPayments(planConfig.annualIncome1);
