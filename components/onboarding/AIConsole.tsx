@@ -105,8 +105,28 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
           ? "**What's your annual income, and what's your spouse's annual income?** (Before taxes)\n\nAlso, does any of that include bonuses or variable compensation?"
           : "**What's your annual income?** (Before taxes)\n\nDoes any of that include bonuses or variable compensation?";
       case 4:
-        return "**What are your current account balances?**\n\n• Pre-tax (401k, Traditional IRA)\n• Roth (Roth IRA, Roth 401k)\n• Taxable brokerage\n• Cash/savings\n\n(Just give me the numbers - $0 is fine if you don't have one!)";
+        return "**What's your current pre-tax retirement account balance?**\n\nInclude:\n• Traditional 401k, 403b, 457\n• Traditional IRA\n• SEP IRA, SIMPLE IRA\n• Any other pre-tax retirement accounts\n\n(Enter $0 if you don't have any)";
       case 5:
+        return "**What's your current Roth account balance?**\n\nInclude:\n• Roth IRA\n• Roth 401k, Roth 403b, Roth 457\n• Any other Roth accounts\n\n(Enter $0 if you don't have any)";
+      case 6:
+        return "**What's your current taxable brokerage account balance?**\n\n(Enter $0 if you don't have a brokerage account)";
+      case 7:
+        return "**How much do you have in cash/emergency fund?**\n\n(Enter $0 if you're just getting started)";
+      case 8:
+        return isMarried
+          ? "**How much do you contribute annually to pre-tax retirement accounts?**\n\nInclude (for both spouses combined):\n• Traditional 401k, 403b, 457\n• Traditional IRA\n• SEP IRA, SIMPLE IRA, Solo 401k\n• Deferred Comp Plans (DCP)\n\n(Enter $0 if none)"
+          : "**How much do you contribute annually to pre-tax retirement accounts?**\n\nInclude:\n• Traditional 401k, 403b, 457\n• Traditional IRA\n• SEP IRA, SIMPLE IRA, Solo 401k\n• Deferred Comp Plans (DCP)\n\n(Enter $0 if none)";
+      case 9:
+        return isMarried
+          ? "**How much do you contribute annually to Roth accounts?**\n\nInclude (for both spouses combined):\n• Roth IRA\n• Roth 401k, Roth 403b, Roth 457\n• Backdoor Roth conversions\n\n(Enter $0 if none)"
+          : "**How much do you contribute annually to Roth accounts?**\n\nInclude:\n• Roth IRA\n• Roth 401k, Roth 403b, Roth 457\n• Backdoor Roth conversions\n\n(Enter $0 if none)";
+      case 10:
+        return isMarried
+          ? "**How much do you save annually to taxable brokerage?**\n\nCombined total for both of you. (Enter $0 if none)"
+          : "**How much do you save annually to taxable brokerage?**\n\n(Enter $0 if none)";
+      case 11:
+        return "**What's your total annual employer 401k match?**\n\n(Enter $0 if no match or not sure)";
+      case 12:
         return "Finally, **what age would you like to retire?** (Even if it feels unrealistic right now!)";
       default:
         return null; // No more pre-scripted questions, will call API
@@ -271,15 +291,79 @@ ${getNextQuestion(0, {})}`;
         }
         break;
 
-      case 4: // Account balances
-        // Try to extract 4 numbers: traditional, roth, taxable, cash/emergency fund
-        if (numbers.length >= 1) extracted.currentTraditional = numbers[0];
-        if (numbers.length >= 2) extracted.currentRoth = numbers[1];
-        if (numbers.length >= 3) extracted.currentTaxable = numbers[2];
-        if (numbers.length >= 4) extracted.emergencyFund = numbers[3];
+      case 4: // Traditional 401k/IRA balance
+        if (numbers.length > 0) {
+          extracted.currentTraditional = numbers[0];
+          console.log('[AIConsole] ✅ PARSED Traditional balance:', numbers[0]);
+        } else {
+          extracted.currentTraditional = 0;
+        }
         break;
 
-      case 5: // Retirement age
+      case 5: // Roth balance
+        if (numbers.length > 0) {
+          extracted.currentRoth = numbers[0];
+          console.log('[AIConsole] ✅ PARSED Roth balance:', numbers[0]);
+        } else {
+          extracted.currentRoth = 0;
+        }
+        break;
+
+      case 6: // Taxable brokerage balance
+        if (numbers.length > 0) {
+          extracted.currentTaxable = numbers[0];
+          console.log('[AIConsole] ✅ PARSED Taxable balance:', numbers[0]);
+        } else {
+          extracted.currentTaxable = 0;
+        }
+        break;
+
+      case 7: // Emergency fund / cash
+        if (numbers.length > 0) {
+          extracted.emergencyFund = numbers[0];
+          console.log('[AIConsole] ✅ PARSED Emergency fund:', numbers[0]);
+        } else {
+          extracted.emergencyFund = 0;
+        }
+        break;
+
+      case 8: // Annual Traditional 401k/IRA contributions
+        if (numbers.length > 0) {
+          extracted.contributionTraditional = numbers[0];
+          console.log('[AIConsole] ✅ PARSED Traditional contributions:', numbers[0]);
+        } else {
+          extracted.contributionTraditional = 0;
+        }
+        break;
+
+      case 9: // Annual Roth contributions
+        if (numbers.length > 0) {
+          extracted.contributionRoth = numbers[0];
+          console.log('[AIConsole] ✅ PARSED Roth contributions:', numbers[0]);
+        } else {
+          extracted.contributionRoth = 0;
+        }
+        break;
+
+      case 10: // Annual taxable brokerage savings
+        if (numbers.length > 0) {
+          extracted.contributionTaxable = numbers[0];
+          console.log('[AIConsole] ✅ PARSED Taxable contributions:', numbers[0]);
+        } else {
+          extracted.contributionTaxable = 0;
+        }
+        break;
+
+      case 11: // Employer match
+        if (numbers.length > 0) {
+          extracted.contributionMatch = numbers[0];
+          console.log('[AIConsole] ✅ PARSED Employer match:', numbers[0]);
+        } else {
+          extracted.contributionMatch = 0;
+        }
+        break;
+
+      case 12: // Retirement age
         // Extract retirement age (should be a single number)
         // More aggressive parsing: match any digits
         const ageMatch = userInput.match(/\d+/);
