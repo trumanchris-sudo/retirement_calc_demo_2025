@@ -3280,6 +3280,15 @@ export default function App() {
     }, 'user-entered');
   }, [updatePlanConfig]);
 
+  // Auto-run calculations when entering AI Doc Mode
+  // IMPORTANT: This hook must be before the early return to avoid hooks violation
+  useEffect(() => {
+    if (isAIDocMode && !res) {
+      console.log('[AI Doc Mode] Auto-running calculations...');
+      setTimeout(() => calc(), 100);
+    }
+  }, [isAIDocMode]);
+
   // Show wizard IMMEDIATELY if user hasn't completed onboarding (no brand loader)
   if (shouldShowWizard) {
     return (
@@ -3317,14 +3326,6 @@ export default function App() {
       />
     );
   }
-
-  // Auto-run calculations when entering AI Doc Mode
-  useEffect(() => {
-    if (isAIDocMode && !res) {
-      console.log('[AI Doc Mode] Auto-running calculations...');
-      setTimeout(() => calc(), 100);
-    }
-  }, [isAIDocMode]);
 
   // Brand loader DISABLED - was interfering with wizard → calculator transition
   return (
