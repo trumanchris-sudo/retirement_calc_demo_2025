@@ -11,6 +11,7 @@ import type {
   AssumptionWithReasoning,
   ConversationPhase,
   StreamEvent,
+  ConfidenceLevel,
 } from '@/types/ai-onboarding';
 import { NextRequest } from 'next/server';
 
@@ -293,11 +294,11 @@ export async function POST(request: NextRequest) {
 
                 if (toolName === 'add_assumption') {
                   const assumption: AssumptionWithReasoning = {
-                    field: toolInput.field,
-                    displayName: toolInput.displayName,
+                    field: toolInput.field as string,
+                    displayName: toolInput.displayName as string,
                     value: toolInput.value,
-                    reasoning: toolInput.reasoning,
-                    confidence: toolInput.confidence,
+                    reasoning: toolInput.reasoning as string,
+                    confidence: toolInput.confidence as ConfidenceLevel,
                     userProvided: false,
                   };
 

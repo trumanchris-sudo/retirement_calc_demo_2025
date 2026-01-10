@@ -4,17 +4,19 @@
  * Stores income and employment data from AI onboarding for use across calculators
  */
 
+import type { EmploymentType } from '@/types/calculator';
+
 export interface SharedIncomeData {
   // Personal Information
   maritalStatus: 'single' | 'married';
   state?: string;
 
   // Person 1
-  employmentType1: 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
+  employmentType1: EmploymentType;
   annualIncome1: number;
 
   // Person 2 (if married)
-  employmentType2?: 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
+  employmentType2?: EmploymentType;
   annualIncome2?: number;
 
   // Metadata

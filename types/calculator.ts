@@ -66,7 +66,7 @@ export interface ValidationRule {
 /**
  * Employment classification types
  */
-export type EmploymentType = 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
+export type EmploymentType = 'w2' | 'self-employed' | 'k1' | 'both' | 'retired' | 'other';
 
 /**
  * Complete set of inputs for retirement calculation

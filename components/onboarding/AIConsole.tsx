@@ -10,6 +10,7 @@ import type {
   ConversationPhase,
   AIOnboardingState,
 } from '@/types/ai-onboarding';
+import type { EmploymentType } from '@/types/calculator';
 import { MessageBubble } from './MessageBubble';
 import { AssumptionsReview } from './AssumptionsReview';
 import { ConsoleInput } from './ConsoleInput';
@@ -240,13 +241,14 @@ ${getNextQuestion(0, {})}`;
         const isMarried = currentData.maritalStatus === 'married';
 
         // Detect employment types
-        const detectEmploymentType = (text: string): 'w2' | 'self-employed' | 'both' | 'retired' | 'other' => {
-          if (text.includes('w2') || text.includes('w-2') || text.includes('employee')) {
+        const detectEmploymentType = (text: string): EmploymentType => {
+          if (text.includes('k1') || text.includes('k-1') || text.includes('partner') || text.includes('partnership')) {
+            // K-1 partnership income has higher retirement contribution limits
+            return 'k1';
+          } else if (text.includes('w2') || text.includes('w-2') || text.includes('employee')) {
             return 'w2';
           } else if (text.includes('self-employed') || text.includes('self employed') ||
-                     text.includes('freelance') || text.includes('contractor') || text.includes('1099') ||
-                     text.includes('k1') || text.includes('k-1') || text.includes('partner')) {
-            // K-1 partnership income is similar to self-employment
+                     text.includes('freelance') || text.includes('contractor') || text.includes('1099')) {
             return 'self-employed';
           } else if (text.includes('both')) {
             return 'both';

@@ -5,7 +5,7 @@
 
 import type { ReturnMode, WalkSeries } from "@/types/planner";
 import type { FilingStatus } from "./taxCalculations";
-import type { BondGlidePath } from "@/types/calculator";
+import type { BondGlidePath, EmploymentType } from "@/types/calculator";
 import { calcOrdinaryTax, calcLTCGTax } from "./taxCalculations";
 import { computeWithdrawalTaxes } from "./withdrawalTax";
 import { getBearReturns } from "@/lib/simulation/bearMarkets";
@@ -27,8 +27,8 @@ export type SimulationInputs = {
   childrenAges?: number[];
   additionalChildrenExpected?: number;
   // Employment & Income (used for income calculator sync)
-  employmentType1?: 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
-  employmentType2?: 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
+  employmentType1?: EmploymentType;
+  employmentType2?: EmploymentType;
   annualIncome1?: number;
   annualIncome2?: number;
   // Account Balances

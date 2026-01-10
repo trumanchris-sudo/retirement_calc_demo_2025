@@ -63,7 +63,7 @@ import { OnboardingWizardPage } from "@/components/onboarding/OnboardingWizardPa
 import { useOnboarding } from "@/hooks/useOnboarding";
 
 // Import types
-import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress, BondGlidePath } from "@/types/calculator";
+import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress, BondGlidePath, EmploymentType } from "@/types/calculator";
 
 // Import from new modules
 import {
@@ -1269,8 +1269,8 @@ export default function App() {
   const setAge2 = (value: number) => { updatePlanConfig({ age2: value }, 'user-entered'); markDirty(); };
   const setRetAge = (value: number) => { updatePlanConfig({ retAge: value }, 'user-entered'); markDirty(); };
 
-  const setEmploymentType1 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other') => { updatePlanConfig({ employmentType1: value }, 'user-entered'); markDirty(); };
-  const setEmploymentType2 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other' | undefined) => { updatePlanConfig({ employmentType2: value }, 'user-entered'); markDirty(); };
+  const setEmploymentType1 = (value: EmploymentType) => { updatePlanConfig({ employmentType1: value }, 'user-entered'); markDirty(); };
+  const setEmploymentType2 = (value: EmploymentType | undefined) => { updatePlanConfig({ employmentType2: value }, 'user-entered'); markDirty(); };
   const setAnnualIncome1 = (value: number) => { updatePlanConfig({ annualIncome1: value }, 'user-entered'); markDirty(); };
   const setAnnualIncome2 = (value: number) => { updatePlanConfig({ annualIncome2: value }, 'user-entered'); markDirty(); };
 
