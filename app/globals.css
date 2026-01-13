@@ -488,10 +488,7 @@ html {
     display: block !important;
   }
 
-  /* AI Snapshot on first page */
-  .hidden.print\\:block {
-    display: block !important;
-  }
+  /* AI Snapshot on first page - handled by Tailwind's print:block utility */
 
   .print-page-break-after {
     page-break-after: always !important;
@@ -743,10 +740,7 @@ html {
     display: block !important;
   }
 
-  /* Show all card content in print */
-  .hidden:not(.print\\:block) {
-    display: revert !important;
-  }
+  /* Show all card content in print - handled by Tailwind utilities */
 
   /* Fixed card dimensions for consistency */
   .flip-card-container,
