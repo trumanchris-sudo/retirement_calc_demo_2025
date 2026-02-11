@@ -10,7 +10,7 @@ import { calcOrdinaryTax, calcLTCGTax } from "./taxCalculations";
 import { computeWithdrawalTaxes } from "./withdrawalTax";
 import { getBearReturns } from "@/lib/simulation/bearMarkets";
 import { getEffectiveInflation } from "@/lib/simulation/inflationShocks";
-import { LIFE_EXP, RMD_START_AGE, RMD_DIVISORS, SP500_YOY_NOMINAL, BOND_NOMINAL_AVG, calculateBondReturn, TAX_BRACKETS } from "@/lib/constants";
+import { LIFE_EXP, RMD_START_AGE, RMD_DIVISORS, SP500_YOY_NOMINAL, BOND_NOMINAL_AVG, calculateBondReturn, TAX_BRACKETS, SS_BEND_POINTS, ESTATE_TAX_EXEMPTION, ESTATE_TAX_RATE, getCurrYear } from "@/lib/constants";
 import { mulberry32 } from "@/lib/utils";
 import { calculateBondAllocation, calculateBlendedReturn } from "@/lib/bondAllocation";
 
@@ -102,11 +102,11 @@ export type SimulationResult = {
 };
 
 /**
- * Build a generator that yields annual gross return factors
- * Returns a function that when called returns a generator
- * NOTE: Not exported - internal use only. page.tsx has its own full-featured version.
+ * Build a generator that yields annual gross return factors.
+ * Returns a function that when called returns a generator.
+ * Supports fixed, historical sequential, and random bootstrap modes.
  */
-function buildReturnGenerator(options: {
+export function buildReturnGenerator(options: {
   mode: ReturnMode;
   years: number;
   nominalPct?: number;
@@ -211,8 +211,10 @@ function buildReturnGenerator(options: {
 
 /**
  * Calculate Required Minimum Distribution
+ * @param pretaxBalance - Balance in pre-tax accounts (401k, IRA)
+ * @param age - Current age
  */
-function calcRMD(pretaxBalance: number, age: number): number {
+export function calcRMD(pretaxBalance: number, age: number): number {
   if (age < RMD_START_AGE || pretaxBalance <= 0) return 0;
 
   const divisor = RMD_DIVISORS[age] || 2.0; // Use 2.0 for ages beyond 120
@@ -221,9 +223,13 @@ function calcRMD(pretaxBalance: number, age: number): number {
 }
 
 /**
- * Calculate Social Security monthly benefit
+ * Calculate Social Security annual benefit
+ * Uses bend point formula with early/delayed claiming adjustments
+ * @param avgAnnualIncome - Average indexed monthly earnings (in annual terms)
+ * @param claimAge - Age when claiming benefits (62-70)
+ * @param fullRetirementAge - Full retirement age (typically 67)
  */
-function calcSocialSecurity(
+export function calcSocialSecurity(
   avgAnnualIncome: number,
   claimAge: number,
   fullRetirementAge: number = 67
@@ -233,31 +239,76 @@ function calcSocialSecurity(
   // Convert annual to monthly
   const aime = avgAnnualIncome / 12;
 
-  // 2025 bend points (simplified)
-  const BEND_POINT_1 = 1226;
-  const BEND_POINT_2 = 7391;
-
-  // Apply bend points to calculate PIA
+  // Apply bend points to calculate PIA (Primary Insurance Amount)
   let pia = 0;
-  if (aime <= BEND_POINT_1) {
+  if (aime <= SS_BEND_POINTS.first) {
     pia = aime * 0.90;
-  } else if (aime <= BEND_POINT_2) {
-    pia = BEND_POINT_1 * 0.90 + (aime - BEND_POINT_1) * 0.32;
+  } else if (aime <= SS_BEND_POINTS.second) {
+    pia = SS_BEND_POINTS.first * 0.90 + (aime - SS_BEND_POINTS.first) * 0.32;
   } else {
-    pia = BEND_POINT_1 * 0.90 + (BEND_POINT_2 - BEND_POINT_1) * 0.32 + (aime - BEND_POINT_2) * 0.15;
+    pia = SS_BEND_POINTS.first * 0.90 +
+          (SS_BEND_POINTS.second - SS_BEND_POINTS.first) * 0.32 +
+          (aime - SS_BEND_POINTS.second) * 0.15;
   }
 
-  // Adjust for claiming age
-  if (claimAge < fullRetirementAge) {
-    const monthsEarly = (fullRetirementAge - claimAge) * 12;
-    const reduction = Math.min(monthsEarly, 36) * 0.00556 + Math.max(0, monthsEarly - 36) * 0.00417;
-    pia *= (1 - reduction);
-  } else if (claimAge > fullRetirementAge) {
-    const monthsLate = (claimAge - fullRetirementAge) * 12;
-    pia *= (1 + monthsLate * 0.00667);
+  // Adjust for early/delayed claiming
+  const monthsFromFRA = (claimAge - fullRetirementAge) * 12;
+  let adjustmentFactor = 1.0;
+
+  if (monthsFromFRA < 0) {
+    // Early claiming: reduce by 5/9 of 1% for first 36 months, then 5/12 of 1% for each additional month
+    const earlyMonths = Math.abs(monthsFromFRA);
+    if (earlyMonths <= 36) {
+      adjustmentFactor = 1 - (earlyMonths * 5/9 / 100);
+    } else {
+      adjustmentFactor = 1 - (36 * 5/9 / 100) - ((earlyMonths - 36) * 5/12 / 100);
+    }
+  } else if (monthsFromFRA > 0) {
+    // Delayed claiming: increase by 2/3 of 1% per month (8% per year)
+    adjustmentFactor = 1 + (monthsFromFRA * 2/3 / 100);
   }
 
-  return pia * 12; // Annual benefit
+  // Return annual benefit
+  return pia * adjustmentFactor * 12;
+}
+
+/**
+ * Calculate Estate Tax with TCJA sunset handling
+ * After 2025, exemptions drop to ~$7M/$14M (inflation-adjusted) unless tax cuts extended
+ * @param totalEstate - Total estate value (all accounts)
+ * @param status - Filing status (single or married)
+ * @param year - Year of death (defaults to current year)
+ * @param assumeExtended - Whether to assume TCJA extended beyond 2025 (defaults to false)
+ */
+export function calcEstateTax(
+  totalEstate: number,
+  status: FilingStatus = "single",
+  year: number = getCurrYear(),
+  assumeExtended: boolean = false
+): number {
+  let exemption: number;
+
+  // Check if we need to apply post-2025 sunset rules
+  if (year > 2025 && !assumeExtended) {
+    // Post-TCJA sunset: exemptions drop to approximately $7M/$14M (2026 baseline)
+    // Apply inflation adjustment from 2026 to death year
+    const yearsAfter2026 = Math.max(0, year - 2026);
+    const inflationFactor = Math.pow(1.026, yearsAfter2026); // ~2.6% annual inflation
+
+    const baseSunsetExemption = {
+      single: 7_000_000,
+      married: 14_000_000,
+    };
+
+    exemption = baseSunsetExemption[status] * inflationFactor;
+  } else {
+    // Use current TCJA exemptions (2025 levels or extended)
+    exemption = ESTATE_TAX_EXEMPTION[status];
+  }
+
+  if (totalEstate <= exemption) return 0;
+  const taxableEstate = totalEstate - exemption;
+  return taxableEstate * ESTATE_TAX_RATE;
 }
 
 /**

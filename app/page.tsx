@@ -78,9 +78,8 @@ import {
   MAX_GENS,
   YEARS_PER_GEN,
   LIFE_EXP,
-  CURR_YEAR,
+  getCurrYear,
   RMD_START_AGE,
-  RMD_DIVISORS,
   SS_BEND_POINTS,
   ESTATE_TAX_EXEMPTION,
   ESTATE_TAX_RATE,
@@ -89,8 +88,6 @@ import {
   NIIT_THRESHOLD,
   NET_WORTH_DATA,
   getNetWorthBracket,
-  SP500_YOY_NOMINAL,
-  SP500_START_YEAR,
   COLOR,
   type ColorKey,
 } from "@/lib/constants";
@@ -102,7 +99,6 @@ import {
   median,
   percentile,
   realReturn,
-  mulberry32,
 } from "@/lib/utils";
 
 import {
@@ -111,7 +107,7 @@ import {
   GLIDE_PATH_PRESETS,
 } from "@/lib/bondAllocation";
 
-import { calculateBondReturn, BOND_NOMINAL_AVG, MONTE_CARLO_PATHS } from "@/lib/constants";
+import { MONTE_CARLO_PATHS } from "@/lib/constants";
 
 import type { ReturnMode, WalkSeries, BatchSummary, GuardrailsResult, RothConversionResult } from "@/types/planner";
 
@@ -123,6 +119,10 @@ import {
 // Import retirement engine
 import {
   runSingleSimulation,
+  buildReturnGenerator,
+  calcSocialSecurity,
+  calcRMD,
+  calcEstateTax,
   type SimulationInputs,
   type SimulationResult,
 } from "@/lib/calculations/retirementEngine";
@@ -155,220 +155,10 @@ import {
 // Re-export types for compatibility
 export type { ReturnMode, WalkSeries, BatchSummary };
 
-/**
- * Build a generator that yields **annual** gross return factors for N years:
- * - mode=fixed -> constant nominal return (e.g., 9.8% -> 1.098)
- * - mode=randomWalk -> bootstrap from YoY array (with replacement)
- * If series="real", subtract infPct from the sampled nominal before converting.
- */
-export function buildReturnGenerator(options: {
-  mode: ReturnMode;
-  years: number;
-  nominalPct?: number;
-  infPct?: number;
-  walkSeries?: WalkSeries;
-  walkData?: number[];
-  seed?: number;
-  startYear?: number; // Historical year to start sequential playback (e.g., 1929)
-  bondGlidePath?: BondGlidePath | null; // Bond allocation glide path
-  currentAge?: number; // Current age for bond allocation calculation
-}) {
-  const {
-    mode,
-    years,
-    nominalPct = 9.8,
-    infPct = 2.6,
-    walkSeries = "nominal",
-    walkData = SP500_YOY_NOMINAL,
-    seed = 12345,
-    startYear,
-    bondGlidePath = null,
-    currentAge = 35,
-  } = options;
-
-  if (mode === "fixed") {
-    const g = 1 + nominalPct / 100;
-    return function* fixedGen() {
-      for (let i = 0; i < years; i++) {
-        let returnPct = nominalPct;
-
-        // Apply bond blending if glide path is configured
-        if (bondGlidePath) {
-          const age = currentAge + i;
-          const bondAlloc = calculateBondAllocation(age, bondGlidePath);
-          const bondReturnPct = BOND_NOMINAL_AVG;
-          returnPct = calculateBlendedReturn(nominalPct, bondReturnPct, bondAlloc);
-        }
-
-        yield 1 + returnPct / 100;
-      }
-    };
-  }
-
-  if (!walkData.length) throw new Error("walkData is empty");
-  const inflRate = infPct / 100;
-
-  // Historical sequential playback
-  if (startYear !== undefined) {
-    const startIndex = startYear - 1928; // SP500_YOY_NOMINAL starts at 1928
-    return function* historicalGen() {
-      for (let i = 0; i < years; i++) {
-        const ix = (startIndex + i) % walkData.length; // Wrap around if we exceed data
-        let stockPct = walkData[ix];
-
-        // Calculate bond return correlated with stock return
-        const bondPct = calculateBondReturn(stockPct);
-
-        // Apply bond blending if glide path is configured
-        let pct = stockPct;
-        if (bondGlidePath) {
-          const age = currentAge + i;
-          const bondAlloc = calculateBondAllocation(age, bondGlidePath);
-          pct = calculateBlendedReturn(stockPct, bondPct, bondAlloc);
-        }
-
-        if (walkSeries === "real") {
-          const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
-          yield 1 + realRate;
-        } else {
-          yield 1 + pct / 100;
-        }
-      }
-    };
-  }
-
-  // Random bootstrap
-  const rnd = mulberry32(seed);
-  return function* walkGen() {
-    for (let i = 0; i < years; i++) {
-      const ix = Math.floor(rnd() * walkData.length);
-      let stockPct = walkData[ix];
-
-      // Calculate bond return correlated with stock return
-      const bondPct = calculateBondReturn(stockPct);
-
-      // Apply bond blending if glide path is configured
-      let pct = stockPct;
-      if (bondGlidePath) {
-        const age = currentAge + i;
-        const bondAlloc = calculateBondAllocation(age, bondGlidePath);
-        pct = calculateBlendedReturn(stockPct, bondPct, bondAlloc);
-      }
-
-      if (walkSeries === "real") {
-        const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
-        yield 1 + realRate;
-      } else {
-        yield 1 + pct / 100;
-      }
-    }
-  };
-}
+// buildReturnGenerator is now imported from @/lib/calculations/retirementEngine
 
 
-/** ===============================
- * Helpers
- * ================================ */
-
-/**
- * Calculate Social Security monthly benefit
- * Uses simplified 2025 bend point formula
- * @param avgAnnualIncome - Average indexed monthly earnings (in annual terms)
- * @param claimAge - Age when claiming benefits (62-70)
- * @param fullRetirementAge - Full retirement age (typically 67)
- */
-const calcSocialSecurity = (
-  avgAnnualIncome: number,
-  claimAge: number,
-  fullRetirementAge: number = 67
-): number => {
-  if (avgAnnualIncome <= 0) return 0;
-
-  // Convert annual to monthly
-  const aime = avgAnnualIncome / 12;
-
-  // Apply bend points
-  let pia = 0; // Primary Insurance Amount
-  if (aime <= SS_BEND_POINTS.first) {
-    pia = aime * 0.90;
-  } else if (aime <= SS_BEND_POINTS.second) {
-    pia = SS_BEND_POINTS.first * 0.90 + (aime - SS_BEND_POINTS.first) * 0.32;
-  } else {
-    pia = SS_BEND_POINTS.first * 0.90 +
-          (SS_BEND_POINTS.second - SS_BEND_POINTS.first) * 0.32 +
-          (aime - SS_BEND_POINTS.second) * 0.15;
-  }
-
-  // Adjust for early/delayed claiming
-  const monthsFromFRA = (claimAge - fullRetirementAge) * 12;
-  let adjustmentFactor = 1.0;
-
-  if (monthsFromFRA < 0) {
-    // Early claiming: reduce by 5/9 of 1% for first 36 months, then 5/12 of 1% for each additional month
-    const earlyMonths = Math.abs(monthsFromFRA);
-    if (earlyMonths <= 36) {
-      adjustmentFactor = 1 - (earlyMonths * 5/9 / 100);
-    } else {
-      adjustmentFactor = 1 - (36 * 5/9 / 100) - ((earlyMonths - 36) * 5/12 / 100);
-    }
-  } else if (monthsFromFRA > 0) {
-    // Delayed claiming: increase by 2/3 of 1% per month (8% per year)
-    adjustmentFactor = 1 + (monthsFromFRA * 2/3 / 100);
-  }
-
-  // Return annual benefit
-  return pia * adjustmentFactor * 12;
-};
-
-/**
- * Calculate Required Minimum Distribution
- * @param pretaxBalance - Balance in pre-tax accounts (401k, IRA)
- * @param age - Current age
- */
-const calcRMD = (pretaxBalance: number, age: number): number => {
-  if (age < RMD_START_AGE || pretaxBalance <= 0) return 0;
-  const divisor = RMD_DIVISORS[age] || 2.0; // Use 2.0 for ages beyond 120
-  return pretaxBalance / divisor;
-};
-
-/**
- * Calculate Estate Tax with TCJA sunset handling
- * After 2025, exemptions drop to ~$7M/$14M (inflation-adjusted) unless tax cuts extended
- * @param totalEstate - Total estate value (all accounts)
- * @param status - Filing status (single or married)
- * @param year - Year of death (defaults to current year)
- * @param assumeExtended - Whether to assume TCJA extended beyond 2025 (defaults to false)
- */
-const calcEstateTax = (
-  totalEstate: number,
-  status: FilingStatus = "single",
-  year: number = CURR_YEAR,
-  assumeExtended: boolean = false
-): number => {
-  let exemption: number;
-
-  // Check if we need to apply post-2025 sunset rules
-  if (year > 2025 && !assumeExtended) {
-    // Post-TCJA sunset: exemptions drop to approximately $7M/$14M (2026 baseline)
-    // Apply inflation adjustment from 2026 to death year
-    const yearsAfter2026 = Math.max(0, year - 2026);
-    const inflationFactor = Math.pow(1.026, yearsAfter2026); // ~2.6% annual inflation
-
-    const baseSunsetExemption = {
-      single: 7_000_000,
-      married: 14_000_000,
-    };
-
-    exemption = baseSunsetExemption[status] * inflationFactor;
-  } else {
-    // Use current TCJA exemptions (2025 levels or extended)
-    exemption = ESTATE_TAX_EXEMPTION[status];
-  }
-
-  if (totalEstate <= exemption) return 0;
-  const taxableEstate = totalEstate - exemption;
-  return taxableEstate * ESTATE_TAX_RATE;
-};
+// calcSocialSecurity, calcRMD, calcEstateTax are now imported from @/lib/calculations/retirementEngine
 
 /** ===============================
  * Small UI bits - Custom SVG Icons
@@ -957,80 +747,6 @@ function simulateRealPerBeneficiaryPayout(
 
 /** All inputs needed to run a single simulation */
 export type Inputs = SimulationInputs;
-
-/** Result from a single simulation run */
-export type SimResult = SimulationResult;
-
-// runSingleSimulation is now imported from @/lib/calculations/retirementEngine
-
-/**
- * DEPRECATED: This function is no longer used. Monte Carlo simulations now run via web worker.
- * Run 25 simulations with different seeds and compute median summaries.
- * This provides more stable results for truly random mode.
- */
-async function runTenSeedsAndSummarize(params: Inputs, baseSeed: number): Promise<BatchSummary> {
-  const N = 25;
-  const results: SimResult[] = [];
-
-  // Generate 25 random seeds from the baseSeed for more varied simulations
-  const rng = mulberry32(baseSeed);
-  const seeds: number[] = [];
-  for (let i = 0; i < N; i++) {
-    seeds.push(Math.floor(rng() * 1000000));
-  }
-
-  for (let i = 0; i < N; i++) {
-    // Yield to UI so we don't block rendering
-    await new Promise(r => setTimeout(r, 0));
-    results.push(runSingleSimulation(params, seeds[i]));
-  }
-
-  // Assume all runs produced the same length T
-  const T = results[0].balancesReal.length;
-
-  // Calculate percentiles (p10, p25, p50, p75, p90) series by year
-  const p10BalancesReal: number[] = [];
-  const p25BalancesReal: number[] = [];
-  const p50BalancesReal: number[] = [];
-  const p75BalancesReal: number[] = [];
-  const p90BalancesReal: number[] = [];
-  for (let t = 0; t < T; t++) {
-    const col = results.map(r => r.balancesReal[t]);
-    p10BalancesReal.push(percentile(col, 10));
-    p25BalancesReal.push(percentile(col, 25));
-    p50BalancesReal.push(percentile(col, 50));
-    p75BalancesReal.push(percentile(col, 75));
-    p90BalancesReal.push(percentile(col, 90));
-  }
-
-  const eolValues = results.map(r => r.eolReal);
-  const eolReal_p25 = percentile(eolValues, 25);
-  const eolReal_p50 = percentile(eolValues, 50);
-  const eolReal_p75 = percentile(eolValues, 75);
-
-  const y1Values = results.map(r => r.y1AfterTaxReal);
-  const y1AfterTaxReal_p25 = percentile(y1Values, 25);
-  const y1AfterTaxReal_p50 = percentile(y1Values, 50);
-  const y1AfterTaxReal_p75 = percentile(y1Values, 75);
-
-  const probRuin = results.filter(r => r.ruined).length / N;
-
-  return {
-    p10BalancesReal,
-    p25BalancesReal,
-    p50BalancesReal,
-    p75BalancesReal,
-    p90BalancesReal,
-    eolReal_p25,
-    eolReal_p50,
-    eolReal_p75,
-    y1AfterTaxReal_p25,
-    y1AfterTaxReal_p50,
-    y1AfterTaxReal_p75,
-    probRuin,
-    allRuns: results,  // Include all simulation runs for spaghetti plot
-  };
-}
 
 /** ===============================
  * Memoized Chart Components
@@ -2453,7 +2169,7 @@ export default function App() {
         // Reconstruct data array from batch summary percentile balances
         const data: any[] = [];
         for (let i = 0; i < batchSummary.p50BalancesReal.length; i++) {
-          const yr = CURR_YEAR + i;
+          const yr = getCurrYear() + i;
           const a1 = age1 + i;
           const a2 = isMar ? age2 + i : null;
           const realBal = batchSummary.p50BalancesReal[i];
@@ -2539,7 +2255,7 @@ export default function App() {
 
         // Calculate estate tax using median EOL
         console.log('[CALC] Calculating estate tax...');
-        const yearOfDeath = CURR_YEAR + (LIFE_EXP - older); // Death at LIFE_EXP age
+        const yearOfDeath = getCurrYear() + (LIFE_EXP - older); // Death at LIFE_EXP age
         const estateTax = calcEstateTax(eolWealth, marital, yearOfDeath, assumeTaxCutsExtended);
         // Scale estate tax to real dollars for consistent chart display
         const realEstateTax = estateTax * (eolReal / eolWealth);

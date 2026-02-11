@@ -3,7 +3,10 @@
 export const MAX_GENS = 40;
 export const YEARS_PER_GEN = 30;
 export const LIFE_EXP = 95;
+/** @deprecated Use getCurrYear() instead to avoid stale values on long-running servers */
 export const CURR_YEAR = new Date().getFullYear();
+/** Returns the current year at call time (avoids stale module-level constant) */
+export const getCurrYear = () => new Date().getFullYear();
 export const RMD_START_AGE = 73; // 2023 SECURE Act 2.0
 
 /** Monte Carlo simulation paths for statistical confidence */
