@@ -132,7 +132,6 @@ function buildReturnGenerator(options: {
   } = options;
 
   if (mode === "fixed") {
-    const g = 1 + nominalPct / 100;
     return function* fixedGen() {
       for (let i = 0; i < years; i++) {
         let returnPct = nominalPct;

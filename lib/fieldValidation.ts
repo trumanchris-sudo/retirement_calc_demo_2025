@@ -34,7 +34,7 @@ export function validateRetirementAge(retAge: number, currentAge: number): Field
   if (isNaN(retAge)) {
     return { isValid: false, error: 'Retirement age must be a valid number' };
   }
-  if (retAge < currentAge) {
+  if (retAge <= currentAge) {
     return { isValid: false, error: 'Retirement age must be greater than current age' };
   }
   if (retAge < VALIDATION_RULES.retirementAge.min) {

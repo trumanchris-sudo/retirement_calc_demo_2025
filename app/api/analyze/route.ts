@@ -39,6 +39,17 @@ export async function POST(request: NextRequest) {
       userQuestion
     } = body;
 
+    // Validate required numeric fields are present and are numbers
+    const requiredNumericFields = { age, retirementAge, currentBalance, futureBalance, realBalance, annualWithdrawal, afterTaxIncome, duration, maxDuration };
+    for (const [key, value] of Object.entries(requiredNumericFields)) {
+      if (value === undefined || value === null || typeof value !== 'number' || !isFinite(value)) {
+        return NextResponse.json(
+          { error: `Missing or invalid required field: ${key}`, insight: 'Unable to analyze - incomplete data provided.' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Check if API key is configured
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
@@ -70,7 +81,7 @@ Required Minimum Distributions (Age 73+):
     const estateAnalysis = estateTax > 0 ? `
 Estate Tax Impact:
 - Gross Estate: $${endOfLifeWealth.toLocaleString()}
-- Estate Tax (40% over $13.99M): $${estateTax.toLocaleString()}
+- Estate Tax (40% over exemption, $${maritalStatus === 'married' ? '30M married' : '15M single'}): $${estateTax.toLocaleString()}
 - Net Estate to Heirs: $${netEstate.toLocaleString()}
 - Effective Tax Rate on Estate: ${((estateTax / endOfLifeWealth) * 100).toFixed(1)}%` : '';
 
