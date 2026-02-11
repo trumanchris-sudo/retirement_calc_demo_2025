@@ -68,6 +68,7 @@ import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
 import { OnboardingWizardPage } from "@/components/onboarding/OnboardingWizardPage";
+import { AIReviewPanel } from "@/components/AIReviewPanel";
 import { useOnboarding } from "@/hooks/useOnboarding";
 
 // Import types
@@ -1228,6 +1229,7 @@ export default function App() {
   });
 
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
+  const [aiReviewOpen, setAiReviewOpen] = useState(false);
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
   const [showP90, setShowP90] = useState(false); // Show 90th percentile line
   const [resultsViewMode, setResultsViewMode] = useState<'quick' | 'detailed'>('detailed');
@@ -3205,6 +3207,7 @@ export default function App() {
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         showActions={!!res}
         cubeAppended={cubeAppended}
+        onAIReview={() => setAiReviewOpen(true)}
         onDownloadPDF={async () => {
           if (!res) return;
 
@@ -7908,6 +7911,14 @@ export default function App() {
         </button>
       )}
     {/* Close ai-doc-mode-active wrapper */}
+
+      {/* AI Review Panel */}
+      <AIReviewPanel
+        open={aiReviewOpen}
+        onOpenChange={setAiReviewOpen}
+        config={planConfig}
+        results={res}
+      />
     </div>
   );
 }
