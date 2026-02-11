@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Moon, Sun, FileText, Share2, Sliders, DollarSign, Briefcase } from "lucide-react";
+import { Moon, Sun, FileText, Share2, Sliders, DollarSign, Briefcase, Bot } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -16,6 +16,7 @@ interface PageHeaderProps {
   onPrint?: () => void;
   onShare?: () => void;
   onAdjust?: (deltas: AdjustmentDeltas) => void;
+  onAIReview?: () => void;
   cubeAppended?: boolean;
 }
 
@@ -32,6 +33,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   onPrint,
   onShare,
   onAdjust,
+  onAIReview,
   cubeAppended = false
 }) => {
   const [contributionDelta, setContributionDelta] = useState(0);
@@ -138,6 +140,26 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           {showActions && (
             <>
               <div className="w-px h-6 bg-border mx-1" aria-hidden="true" />
+
+              {/* AI Review Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onAIReview}
+                className="md:hidden no-print"
+                aria-label="AI Plan Review"
+              >
+                <Bot className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onAIReview}
+                className="hidden md:inline-flex no-print"
+              >
+                <Bot className="w-4 h-4 mr-2" />
+                AI Review
+              </Button>
 
               {/* Adjust Button with Popover */}
               <Popover open={isAdjustOpen} onOpenChange={setIsAdjustOpen}>
