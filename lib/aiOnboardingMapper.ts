@@ -166,9 +166,10 @@ export function mapAIDataToCalculator(
   }
 
   // === Family & Children ===
-  const numChildren = extractedData.numChildren ?? 0;
-  const childrenAges = extractedData.childrenAges ?? [];
-  const additionalChildrenExpected = extractedData.additionalChildrenExpected ?? 0;
+  // Preserve undefined when wizard didn't ask, so legacy planning tab keeps its defaults
+  const numChildren = extractedData.numChildren;
+  const childrenAges = extractedData.childrenAges;
+  const additionalChildrenExpected = extractedData.additionalChildrenExpected;
 
   // === Employment & Income ===
   const employmentType1 = extractedData.employmentType1 ?? 'w2';
@@ -566,9 +567,11 @@ export function mapAIDataToCalculator(
     age1,
     age2,
     retAge,
-    numChildren,
-    childrenAges,
-    additionalChildrenExpected,
+    // Only include children fields when explicitly provided by the wizard,
+    // so fieldMetadata won't track them and legacy tab keeps its defaults.
+    ...(numChildren !== undefined && { numChildren }),
+    ...(childrenAges !== undefined && { childrenAges }),
+    ...(additionalChildrenExpected !== undefined && { additionalChildrenExpected }),
 
     // Employment & Income
     employmentType1,

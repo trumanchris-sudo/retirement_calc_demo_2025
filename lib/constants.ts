@@ -3,7 +3,10 @@
 export const MAX_GENS = 40;
 export const YEARS_PER_GEN = 30;
 export const LIFE_EXP = 95;
+/** @deprecated Use getCurrYear() instead to avoid stale values on long-running servers */
 export const CURR_YEAR = new Date().getFullYear();
+/** Returns the current year at call time (avoids stale module-level constant) */
+export const getCurrYear = () => new Date().getFullYear();
 export const RMD_START_AGE = 73; // 2023 SECURE Act 2.0
 
 /** Monte Carlo simulation paths for statistical confidence */
@@ -32,44 +35,46 @@ export const ESTATE_TAX_EXEMPTION: Record<'single' | 'married', number> = {
 } as const;
 export const ESTATE_TAX_RATE = 0.40; // 40% on amount over exemption
 
-/** 2025 ordinary brackets + standard deductions (post-OBBBA July 2025) */
+/** 2026 ordinary brackets + standard deductions
+ * Aligned with lib/constants/tax2026.ts (IRS Revenue Procedure 2025-32)
+ * TCJA rates made permanent by OBBBA July 2025 */
 export const TAX_BRACKETS = {
   single: {
-    deduction: 15750,  // OBBBA standard deduction (up from $15,000)
+    deduction: 16100,  // 2026 standard deduction (up from $15,000 in 2025)
     rates: [
-      { limit: 11925, rate: 0.1 },
-      { limit: 48475, rate: 0.12 },
-      { limit: 103350, rate: 0.22 },
-      { limit: 197300, rate: 0.24 },
-      { limit: 250525, rate: 0.32 },
-      { limit: 626350, rate: 0.35 },
+      { limit: 12400, rate: 0.1 },
+      { limit: 50400, rate: 0.12 },
+      { limit: 105700, rate: 0.22 },
+      { limit: 201775, rate: 0.24 },
+      { limit: 256225, rate: 0.32 },
+      { limit: 640600, rate: 0.35 },
       { limit: Infinity, rate: 0.37 },
     ],
   },
   married: {
-    deduction: 31500,  // OBBBA standard deduction (up from $30,000)
+    deduction: 32200,  // 2026 standard deduction (up from $30,000 in 2025)
     rates: [
-      { limit: 23850, rate: 0.1 },
-      { limit: 96950, rate: 0.12 },
-      { limit: 206700, rate: 0.22 },
-      { limit: 394600, rate: 0.24 },
-      { limit: 501050, rate: 0.32 },
-      { limit: 751600, rate: 0.35 },
+      { limit: 24800, rate: 0.1 },
+      { limit: 100800, rate: 0.12 },
+      { limit: 211400, rate: 0.22 },
+      { limit: 403550, rate: 0.24 },
+      { limit: 512450, rate: 0.32 },
+      { limit: 768700, rate: 0.35 },
       { limit: Infinity, rate: 0.37 },
     ],
   },
 } as const;
 
-/** Illustrative LTCG brackets */
+/** 2026 LTCG brackets (aligned with lib/constants/tax2026.ts) */
 export const LTCG_BRACKETS = {
   single: [
-    { limit: 50000, rate: 0.0 },
-    { limit: 492300, rate: 0.15 },
+    { limit: 49450, rate: 0.0 },
+    { limit: 545500, rate: 0.15 },
     { limit: Infinity, rate: 0.20 },
   ],
   married: [
-    { limit: 100000, rate: 0.0 },
-    { limit: 553850, rate: 0.15 },
+    { limit: 98900, rate: 0.0 },
+    { limit: 613700, rate: 0.15 },
     { limit: Infinity, rate: 0.20 },
   ],
 } as const;
@@ -149,7 +154,8 @@ const SP500_ORIGINAL_RAW = [
 ];
 
 // Apply caps to prevent extreme compounding
-const SP500_ORIGINAL = SP500_ORIGINAL_RAW.map(val =>
+// Exported for bear market scenario lookups that need year-indexed access
+export const SP500_ORIGINAL = SP500_ORIGINAL_RAW.map(val =>
   Math.max(MIN_RETURN, Math.min(MAX_RETURN, val))
 );
 

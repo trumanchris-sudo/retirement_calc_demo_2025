@@ -22,6 +22,33 @@ interface AIConsoleProps {
   onSkip: () => void;
 }
 
+/**
+ * Admin presets for fast beta testing.
+ * Type the key (e.g. "admin1") at the first wizard prompt to skip all questions
+ * and jump straight to assumptions review with pre-filled data.
+ */
+const ADMIN_PRESETS: Record<string, ExtractedData> = {
+  admin1: {
+    age: 45,
+    spouseAge: 43,
+    maritalStatus: 'married',
+    state: 'WA',
+    employmentType1: 'w2',
+    employmentType2: 'w2',
+    annualIncome1: 250000,
+    annualIncome2: 150000,
+    currentTraditional: 500000,
+    currentRoth: 200000,
+    currentTaxable: 300000,
+    emergencyFund: 50000,
+    contributionTraditional: 46000,
+    contributionRoth: 14000,
+    contributionTaxable: 30000,
+    contributionMatch: 20000,
+    retirementAge: 60,
+  },
+};
+
 const STORAGE_KEY = 'ai_onboarding_state';
 
 /**
@@ -396,6 +423,21 @@ ${getNextQuestion(0, {})}`;
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
+
+    // Admin shortcut: type a preset name (e.g. "admin1") at Q0 to skip all questions
+    const presetKey = userInput.toLowerCase();
+    if (questionIndex === 0 && ADMIN_PRESETS[presetKey]) {
+      const presetData = { ...ADMIN_PRESETS[presetKey] };
+      setExtractedData(presetData);
+      const infoMsg: ConversationMessage = {
+        role: 'assistant',
+        content: `**[Admin shortcut: ${presetKey}]** — Loading preset profile and skipping to assumptions review...`,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, infoMsg]);
+      await handleProcess(presetData);
+      return;
+    }
 
     // Parse user's response and extract data
     const parsed = parseUserResponse(userInput, questionIndex, extractedData);

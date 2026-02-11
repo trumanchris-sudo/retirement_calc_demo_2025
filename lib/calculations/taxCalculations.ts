@@ -5,6 +5,12 @@
 
 import { TAX_BRACKETS, LTCG_BRACKETS, NIIT_THRESHOLD } from "@/lib/constants";
 
+/**
+ * Filing status for the core retirement engine.
+ * Note: The self-employed calculator (lib/constants/tax2026.ts) defines a broader
+ * FilingStatus = "single" | "mfj" | "mfs" | "hoh" for payroll/income tax scenarios.
+ * This simplified type maps "married" to MFJ for retirement projections.
+ */
 export type FilingStatus = "single" | "married";
 
 /**

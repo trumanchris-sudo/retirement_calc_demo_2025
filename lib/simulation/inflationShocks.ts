@@ -68,7 +68,7 @@ export function getEffectiveInflation(
   shockRate: number | null,
   shockDuration: number
 ): number {
-  if (!shockRate) return baseInflation;
+  if (shockRate === null || shockRate === undefined) return baseInflation;
 
   // Shock starts at retirement year (yrsToRet) and lasts for shockDuration years
   const shockStartYear = yrsToRet;

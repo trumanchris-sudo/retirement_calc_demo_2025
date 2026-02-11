@@ -3,7 +3,7 @@
  * Historical market crash data and utilities for stress testing retirement plans
  */
 
-import { SP500_YOY_NOMINAL, SP500_START_YEAR } from "@/lib/constants";
+import { SP500_ORIGINAL, SP500_START_YEAR } from "@/lib/constants";
 
 export interface BearMarketScenario {
   year: number;
@@ -75,14 +75,17 @@ export const BEAR_MARKET_SCENARIOS: BearMarketScenario[] = [
 export function getBearReturns(year: number): number[] {
   const startIndex = year - SP500_START_YEAR;
 
-  if (startIndex < 0 || startIndex + 2 >= SP500_YOY_NOMINAL.length) {
+  // Use SP500_ORIGINAL (97 year-indexed entries), not SP500_YOY_NOMINAL
+  // which includes synthetic half-value data that would produce wrong results
+  // for year-based index lookups
+  if (startIndex < 0 || startIndex + 2 >= SP500_ORIGINAL.length) {
     // Fallback if year is out of range
     return [0, 0, 0];
   }
   return [
-    SP500_YOY_NOMINAL[startIndex],
-    SP500_YOY_NOMINAL[startIndex + 1],
-    SP500_YOY_NOMINAL[startIndex + 2],
+    SP500_ORIGINAL[startIndex],
+    SP500_ORIGINAL[startIndex + 1],
+    SP500_ORIGINAL[startIndex + 2],
   ];
 }
 

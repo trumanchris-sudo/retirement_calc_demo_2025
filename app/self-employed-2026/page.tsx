@@ -186,9 +186,26 @@ export default function SelfEmployed2026Page() {
       console.log('[SELF-EMPLOYED-2026] Loaded mortgage from PlanConfig:', planConfig.monthlyMortgageRent);
     }
 
+    // Load additional expense fields from PlanConfig (populated by wizard)
+    if (planConfig.monthlyUtilities && planConfig.monthlyUtilities > 0) {
+      // Fold utilities into household expenses
+      setHouseholdExpenses(prev => prev + planConfig.monthlyUtilities!);
+      console.log('[SELF-EMPLOYED-2026] Added utilities to household expenses:', planConfig.monthlyUtilities);
+    }
     if (planConfig.monthlyOtherExpenses && planConfig.monthlyOtherExpenses > 0) {
-      setHouseholdExpenses(planConfig.monthlyOtherExpenses);
-      console.log('[SELF-EMPLOYED-2026] Loaded household expenses from PlanConfig:', planConfig.monthlyOtherExpenses);
+      setHouseholdExpenses(prev => prev + planConfig.monthlyOtherExpenses!);
+      console.log('[SELF-EMPLOYED-2026] Added other expenses to household expenses:', planConfig.monthlyOtherExpenses);
+    }
+    if (planConfig.monthlyHealthcareP1 && planConfig.monthlyHealthcareP1 > 0) {
+      // Use wizard healthcare estimate for health insurance premium (annualized)
+      const totalMonthlyHealthcare = planConfig.monthlyHealthcareP1 + (planConfig.monthlyHealthcareP2 ?? 0);
+      setHealthInsurancePremium(totalMonthlyHealthcare * 12);
+      console.log('[SELF-EMPLOYED-2026] Loaded healthcare from PlanConfig:', totalMonthlyHealthcare, '/mo');
+    }
+    if (planConfig.monthlyInsurancePropertyTax && planConfig.monthlyInsurancePropertyTax > 0) {
+      // Fold insurance/property tax into household expenses
+      setHouseholdExpenses(prev => prev + planConfig.monthlyInsurancePropertyTax!);
+      console.log('[SELF-EMPLOYED-2026] Added insurance/property tax to household expenses:', planConfig.monthlyInsurancePropertyTax);
     }
 
     // State tax rate
@@ -197,8 +214,17 @@ export default function SelfEmployed2026Page() {
       console.log('[SELF-EMPLOYED-2026] Loaded state rate from PlanConfig:', planConfig.stateRate);
     }
 
+    // Detect if data came from AI onboarding via PlanConfig fieldMetadata (preferred)
+    const hasAISuggestedFields = planConfig.fieldMetadata &&
+      Object.values(planConfig.fieldMetadata).some((meta: any) => meta?.source === 'ai-suggested');
+    if (hasAISuggestedFields) {
+      setIsFromAIOnboarding(true);
+      setShowAIBanner(true);
+      console.log('[SELF-EMPLOYED-2026] Detected AI-suggested data via PlanConfig fieldMetadata');
+    }
+
     // Priority 2: Fall back to legacy sharedIncomeData for backward compatibility
-    if (!isSelfEmployed || !planConfig.annualIncome1) {
+    if (!hasAISuggestedFields && (!isSelfEmployed || !planConfig.annualIncome1)) {
       if (hasRecentIncomeData()) {
         const sharedData = loadSharedIncomeData();
         if (
@@ -376,10 +402,10 @@ export default function SelfEmployed2026Page() {
                   </div>
                   <div>
                     <CardTitle className="text-blue-900 dark:text-blue-100 text-base mb-1">
-                      Auto-filled from AI Onboarding
+                      Pre-filled from AI Onboarding
                     </CardTitle>
                     <CardDescription className="text-blue-700 dark:text-blue-300">
-                      Your self-employment information has been pre-filled based on your onboarding conversation. You can edit any values below.
+                      Your income, expenses, and healthcare estimates have been pre-filled from your onboarding conversation. Review and edit any values below, then calculate to see your 2026 projections.
                     </CardDescription>
                   </div>
                 </div>

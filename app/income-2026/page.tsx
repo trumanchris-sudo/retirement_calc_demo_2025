@@ -97,22 +97,27 @@ export default function Income2026Page() {
   const [federalWithholdingExtra] = useState(0);
   const [stateWithholdingExtra] = useState(0);
 
-  // Housing - NO HARDCODED DEFAULTS, read from PlanConfig SSOT
+  // Housing - Read from PlanConfig SSOT
   const [housingType, setHousingType] = useState<"rent" | "own">("own");
   const [rentPayment, setRentPayment] = useState(0);
-  const [mortgagePayment, setMortgagePayment] = useState(0); // Will be set from PlanConfig
-  const [propertyTaxAnnual] = useState(25000);
-  const [homeInsuranceAnnual] = useState(10000);
-  const [floodInsuranceAnnual] = useState(3500);
+  const [mortgagePayment, setMortgagePayment] = useState(0);
+  const [propertyTaxAnnual, setPropertyTaxAnnual] = useState(0);
+  const [homeInsuranceAnnual, setHomeInsuranceAnnual] = useState(0);
+  const [floodInsuranceAnnual, setFloodInsuranceAnnual] = useState(0);
+
+  // Monthly expenses from wizard / PlanConfig
+  const [monthlyUtilities, setMonthlyUtilities] = useState(0);
+  const [monthlyHealthcare, setMonthlyHealthcare] = useState(0);
+  const [monthlyOtherExpenses, setMonthlyOtherExpenses] = useState(0);
 
   // Spending Buckets
   const [householdExpenses, setHouseholdExpenses] = useState(0);
   const [discretionarySpending, setDiscretionarySpending] = useState(0);
-  const [childcareCosts] = useState(1550);
+  const [childcareCosts, setChildcareCosts] = useState(0);
 
   // Life Insurance
-  const [p1LifeInsuranceAnnual] = useState(4500);
-  const [p2LifeInsuranceAnnual] = useState(0);
+  const [p1LifeInsuranceAnnual, setP1LifeInsuranceAnnual] = useState(0);
+  const [p2LifeInsuranceAnnual, setP2LifeInsuranceAnnual] = useState(0);
 
   // Post-tax Deductions (Not Yet Implemented)
   const [p1RothContribution] = useState(0);
@@ -219,6 +224,37 @@ export default function Income2026Page() {
       console.log('[INCOME-2026] ✅ Loaded first pay date from PlanConfig SSOT:', planConfig.firstPayDate);
     }
 
+    // Load monthly expense fields from PlanConfig (populated by wizard via processOnboardingClientSide)
+    if (planConfig.monthlyUtilities && planConfig.monthlyUtilities > 0) {
+      setMonthlyUtilities(planConfig.monthlyUtilities);
+      console.log('[INCOME-2026] ✅ Loaded utilities from PlanConfig:', planConfig.monthlyUtilities);
+    }
+    if (planConfig.monthlyInsurancePropertyTax && planConfig.monthlyInsurancePropertyTax > 0) {
+      // The wizard stores combined insurance+property tax as a monthly figure
+      // Split into annual property tax (~60%) and home insurance (~40%) as a reasonable default
+      const annualTotal = planConfig.monthlyInsurancePropertyTax * 12;
+      setPropertyTaxAnnual(Math.round(annualTotal * 0.6));
+      setHomeInsuranceAnnual(Math.round(annualTotal * 0.4));
+      console.log('[INCOME-2026] ✅ Loaded insurance/property tax from PlanConfig:', planConfig.monthlyInsurancePropertyTax, '/mo');
+    }
+    if (planConfig.monthlyHealthcareP1 && planConfig.monthlyHealthcareP1 > 0) {
+      setMonthlyHealthcare(planConfig.monthlyHealthcareP1 + (planConfig.monthlyHealthcareP2 ?? 0));
+      console.log('[INCOME-2026] ✅ Loaded healthcare from PlanConfig:', planConfig.monthlyHealthcareP1);
+    }
+    if (planConfig.monthlyOtherExpenses && planConfig.monthlyOtherExpenses > 0) {
+      setMonthlyOtherExpenses(planConfig.monthlyOtherExpenses);
+      console.log('[INCOME-2026] ✅ Loaded other expenses from PlanConfig:', planConfig.monthlyOtherExpenses);
+    }
+
+    // Detect if data came from AI onboarding via PlanConfig fieldMetadata (preferred) or legacy sharedIncomeData
+    const hasAISuggestedFields = planConfig.fieldMetadata &&
+      Object.values(planConfig.fieldMetadata).some((meta: any) => meta?.source === 'ai-suggested');
+    if (hasAISuggestedFields) {
+      setIsFromAIOnboarding(true);
+      setShowAIBanner(true);
+      console.log('[INCOME-2026] ✅ Detected AI-suggested data via PlanConfig fieldMetadata');
+    }
+
     // Priority 2: Fall back to budget context estimates if PlanConfig is empty
     if (!planConfig.annualIncome1 || planConfig.annualIncome1 === 0) {
       if (implied && implied.grossIncome > 0) {
@@ -232,11 +268,10 @@ export default function Income2026Page() {
     }
 
     // Priority 3: Check legacy sharedIncomeData for backward compatibility
-    if (hasRecentIncomeData()) {
+    if (!hasAISuggestedFields && hasRecentIncomeData()) {
       const sharedData = loadSharedIncomeData();
       if (sharedData && sharedData.source === 'ai-onboarding') {
         console.log('[INCOME-2026] Found legacy AI onboarding data:', sharedData);
-        // Only use if PlanConfig doesn't have this data
         if (!planConfig.annualIncome1) {
           setP1BaseIncome(sharedData.annualIncome1);
         }
@@ -488,14 +523,17 @@ export default function Income2026Page() {
     // Fixed expenses are spread across ALL household paychecks to smooth cash flow
     const totalChecks = events.length;
     const eoyPropertyExpenses = (housingType === "own") ? (propertyTaxAnnual + homeInsuranceAnnual + floodInsuranceAnnual) : 0;
-    
-    // Annual fixed costs
+
+    // Annual fixed costs (housing + utilities + healthcare + expenses + insurance)
     const totalAnnualFixed = (
       (housingType === "rent" ? rentPayment : mortgagePayment) * 12 +
+      monthlyUtilities * 12 +
+      monthlyHealthcare * 12 +
+      monthlyOtherExpenses * 12 +
       householdExpenses * 12 +
       discretionarySpending * 12 +
       childcareCosts * 12 +
-      p1LifeInsuranceAnnual + 
+      p1LifeInsuranceAnnual +
       (isMarried ? p2LifeInsuranceAnnual : 0) +
       eoyPropertyExpenses
     );
@@ -907,10 +945,10 @@ export default function Income2026Page() {
                   </div>
                   <div>
                     <CardTitle className="text-blue-900 dark:text-blue-100 text-base mb-1">
-                      Auto-filled from AI Onboarding
+                      Pre-filled from AI Onboarding
                     </CardTitle>
                     <CardDescription className="text-blue-700 dark:text-blue-300">
-                      Your income information has been pre-filled based on your onboarding conversation. You can edit any values below.
+                      Your income, housing, and estimated monthly expenses have been pre-filled from your onboarding conversation. Review and edit any values below, then calculate to see your 2026 projections.
                     </CardDescription>
                   </div>
                 </div>
@@ -1015,23 +1053,65 @@ export default function Income2026Page() {
         </Card>
 
         <Card className="mb-6" id="housing-section">
-            <CardHeader><CardTitle>Housing & Expenses</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Housing & Monthly Expenses</CardTitle>
+              <CardDescription>Monthly costs populated from your onboarding wizard. Edit any values below.</CardDescription>
+            </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div className="space-y-2">
+                <div className="space-y-6">
+                  {/* Housing */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Housing</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
                         <Label htmlFor="housing-type">Housing Type</Label>
                         <Select value={housingType} onValueChange={(value: "rent" | "own") => { setHousingType(value); handleInputChange(); }}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent><SelectItem value="rent">Rent</SelectItem><SelectItem value="own">Own</SelectItem></SelectContent>
                         </Select>
-                    </div>
-                    {housingType === "rent" ? (
+                      </div>
+                      {housingType === "rent" ? (
                         <Input label="Monthly Rent" value={rentPayment} setter={(v) => { setRentPayment(v); handleInputChange(); }} onInputChange={handleInputChange} />
-                    ) : (
+                      ) : (
                         <Input label="Monthly Mortgage" value={mortgagePayment} setter={(v) => { updateMortgageInSSOT(v); handleInputChange(); }} onInputChange={handleInputChange} />
-                    )}
-                    <Input label="Household Expenses" value={householdExpenses} setter={(v) => { setHouseholdExpenses(v); handleInputChange(); }} onInputChange={handleInputChange} />
-                    <Input label="Discretionary" value={discretionarySpending} setter={(v) => { setDiscretionarySpending(v); handleInputChange(); }} onInputChange={handleInputChange} />
+                      )}
+                      {housingType === "own" && (
+                        <>
+                          <Input label="Property Tax (Annual)" value={propertyTaxAnnual} setter={(v) => { setPropertyTaxAnnual(v); handleInputChange(); }} onInputChange={handleInputChange} />
+                          <Input label="Home Insurance (Annual)" value={homeInsuranceAnnual} setter={(v) => { setHomeInsuranceAnnual(v); handleInputChange(); }} onInputChange={handleInputChange} />
+                          <Input label="Flood Insurance (Annual)" value={floodInsuranceAnnual} setter={(v) => { setFloodInsuranceAnnual(v); handleInputChange(); }} onInputChange={handleInputChange} />
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Monthly Bills */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Monthly Bills & Living Expenses</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input label="Utilities (Monthly)" value={monthlyUtilities} setter={(v) => { setMonthlyUtilities(v); handleInputChange(); }} onInputChange={handleInputChange} />
+                      <Input label="Healthcare (Monthly)" value={monthlyHealthcare} setter={(v) => { setMonthlyHealthcare(v); handleInputChange(); }} onInputChange={handleInputChange} />
+                      <Input label="Household Expenses (Monthly)" value={householdExpenses} setter={(v) => { setHouseholdExpenses(v); handleInputChange(); }} onInputChange={handleInputChange} />
+                      <Input label="Discretionary (Monthly)" value={discretionarySpending} setter={(v) => { setDiscretionarySpending(v); handleInputChange(); }} onInputChange={handleInputChange} />
+                      <Input label="Childcare (Monthly)" value={childcareCosts} setter={(v) => { setChildcareCosts(v); handleInputChange(); }} onInputChange={handleInputChange} />
+                      <Input label="Other Expenses (Monthly)" value={monthlyOtherExpenses} setter={(v) => { setMonthlyOtherExpenses(v); handleInputChange(); }} onInputChange={handleInputChange} />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Insurance */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Life Insurance</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input label="Your Life Insurance (Annual)" value={p1LifeInsuranceAnnual} setter={(v) => { setP1LifeInsuranceAnnual(v); handleInputChange(); }} onInputChange={handleInputChange} />
+                      {isMarried && (
+                        <Input label="Spouse Life Insurance (Annual)" value={p2LifeInsuranceAnnual} setter={(v) => { setP2LifeInsuranceAnnual(v); handleInputChange(); }} onInputChange={handleInputChange} />
+                      )}
+                    </div>
+                  </div>
                 </div>
             </CardContent>
         </Card>
@@ -1112,66 +1192,146 @@ export default function Income2026Page() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-green-50 p-4 rounded-lg border border-green-200"><div className="text-sm text-green-700">Total Income</div><div className="text-xl font-bold">${(results.yearSummary.totalIncome ?? 0).toLocaleString()}</div></div>
-                    <div className="bg-red-50 p-4 rounded-lg border border-red-200"><div className="text-sm text-red-700">Total Tax (Fed+FICA)</div><div className="text-xl font-bold">${((results.yearSummary.totalFIT ?? 0) + (results.yearSummary.totalFICA ?? 0)).toLocaleString()}</div></div>
-                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200"><div className="text-sm text-blue-700">401k Invested</div><div className="text-xl font-bold">${(results.yearSummary.total401k ?? 0).toLocaleString()}</div></div>
-                    <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200"><div className="text-sm text-emerald-700">Net Cash Flow</div><div className="text-xl font-bold">${(results.yearSummary.netTakeHome ?? 0).toLocaleString()}</div></div>
+                    <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800"><div className="text-sm text-green-700 dark:text-green-400">Total Income</div><div className="text-xl font-bold">${Math.round(results.yearSummary.totalIncome ?? 0).toLocaleString()}</div></div>
+                    <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg border border-red-200 dark:border-red-800"><div className="text-sm text-red-700 dark:text-red-400">Total Tax (Fed+FICA)</div><div className="text-xl font-bold">${Math.round((results.yearSummary.totalFIT ?? 0) + (results.yearSummary.totalFICA ?? 0)).toLocaleString()}</div></div>
+                    <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800"><div className="text-sm text-blue-700 dark:text-blue-400">401(k) Invested</div><div className="text-xl font-bold">${Math.round(results.yearSummary.total401k ?? 0).toLocaleString()}</div></div>
+                    <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800"><div className="text-sm text-emerald-700 dark:text-emerald-400">Net Cash Flow</div><div className="text-xl font-bold">${Math.round(results.yearSummary.netTakeHome ?? 0).toLocaleString()}</div></div>
+                </div>
+                <div className="mt-3 text-sm text-muted-foreground text-center">
+                  Effective Tax Rate: {((results.yearSummary.effectiveTaxRate ?? 0) * 100).toFixed(1)}%
                 </div>
               </CardContent>
             </Card>
 
-            {/* DYNAMIC PAYCHECK TABLE */}
+            {/* ANNUAL BUDGET OVERVIEW */}
             <Card>
               <CardHeader>
-                <CardTitle>Paycheck-by-Paycheck Waterfall</CardTitle>
-                <CardDescription>Showing {results.paychecks.length} individual income events chronologically.</CardDescription>
+                <CardTitle>Monthly Budget Overview</CardTitle>
+                <CardDescription>Estimated monthly income and expenses based on your inputs.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const monthlyGross = results!.yearSummary.totalIncome / 12;
+                  const monthlyTax = (results!.yearSummary.totalFIT + results!.yearSummary.totalFICA) / 12;
+                  const monthly401k = results!.yearSummary.total401k / 12;
+                  const monthlyPreTax = results!.yearSummary.totalPreTax / 12;
+                  const monthlyHousing = housingType === "rent" ? rentPayment : mortgagePayment;
+                  const monthlyPropertyCosts = housingType === "own" ? (propertyTaxAnnual + homeInsuranceAnnual + floodInsuranceAnnual) / 12 : 0;
+                  const monthlyNet = monthlyGross - monthlyTax - monthly401k - monthlyPreTax - monthlyHousing - monthlyPropertyCosts - monthlyUtilities - monthlyHealthcare - householdExpenses - discretionarySpending - childcareCosts - monthlyOtherExpenses;
+
+                  const fmt = (n: number) => '$' + Math.round(n).toLocaleString();
+                  const budgetLines = [
+                    { label: 'Gross Monthly Income', amount: monthlyGross, color: 'text-green-700 dark:text-green-400', bold: true },
+                    { label: 'Federal Tax + FICA', amount: -monthlyTax, color: 'text-red-600 dark:text-red-400' },
+                    { label: 'Pre-Tax Deductions', amount: -monthlyPreTax, color: 'text-muted-foreground' },
+                    { label: '401(k) Contributions', amount: -monthly401k, color: 'text-blue-600 dark:text-blue-400' },
+                    { label: `Housing (${housingType === 'rent' ? 'Rent' : 'Mortgage'})`, amount: -monthlyHousing, color: 'text-orange-600 dark:text-orange-400' },
+                    ...(housingType === 'own' && monthlyPropertyCosts > 0 ? [{ label: 'Property Tax & Insurance', amount: -monthlyPropertyCosts, color: 'text-orange-600 dark:text-orange-400' }] : []),
+                    ...(monthlyUtilities > 0 ? [{ label: 'Utilities', amount: -monthlyUtilities, color: 'text-orange-600 dark:text-orange-400' }] : []),
+                    ...(monthlyHealthcare > 0 ? [{ label: 'Healthcare', amount: -monthlyHealthcare, color: 'text-orange-600 dark:text-orange-400' }] : []),
+                    ...(householdExpenses > 0 ? [{ label: 'Household Expenses', amount: -householdExpenses, color: 'text-orange-600 dark:text-orange-400' }] : []),
+                    ...(discretionarySpending > 0 ? [{ label: 'Discretionary', amount: -discretionarySpending, color: 'text-orange-600 dark:text-orange-400' }] : []),
+                    ...(childcareCosts > 0 ? [{ label: 'Childcare', amount: -childcareCosts, color: 'text-orange-600 dark:text-orange-400' }] : []),
+                    ...(monthlyOtherExpenses > 0 ? [{ label: 'Other Expenses', amount: -monthlyOtherExpenses, color: 'text-orange-600 dark:text-orange-400' }] : []),
+                  ];
+
+                  return (
+                    <div className="max-w-lg">
+                      <div className="space-y-2">
+                        {budgetLines.map((line, i) => (
+                          <div key={i} className={`flex justify-between py-1 ${line.bold ? 'font-bold' : ''}`}>
+                            <span>{line.label}</span>
+                            <span className={line.color}>{line.amount >= 0 ? fmt(line.amount) : '-' + fmt(Math.abs(line.amount))}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <Separator className="my-3" />
+                      <div className="flex justify-between font-bold text-lg">
+                        <span>Estimated Monthly Surplus</span>
+                        <span className={monthlyNet >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                          {monthlyNet >= 0 ? fmt(monthlyNet) : '-' + fmt(Math.abs(monthlyNet))}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">Available for savings, investments, or additional spending.</p>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* MONTHLY CASH FLOW SUMMARY */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Monthly Cash Flow Summary</CardTitle>
+                <CardDescription>Consolidated view of {results.paychecks.length} paychecks aggregated by month.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                   {(() => {
-                    const chunkSize = 12;
-                    const chunks = [];
-                    for (let i = 0; i < results.paychecks.length; i += chunkSize) {
-                      chunks.push(results.paychecks.slice(i, i + chunkSize));
-                    }
-                    return chunks.map((chunk, chunkIndex) => (
-                      <div key={chunkIndex} className="mb-8 last:mb-0">
-                         <table className="w-full text-xs border-collapse mb-4">
-                          <thead className="sticky top-0 bg-background z-10">
-                            <tr className="border-b-2">
-                              <th className="text-left py-2 px-2 font-semibold min-w-[150px] bg-background">Item</th>
-                              {chunk.map((p: PaycheckResult) => (
-                                <th key={p.paycheckNum} className="text-right py-2 px-2 font-semibold min-w-[100px] border-l bg-background">
-                                  #{p.paycheckNum} <br/><span className="text-[10px] font-normal text-muted-foreground">{p.personLabel}</span>
-                                </th>
-                              ))}
+                    // Aggregate paychecks by month
+                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const monthlyData = monthNames.map((name, idx) => {
+                      const monthPaychecks = results!.paychecks.filter(
+                        (p: PaycheckResult) => new Date(p.date).getMonth() === idx
+                      );
+                      return {
+                        month: name,
+                        numChecks: monthPaychecks.length,
+                        gross: monthPaychecks.reduce((s: number, p: PaycheckResult) => s + p.totalGross, 0),
+                        preTax: monthPaychecks.reduce((s: number, p: PaycheckResult) => s + p.totalPreTax, 0),
+                        fedTax: monthPaychecks.reduce((s: number, p: PaycheckResult) => s + p.totalFIT, 0),
+                        fica: monthPaychecks.reduce((s: number, p: PaycheckResult) => s + p.ss + p.totalMed, 0),
+                        k401: monthPaychecks.reduce((s: number, p: PaycheckResult) => s + p.contribution401k, 0),
+                        fixedExp: monthPaychecks.reduce((s: number, p: PaycheckResult) => s + p.fixedExpenses, 0),
+                        net: monthPaychecks.reduce((s: number, p: PaycheckResult) => s + p.brokerageContribution, 0),
+                      };
+                    }).filter(m => m.numChecks > 0);
+
+                    const fmt = (n: number) => '$' + Math.round(n).toLocaleString();
+                    const fmtNeg = (n: number) => '-$' + Math.round(Math.abs(n)).toLocaleString();
+
+                    return (
+                      <table className="w-full text-sm border-collapse">
+                        <thead className="sticky top-0 bg-background z-10">
+                          <tr className="border-b-2">
+                            <th className="text-left py-2 px-3 font-semibold">Month</th>
+                            <th className="text-right py-2 px-3 font-semibold">Gross Income</th>
+                            <th className="text-right py-2 px-3 font-semibold">Pre-Tax</th>
+                            <th className="text-right py-2 px-3 font-semibold">Fed Tax</th>
+                            <th className="text-right py-2 px-3 font-semibold">FICA</th>
+                            <th className="text-right py-2 px-3 font-semibold">401(k)</th>
+                            <th className="text-right py-2 px-3 font-semibold">Expenses</th>
+                            <th className="text-right py-2 px-3 font-semibold">Net Cash</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {monthlyData.map((m) => (
+                            <tr key={m.month} className="hover:bg-muted/50 border-b">
+                              <td className="py-2 px-3 font-medium">{m.month}</td>
+                              <td className="text-right py-2 px-3 text-green-700 dark:text-green-400">{fmt(m.gross)}</td>
+                              <td className="text-right py-2 px-3 text-muted-foreground">{m.preTax > 0 ? fmtNeg(m.preTax) : '—'}</td>
+                              <td className="text-right py-2 px-3 text-red-600 dark:text-red-400">{fmtNeg(m.fedTax)}</td>
+                              <td className="text-right py-2 px-3 text-red-600 dark:text-red-400">{fmtNeg(m.fica)}</td>
+                              <td className="text-right py-2 px-3 text-blue-600 dark:text-blue-400">{m.k401 > 0 ? fmtNeg(m.k401) : '—'}</td>
+                              <td className="text-right py-2 px-3 text-orange-600 dark:text-orange-400">{fmtNeg(m.fixedExp)}</td>
+                              <td className="text-right py-2 px-3 font-bold">{fmt(m.net)}</td>
                             </tr>
-                            <tr className="border-b">
-                                <th className="text-left py-1 px-2 bg-background">Date</th>
-                                {chunk.map((p: PaycheckResult) => <th key={p.paycheckNum} className="text-right py-1 px-2 border-l bg-background">{new Date(p.date).toLocaleDateString('en-US', {month:'short', day:'numeric'})}</th>)}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr className="hover:bg-muted/50">
-                                <td className="py-1 px-2 font-medium">Total Gross</td>
-                                {chunk.map((p: PaycheckResult) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">${(p.totalGross ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
-                            </tr>
-                            <tr className="hover:bg-muted/50 text-red-600">
-                                <td className="py-1 px-2">Taxes & FICA</td>
-                                {chunk.map((p: PaycheckResult) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">-${((p.totalFIT ?? 0) + (p.ss ?? 0) + (p.totalMed ?? 0)).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
-                            </tr>
-                             <tr className="hover:bg-muted/50 text-blue-600">
-                                <td className="py-1 px-2">401k Contrib</td>
-                                {chunk.map((p: PaycheckResult) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">-${(p.contribution401k ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
-                            </tr>
-                            <tr className="bg-muted/30 font-bold">
-                                <td className="py-1 px-2">Net Remainder</td>
-                                {chunk.map((p: PaycheckResult) => <td key={p.paycheckNum} className="text-right py-1 px-2 border-l">${(p.brokerageContribution ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}</td>)}
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    ));
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t-2 font-bold bg-muted/30">
+                            <td className="py-2 px-3">Total</td>
+                            <td className="text-right py-2 px-3 text-green-700 dark:text-green-400">{fmt(monthlyData.reduce((s, m) => s + m.gross, 0))}</td>
+                            <td className="text-right py-2 px-3 text-muted-foreground">{fmtNeg(monthlyData.reduce((s, m) => s + m.preTax, 0))}</td>
+                            <td className="text-right py-2 px-3 text-red-600 dark:text-red-400">{fmtNeg(monthlyData.reduce((s, m) => s + m.fedTax, 0))}</td>
+                            <td className="text-right py-2 px-3 text-red-600 dark:text-red-400">{fmtNeg(monthlyData.reduce((s, m) => s + m.fica, 0))}</td>
+                            <td className="text-right py-2 px-3 text-blue-600 dark:text-blue-400">{fmtNeg(monthlyData.reduce((s, m) => s + m.k401, 0))}</td>
+                            <td className="text-right py-2 px-3 text-orange-600 dark:text-orange-400">{fmtNeg(monthlyData.reduce((s, m) => s + m.fixedExp, 0))}</td>
+                            <td className="text-right py-2 px-3">{fmt(monthlyData.reduce((s, m) => s + m.net, 0))}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    );
                   })()}
                 </div>
               </CardContent>
