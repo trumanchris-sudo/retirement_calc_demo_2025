@@ -1077,13 +1077,21 @@ export default function App() {
   const [parentAgeAtFirstChild, setParentAgeAtFirstChild] = useState(30);
   const [childSpacingYears, setChildSpacingYears] = useState(3);
 
-  // Sync PlanConfig numChildren to legacy planning defaults
+  // Sync PlanConfig numChildren to legacy planning defaults.
+  // Only override when the user/wizard explicitly set children info (tracked via fieldMetadata).
+  // Default PlanConfig has numChildren=0 which should NOT clear legacy tab defaults.
   useEffect(() => {
+    const wasExplicitlySet = planConfig.fieldMetadata?.numChildren ||
+                             planConfig.fieldMetadata?.childrenAges;
+    if (!wasExplicitlySet) {
+      return; // Children info is just the default — keep legacy planning defaults (2 kids, ages "5, 3")
+    }
+
     const numChildren = planConfig.numChildren ?? 0;
     const childAges = planConfig.childrenAges ?? [];
 
-    // Respect user's input - if they say 0 children, show 0 children
-    if (numChildren === 0) {
+    if (numChildren === 0 && childAges.length === 0) {
+      // User explicitly said 0 children — respect that
       setHypStartBens(0);
       setChildrenCurrentAges("");
       setNumberOfChildren(0);
@@ -1096,9 +1104,8 @@ export default function App() {
       // User specified number of children but no ages - use defaults
       setHypStartBens(numChildren);
       setNumberOfChildren(numChildren);
-      // Keep existing childrenCurrentAges defaults or generate reasonable ones
     }
-  }, [planConfig.numChildren, planConfig.childrenAges]);
+  }, [planConfig.numChildren, planConfig.childrenAges, planConfig.fieldMetadata]);
 
   const [totalFertilityRate, setTotalFertilityRate] = useState(2.1); // Children per person (lifetime)
   const [generationLength, setGenerationLength] = useState(30); // Average age when having children
@@ -1181,7 +1188,7 @@ export default function App() {
     const allChildrenAges = [...currentChildrenAtDeath, ...additionalChildrenAtDeath]
       .filter(age => age > 0 && age < hypDeathAge);
 
-    return allChildrenAges.length > 0 ? allChildrenAges.join(', ') : '0';
+    return allChildrenAges.length > 0 ? allChildrenAges.join(', ') : '';
   }, [childrenCurrentAges, additionalChildrenExpected, hypDeathAge, age1, age2]);
 
   const [aiInsight, setAiInsight] = useState<string>("");
@@ -2279,7 +2286,7 @@ export default function App() {
 
           // Guard: Skip generational simulation if inputs are degenerate
           const totalAnnualDist = hypPerBen * Math.max(1, hypStartBens);
-          const hasValidBeneficiaries = benAges.length > 0 && benAges.some(age => age > 0);
+          const hasValidBeneficiaries = benAges.length > 0 && benAges.some(age => age >= 0);
           const hasValidDistribution = hypPerBen > 0 && totalAnnualDist > 0;
 
           if (!hasValidBeneficiaries || !hasValidDistribution) {
