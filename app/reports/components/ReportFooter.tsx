@@ -17,6 +17,6 @@ const styles = StyleSheet.create({
 
 export const ReportFooter: React.FC = () => (
   <View style={styles.footer}>
-    <Text>© 2025 WorkDieRetire.com | This report is for informational purposes only.</Text>
+    <Text>© 2026 WorkDieRetire.com | This report is for informational purposes only.</Text>
   </View>
 );

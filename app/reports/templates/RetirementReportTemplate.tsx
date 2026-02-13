@@ -134,7 +134,7 @@ export const RetirementReportTemplate: React.FC<RetirementReportTemplateProps> =
         {monthlyWithdrawal && (
           <ReportSection title="Lifestyle Context">
             <Text style={styles.bullet}>
-              • Year-1 after-tax withdrawal ≈ **{formatCurrency(monthlyWithdrawal)} / month** (real 2025 dollars).
+              • Year-1 after-tax withdrawal ≈ **{formatCurrency(monthlyWithdrawal)} / month** (real 2026 dollars).
             </Text>
           </ReportSection>
         )}

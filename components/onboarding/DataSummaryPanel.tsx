@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import type { ExtractedData, AssumptionWithReasoning } from '@/types/ai-onboarding';
 import { FIELD_DISPLAY_NAMES } from '@/types/ai-onboarding';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +11,7 @@ interface DataSummaryPanelProps {
   assumptions: AssumptionWithReasoning[];
 }
 
-export function DataSummaryPanel({ extractedData, assumptions }: DataSummaryPanelProps) {
+export const DataSummaryPanel = React.memo(function DataSummaryPanel({ extractedData, assumptions }: DataSummaryPanelProps) {
   const extractedCount = Object.keys(extractedData).filter(
     (key) => extractedData[key as keyof ExtractedData] !== undefined
   ).length;
@@ -149,7 +150,9 @@ export function DataSummaryPanel({ extractedData, assumptions }: DataSummaryPane
       </div>
     </div>
   );
-}
+});
+
+DataSummaryPanel.displayName = 'DataSummaryPanel';
 
 function formatDataValue(value: any): string {
   if (value === undefined || value === null) return 'Not set';

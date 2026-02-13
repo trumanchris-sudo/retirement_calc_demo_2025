@@ -137,7 +137,7 @@ export function CheckUsTab() {
           <LiveCalculation
             id="federal-income-tax"
             title="Federal Income Tax (Progressive Brackets)"
-            description="Uses 2025 tax brackets with standard deduction. Progressive tax rate applied to income ranges."
+            description="Uses 2026 tax brackets with standard deduction. Progressive tax rate applied to income ranges."
             icon={<Calculator className="h-5 w-5 text-blue-600" />}
             githubPath="lib/calculations/taxCalculations.ts"
             githubLine={16}
@@ -369,7 +369,7 @@ export function CheckUsTab() {
             </CardHeader>
             <CardContent>
               <div className="p-4 bg-teal-50 rounded-lg space-y-2">
-                <div className="font-medium text-teal-900">2025 Bend Points Formula:</div>
+                <div className="font-medium text-teal-900">2026 Bend Points Formula:</div>
                 <ul className="text-sm space-y-1">
                   <li>• <strong>90%</strong> of first ${SS_BEND_POINTS.first.toLocaleString()} of AIME</li>
                   <li>• <strong>32%</strong> of AIME between ${SS_BEND_POINTS.first.toLocaleString()} and ${SS_BEND_POINTS.second.toLocaleString()}</li>
@@ -391,7 +391,7 @@ export function CheckUsTab() {
           <Card id="tax-brackets" className="scroll-mt-24">
             <CardHeader>
               <div className="flex items-start justify-between">
-                <CardTitle>2025 Federal Income Tax Brackets</CardTitle>
+                <CardTitle>2026 Federal Income Tax Brackets</CardTitle>
                 <GitHubLink path="lib/constants.ts" line={33} />
               </div>
               <CardDescription>Progressive tax rates applied to ordinary income (wages, IRA/401k withdrawals, etc.)</CardDescription>
@@ -434,7 +434,7 @@ export function CheckUsTab() {
           <Card id="ltcg-brackets" className="scroll-mt-24">
             <CardHeader>
               <div className="flex items-start justify-between">
-                <CardTitle>Long-Term Capital Gains Tax Brackets (2025)</CardTitle>
+                <CardTitle>Long-Term Capital Gains Tax Brackets (2026)</CardTitle>
                 <GitHubLink path="lib/constants.ts" line={61} />
               </div>
               <CardDescription>Favorable rates for assets held &gt; 1 year (stocks, bonds, real estate, etc.)</CardDescription>
@@ -475,7 +475,7 @@ export function CheckUsTab() {
           <Card id="estate-tax" className="scroll-mt-24">
             <CardHeader>
               <div className="flex items-start justify-between">
-                <CardTitle>Estate Tax (2025)</CardTitle>
+                <CardTitle>Estate Tax (2026)</CardTitle>
                 <GitHubLink path="lib/constants.ts" line={26} />
               </div>
               <CardDescription>Federal estate tax on wealth transfers at death</CardDescription>
@@ -637,7 +637,7 @@ export function CheckUsTab() {
               <Badge variant="outline" className="bg-white">MIT License</Badge>
               <Badge variant="outline" className="bg-white">TypeScript</Badge>
               <Badge variant="outline" className="bg-white">Next.js 15</Badge>
-              <Badge variant="outline" className="bg-white">IRS 2025 Guidelines</Badge>
+              <Badge variant="outline" className="bg-white">IRS 2026 Guidelines</Badge>
             </div>
           </div>
         </div>

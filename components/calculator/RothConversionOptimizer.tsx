@@ -11,7 +11,7 @@ interface RothConversionOptimizerProps {
   isCalculating?: boolean;
 }
 
-export function RothConversionOptimizer({ rothResult, isCalculating }: RothConversionOptimizerProps) {
+export const RothConversionOptimizer = React.memo(function RothConversionOptimizer({ rothResult, isCalculating }: RothConversionOptimizerProps) {
   if (isCalculating) {
     return (
       <Card>
@@ -303,4 +303,6 @@ export function RothConversionOptimizer({ rothResult, isCalculating }: RothConve
       </CardContent>
     </Card>
   );
-}
+});
+
+RothConversionOptimizer.displayName = 'RothConversionOptimizer';

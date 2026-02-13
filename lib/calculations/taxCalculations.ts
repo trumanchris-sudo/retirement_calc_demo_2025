@@ -20,9 +20,21 @@ export type FilingStatus = "single" | "married";
  * @returns Federal ordinary income tax amount
  */
 export const calcOrdinaryTax = (income: number, status: FilingStatus): number => {
-  if (income <= 0) return 0;
-  const { rates, deduction } = TAX_BRACKETS[status];
-  let adj = Math.max(0, income - deduction);
+  // Guard against NaN/undefined/negative inputs
+  const safeIncome = Number.isFinite(income) ? Math.max(0, income) : 0;
+  if (safeIncome <= 0) return 0;
+
+  // Get brackets for filing status
+  const brackets = TAX_BRACKETS[status];
+  // Type safety check (brackets is always valid at compile time, but defensive for runtime)
+  /* istanbul ignore next */
+  if (!brackets?.rates) {
+    console.warn(`[calcOrdinaryTax] Invalid filing status: ${status}`);
+    return 0;
+  }
+
+  const { rates, deduction } = brackets;
+  let adj = Math.max(0, safeIncome - deduction);
   let tax = 0;
   let prev = 0;
   for (const b of rates) {
@@ -48,14 +60,25 @@ export const calcLTCGTax = (
   status: FilingStatus,
   ordinaryIncome: number
 ): number => {
-  if (capGain <= 0) return 0;
+  // Guard against NaN/undefined/negative inputs
+  const safeCapGain = Number.isFinite(capGain) ? Math.max(0, capGain) : 0;
+  const safeOrdinaryIncome = Number.isFinite(ordinaryIncome) ? Math.max(0, ordinaryIncome) : 0;
+  if (safeCapGain <= 0) return 0;
+
+  // Get brackets for filing status
   const brackets = LTCG_BRACKETS[status];
-  let remainingGain = capGain;
+  // Type safety check (brackets is always valid at compile time, but defensive for runtime)
+  /* istanbul ignore next */
+  if (!brackets) {
+    console.warn(`[calcLTCGTax] Invalid filing status: ${status}`);
+    return 0;
+  }
+  let remainingGain = safeCapGain;
   let tax = 0;
 
   // Track cumulative income (ordinary + gains processed so far)
   // This is how capital gains "stack" on top of ordinary income
-  let cumulativeIncome = ordinaryIncome;
+  let cumulativeIncome = safeOrdinaryIncome;
 
   for (const b of brackets) {
     // How much room is left in this bracket after accounting for cumulative income?
@@ -93,10 +116,21 @@ export const calcNIIT = (
   status: FilingStatus,
   modifiedAGI: number
 ): number => {
-  if (investmentIncome <= 0) return 0;
+  // Guard against NaN/undefined/negative inputs
+  const safeInvestmentIncome = Number.isFinite(investmentIncome) ? Math.max(0, investmentIncome) : 0;
+  const safeModifiedAGI = Number.isFinite(modifiedAGI) ? Math.max(0, modifiedAGI) : 0;
+
+  if (safeInvestmentIncome <= 0) return 0;
+
+  // Validate threshold exists for filing status
   const threshold = NIIT_THRESHOLD[status];
-  const excess = Math.max(0, modifiedAGI - threshold);
+  if (threshold === undefined) {
+    console.warn(`[calcNIIT] Invalid filing status: ${status}`);
+    return 0;
+  }
+
+  const excess = Math.max(0, safeModifiedAGI - threshold);
   if (excess <= 0) return 0;
-  const base = Math.min(investmentIncome, excess);
+  const base = Math.min(safeInvestmentIncome, excess);
   return base * 0.038;
 };

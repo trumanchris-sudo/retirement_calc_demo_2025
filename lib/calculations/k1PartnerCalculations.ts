@@ -110,7 +110,7 @@ export const calculateK1PartnerFlow = (inputs: PartnerInputs): PartnerCalculatio
   const totalSETax = ssTax + medTax;
 
   // Est. Income Tax (Simplified flat 35% blended for high earner logic + SE deduction)
-  const standardDeduction = isMarried ? 31500 : 15750; // 2025 OBBBA standard deduction
+  const standardDeduction = isMarried ? 32200 : 16100; // 2026 standard deduction (indexed from OBBBA)
   const taxableIncome = totalIncome - (totalSETax / 2) - standardDeduction;
   const approxIncomeTax = taxableIncome * 0.35; // Placeholder for progressive logic
 

@@ -56,25 +56,35 @@ export function computeWithdrawalTaxes(
   minPretaxDraw: number = 0,
   baseOrdinaryIncome: number = 0
 ): WithdrawalResult {
-  const totalBal = taxableBal + pretaxBal + rothBal;
-  if (totalBal <= 0 || gross <= 0)
-    return { tax: 0, ordinary: 0, capgain: 0, niit: 0, state: 0, draw: { t: 0, p: 0, r: 0 }, newBasis: taxableBasis };
+  // Guard against NaN/undefined inputs - coerce to 0 for safety
+  const safeTaxableBal = Number.isFinite(taxableBal) ? Math.max(0, taxableBal) : 0;
+  const safePretaxBal = Number.isFinite(pretaxBal) ? Math.max(0, pretaxBal) : 0;
+  const safeRothBal = Number.isFinite(rothBal) ? Math.max(0, rothBal) : 0;
+  const safeTaxableBasis = Number.isFinite(taxableBasis) ? Math.max(0, taxableBasis) : 0;
+  const safeGross = Number.isFinite(gross) ? Math.max(0, gross) : 0;
+  const safeStatePct = Number.isFinite(statePct) ? Math.max(0, Math.min(100, statePct)) : 0;
+  const safeMinPretaxDraw = Number.isFinite(minPretaxDraw) ? Math.max(0, minPretaxDraw) : 0;
+  const safeBaseOrdinaryIncome = Number.isFinite(baseOrdinaryIncome) ? Math.max(0, baseOrdinaryIncome) : 0;
+
+  const totalBal = safeTaxableBal + safePretaxBal + safeRothBal;
+  if (totalBal <= 0 || safeGross <= 0)
+    return { tax: 0, ordinary: 0, capgain: 0, niit: 0, state: 0, draw: { t: 0, p: 0, r: 0 }, newBasis: safeTaxableBasis };
 
   // RMD Logic: Force drawP to be at least minPretaxDraw before pro-rata distribution
-  let drawP = Math.min(minPretaxDraw, pretaxBal); // Can't withdraw more than available
-  let remainingNeed = gross - drawP;
+  let drawP = Math.min(safeMinPretaxDraw, safePretaxBal); // Can't withdraw more than available
+  let remainingNeed = safeGross - drawP;
 
   let drawT = 0;
   let drawR = 0;
 
   // If there's a remaining need after RMD, distribute it pro-rata
   if (remainingNeed > 0) {
-    const availableBal = taxableBal + (pretaxBal - drawP) + rothBal;
+    const availableBal = safeTaxableBal + (safePretaxBal - drawP) + safeRothBal;
 
     if (availableBal > 0) {
-      const shareT = taxableBal / availableBal;
-      const shareP = (pretaxBal - drawP) / availableBal;
-      const shareR = rothBal / availableBal;
+      const shareT = safeTaxableBal / availableBal;
+      const shareP = (safePretaxBal - drawP) / availableBal;
+      const shareR = safeRothBal / availableBal;
 
       drawT = remainingNeed * shareT;
       drawP += remainingNeed * shareP;
@@ -89,13 +99,13 @@ export function computeWithdrawalTaxes(
   // Handle shortfalls by cascading to next account type
   const fixShortfall = (want: number, have: number) => Math.min(want, have);
 
-  const usedT = fixShortfall(drawT, taxableBal);
+  const usedT = fixShortfall(drawT, safeTaxableBal);
   let shortT = drawT - usedT;
 
-  const usedP = fixShortfall(drawP + shortT, pretaxBal);
+  const usedP = fixShortfall(drawP + shortT, safePretaxBal);
   let shortP = drawP + shortT - usedP;
 
-  const usedR = fixShortfall(drawR + shortP, rothBal);
+  const usedR = fixShortfall(drawR + shortP, safeRothBal);
 
   // Final withdrawal amounts after handling shortfalls
   drawT = usedT;
@@ -103,8 +113,8 @@ export function computeWithdrawalTaxes(
   drawR = usedR;
 
   // Calculate capital gains from taxable account withdrawal
-  const unrealizedGain = Math.max(0, taxableBal - taxableBasis);
-  const gainRatio = taxableBal > 0 ? unrealizedGain / taxableBal : 0;
+  const unrealizedGain = Math.max(0, safeTaxableBal - safeTaxableBasis);
+  const gainRatio = safeTaxableBal > 0 ? unrealizedGain / safeTaxableBal : 0;
   const drawT_Gain = drawT * gainRatio;
   const drawT_Basis = drawT - drawT_Gain;
 
@@ -114,18 +124,18 @@ export function computeWithdrawalTaxes(
 
   // Calculate federal taxes using marginal bracket approach
   // Add baseOrdinaryIncome (e.g., Social Security) to ensure withdrawal is taxed at marginal rate
-  const totalOrdinaryIncome = baseOrdinaryIncome + ordinaryIncome;
+  const totalOrdinaryIncome = safeBaseOrdinaryIncome + ordinaryIncome;
   const taxOnTotal = calcOrdinaryTax(totalOrdinaryIncome, status);
-  const taxOnBase = calcOrdinaryTax(baseOrdinaryIncome, status);
+  const taxOnBase = calcOrdinaryTax(safeBaseOrdinaryIncome, status);
   const fedOrd = taxOnTotal - taxOnBase; // Tax attributable to withdrawal only
 
   const fedCap = calcLTCGTax(capGains, status, totalOrdinaryIncome);
   const magi = totalOrdinaryIncome + capGains;
   const niit = calcNIIT(capGains, status, magi);
-  const stateTax = (ordinaryIncome + capGains) * (statePct / 100);
+  const stateTax = (ordinaryIncome + capGains) * (safeStatePct / 100);
 
   const totalTax = fedOrd + fedCap + niit + stateTax;
-  const newBasis = Math.max(0, taxableBasis - drawT_Basis);
+  const newBasis = Math.max(0, safeTaxableBasis - drawT_Basis);
 
   return {
     tax: totalTax,

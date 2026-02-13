@@ -397,10 +397,14 @@ export function mapAIDataToCalculator(
       }
     }
 
-    // Taxable contributions for person 2 are always 0 when using new contribution fields
-    // (the user provides combined total which goes to person 1)
+    // Taxable contributions for person 2: split combined total proportionally
     if (extractedData.contributionTaxable !== undefined) {
-      cTax2 = 0; // Combined total already assigned to cTax1
+      // Split combined taxable contribution proportionally by income
+      const totalIncome = annualIncome1 + annualIncome2;
+      const person2Ratio = totalIncome > 0 ? annualIncome2 / totalIncome : 0.5;
+      cTax2 = extractedData.contributionTaxable * person2Ratio;
+      // Also adjust cTax1 to be the remainder
+      cTax1 = extractedData.contributionTaxable * (1 - person2Ratio);
     } else if (extractedData.savingsRateTaxable2 !== undefined) {
       // Legacy field support
       cTax2 = extractedData.savingsRateTaxable2;
@@ -410,9 +414,14 @@ export function mapAIDataToCalculator(
       cTax2 = annualIncome2 * defaultSavingsRate2 * 0.1;
     }
 
-    // Employer match for person 2
+    // Employer match for person 2: split combined match proportionally
     if (extractedData.contributionMatch !== undefined) {
-      cMatch2 = 0; // Combined match already assigned to cMatch1
+      // Split combined match proportionally by income
+      const totalIncome = annualIncome1 + annualIncome2;
+      const person2Ratio = totalIncome > 0 ? annualIncome2 / totalIncome : 0.5;
+      cMatch2 = Math.min(extractedData.contributionMatch * person2Ratio, IRS_LIMITS_2026['401k'] - cPre2);
+      // Also adjust cMatch1 to be the remainder
+      cMatch1 = Math.min(extractedData.contributionMatch * (1 - person2Ratio), IRS_LIMITS_2026['401k'] - cPre1);
     } else {
       // Calculate default
       cMatch2 = Math.min(annualIncome2 * 0.06 * 0.5, IRS_LIMITS_2026['401k'] - cPre2);
@@ -620,6 +629,23 @@ export function mapAIDataToCalculator(
       monthlyOtherExpenses: extractedData.monthlyOtherExpenses,
     }),
 
+    // Additional expense categories (for 2026 income calculators)
+    ...(extractedData.monthlyHouseholdExpenses !== undefined && {
+      monthlyHouseholdExpenses: extractedData.monthlyHouseholdExpenses,
+    }),
+    ...(extractedData.monthlyDiscretionary !== undefined && {
+      monthlyDiscretionary: extractedData.monthlyDiscretionary,
+    }),
+    ...(extractedData.monthlyChildcare !== undefined && {
+      monthlyChildcare: extractedData.monthlyChildcare,
+    }),
+    ...(extractedData.annualLifeInsuranceP1 !== undefined && {
+      annualLifeInsuranceP1: extractedData.annualLifeInsuranceP1,
+    }),
+    ...(extractedData.annualLifeInsuranceP2 !== undefined && {
+      annualLifeInsuranceP2: extractedData.annualLifeInsuranceP2,
+    }),
+
     // Rates & Assumptions
     retRate: DEFAULT_ASSUMPTIONS.retRate,
     infRate: DEFAULT_ASSUMPTIONS.infRate,
@@ -636,9 +662,9 @@ export function mapAIDataToCalculator(
     ssIncome2,
     ssClaimAge2,
 
-    // Simulation defaults
-    retMode: 'fixed',
-    walkSeries: 'nominal',
+    // Simulation defaults - use Monte Carlo (random walk) for realistic projections
+    retMode: 'randomWalk',
+    walkSeries: 'trulyRandom',
     seed: 12345,
   };
 

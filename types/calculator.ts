@@ -96,6 +96,11 @@ export interface CalculatorInputs {
   monthlyHealthcareP1?: number;
   monthlyHealthcareP2?: number;
   monthlyOtherExpenses?: number;
+  monthlyHouseholdExpenses?: number;     // Groceries, supplies, etc.
+  monthlyDiscretionary?: number;          // Entertainment, dining, shopping
+  monthlyChildcare?: number;              // Childcare/daycare costs
+  annualLifeInsuranceP1?: number;        // Person 1 life insurance (annual)
+  annualLifeInsuranceP2?: number;        // Person 2 life insurance (annual)
   eoyBonusAmount?: number;
   eoyBonusMonth?: string;
   firstPayDate?: string;
@@ -132,6 +137,14 @@ export interface CalculatorInputs {
   seed: number;
   dividendYield: number; // Annual dividend yield percentage for taxable accounts
 
+  // Bond Glide Path Configuration
+  allocationStrategy: AllocationStrategy;
+  bondStartPct: number;
+  bondEndPct: number;
+  bondStartAge: number;
+  bondEndAge: number;
+  glidePathShape: GlidePathShape;
+
   // Social Security
   includeSS: boolean;
   ssIncome: number;
@@ -143,6 +156,27 @@ export interface CalculatorInputs {
   historicalYear?: number;
   inflationShockRate: number | null;
   inflationShockDuration: number;
+
+  // Healthcare & Medicare
+  includeMedicare: boolean;
+  medicarePremium: number;
+  medicalInflation: number;
+  irmaaThresholdSingle: number;
+  irmaaThresholdMarried: number;
+  irmaaSurcharge: number;
+
+  // Long-Term Care
+  includeLTC: boolean;
+  ltcAnnualCost: number;
+  ltcProbability: number;
+  ltcDuration: number;
+  ltcOnsetAge: number;
+  ltcAgeRangeStart: number;
+  ltcAgeRangeEnd: number;
+
+  // Roth Conversion Strategy
+  enableRothConversions: boolean;
+  targetConversionBracket: number;
 
   // Generational Wealth
   showGen: boolean;

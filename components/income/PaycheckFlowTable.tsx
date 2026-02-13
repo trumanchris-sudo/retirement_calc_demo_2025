@@ -48,10 +48,10 @@ interface PaycheckFlowTableProps {
 }
 
 export function PaycheckFlowTable({ paychecks }: PaycheckFlowTableProps) {
-  const MAX_401K = 24000;
+  const MAX_401K = 24500; // 2026 401(k) limit
   const MAX_DEP_FSA = 5000;
   const MAX_MED_FSA = 3200;
-  const SS_WAGE_BASE = 176100;
+  const SS_WAGE_BASE = 184500; // 2026 Social Security wage base
 
   const formatCurrency = (value: number, showSign: boolean = false) => {
     // Handle null/undefined values by defaulting to 0

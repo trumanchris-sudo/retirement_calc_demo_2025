@@ -45,8 +45,11 @@ function isPlanConfigComplete(config: Partial<CalculatorInputs>): boolean {
  */
 export function useOnboarding(planConfig?: Partial<CalculatorInputs>) {
   const [onboardingState, setOnboardingState] = useState<OnboardingState>({ hasCompletedOnboarding: false })
-
   const [wizardData, setWizardData] = useState<OnboardingWizardData | null>(null)
+
+  // Track whether we've loaded from localStorage to avoid hydration mismatch
+  // Before this is true, we return shouldShowWizard: null to show a loading state
+  const [hasMounted, setHasMounted] = useState(false)
 
   // Load from localStorage after mount to avoid hydration mismatch
   useEffect(() => {
@@ -68,6 +71,9 @@ export function useOnboarding(planConfig?: Partial<CalculatorInputs>) {
       } catch (error) {
         console.error('Failed to load wizard progress:', error)
       }
+
+      // Mark as mounted after loading localStorage
+      setHasMounted(true)
     }
   }, [])
 
@@ -178,12 +184,15 @@ export function useOnboarding(planConfig?: Partial<CalculatorInputs>) {
 
   // Validate both flag AND config data
   // Don't hide wizard unless both are true
-  const shouldShowWizard =
-    !onboardingState.hasCompletedOnboarding || (planConfig ? !isPlanConfigComplete(planConfig) : true)
+  // Return null before mount to prevent hydration mismatch
+  const shouldShowWizard = hasMounted
+    ? !onboardingState.hasCompletedOnboarding || (planConfig ? !isPlanConfigComplete(planConfig) : true)
+    : null // null indicates "loading" state - component should show loading UI
 
   return {
     hasCompletedOnboarding: onboardingState.hasCompletedOnboarding,
     shouldShowWizard,
+    hasMounted, // Expose this so components can show loading state if needed
     wizardData,
     markOnboardingComplete,
     resetOnboarding,

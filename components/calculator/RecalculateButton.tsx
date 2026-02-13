@@ -9,6 +9,7 @@ export interface RecalculateButtonProps {
   disabled?: boolean;
   isCalculating?: boolean;
   className?: string;
+  disabledReason?: string;
 }
 
 /**
@@ -19,17 +20,32 @@ export function RecalculateButton({
   onClick,
   disabled = false,
   isCalculating = false,
-  className = ""
+  className = "",
+  disabledReason,
 }: RecalculateButtonProps) {
+  const isDisabled = disabled || isCalculating;
+
   return (
-    <Button
-      onClick={onClick}
-      disabled={disabled || isCalculating}
-      size="lg"
-      className={`w-full sm:w-auto ${className}`}
-    >
-      <RefreshCw className={`mr-2 h-4 w-4 ${isCalculating ? 'animate-spin' : ''}`} />
-      {isCalculating ? 'Calculating...' : 'Recalculate'}
-    </Button>
+    <div className="relative inline-block">
+      <Button
+        onClick={onClick}
+        disabled={isDisabled}
+        size="lg"
+        className={`w-full sm:w-auto min-h-[44px] ${className}`}
+        aria-busy={isCalculating}
+        aria-describedby={isDisabled && disabledReason ? "recalc-disabled-reason" : undefined}
+      >
+        <RefreshCw
+          className={`mr-2 h-4 w-4 ${isCalculating ? 'animate-spin' : ''}`}
+          aria-hidden="true"
+        />
+        {isCalculating ? 'Calculating...' : 'Recalculate'}
+      </Button>
+      {isDisabled && disabledReason && (
+        <span id="recalc-disabled-reason" className="sr-only">
+          {disabledReason}
+        </span>
+      )}
+    </div>
   );
 }

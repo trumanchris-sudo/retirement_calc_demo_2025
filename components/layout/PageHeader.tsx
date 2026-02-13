@@ -18,6 +18,8 @@ interface PageHeaderProps {
   onAdjust?: (deltas: AdjustmentDeltas) => void;
   onAIReview?: () => void;
   cubeAppended?: boolean;
+  hasUnsavedChanges?: boolean;
+  isSaving?: boolean;
 }
 
 export interface AdjustmentDeltas {
@@ -34,7 +36,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   onShare,
   onAdjust,
   onAIReview,
-  cubeAppended = false
+  cubeAppended = false,
+  hasUnsavedChanges = false,
+  isSaving = false,
 }) => {
   const [contributionDelta, setContributionDelta] = useState(0);
   const [withdrawalRateDelta, setWithdrawalRateDelta] = useState(0);
@@ -64,14 +68,33 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     setWithdrawalRateDelta(0);
   };
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
+    <header
+      className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      role="banner"
+    >
+      <nav
+        className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2"
+        aria-label="Main navigation"
+      >
         {/* Logo/Title - CUBE ALWAYS RENDERS */}
         <div className="flex items-center gap-3 min-w-0 flex-shrink retirement-header-left">
           <CubeStaticMini />
           <span className="font-semibold text-slate-900 dark:text-slate-50 hidden sm:inline-block truncate retirement-header-title">
             Tax-Aware Retirement Calculator
           </span>
+          {/* Unsaved changes / saving indicator */}
+          {isSaving && (
+            <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1 no-print">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              Saving...
+            </span>
+          )}
+          {hasUnsavedChanges && !isSaving && (
+            <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 no-print" title="You have unsaved changes">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span className="hidden md:inline">Unsaved</span>
+            </span>
+          )}
         </div>
 
         {/* Actions - Always show dark mode toggle prominently */}
@@ -299,7 +322,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             </>
           )}
         </div>
-      </div>
+      </nav>
     </header>
   );
 };

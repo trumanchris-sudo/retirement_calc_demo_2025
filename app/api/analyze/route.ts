@@ -8,7 +8,23 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body', insight: 'Unable to analyze - invalid request format.' },
+        { status: 400 }
+      );
+    }
+
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { error: 'Request body must be a valid object', insight: 'Unable to analyze - invalid request format.' },
+        { status: 400 }
+      );
+    }
+
     const {
       age,
       retirementAge,
@@ -205,8 +221,9 @@ Provide a concise, specific answer focused on their question. Keep your response
     });
 
     // Extract the text from Claude's response
-    const insight = message.content[0].type === 'text'
-      ? message.content[0].text
+    const firstContent = message.content?.[0];
+    const insight = firstContent && firstContent.type === 'text'
+      ? firstContent.text
       : 'Unable to generate analysis.';
 
     return NextResponse.json({ insight });

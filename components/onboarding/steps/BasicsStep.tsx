@@ -37,7 +37,9 @@ export function BasicsStep({ data, onChange }: BasicsStepProps) {
     }
     const numValue = parseInt(value)
     if (!isNaN(numValue)) {
-      onChange({ age: numValue })
+      // Constrain to valid range
+      const constrainedAge = Math.min(100, Math.max(18, numValue))
+      onChange({ age: constrainedAge })
     }
   }
 
@@ -49,7 +51,9 @@ export function BasicsStep({ data, onChange }: BasicsStepProps) {
     }
     const numValue = parseInt(value)
     if (!isNaN(numValue)) {
-      onChange({ spouseAge: numValue })
+      // Constrain to valid range
+      const constrainedAge = Math.min(100, Math.max(18, numValue))
+      onChange({ spouseAge: constrainedAge })
     }
   }
 

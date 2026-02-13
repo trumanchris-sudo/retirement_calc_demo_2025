@@ -138,6 +138,14 @@ export interface ValidationFailure {
 export type ValidationResult = ValidationSuccess | ValidationFailure;
 
 /**
+ * Type guard to check if a Zod error issue has a 'received' property.
+ * Some Zod error types (like ZodInvalidTypeIssue) include a 'received' field.
+ */
+function hasReceivedProperty(issue: z.ZodIssue): issue is z.ZodIssue & { received: unknown } {
+  return 'received' in issue;
+}
+
+/**
  * Validate a plan configuration with detailed error messages
  */
 export function validatePlanConfig(data: unknown): ValidationResult {
@@ -154,7 +162,8 @@ export function validatePlanConfig(data: unknown): ValidationResult {
   const errors: ValidationError[] = result.error.errors.map((err) => ({
     field: err.path.join('.'),
     message: err.message,
-    value: err.code === 'invalid_type' ? undefined : (err as any).received,
+    // Only extract 'received' if it's not an invalid_type error and the property exists
+    value: err.code === 'invalid_type' ? undefined : (hasReceivedProperty(err) ? err.received : undefined),
   }));
 
   return {
@@ -228,8 +237,8 @@ export const DEFAULT_PLAN_CONFIG: PlanConfig = {
     savingsRate: 15,
   },
   simulation: {
-    mode: 'fixed',
-    walkSeries: 'sp500',
+    mode: 'historical',  // Default to historical bootstrap (Monte Carlo) instead of fixed
+    walkSeries: 'random', // Use random for Monte Carlo simulations
     seed: 42,
     historicalYear: null,
     inflationShockRate: null,
@@ -285,9 +294,16 @@ export function migrateConfig(data: unknown): PlanConfig {
 }
 
 // ==================== Local Storage Helpers ====================
+// DEPRECATED: These functions duplicate the PlanConfigProvider's localStorage handling.
+// The context in lib/plan-config-context.tsx is the authoritative source.
+// These functions are not currently used and should be removed in a future cleanup.
 
 const STORAGE_KEY = 'retirement_plan_config';
 
+/**
+ * @deprecated Use usePlanConfig() hook from lib/plan-config-context.tsx instead.
+ * The context auto-loads from localStorage on mount.
+ */
 export function loadConfigFromStorage(): PlanConfig {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -301,6 +317,10 @@ export function loadConfigFromStorage(): PlanConfig {
   }
 }
 
+/**
+ * @deprecated Use updateConfig() from usePlanConfig() hook instead.
+ * The context auto-saves to localStorage on every config change.
+ */
 export function saveConfigToStorage(config: Partial<PlanConfig>): void {
   try {
     const current = loadConfigFromStorage();

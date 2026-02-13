@@ -122,13 +122,43 @@ export function createDefaultPlanConfig(): PlanConfig {
     ssClaimAge2: 67,
 
     // Simulation
-    retMode: 'fixed',
-    walkSeries: 'nominal',
+    retMode: 'randomWalk',
+    walkSeries: 'trulyRandom',
     seed: 12345,
 
+    // Bond Glide Path Configuration
+    allocationStrategy: 'aggressive',
+    bondStartPct: 10,
+    bondEndPct: 60,
+    bondStartAge: 30,  // Will be synced to age1 in page.tsx
+    bondEndAge: 75,
+    glidePathShape: 'linear',
+
     // Scenario Testing
+    historicalYear: undefined,
     inflationShockRate: null,
     inflationShockDuration: 0,
+
+    // Healthcare & Medicare
+    includeMedicare: true,
+    medicarePremium: 400,
+    medicalInflation: 5.0,
+    irmaaThresholdSingle: 109000,
+    irmaaThresholdMarried: 218000,
+    irmaaSurcharge: 230,
+
+    // Long-Term Care
+    includeLTC: false,
+    ltcAnnualCost: 80000,
+    ltcProbability: 50,
+    ltcDuration: 2.5,
+    ltcOnsetAge: 82,
+    ltcAgeRangeStart: 75,
+    ltcAgeRangeEnd: 90,
+
+    // Roth Conversion Strategy
+    enableRothConversions: false,
+    targetConversionBracket: 0.24,
 
     // Generational Wealth
     showGen: false,
@@ -141,6 +171,13 @@ export function createDefaultPlanConfig(): PlanConfig {
     hypBenAgesStr: '',
     fertilityWindowStart: 20,
     fertilityWindowEnd: 45,
+
+    // Income Calculator Expense Details (optional, populated by wizard)
+    monthlyHouseholdExpenses: 0,
+    monthlyDiscretionary: 0,
+    monthlyChildcare: 0,
+    annualLifeInsuranceP1: 0,
+    annualLifeInsuranceP2: 0,
 
     // Metadata
     fieldMetadata: {},
@@ -224,6 +261,16 @@ export function mergeConfigUpdates(
 
   // If marital status is changing to 'single', clear spouse-related fields
   if (updates.marital === 'single' && current.marital !== 'single') {
+    // Also update fieldMetadata for all cleared spouse fields
+    const spouseFields = ['age2', 'employmentType2', 'annualIncome2', 'cTax2', 'cPre2', 'cPost2', 'cMatch2', 'ssIncome2', 'ssClaimAge2'];
+    spouseFields.forEach(field => {
+      newFieldMetadata[field] = {
+        field,
+        source,
+        updatedAt: now,
+      };
+    });
+
     return {
       ...current,
       ...updates,

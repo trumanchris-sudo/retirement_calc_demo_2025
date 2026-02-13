@@ -101,14 +101,20 @@ export function SavingsStep({ data, basicsData, onChange }: SavingsStepProps) {
   const handleIncomeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value)
     if (!isNaN(value) && value >= 0) {
-      onChange({ income: value })
+      // Constrain to reasonable max (10M) to prevent unrealistic inputs
+      const constrainedValue = Math.min(10_000_000, value)
+      onChange({ income: constrainedValue })
+    } else if (e.target.value === '') {
+      onChange({ income: 0 })
     }
   }
 
   const handleSpouseIncomeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value)
     if (!isNaN(value) && value >= 0) {
-      onChange({ spouseIncome: value })
+      // Constrain to reasonable max (10M) to prevent unrealistic inputs
+      const constrainedValue = Math.min(10_000_000, value)
+      onChange({ spouseIncome: constrainedValue })
     } else if (e.target.value === '') {
       onChange({ spouseIncome: undefined })
     }

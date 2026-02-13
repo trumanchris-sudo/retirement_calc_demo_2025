@@ -46,6 +46,19 @@ const ADMIN_PRESETS: Record<string, ExtractedData> = {
     contributionTaxable: 30000,
     contributionMatch: 20000,
     retirementAge: 60,
+    // Housing & Expenses
+    monthlyMortgageRent: 4500,
+    monthlyUtilities: 400,
+    monthlyInsurancePropertyTax: 800,
+    monthlyHealthcareP1: 600,
+    monthlyHealthcareP2: 600,
+    monthlyOtherExpenses: 2000,
+    // Additional expense categories for 2026 income calculators
+    monthlyHouseholdExpenses: 1500,
+    monthlyDiscretionary: 2500,
+    monthlyChildcare: 0,
+    annualLifeInsuranceP1: 2000, // ~$2M coverage at ~$1/$1000
+    annualLifeInsuranceP2: 1200, // ~$1.5M coverage
   },
 };
 
@@ -188,8 +201,9 @@ ${getNextQuestion(0, {})}`;
         setPhase(state.currentPhase);
         setQuestionIndex(state.questionIndex || 0);
         // Restore user overrides if present (for new sessions)
-        if ((state as any).userOverrides) {
-          setUserOverrides((state as any).userOverrides);
+        const stateWithOverrides = state as AIOnboardingState & { userOverrides?: Record<string, unknown> };
+        if (stateWithOverrides.userOverrides) {
+          setUserOverrides(stateWithOverrides.userOverrides);
         }
         console.log('[AIConsole] Restored state from localStorage');
       } catch (e) {
@@ -314,7 +328,7 @@ ${getNextQuestion(0, {})}`;
         // We'll let the API handle the details, just flag it
         if (input.includes('bonus') && !input.includes('no bonus')) {
           // Store original response for API to extract bonus details
-          (extracted as any).bonusInfo = userInput;
+          extracted.bonusInfo = userInput;
         }
         break;
 

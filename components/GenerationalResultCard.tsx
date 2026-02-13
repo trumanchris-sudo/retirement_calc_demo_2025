@@ -1,10 +1,7 @@
 "use client";
 
 import React from "react";
-
-/* Format currency */
-const fmt = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+import { fmtFull } from "@/lib/utils";
 
 /* Icons */
 const IconInfinity = () => (
@@ -85,7 +82,7 @@ export const GenerationalResultCard: React.FC<GenerationalResultCardProps> = ({
       {/* Primary Value */}
       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
         <div style={{ fontSize: isPerpetual ? '48px' : '72px', fontWeight: 'bold', lineHeight: '1', letterSpacing: '-0.02em', marginBottom: '8px' }}>
-          {isPerpetual ? fmt(amountPerBeneficiary) : yearsOfSupport}
+          {isPerpetual ? fmtFull(amountPerBeneficiary) : yearsOfSupport}
         </div>
         <div style={{ fontSize: '14px', opacity: 0.9, fontWeight: '500' }}>
           {isPerpetual ? "per beneficiary / year" : "years of support"}
@@ -131,8 +128,8 @@ export const GenerationalResultCard: React.FC<GenerationalResultCardProps> = ({
       {/* Footer explanation */}
       <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '16px', lineHeight: '1.4', textAlign: 'center' }}>
         {isPerpetual
-          ? `Each beneficiary receives ${fmt(amountPerBeneficiary)}/yr (inflation-adjusted).`
-          : `Each beneficiary receives ${fmt(amountPerBeneficiary)}/yr for ${yearsOfSupport} years.`}
+          ? `Each beneficiary receives ${fmtFull(amountPerBeneficiary)}/yr (inflation-adjusted).`
+          : `Each beneficiary receives ${fmtFull(amountPerBeneficiary)}/yr for ${yearsOfSupport} years.`}
       </div>
     </div>
   );

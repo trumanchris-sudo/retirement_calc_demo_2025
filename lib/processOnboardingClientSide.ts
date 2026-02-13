@@ -170,6 +170,118 @@ export function processOnboardingClientSide(
     );
   }
 
+  // ===== ADDITIONAL EXPENSE CATEGORIES (for 2026 income calculators) =====
+
+  // Household Expenses: monthlyHouseholdExpenses (groceries, supplies, maintenance)
+  if (extractedData.monthlyHouseholdExpenses === undefined) {
+    let household: number;
+    if (totalIncome < 100000) {
+      household = isMarried ? 800 : 500;
+    } else if (totalIncome < 200000) {
+      household = isMarried ? 1200 : 800;
+    } else if (totalIncome < 400000) {
+      household = isMarried ? 1800 : 1200;
+    } else {
+      household = isMarried ? 2500 : 1800;
+    }
+
+    extractedData.monthlyHouseholdExpenses = household;
+    addAssumption(
+      'monthlyHouseholdExpenses',
+      'Monthly Household Expenses',
+      household,
+      `Groceries, supplies, and maintenance - ~${Math.round((household * 12 / totalIncome) * 100)}% of gross income`,
+      'medium'
+    );
+  }
+
+  // Discretionary Spending: monthlyDiscretionary (entertainment, dining, shopping)
+  if (extractedData.monthlyDiscretionary === undefined) {
+    // Discretionary typically 15-25% of take-home pay, scale with income
+    let discretionary: number;
+    if (totalIncome < 100000) {
+      discretionary = isMarried ? 800 : 600;
+    } else if (totalIncome < 200000) {
+      discretionary = isMarried ? 1500 : 1000;
+    } else if (totalIncome < 400000) {
+      discretionary = isMarried ? 2500 : 1800;
+    } else if (totalIncome < 700000) {
+      discretionary = isMarried ? 4000 : 3000;
+    } else {
+      discretionary = isMarried ? 6000 : 4500;
+    }
+
+    extractedData.monthlyDiscretionary = discretionary;
+    addAssumption(
+      'monthlyDiscretionary',
+      'Monthly Discretionary Spending',
+      discretionary,
+      `Entertainment, dining out, shopping, hobbies - ~${Math.round((discretionary * 12 / totalIncome) * 100)}% of gross income`,
+      'medium'
+    );
+  }
+
+  // Childcare: monthlyChildcare (only if they have children indicated)
+  // Note: We don't have numChildren in ExtractedData yet, so skip unless income suggests family
+  if (extractedData.monthlyChildcare === undefined) {
+    // Default to 0 unless explicitly set - childcare varies widely
+    extractedData.monthlyChildcare = 0;
+    // Don't add assumption for 0 value - it's opt-in
+  }
+
+  // Life Insurance: annualLifeInsuranceP1 and P2
+  // Rule of thumb: 10x income for primary earners, less for secondary
+  if (extractedData.annualLifeInsuranceP1 === undefined) {
+    const income1 = extractedData.annualIncome1 || 100000;
+    // Calculate coverage needed (10x income) and estimate premium
+    // Typical term life: ~$0.50-1.00 per $1000 coverage per year for healthy 35-45 year olds
+    const coverage1 = income1 * 10;
+    const premiumRate1 = 0.0008; // ~$0.80 per $1000 coverage annually
+    const annualPremium1 = Math.round(coverage1 * premiumRate1);
+
+    extractedData.annualLifeInsuranceP1 = annualPremium1;
+    addAssumption(
+      'annualLifeInsuranceP1',
+      'Your Life Insurance (Annual)',
+      annualPremium1,
+      `Term life premium for ~$${Math.round(coverage1 / 1000)}k coverage (10x income) - adjust based on actual policy`,
+      'low'
+    );
+  }
+
+  if (isMarried && extractedData.annualLifeInsuranceP2 === undefined) {
+    const income2 = extractedData.annualIncome2 || 0;
+    if (income2 > 0) {
+      // Spouse has income - estimate coverage similarly
+      const coverage2 = income2 * 10;
+      const premiumRate2 = 0.0008;
+      const annualPremium2 = Math.round(coverage2 * premiumRate2);
+
+      extractedData.annualLifeInsuranceP2 = annualPremium2;
+      addAssumption(
+        'annualLifeInsuranceP2',
+        'Spouse Life Insurance (Annual)',
+        annualPremium2,
+        `Term life premium for ~$${Math.round(coverage2 / 1000)}k coverage (10x income) - adjust based on actual policy`,
+        'low'
+      );
+    } else {
+      // Spouse doesn't have income - smaller coverage for household support
+      const coverage2 = 250000; // $250k baseline for non-earning spouse
+      const premiumRate2 = 0.0006;
+      const annualPremium2 = Math.round(coverage2 * premiumRate2);
+
+      extractedData.annualLifeInsuranceP2 = annualPremium2;
+      addAssumption(
+        'annualLifeInsuranceP2',
+        'Spouse Life Insurance (Annual)',
+        annualPremium2,
+        `Term life premium for ~$250k coverage (household support) - adjust based on actual policy`,
+        'low'
+      );
+    }
+  }
+
   // ===== USE EXISTING MAPPER FOR REMAINING LOGIC =====
   // The mapper handles: contributions, balances, tax rates, return assumptions, etc.
   const mappedResult = mapAIDataToCalculator(extractedData, assumptions);

@@ -15,18 +15,18 @@ describe('Tax Calculation Verification Suite', () => {
   // =========================================================================
 
   describe('Standard Deduction Values', () => {
-    it('should use OBBBA 2025 standard deduction amounts', () => {
+    it('should use 2026 standard deduction amounts (indexed from OBBBA)', () => {
       const codeValueSingle = TAX_BRACKETS.single.deduction;
       const codeValueMarried = TAX_BRACKETS.married.deduction;
 
-      const expectedSingle = 15750;  // OBBBA value (July 2025)
-      const expectedMarried = 31500; // OBBBA value (July 2025)
+      const expectedSingle = 16100;  // 2026 value (indexed from OBBBA July 2025)
+      const expectedMarried = 32200; // 2026 value (indexed from OBBBA July 2025)
 
-      // Verify OBBBA values are correctly implemented
+      // Verify 2026 values are correctly implemented
       expect(codeValueSingle).toBe(expectedSingle);
       expect(codeValueMarried).toBe(expectedMarried);
 
-      console.log('✅ Standard deductions updated to OBBBA values:');
+      console.log('✅ Standard deductions updated to 2026 values:');
       console.log(`  Single: $${codeValueSingle.toLocaleString()}`);
       console.log(`  Married: $${codeValueMarried.toLocaleString()}`);
     });
@@ -36,7 +36,7 @@ describe('Tax Calculation Verification Suite', () => {
   // PHASE 1.1: TAX BRACKET VERIFICATION
   // =========================================================================
 
-  describe('2025 Tax Bracket Structure Verification', () => {
+  describe('2026 Tax Bracket Structure Verification', () => {
     it('should have exactly 7 tax brackets for both filing statuses', () => {
       expect(TAX_BRACKETS.single.rates).toHaveLength(7);
       expect(TAX_BRACKETS.married.rates).toHaveLength(7);
@@ -52,23 +52,23 @@ describe('Tax Calculation Verification Suite', () => {
       expect(marriedRates).toEqual(expectedRates);
     });
 
-    it('should verify known 2025 bracket thresholds for single filers', () => {
+    it('should verify known 2026 bracket thresholds for single filers', () => {
       const brackets = TAX_BRACKETS.single.rates;
 
-      // Verified thresholds from IRS
-      expect(brackets[0].limit).toBe(11925);   // 10% bracket
-      expect(brackets[1].limit).toBe(48475);   // 12% bracket
-      expect(brackets[5].limit).toBe(626350);  // 35% bracket
+      // Verified thresholds from IRS Revenue Procedure 2025-32
+      expect(brackets[0].limit).toBe(12400);   // 10% bracket
+      expect(brackets[1].limit).toBe(50400);   // 12% bracket
+      expect(brackets[5].limit).toBe(640600);  // 35% bracket
       expect(brackets[6].limit).toBe(Infinity); // 37% bracket
     });
 
-    it('should verify known 2025 bracket thresholds for married filers', () => {
+    it('should verify known 2026 bracket thresholds for married filers', () => {
       const brackets = TAX_BRACKETS.married.rates;
 
-      // Verified thresholds from IRS
-      expect(brackets[0].limit).toBe(23850);   // 10% bracket
-      expect(brackets[1].limit).toBe(96950);   // 12% bracket
-      expect(brackets[5].limit).toBe(751600);  // 35% bracket
+      // Verified thresholds from IRS Revenue Procedure 2025-32
+      expect(brackets[0].limit).toBe(24800);   // 10% bracket
+      expect(brackets[1].limit).toBe(100800);  // 12% bracket
+      expect(brackets[5].limit).toBe(768700);  // 35% bracket
       expect(brackets[6].limit).toBe(Infinity); // 37% bracket
     });
 

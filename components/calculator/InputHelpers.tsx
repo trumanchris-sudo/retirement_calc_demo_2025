@@ -1,8 +1,9 @@
 "use client"
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Label } from "@/components/ui/label";
-import { clampNum, toNumber } from "@/lib/utils";
+import { clampNum, toNumber, cn } from "@/lib/utils";
+import { TRANSITIONS, FORMS, STATUS } from "@/lib/designTokens";
 import type { FieldValidationResult } from "@/lib/fieldValidation";
 
 /**
@@ -18,28 +19,40 @@ export const TrendingUpIcon: React.FC<{ className?: string }> = ({ className = "
   </svg>
 );
 
-export const Spinner: React.FC<{ className?: string }> = ({ className = "" }) => (
-  <svg
-    className={`animate-spin h-5 w-5 text-white ${className}`}
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-  >
-    <circle
-      className="opacity-25"
-      cx="12"
-      cy="12"
-      r="10"
-      stroke="currentColor"
-      strokeWidth="4"
-    ></circle>
-    <path
-      className="opacity-75"
-      fill="currentColor"
-      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-    ></path>
-  </svg>
-);
+export const Spinner: React.FC<{ className?: string; size?: "sm" | "md" | "lg" }> = ({
+  className = "",
+  size = "md"
+}) => {
+  const sizeClasses = {
+    sm: "h-4 w-4",
+    md: "h-5 w-5",
+    lg: "h-8 w-8"
+  };
+
+  return (
+    <svg
+      className={cn("animate-spin text-current", sizeClasses[size], className)}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      />
+    </svg>
+  );
+};
 
 const InfoIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -49,14 +62,72 @@ const InfoIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
   </svg>
 );
 
-export const Tip: React.FC<{ text: string }> = ({ text }) => (
-  <div className="inline-block ml-1 group relative">
-    <InfoIcon className="w-4 h-4 text-blue-500 cursor-help inline" />
-    <div className="invisible group-hover:visible absolute z-10 w-64 p-2 text-xs bg-gray-900 text-white rounded shadow-lg left-1/2 -translate-x-1/2 bottom-full mb-2">
-      {text}
-    </div>
-  </div>
+const CheckIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
 );
+
+const AlertIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
+/**
+ * Tooltip component with improved positioning and animation
+ */
+export const Tip: React.FC<{ text: string; children?: React.ReactNode }> = ({ text, children }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showTip = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setIsVisible(true);
+  };
+
+  const hideTip = () => {
+    timeoutRef.current = setTimeout(() => setIsVisible(false), 150);
+  };
+
+  return (
+    <div
+      className="inline-flex items-center relative"
+      onMouseEnter={showTip}
+      onMouseLeave={hideTip}
+      onFocus={showTip}
+      onBlur={hideTip}
+    >
+      <button
+        type="button"
+        className="ml-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-full"
+        aria-label="More information"
+        tabIndex={0}
+      >
+        {children || <InfoIcon className="w-4 h-4" />}
+      </button>
+      <div
+        className={cn(
+          "absolute z-50 w-64 p-3 text-xs bg-slate-900 dark:bg-slate-800 text-white rounded-lg shadow-xl",
+          "left-1/2 -translate-x-1/2 bottom-full mb-2",
+          "transition-all duration-200",
+          isVisible
+            ? "opacity-100 translate-y-0 visible"
+            : "opacity-0 translate-y-1 invisible"
+        )}
+        role="tooltip"
+      >
+        <div className="relative">
+          {text}
+          {/* Tooltip arrow */}
+          <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-slate-900 dark:border-t-slate-800" />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ==================== Input Component ====================
 
@@ -73,6 +144,15 @@ export type InputProps = {
   onInputChange?: () => void; // Called when input value changes
   defaultValue?: number; // If provided, auto-clear this value on focus
   validate?: (value: number) => FieldValidationResult; // Optional validation function
+  prefix?: string; // e.g., "$"
+  suffix?: string; // e.g., "%"
+  placeholder?: string;
+  /** Show success state when valid */
+  showSuccess?: boolean;
+  /** Help text shown below the input */
+  helpText?: string;
+  /** Size variant */
+  size?: "sm" | "md" | "lg";
 };
 
 export const Input: React.FC<InputProps> = ({
@@ -88,10 +168,18 @@ export const Input: React.FC<InputProps> = ({
   onInputChange,
   defaultValue,
   validate,
+  prefix,
+  suffix,
+  placeholder,
+  showSuccess = false,
+  helpText,
+  size = "md",
 }) => {
   const [local, setLocal] = useState<string>(String(value ?? 0));
   const [isFocused, setIsFocused] = useState(false);
   const [validationResult, setValidationResult] = useState<FieldValidationResult | null>(null);
+  const [hasBeenTouched, setHasBeenTouched] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isFocused) {
@@ -117,6 +205,8 @@ export const Input: React.FC<InputProps> = ({
 
   const onBlur = () => {
     setIsFocused(false);
+    setHasBeenTouched(true);
+
     // Remove commas and parse
     const cleanValue = local.replace(/,/g, '').trim();
 
@@ -167,39 +257,176 @@ export const Input: React.FC<InputProps> = ({
     }
   };
 
-  // Determine border color based on validation state
-  const hasError = validationResult && !validationResult.isValid;
+  // Determine validation state
+  const hasError = validationResult && !validationResult.isValid && !validationResult.warningOnly;
   const hasWarning = validationResult && validationResult.warningOnly;
-  const borderClass = hasError
-    ? "border-red-500 focus-visible:ring-red-500"
-    : hasWarning
-    ? "border-yellow-500 focus-visible:ring-yellow-500"
-    : "border-gray-300 focus-visible:ring-blue-500";
+  const isValid = hasBeenTouched && validationResult?.isValid && showSuccess;
+
+  // Size classes
+  const sizeClasses = {
+    sm: "h-9 text-sm",
+    md: "h-11 md:h-10 text-sm",
+    lg: "h-12 text-base"
+  };
+
+  // Determine styling based on state
+  const inputClasses = cn(
+    "flex w-full rounded-md border bg-background px-3 py-2 shadow-sm ring-offset-background",
+    "transition-all duration-200",
+    "placeholder:text-muted-foreground",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+    "disabled:cursor-not-allowed disabled:opacity-50",
+    sizeClasses[size],
+    // Prefix/suffix padding
+    prefix && "pl-8",
+    suffix && "pr-8",
+    // State-based styling
+    hasError && "border-red-500 focus-visible:ring-red-500 bg-red-50/50 dark:bg-red-950/20",
+    hasWarning && "border-amber-500 focus-visible:ring-amber-500 bg-amber-50/50 dark:bg-amber-950/20",
+    isValid && "border-green-500 focus-visible:ring-green-500",
+    !hasError && !hasWarning && !isValid && "border-input focus-visible:ring-ring",
+    // Dark mode
+    "dark:bg-slate-900 dark:border-slate-700"
+  );
 
   return (
     <div className="space-y-2">
-      <Label className="flex items-center gap-1.5 text-foreground">
+      <Label className="flex items-center gap-1.5 text-foreground font-medium">
         {label}
         {tip && <Tip text={tip} />}
       </Label>
-      <input
-        type="text"
-        inputMode="decimal"
-        pattern="[0-9]*"
-        value={local}
-        onChange={(e) => setLocal(e.target.value)}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        onKeyDown={handleKeyDown}
-        disabled={disabled}
-        className={`flex h-11 md:h-10 w-full rounded-md border ${borderClass} bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800`}
-      />
+
+      <div className="relative">
+        {/* Prefix */}
+        {prefix && (
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
+            {prefix}
+          </span>
+        )}
+
+        <input
+          ref={inputRef}
+          type="text"
+          inputMode="decimal"
+          pattern="[0-9]*"
+          value={local}
+          onChange={(e) => setLocal(e.target.value)}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+          placeholder={placeholder}
+          className={inputClasses}
+          aria-invalid={hasError ? "true" : undefined}
+          aria-describedby={
+            (hasError || hasWarning) && validationResult?.error
+              ? `${label}-error`
+              : helpText
+                ? `${label}-help`
+                : undefined
+          }
+        />
+
+        {/* Suffix */}
+        {suffix && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
+            {suffix}
+          </span>
+        )}
+
+        {/* Validation icon */}
+        {hasBeenTouched && !isFocused && (
+          <span className={cn(
+            "absolute right-3 top-1/2 -translate-y-1/2 transition-opacity duration-200",
+            suffix && "right-10"
+          )}>
+            {hasError && (
+              <AlertIcon className="w-4 h-4 text-red-500 animate-in zoom-in-50 duration-200" />
+            )}
+            {hasWarning && (
+              <AlertIcon className="w-4 h-4 text-amber-500 animate-in zoom-in-50 duration-200" />
+            )}
+            {isValid && (
+              <CheckIcon className="w-4 h-4 text-green-500 animate-in zoom-in-50 duration-200" />
+            )}
+          </span>
+        )}
+      </div>
+
       {/* Validation message */}
       {validationResult && validationResult.error && (
-        <p className={`text-xs ${hasError ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
-          {hasError ? '⚠ ' : '⚡ '}{validationResult.error}
+        <p
+          id={`${label}-error`}
+          className={cn(
+            "text-xs flex items-center gap-1 animate-in slide-in-from-top-1 duration-200",
+            hasError ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"
+          )}
+          role="alert"
+        >
+          {hasError ? (
+            <AlertIcon className="w-3 h-3 flex-shrink-0" />
+          ) : (
+            <InfoIcon className="w-3 h-3 flex-shrink-0" />
+          )}
+          <span>{validationResult.error}</span>
+        </p>
+      )}
+
+      {/* Help text */}
+      {helpText && !validationResult?.error && (
+        <p
+          id={`${label}-help`}
+          className="text-xs text-muted-foreground"
+        >
+          {helpText}
         </p>
       )}
     </div>
   );
 };
+
+/**
+ * InputGroup - Groups related inputs with a shared label
+ */
+export const InputGroup: React.FC<{
+  label: string;
+  tip?: string;
+  children: React.ReactNode;
+  className?: string;
+}> = ({ label, tip, children, className }) => (
+  <div className={cn("space-y-3", className)}>
+    <Label className="flex items-center gap-1.5 text-foreground font-medium">
+      {label}
+      {tip && <Tip text={tip} />}
+    </Label>
+    <div className="grid gap-3 sm:grid-cols-2">
+      {children}
+    </div>
+  </div>
+);
+
+/**
+ * InputAddon - Wraps an input with prefix/suffix visual elements
+ */
+export const InputAddon: React.FC<{
+  prefix?: React.ReactNode;
+  suffix?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}> = ({ prefix, suffix, children, className }) => (
+  <div className={cn("flex rounded-md shadow-sm", className)}>
+    {prefix && (
+      <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground">
+        {prefix}
+      </span>
+    )}
+    <div className={cn("flex-1", prefix && "rounded-l-none", suffix && "rounded-r-none")}>
+      {children}
+    </div>
+    {suffix && (
+      <span className="inline-flex items-center rounded-r-md border border-l-0 border-input bg-muted px-3 text-sm text-muted-foreground">
+        {suffix}
+      </span>
+    )}
+  </div>
+);

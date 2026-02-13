@@ -20,7 +20,20 @@ export const toNumber = (s: string, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
-/** Format number as currency */
+// PERFORMANCE OPTIMIZATION: Pre-create number formatters to avoid GC pressure
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 0,
+});
+
+const currencyFormatterFull = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+
+/** Format number as currency with abbreviations (K, M, B, T) */
 export const fmt = (v: number) => {
   if (!Number.isFinite(v)) return "$0";
   const abs = Math.abs(v);
@@ -28,12 +41,28 @@ export const fmt = (v: number) => {
   if (abs >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
   if (abs >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
   if (abs >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-  }).format(v);
+  return currencyFormatter.format(v);
 };
+
+/**
+ * Format currency with full precision (no abbreviations)
+ */
+export const fmtFull = (v: number): string => currencyFormatterFull.format(v);
+
+/**
+ * Format as percentage
+ * @param v - Value as decimal (0.95 = 95%)
+ * @param decimals - Number of decimal places (default 1)
+ */
+export const fmtPercent = (v: number, decimals = 1): string =>
+  `${(v * 100).toFixed(decimals)}%`;
+
+/**
+ * Format percentage from already-percentage value
+ * @param v - Value already as percentage (95 = 95%)
+ */
+export const fmtPctRaw = (v: number, decimals = 1): string =>
+  `${v.toFixed(decimals)}%`;
 
 /** Calculate median from an array of numbers */
 export const median = (arr: number[]): number => {
@@ -46,12 +75,18 @@ export const median = (arr: number[]): number => {
   return sorted[mid];
 };
 
-/** Calculate percentile from an array of numbers */
+/** Calculate percentile from an array of numbers
+ * PERFORMANCE OPTIMIZED: Uses Float64Array for faster sorting on large arrays
+ */
 export const percentile = (arr: number[], p: number): number => {
-  if (arr.length === 0) return 0;
+  const len = arr.length;
+  if (len === 0) return 0;
   if (p < 0 || p > 100) throw new Error('Percentile must be between 0 and 100');
-  const sorted = [...arr].sort((a, b) => a - b);
-  const index = (p / 100) * (sorted.length - 1);
+
+  // For large arrays, use typed array for faster numeric sorting
+  const sorted = len > 100 ? Float64Array.from(arr).sort() : [...arr].sort((a, b) => a - b);
+
+  const index = (p / 100) * (len - 1);
   const lower = Math.floor(index);
   const upper = Math.ceil(index);
   const weight = index - lower;

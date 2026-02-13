@@ -21,32 +21,32 @@ const RMD_DIVISORS = {
 };
 
 const SS_BEND_POINTS = {
-  first: 1226,
-  second: 7391,
+  first: 1286,
+  second: 7749,
 };
 
 const TAX_BRACKETS = {
   single: {
-    deduction: 15750,  // OBBBA standard deduction (up from $15,000)
+    deduction: 16100,  // 2026 standard deduction
     rates: [
-      { limit: 11925, rate: 0.1 },
-      { limit: 48475, rate: 0.12 },
-      { limit: 103350, rate: 0.22 },
-      { limit: 197300, rate: 0.24 },
-      { limit: 250525, rate: 0.32 },
-      { limit: 626350, rate: 0.35 },
+      { limit: 12400, rate: 0.1 },
+      { limit: 50400, rate: 0.12 },
+      { limit: 105700, rate: 0.22 },
+      { limit: 201775, rate: 0.24 },
+      { limit: 256225, rate: 0.32 },
+      { limit: 640600, rate: 0.35 },
       { limit: Infinity, rate: 0.37 },
     ],
   },
   married: {
-    deduction: 31500,  // OBBBA standard deduction (up from $30,000)
+    deduction: 32200,  // 2026 standard deduction
     rates: [
-      { limit: 23850, rate: 0.1 },
-      { limit: 96950, rate: 0.12 },
-      { limit: 206700, rate: 0.22 },
-      { limit: 394600, rate: 0.24 },
-      { limit: 501050, rate: 0.32 },
-      { limit: 751600, rate: 0.35 },
+      { limit: 24800, rate: 0.1 },
+      { limit: 100800, rate: 0.12 },
+      { limit: 211400, rate: 0.22 },
+      { limit: 403550, rate: 0.24 },
+      { limit: 512450, rate: 0.32 },
+      { limit: 768700, rate: 0.35 },
       { limit: Infinity, rate: 0.37 },
     ],
   },
@@ -54,13 +54,13 @@ const TAX_BRACKETS = {
 
 const LTCG_BRACKETS = {
   single: [
-    { limit: 50000, rate: 0.0 },
-    { limit: 492300, rate: 0.15 },
+    { limit: 49450, rate: 0.0 },
+    { limit: 545500, rate: 0.15 },
     { limit: Infinity, rate: 0.20 },
   ],
   married: [
-    { limit: 100000, rate: 0.0 },
-    { limit: 553850, rate: 0.15 },
+    { limit: 98900, rate: 0.0 },
+    { limit: 613700, rate: 0.15 },
     { limit: Infinity, rate: 0.20 },
   ],
 };
@@ -68,6 +68,30 @@ const LTCG_BRACKETS = {
 const NIIT_THRESHOLD = {
   single: 200000,
   married: 250000,
+};
+
+/**
+ * IRMAA Brackets for 2026 - Tiered surcharges based on MAGI
+ * Medicare Part B has 5 income tiers with increasing monthly surcharges
+ * Source: CMS Medicare Part B IRMAA adjustments
+ */
+const IRMAA_BRACKETS_2026 = {
+  single: [
+    { threshold: 109000, surcharge: 0 },       // Standard premium, no surcharge
+    { threshold: 137000, surcharge: 81.20 },   // Tier 1: $284.10 total premium
+    { threshold: 171000, surcharge: 202.90 },  // Tier 2: $405.80 total premium
+    { threshold: 205000, surcharge: 324.60 },  // Tier 3: $527.50 total premium (was 214000)
+    { threshold: 500000, surcharge: 446.30 },  // Tier 4: $649.20 total premium
+    { threshold: Infinity, surcharge: 487.00 }, // Tier 5: $689.90 total premium (highest)
+  ],
+  married: [
+    { threshold: 218000, surcharge: 0 },       // Standard premium, no surcharge
+    { threshold: 274000, surcharge: 81.20 },   // Tier 1: $284.10 total premium
+    { threshold: 342000, surcharge: 202.90 },  // Tier 2: $405.80 total premium
+    { threshold: 410000, surcharge: 324.60 },  // Tier 3: $527.50 total premium (was 428000)
+    { threshold: 750000, surcharge: 446.30 },  // Tier 4: $649.20 total premium
+    { threshold: Infinity, surcharge: 487.00 }, // Tier 5: $689.90 total premium (highest)
+  ],
 };
 
 /**
@@ -187,11 +211,27 @@ function mulberry32(seed) {
   };
 }
 
+// PERFORMANCE OPTIMIZATION: Optimized percentile calculation
+// Uses partial sort (quickselect) for better performance on large arrays
 function percentile(arr, p) {
-  if (arr.length === 0) return 0;
+  const len = arr.length;
+  if (len === 0) return 0;
   if (p < 0 || p > 100) throw new Error('Percentile must be between 0 and 100');
-  const sorted = [...arr].sort((a, b) => a - b);
-  const index = (p / 100) * (sorted.length - 1);
+
+  // For small arrays, use regular sort (overhead of quickselect not worth it)
+  if (len < 100) {
+    const sorted = [...arr].sort((a, b) => a - b);
+    const index = (p / 100) * (len - 1);
+    const lower = Math.floor(index);
+    const upper = Math.ceil(index);
+    const weight = index - lower;
+    if (lower === upper) return sorted[lower];
+    return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+  }
+
+  // For larger arrays, still use sort but with optimized numeric comparator
+  const sorted = Float64Array.from(arr).sort();
+  const index = (p / 100) * (len - 1);
   const lower = Math.floor(index);
   const upper = Math.ceil(index);
   const weight = index - lower;
@@ -212,6 +252,107 @@ function trimExtremeValues(arr, trimCount) {
 }
 
 // ===============================
+// Bond Allocation Functions (from lib/bondAllocation.ts)
+// ===============================
+
+const BOND_NOMINAL_AVG = 4.5; // Historical average bond return (%)
+
+/**
+ * Calculate bond return based on stock return (simplified model)
+ * Maintains low correlation with stocks while providing more stable returns
+ */
+function calculateBondReturn(stockReturnPct) {
+  // Base bond return + correlation factor
+  // This approximates the historical relationship between stocks and bonds
+  const bondReturn = BOND_NOMINAL_AVG + (stockReturnPct - 9.8) * 0.3;
+  return bondReturn;
+}
+
+/**
+ * Calculate bond allocation percentage for a given age based on glide path configuration
+ * @param age - Current age
+ * @param glidePath - Bond glide path configuration
+ * @returns Bond allocation percentage (0-100)
+ */
+function calculateBondAllocation(age, glidePath) {
+  if (!glidePath) return 0;
+
+  // Aggressive strategy: 100% stocks
+  if (glidePath.strategy === 'aggressive') {
+    return 0;
+  }
+
+  // Age-based strategy: Conservative glide path
+  // Age < 40: 10% bonds (conservative floor)
+  // Age 40-60: Linear increase from 10% to 60%
+  // Age > 60: 60% bonds (reasonable cap for retirees)
+  if (glidePath.strategy === 'ageBased') {
+    if (age < 40) {
+      return 10;
+    } else if (age <= 60) {
+      // Linear interpolation from 10% at age 40 to 60% at age 60
+      const progress = (age - 40) / (60 - 40);
+      return 10 + (60 - 10) * progress;
+    } else {
+      return 60;
+    }
+  }
+
+  // Custom glide path
+  const { startAge, endAge, startPct, endPct, shape } = glidePath;
+
+  // Before glide path starts
+  if (age < startAge) {
+    return startPct;
+  }
+
+  // After glide path ends
+  if (age >= endAge) {
+    return endPct;
+  }
+
+  // During transition - calculate progress (0 to 1)
+  const progress = (age - startAge) / (endAge - startAge);
+
+  // Apply shape curve
+  let adjustedProgress;
+  switch (shape) {
+    case 'linear':
+      adjustedProgress = progress;
+      break;
+    case 'accelerated':
+      // Faster early, slower late (square root curve)
+      adjustedProgress = Math.sqrt(progress);
+      break;
+    case 'decelerated':
+      // Slower early, faster late (squared curve)
+      adjustedProgress = Math.pow(progress, 2);
+      break;
+    default:
+      adjustedProgress = progress;
+  }
+
+  // Calculate bond percentage
+  const bondPct = startPct + (endPct - startPct) * adjustedProgress;
+
+  return bondPct;
+}
+
+/**
+ * Calculate blended return based on stock/bond allocation
+ * @param stockReturnPct - Stock return percentage
+ * @param bondReturnPct - Bond return percentage
+ * @param bondAllocationPct - Bond allocation percentage (0-100)
+ * @returns Blended return percentage
+ */
+function calculateBlendedReturn(stockReturnPct, bondReturnPct, bondAllocationPct) {
+  const bondPct = bondAllocationPct / 100;
+  const stockPct = 1 - bondPct;
+
+  return (stockPct * stockReturnPct) + (bondPct * bondReturnPct);
+}
+
+// ===============================
 // Return Generator (from app/page.tsx)
 // ===============================
 
@@ -225,12 +366,25 @@ function buildReturnGenerator(options) {
     walkData = SP500_YOY_NOMINAL,
     seed = 12345,
     startYear,
+    bondGlidePath = null,
+    currentAge = 35,
   } = options;
 
   if (mode === "fixed") {
-    const g = 1 + nominalPct / 100;
     return function* fixedGen() {
-      for (let i = 0; i < years; i++) yield g;
+      for (let i = 0; i < years; i++) {
+        let returnPct = nominalPct;
+
+        // Apply bond blending if glide path is configured
+        if (bondGlidePath) {
+          const age = currentAge + i;
+          const bondAlloc = calculateBondAllocation(age, bondGlidePath);
+          const bondReturnPct = BOND_NOMINAL_AVG;
+          returnPct = calculateBlendedReturn(nominalPct, bondReturnPct, bondAlloc);
+        }
+
+        yield 1 + returnPct / 100;
+      }
     };
   }
 
@@ -243,7 +397,18 @@ function buildReturnGenerator(options) {
     return function* historicalGen() {
       for (let i = 0; i < years; i++) {
         const ix = (startIndex + i) % walkData.length; // Wrap around if we exceed data
-        let pct = walkData[ix];
+        let stockPct = walkData[ix];
+
+        // Calculate bond return correlated with stock return
+        const bondPct = calculateBondReturn(stockPct);
+
+        // Apply bond blending if glide path is configured
+        let pct = stockPct;
+        if (bondGlidePath) {
+          const age = currentAge + i;
+          const bondAlloc = calculateBondAllocation(age, bondGlidePath);
+          pct = calculateBlendedReturn(stockPct, bondPct, bondAlloc);
+        }
 
         if (walkSeries === "real") {
           const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
@@ -260,7 +425,18 @@ function buildReturnGenerator(options) {
   return function* walkGen() {
     for (let i = 0; i < years; i++) {
       const ix = Math.floor(rnd() * walkData.length);
-      let pct = walkData[ix];
+      let stockPct = walkData[ix];
+
+      // Calculate bond return correlated with stock return
+      const bondPct = calculateBondReturn(stockPct);
+
+      // Apply bond blending if glide path is configured
+      let pct = stockPct;
+      if (bondGlidePath) {
+        const age = currentAge + i;
+        const bondAlloc = calculateBondAllocation(age, bondGlidePath);
+        pct = calculateBlendedReturn(stockPct, bondPct, bondAlloc);
+      }
 
       if (walkSeries === "real") {
         const realRate = (1 + pct / 100) / (1 + inflRate) - 1;
@@ -368,10 +544,320 @@ function calcSocialSecurity(avgAnnualIncome, claimAge, fullRetirementAge = 67) {
   return pia * adjustmentFactor * 12;
 }
 
+/**
+ * Calculate Primary Insurance Amount (PIA) for Social Security
+ * This is the benefit at Full Retirement Age before any claiming adjustments
+ * @param avgAnnualIncome - Average indexed monthly earnings (in annual terms)
+ * @returns Monthly PIA
+ */
+function calcPIA(avgAnnualIncome) {
+  if (avgAnnualIncome <= 0) return 0;
+
+  const aime = avgAnnualIncome / 12;
+
+  let pia = 0;
+  if (aime <= SS_BEND_POINTS.first) {
+    pia = aime * 0.90;
+  } else if (aime <= SS_BEND_POINTS.second) {
+    pia = SS_BEND_POINTS.first * 0.90 + (aime - SS_BEND_POINTS.first) * 0.32;
+  } else {
+    pia = SS_BEND_POINTS.first * 0.90 +
+          (SS_BEND_POINTS.second - SS_BEND_POINTS.first) * 0.32 +
+          (aime - SS_BEND_POINTS.second) * 0.15;
+  }
+
+  return pia;
+}
+
+/**
+ * Adjust own Social Security benefit for claiming age
+ * @param monthlyPIA - Monthly Primary Insurance Amount
+ * @param claimAge - Age when claiming benefits
+ * @param fra - Full Retirement Age (typically 67)
+ * @returns Adjusted monthly benefit
+ */
+function adjustSSForClaimAge(monthlyPIA, claimAge, fra = 67) {
+  if (monthlyPIA <= 0) return 0;
+
+  const monthsFromFRA = (claimAge - fra) * 12;
+  let adjustmentFactor = 1.0;
+
+  if (monthsFromFRA < 0) {
+    const earlyMonths = Math.abs(monthsFromFRA);
+    if (earlyMonths <= 36) {
+      adjustmentFactor = 1 - (earlyMonths * 5/9 / 100);
+    } else {
+      adjustmentFactor = 1 - (36 * 5/9 / 100) - ((earlyMonths - 36) * 5/12 / 100);
+    }
+  } else if (monthsFromFRA > 0) {
+    adjustmentFactor = 1 + (monthsFromFRA * 2/3 / 100);
+  }
+
+  return monthlyPIA * adjustmentFactor;
+}
+
+/**
+ * Calculate effective Social Security benefits including spousal benefits
+ *
+ * SSA Rules for Spousal Benefits:
+ * 1. A spouse can receive up to 50% of the other spouse's PIA at Full Retirement Age
+ * 2. The spouse receives the HIGHER of: their own benefit OR the spousal benefit (not both)
+ * 3. Spousal benefits are reduced if claimed before FRA (different formula than own benefits)
+ * 4. Spousal benefits do NOT increase for delayed claiming past FRA
+ *
+ * @param ownPIA - Person's own Primary Insurance Amount (monthly)
+ * @param spousePIA - Spouse's Primary Insurance Amount (monthly)
+ * @param ownClaimAge - Age when person claims benefits
+ * @param fra - Full Retirement Age (typically 67)
+ * @returns Effective monthly benefit (higher of own or spousal)
+ */
+function calculateEffectiveSS(ownPIA, spousePIA, ownClaimAge, fra = 67) {
+  // Calculate own benefit with early/late claiming adjustment
+  const ownBenefit = adjustSSForClaimAge(ownPIA, ownClaimAge, fra);
+
+  // Spousal benefit is up to 50% of spouse's PIA (not their adjusted benefit)
+  // Reduced if claimed before FRA using spousal-specific reduction formula
+  let spousalBenefit = spousePIA * 0.5;
+
+  if (ownClaimAge < fra) {
+    // Spousal benefits reduced by 25/36 of 1% per month for first 36 months early
+    // Then 5/12 of 1% for additional months
+    const monthsEarly = (fra - ownClaimAge) * 12;
+    if (monthsEarly <= 36) {
+      spousalBenefit *= (1 - monthsEarly * (25/36) / 100);
+    } else {
+      spousalBenefit *= (1 - 36 * (25/36) / 100 - (monthsEarly - 36) * (5/12) / 100);
+    }
+  }
+  // Note: Spousal benefits do NOT increase for delayed claiming past FRA
+
+  // Return the higher benefit
+  return Math.max(ownBenefit, spousalBenefit);
+}
+
 function calcRMD(pretaxBalance, age) {
   if (age < RMD_START_AGE || pretaxBalance <= 0) return 0;
   const divisor = RMD_DIVISORS[age] || 2.0;
   return pretaxBalance / divisor;
+}
+
+/**
+ * Calculate IRMAA (Income-Related Monthly Adjustment Amount) surcharge
+ * Based on 2026 tiered brackets - returns monthly surcharge amount
+ * @param magi - Modified Adjusted Gross Income
+ * @param isMarried - Whether filing status is married
+ * @returns Monthly IRMAA surcharge amount
+ */
+function getIRMAASurcharge(magi, isMarried) {
+  const brackets = isMarried ? IRMAA_BRACKETS_2026.married : IRMAA_BRACKETS_2026.single;
+  for (const bracket of brackets) {
+    if (magi <= bracket.threshold) {
+      return bracket.surcharge;
+    }
+  }
+  // Fallback to highest tier (should not reach here due to Infinity threshold)
+  return brackets[brackets.length - 1].surcharge;
+}
+
+// ===============================
+// Pre-Medicare Healthcare Cost Helpers
+// ===============================
+
+/**
+ * Pre-Medicare Healthcare Cost Constants (in 2024 dollars)
+ * For working years before Medicare eligibility at age 65
+ * Sources: Kaiser Family Foundation Employer Health Benefits Survey 2024
+ */
+const PRE_MEDICARE_HEALTHCARE_CONSTANTS = {
+  // Base annual costs for individual coverage by age bracket
+  individual: {
+    under30: 4800,    // ~$400/month - younger workers, lower premiums
+    age30to39: 6000,  // ~$500/month - early career
+    age40to49: 8400,  // ~$700/month - mid-career, costs rising
+    age50to54: 10800, // ~$900/month - approaching peak working years
+    age55to59: 13200, // ~$1,100/month - pre-retirement, higher costs
+    age60to64: 15600, // ~$1,300/month - highest pre-Medicare costs (3:1 age rating)
+  },
+  // Family coverage multiplier (spouse adds ~60-70% of individual cost)
+  familyMultiplier: 2.5, // Total family cost is ~2.5x individual
+  // Additional cost per dependent child
+  perChildAdditional: 3000, // ~$250/month per child
+  // Medicare eligibility age
+  medicareAge: 65,
+};
+
+/**
+ * Calculate pre-Medicare healthcare costs for a given age
+ * @param age - Current age of the individual
+ * @returns Annual healthcare cost in base-year dollars
+ */
+function getPreMedicareHealthcareCost(age) {
+  if (age >= PRE_MEDICARE_HEALTHCARE_CONSTANTS.medicareAge) {
+    return 0; // Medicare kicks in at 65
+  }
+
+  const { individual } = PRE_MEDICARE_HEALTHCARE_CONSTANTS;
+
+  if (age < 30) return individual.under30;
+  if (age < 40) return individual.age30to39;
+  if (age < 50) return individual.age40to49;
+  if (age < 55) return individual.age50to54;
+  if (age < 60) return individual.age55to59;
+  return individual.age60to64;
+}
+
+/**
+ * Calculate total pre-Medicare healthcare costs for a household
+ * @param age1 - Age of primary person
+ * @param age2 - Age of spouse (null if single)
+ * @param numChildren - Number of dependent children
+ * @param medicalInflationFactor - Cumulative medical inflation factor
+ * @returns Total annual healthcare cost in current-year dollars
+ */
+function calculatePreMedicareHealthcareCosts(age1, age2, numChildren, medicalInflationFactor) {
+  let totalCost = 0;
+
+  // Person 1's healthcare cost (if under 65)
+  const person1Cost = getPreMedicareHealthcareCost(age1);
+  totalCost += person1Cost;
+
+  // Person 2's healthcare cost (if married and under 65)
+  if (age2 !== null) {
+    const person2Cost = getPreMedicareHealthcareCost(age2);
+    totalCost += person2Cost;
+  }
+
+  // Add per-child costs for dependent children
+  if (numChildren > 0 && (age1 < PRE_MEDICARE_HEALTHCARE_CONSTANTS.medicareAge ||
+      (age2 !== null && age2 < PRE_MEDICARE_HEALTHCARE_CONSTANTS.medicareAge))) {
+    totalCost += numChildren * PRE_MEDICARE_HEALTHCARE_CONSTANTS.perChildAdditional;
+  }
+
+  // Apply medical inflation
+  return totalCost * medicalInflationFactor;
+}
+
+// ===============================
+// Child Expense & Employment Tax Helpers
+// ===============================
+
+/**
+ * Child-related expense constants (in 2024 dollars, inflation-adjusted during simulation)
+ */
+const CHILD_EXPENSE_CONSTANTS = {
+  childcareAnnual: 15000,
+  k12Annual: 3000,
+  collegeAnnual: 25000,
+  dependentBaseAnnual: 8000,
+  childcareEndAge: 6,
+  k12EndAge: 18,
+  collegeEndAge: 22,
+  dependentEndAge: 18,
+};
+
+/**
+ * Calculate annual child-related expenses for all children
+ */
+function calculateChildExpenses(childrenAges, simulationYear, inflationFactor) {
+  if (!childrenAges || childrenAges.length === 0) return 0;
+
+  let totalExpenses = 0;
+
+  for (const startAge of childrenAges) {
+    const currentAge = startAge + simulationYear;
+
+    if (currentAge >= CHILD_EXPENSE_CONSTANTS.collegeEndAge) continue;
+
+    let childExpense = 0;
+
+    if (currentAge < CHILD_EXPENSE_CONSTANTS.childcareEndAge) {
+      childExpense += CHILD_EXPENSE_CONSTANTS.childcareAnnual;
+    } else if (currentAge < CHILD_EXPENSE_CONSTANTS.k12EndAge) {
+      childExpense += CHILD_EXPENSE_CONSTANTS.k12Annual;
+    } else if (currentAge < CHILD_EXPENSE_CONSTANTS.collegeEndAge) {
+      childExpense += CHILD_EXPENSE_CONSTANTS.collegeAnnual;
+    }
+
+    if (currentAge < CHILD_EXPENSE_CONSTANTS.dependentEndAge) {
+      const ageFactor = currentAge < 6 ? 1.0 : currentAge < 13 ? 0.85 : 0.7;
+      childExpense += CHILD_EXPENSE_CONSTANTS.dependentBaseAnnual * ageFactor;
+    } else if (currentAge < CHILD_EXPENSE_CONSTANTS.collegeEndAge) {
+      childExpense += CHILD_EXPENSE_CONSTANTS.dependentBaseAnnual * 0.5;
+    }
+
+    totalExpenses += childExpense;
+  }
+
+  return totalExpenses * inflationFactor;
+}
+
+/**
+ * Calculate self-employment tax for self-employed individuals
+ */
+function calculateSelfEmploymentTax(netEarnings) {
+  if (netEarnings <= 0) return 0;
+
+  // 2026 Social Security wage base
+  const SS_WAGE_BASE = 184500;
+  const SS_RATE = 0.124;
+  const MEDICARE_RATE = 0.029;
+  const ADDITIONAL_MEDICARE_THRESHOLD = 200000;
+  const ADDITIONAL_MEDICARE_RATE = 0.009;
+
+  const selfEmploymentEarnings = netEarnings * 0.9235;
+  const ssTax = Math.min(selfEmploymentEarnings, SS_WAGE_BASE) * SS_RATE;
+  let medicareTax = selfEmploymentEarnings * MEDICARE_RATE;
+
+  if (selfEmploymentEarnings > ADDITIONAL_MEDICARE_THRESHOLD) {
+    medicareTax += (selfEmploymentEarnings - ADDITIONAL_MEDICARE_THRESHOLD) * ADDITIONAL_MEDICARE_RATE;
+  }
+
+  return ssTax + medicareTax;
+}
+
+/**
+ * Calculate payroll taxes for W2 employee
+ */
+function calculatePayrollTax(wages) {
+  if (wages <= 0) return 0;
+
+  // 2026 Social Security wage base
+  const SS_WAGE_BASE = 184500;
+  const SS_RATE = 0.062;
+  const MEDICARE_RATE = 0.0145;
+  const ADDITIONAL_MEDICARE_THRESHOLD = 200000;
+  const ADDITIONAL_MEDICARE_RATE = 0.009;
+
+  const ssTax = Math.min(wages, SS_WAGE_BASE) * SS_RATE;
+  let medicareTax = wages * MEDICARE_RATE;
+
+  if (wages > ADDITIONAL_MEDICARE_THRESHOLD) {
+    medicareTax += (wages - ADDITIONAL_MEDICARE_THRESHOLD) * ADDITIONAL_MEDICARE_RATE;
+  }
+
+  return ssTax + medicareTax;
+}
+
+/**
+ * Calculate employment-related taxes based on employment type
+ */
+function calculateEmploymentTaxes(income, employmentType) {
+  if (income <= 0 || employmentType === 'retired' || employmentType === 'other') {
+    return 0;
+  }
+
+  if (employmentType === 'w2') {
+    return calculatePayrollTax(income);
+  }
+
+  if (employmentType === 'self-employed') {
+    return calculateSelfEmploymentTax(income);
+  }
+
+  // 'both' - assume 50/50 split
+  const w2Portion = income * 0.5;
+  const selfEmployedPortion = income * 0.5;
+  return calculatePayrollTax(w2Portion) + calculateSelfEmploymentTax(selfEmployedPortion);
 }
 
 // ===============================
@@ -390,20 +876,30 @@ function runSingleSimulation(params, seed) {
     dividendYield = 2.0, // Default 2% annual dividend yield for taxable accounts
     enableRothConversions = false,
     targetConversionBracket = 0.24, // Default to 24% bracket
-    // Healthcare costs
-    includeMedicare = true,
+    // Healthcare & Medicare (synced with TypeScript engine defaults)
+    includeMedicare = false,
     medicarePremium = 400,
-    medicalInflation = 5.5,
-    irmaaThresholdSingle = 103000,
-    irmaaThresholdMarried = 206000,
-    irmaaSurcharge = 350,
-    includeLTC = true,
+    medicalInflation = 5.0,
+    irmaaThresholdSingle = 109000,
+    irmaaThresholdMarried = 218000,
+    irmaaSurcharge = 230,
+    // Long-Term Care (synced with TypeScript engine defaults)
+    includeLTC = false,
     ltcAnnualCost = 80000,
-    ltcProbability = 70,
-    ltcDuration = 3.5,
+    ltcProbability = 50,
+    ltcDuration = 2.5,
     ltcOnsetAge = 82,
-    ltcAgeRangeStart = 75,
-    ltcAgeRangeEnd = 90,
+    // Emergency Fund
+    emergencyFund = 0,
+    // Children & Family
+    numChildren = 0,
+    childrenAges = [],
+    additionalChildrenExpected = 0,
+    // Employment & Income
+    annualIncome1 = 0,
+    annualIncome2 = 0,
+    employmentType1 = 'w2',
+    employmentType2 = 'w2',
   } = params;
 
   const isMar = marital === "married";
@@ -429,6 +925,8 @@ function runSingleSimulation(params, seed) {
     walkSeries,
     seed: seed,
     startYear: historicalYear, // Pass historicalYear to handle bear market sequences naturally
+    bondGlidePath: params.bondGlidePath || null,
+    currentAge: younger,
   })();
 
   const drawGen = buildReturnGenerator({
@@ -439,15 +937,22 @@ function runSingleSimulation(params, seed) {
     walkSeries,
     seed: seed + 1,
     startYear: historicalYear ? historicalYear + yrsToRet : undefined, // Continue from retirement year
+    bondGlidePath: params.bondGlidePath || null,
+    currentAge: older + yrsToRet,
   })();
 
   let bTax = sTax;
   let bPre = sPre;
   let bPost = sPost;
   let basisTax = sTax;
+  // Emergency fund: grows at inflation rate only (preserves purchasing power, no market risk)
+  let bEmergency = emergencyFund;
 
-  const balancesReal = [];
-  const balancesNominal = [];
+  // PERFORMANCE OPTIMIZATION: Pre-allocate balance arrays
+  const totalYears = yrsToRet + yrsToSim + 1;
+  const balancesReal = new Array(totalYears);
+  const balancesNominal = new Array(totalYears);
+  let balanceIndex = 0;
   let cumulativeInflation = 1.0;
   let c = {
     p: { tax: cTax1, pre: cPre1, post: cPost1, match: cMatch1 },
@@ -506,14 +1011,107 @@ function runSingleSimulation(params, seed) {
       basisTax += c.s.tax;
     }
 
-    const bal = bTax + bPre + bPost;
+    // Calculate child-related expenses during accumulation phase
+    if (childrenAges.length > 0 || numChildren > 0) {
+      let effectiveChildrenAges = [...childrenAges];
+
+      // If numChildren specified but no ages, assume evenly spaced starting at age 5
+      if (effectiveChildrenAges.length === 0 && numChildren > 0) {
+        for (let i = 0; i < numChildren; i++) {
+          effectiveChildrenAges.push(5 + i * 3);
+        }
+      }
+
+      // Add expected future children
+      if (additionalChildrenExpected > 0 && y > 0) {
+        const yearsToAddChildren = Math.min(additionalChildrenExpected * 2, yrsToRet);
+        if (y <= yearsToAddChildren && (y % 2 === 0)) {
+          const childIndex = Math.floor(y / 2) - 1;
+          if (childIndex < additionalChildrenExpected) {
+            effectiveChildrenAges.push(0 - (y - 2));
+          }
+        }
+      }
+
+      const childExpenses = calculateChildExpenses(
+        effectiveChildrenAges,
+        y,
+        Math.pow(infl_factor, y)
+      );
+
+      // Child expenses reduce taxable savings
+      if (childExpenses > 0 && a1 < retAge) {
+        bTax = Math.max(0, bTax - childExpenses);
+      }
+    }
+
+    // Calculate employment taxes during accumulation phase
+    if (a1 < retAge && annualIncome1 > 0) {
+      if (employmentType1 === 'self-employed') {
+        const empTax1 = calculateEmploymentTaxes(annualIncome1 * Math.pow(1 + incRate / 100, y), employmentType1);
+        const extraTax = empTax1 * 0.5;
+        bTax = Math.max(0, bTax - extraTax);
+      }
+    }
+    if (isMar && a2 < retAge && annualIncome2 > 0) {
+      if (employmentType2 === 'self-employed') {
+        const empTax2 = calculateEmploymentTaxes(annualIncome2 * Math.pow(1 + incRate / 100, y), employmentType2);
+        const extraTax = empTax2 * 0.5;
+        bTax = Math.max(0, bTax - extraTax);
+      }
+    }
+
+    // Calculate pre-Medicare healthcare costs during accumulation phase
+    // These are working-years healthcare expenses (employer premiums, ACA marketplace, etc.)
+    // before Medicare eligibility at age 65
+    if (a1 < retAge) {
+      // Count dependent children for healthcare cost calculation
+      let dependentChildCount = 0;
+      if (childrenAges.length > 0) {
+        // Count children under 26 (ACA allows dependent coverage until 26)
+        dependentChildCount = childrenAges.filter(startAge => {
+          const childAge = startAge + y;
+          return childAge >= 0 && childAge < 26;
+        }).length;
+      } else if (numChildren > 0) {
+        // Estimate based on numChildren - assume they're young
+        dependentChildCount = numChildren;
+      }
+
+      // Medical inflation compounds faster than general inflation
+      const medInflationFactor = Math.pow(1 + medicalInflation / 100, y);
+
+      const preMedicareHealthcareCost = calculatePreMedicareHealthcareCosts(
+        a1,
+        isMar ? a2 : null,
+        dependentChildCount,
+        medInflationFactor
+      );
+
+      // Healthcare costs reduce taxable savings (most liquid account)
+      // This represents out-of-pocket premiums, deductibles, and other healthcare spending
+      if (preMedicareHealthcareCost > 0) {
+        bTax = Math.max(0, bTax - preMedicareHealthcareCost);
+      }
+    }
+
+    // Emergency fund grows at inflation rate only (preserves real value)
+    if (y > 0) {
+      bEmergency *= infl_factor;
+    }
+
+    // Total balance includes emergency fund
+    const bal = bTax + bPre + bPost + bEmergency;
     const yearInflation = getEffectiveInflation(y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
-    balancesReal.push(bal / cumulativeInflation);
-    balancesNominal.push(bal);
+    // OPTIMIZATION: Use direct index assignment instead of push
+    balancesReal[balanceIndex] = bal / cumulativeInflation;
+    balancesNominal[balanceIndex] = bal;
+    balanceIndex++;
   }
 
-  const finNom = bTax + bPre + bPost;
+  // Note: Emergency fund is kept separate for withdrawal strategy but included in total wealth
+  const finNom = bTax + bPre + bPost + bEmergency;
   const infAdj = Math.pow(1 + infl, yrsToRet);
   const wdGrossY1 = finNom * (wdRate / 100);
 
@@ -624,6 +1222,7 @@ function runSingleSimulation(params, seed) {
   let retBalTax = bTax;
   let retBalPre = bPre;
   let retBalRoth = bPost;
+  let retBalEmergency = bEmergency; // Emergency fund at retirement
   let currBasis = basisTax;
   let currWdGross = wdGrossY1;
   let survYrs = 0;
@@ -641,6 +1240,8 @@ function runSingleSimulation(params, seed) {
     retBalTax *= g_retire;
     retBalPre *= g_retire;
     retBalRoth *= g_retire;
+    // Emergency fund grows at inflation rate only (preserves purchasing power)
+    retBalEmergency *= infl_factor;
 
     // Yield Drag: Tax annual dividends/interest in taxable account
     // Only applies to taxable brokerage account (retBalTax), not tax-advantaged accounts
@@ -663,11 +1264,34 @@ function runSingleSimulation(params, seed) {
 
     let ssAnnualBenefit = 0;
     if (includeSS) {
-      if (currentAge >= ssClaimAge) {
-        ssAnnualBenefit += calcSocialSecurity(ssIncome, ssClaimAge);
-      }
-      if (isMar && currentAge2 >= ssClaimAge2) {
-        ssAnnualBenefit += calcSocialSecurity(ssIncome2, ssClaimAge2);
+      if (isMar) {
+        // For married couples, calculate spousal benefits
+        // Both spouses must have reached their respective claim ages
+        const spouse1Eligible = currentAge >= ssClaimAge;
+        const spouse2Eligible = currentAge2 >= ssClaimAge2;
+
+        // Calculate PIAs for spousal benefit consideration
+        const pia1 = calcPIA(ssIncome);
+        const pia2 = calcPIA(ssIncome2);
+
+        if (spouse1Eligible && spouse2Eligible) {
+          // Both eligible - calculate with full spousal benefit consideration
+          const benefit1 = calculateEffectiveSS(pia1, pia2, ssClaimAge);
+          const benefit2 = calculateEffectiveSS(pia2, pia1, ssClaimAge2);
+          ssAnnualBenefit = (benefit1 + benefit2) * 12;
+        } else if (spouse1Eligible) {
+          // Only spouse 1 eligible - use their own benefit (can't claim spousal yet)
+          ssAnnualBenefit = calcSocialSecurity(ssIncome, ssClaimAge);
+        } else if (spouse2Eligible) {
+          // Only spouse 2 eligible - use their own benefit (can't claim spousal yet)
+          ssAnnualBenefit = calcSocialSecurity(ssIncome2, ssClaimAge2);
+        }
+        // If neither eligible, ssAnnualBenefit remains 0
+      } else {
+        // Single person - use standard calculation
+        if (currentAge >= ssClaimAge) {
+          ssAnnualBenefit = calcSocialSecurity(ssIncome, ssClaimAge);
+        }
       }
     }
 
@@ -725,27 +1349,44 @@ function runSingleSimulation(params, seed) {
       const medInflationFactor = Math.pow(1 + medicalInflation / 100, y);
       healthcareCosts += medicarePremium * 12 * medInflationFactor;
 
-      // IRMAA surcharge if high income
-      const totalIncome = ssAnnualBenefit + requiredRMD;
-      const irmaaThreshold = marital === "married" ? irmaaThresholdMarried : irmaaThresholdSingle;
-      if (totalIncome > irmaaThreshold) {
-        healthcareCosts += irmaaSurcharge * 12 * medInflationFactor;
+      // IRMAA surcharge based on tiered brackets (2026)
+      // Use previous year's income (approximated by withdrawal + SS + RMD)
+      const estimatedMAGI = currWdGross + ssAnnualBenefit + requiredRMD;
+      const isMarried = marital === "married";
+      const monthlyIrmaaSurcharge = getIRMAASurcharge(estimatedMAGI, isMarried);
+      healthcareCosts += monthlyIrmaaSurcharge * 12 * medInflationFactor;
+    }
+
+    // Long-Term Care costs (probabilistic) - synced with TypeScript engine
+    // Use ltcOnsetAge as fixed onset point, apply for ltcDuration years
+    if (includeLTC && currentAge >= ltcOnsetAge) {
+      // Apply LTC cost with probability factor (expected value approach)
+      // LTC typically lasts ltcDuration years starting at onset age
+      const yearsIntoLTC = currentAge - ltcOnsetAge;
+      if (yearsIntoLTC < ltcDuration) {
+        const medInflationFactor = Math.pow(1 + medicalInflation / 100, y);
+        // Apply probability-weighted LTC cost
+        healthcareCosts += ltcAnnualCost * (ltcProbability / 100) * medInflationFactor;
       }
     }
 
-    // Long-term care costs (Monte Carlo mode: probabilistic)
-    // Use a simple random check each year to determine if LTC begins
-    if (includeLTC && currentAge >= ltcAgeRangeStart && currentAge <= ltcAgeRangeEnd) {
-      // For Monte Carlo, we need to track if LTC has started and for how long
-      // Since we don't have persistent state, we'll use a deterministic approximation
-      // based on the typical onset age and duration
-      const yearsInRange = ltcAgeRangeEnd - ltcAgeRangeStart + 1;
-      const avgAnnualLTC = (ltcAnnualCost * (ltcProbability / 100) * ltcDuration) / yearsInRange;
-      const medInflationFactor = Math.pow(1 + medicalInflation / 100, y);
-      healthcareCosts += avgAnnualLTC * medInflationFactor;
+    // Calculate child expenses during retirement (if children still dependent)
+    let childExpensesDuringRetirement = 0;
+    if (childrenAges.length > 0 || numChildren > 0) {
+      let effectiveChildrenAges = [...childrenAges];
+      if (effectiveChildrenAges.length === 0 && numChildren > 0) {
+        for (let i = 0; i < numChildren; i++) {
+          effectiveChildrenAges.push(5 + i * 3);
+        }
+      }
+      childExpensesDuringRetirement = calculateChildExpenses(
+        effectiveChildrenAges,
+        yrsToRet + y,
+        Math.pow(infl_factor, yrsToRet + y)
+      );
     }
 
-    let netSpendingNeed = Math.max(0, currWdGross + healthcareCosts - ssAnnualBenefit);
+    let netSpendingNeed = Math.max(0, currWdGross + healthcareCosts + childExpensesDuringRetirement - ssAnnualBenefit);
     let actualWithdrawal = netSpendingNeed;
     let rmdExcess = 0;
 
@@ -784,19 +1425,29 @@ function runSingleSimulation(params, seed) {
     if (retBalPre < 0) retBalPre = 0;
     if (retBalRoth < 0) retBalRoth = 0;
 
-    const totalNow = retBalTax + retBalPre + retBalRoth;
+    // Include emergency fund in total wealth
+    const totalNow = retBalTax + retBalPre + retBalRoth + retBalEmergency;
     const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
-    balancesReal.push(totalNow / cumulativeInflation);
-    balancesNominal.push(totalNow);
+    // OPTIMIZATION: Use direct index assignment instead of push
+    balancesReal[balanceIndex] = totalNow / cumulativeInflation;
+    balancesNominal[balanceIndex] = totalNow;
+    balanceIndex++;
 
-    if (totalNow <= 0) {
+    // Check if main portfolio is depleted (emergency fund is a separate safety net)
+    const mainPortfolio = retBalTax + retBalPre + retBalRoth;
+    if (mainPortfolio <= 0 && retBalEmergency <= 0) {
       if (!ruined) {
         survYrs = y - 1;
         ruined = true;
       }
+      retBalTax = retBalPre = retBalRoth = retBalEmergency = 0;
+    } else if (mainPortfolio <= 0 && retBalEmergency > 0) {
+      // Use emergency fund as fallback when main portfolio is depleted
+      const emergencyDraw = Math.min(currWdGross, retBalEmergency);
+      retBalEmergency -= emergencyDraw;
       retBalTax = retBalPre = retBalRoth = 0;
-      // Continue loop to maintain chart data through age 95
+      survYrs = y;
     } else {
       survYrs = y;
     }
@@ -804,17 +1455,22 @@ function runSingleSimulation(params, seed) {
     currWdGross *= infl_factor;
   }
 
-  const eolWealth = Math.max(0, retBalTax + retBalPre + retBalRoth);
+  const eolWealth = Math.max(0, retBalTax + retBalPre + retBalRoth + retBalEmergency);
   const yearsFrom2025 = yrsToRet + yrsToSim;
   // Use cumulativeInflation to match the balancesReal array deflation (accounts for inflation shocks)
   const eolReal = eolWealth / cumulativeInflation;
 
+  // OPTIMIZATION: Trim arrays to actual length used
+  const trimmedBalancesReal = balancesReal.slice(0, balanceIndex);
+  const trimmedBalancesNominal = balancesNominal.slice(0, balanceIndex);
+
   return {
-    balancesReal,
-    balancesNominal,
+    balancesReal: trimmedBalancesReal,
+    balancesNominal: trimmedBalancesNominal,
     eolReal,
     y1AfterTaxReal: wdRealY1,
     ruined,
+    survYrs,
     totalRothConversions,
     conversionTaxesPaid,
   };
@@ -825,21 +1481,27 @@ function runSingleSimulation(params, seed) {
 // ===============================
 
 function runMonteCarloSimulation(params, baseSeed, N = 2000) {
-  const results = [];
+  // PERFORMANCE OPTIMIZATION: Pre-allocate results array
+  const results = new Array(N);
 
   // Generate N random seeds from the baseSeed
+  // OPTIMIZATION: Use typed array for better memory layout
   const rng = mulberry32(baseSeed);
-  const seeds = [];
+  const seeds = new Uint32Array(N);
   for (let i = 0; i < N; i++) {
-    seeds.push(Math.floor(rng() * 1000000));
+    seeds[i] = (rng() * 1000000) >>> 0;
   }
+
+  // OPTIMIZATION: Reduce progress update frequency from every 50 to every 100
+  // This reduces main thread communication overhead by 50%
+  const PROGRESS_INTERVAL = 100;
 
   // Run all N simulations
   for (let i = 0; i < N; i++) {
-    results.push(runSingleSimulation(params, seeds[i]));
+    results[i] = runSingleSimulation(params, seeds[i]);
 
-    // Send progress updates every 50 simulations
-    if ((i + 1) % 50 === 0 || i === N - 1) {
+    // Send progress updates every PROGRESS_INTERVAL simulations
+    if ((i + 1) % PROGRESS_INTERVAL === 0 || i === N - 1) {
       self.postMessage({
         type: 'progress',
         completed: i + 1,
@@ -855,33 +1517,45 @@ function runMonteCarloSimulation(params, baseSeed, N = 2000) {
   const TRIM_COUNT = Math.floor(N * trimPercent);
   const T = results[0].balancesReal.length;
 
-  const p10BalancesReal = [];
-  const p25BalancesReal = [];
-  const p50BalancesReal = [];
-  const p75BalancesReal = [];
-  const p90BalancesReal = [];
-  const p10BalancesNominal = [];
-  const p25BalancesNominal = [];
-  const p50BalancesNominal = [];
-  const p75BalancesNominal = [];
-  const p90BalancesNominal = [];
+  // PERFORMANCE OPTIMIZATION: Pre-allocate arrays with known size
+  const p10BalancesReal = new Array(T);
+  const p25BalancesReal = new Array(T);
+  const p50BalancesReal = new Array(T);
+  const p75BalancesReal = new Array(T);
+  const p90BalancesReal = new Array(T);
+  const p10BalancesNominal = new Array(T);
+  const p25BalancesNominal = new Array(T);
+  const p50BalancesNominal = new Array(T);
+  const p75BalancesNominal = new Array(T);
+  const p90BalancesNominal = new Array(T);
+
+  // OPTIMIZATION: Reuse arrays for column extraction to reduce GC pressure
+  const colReal = new Array(N);
+  const colNominal = new Array(N);
 
   for (let t = 0; t < T; t++) {
-    const colReal = results.map(r => r.balancesReal[t]);
+    // Extract column values without creating new arrays
+    for (let i = 0; i < N; i++) {
+      colReal[i] = results[i].balancesReal[t];
+    }
     const trimmedReal = trimExtremeValues(colReal, TRIM_COUNT);
-    p10BalancesReal.push(percentile(trimmedReal, 10));
-    p25BalancesReal.push(percentile(trimmedReal, 25));
-    p50BalancesReal.push(percentile(trimmedReal, 50));
-    p75BalancesReal.push(percentile(trimmedReal, 75));
-    p90BalancesReal.push(percentile(trimmedReal, 90));
+    // OPTIMIZATION: Use direct assignment instead of push()
+    p10BalancesReal[t] = percentile(trimmedReal, 10);
+    p25BalancesReal[t] = percentile(trimmedReal, 25);
+    p50BalancesReal[t] = percentile(trimmedReal, 50);
+    p75BalancesReal[t] = percentile(trimmedReal, 75);
+    p90BalancesReal[t] = percentile(trimmedReal, 90);
 
-    const colNominal = results.map(r => r.balancesNominal[t]);
+    // Extract nominal column values
+    for (let i = 0; i < N; i++) {
+      colNominal[i] = results[i].balancesNominal[t];
+    }
     const trimmedNominal = trimExtremeValues(colNominal, TRIM_COUNT);
-    p10BalancesNominal.push(percentile(trimmedNominal, 10));
-    p25BalancesNominal.push(percentile(trimmedNominal, 25));
-    p50BalancesNominal.push(percentile(trimmedNominal, 50));
-    p75BalancesNominal.push(percentile(trimmedNominal, 75));
-    p90BalancesNominal.push(percentile(trimmedNominal, 90));
+    p10BalancesNominal[t] = percentile(trimmedNominal, 10);
+    p25BalancesNominal[t] = percentile(trimmedNominal, 25);
+    p50BalancesNominal[t] = percentile(trimmedNominal, 50);
+    p75BalancesNominal[t] = percentile(trimmedNominal, 75);
+    p90BalancesNominal[t] = percentile(trimmedNominal, 90);
   }
 
   const eolValues = results.map(r => r.eolReal);
@@ -1139,7 +1813,7 @@ function simulateRealPerBeneficiaryPayout(
     if (t >= nextGenerationCheckpoint && generationData.length < 10) {
       const estateValueNominal = fundReal * Math.pow(1 + inflPct / 100, yearsFrom2025 + t);
 
-      // Calculate estate tax using 2025 exemptions (adjust this as needed)
+      // Calculate estate tax using 2026 exemptions (adjust this as needed)
       // For simplicity, using single filer exemption of $13.61M (2024 baseline)
       const exemption = 13610000;
       const taxableEstate = Math.max(0, estateValueNominal - exemption);

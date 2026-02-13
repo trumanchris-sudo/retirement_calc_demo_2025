@@ -26,6 +26,7 @@ import {
   getMaxHSAContribution,
   SE_TAX_2026,
   RETIREMENT_LIMITS_2026,
+  HSA_LIMITS_2026,
 } from "@/lib/constants/tax2026";
 import {
   calculateSelfEmployedBudget,
@@ -39,6 +40,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { fmtFull, fmtPercent } from "@/lib/utils";
 
 export default function SelfEmployed2026Page() {
   useBudget();
@@ -67,7 +69,7 @@ export default function SelfEmployed2026Page() {
 
   // Retirement & Benefits
   const [age, setAge] = useState(42);
-  const [traditional401k, setTraditional401k] = useState(24000);
+  const [traditional401k, setTraditional401k] = useState(24500); // 2026 limit
   const [roth401k, setRoth401k] = useState(0);
   const [definedBenefitPlan, setDefinedBenefitPlan] = useState(26500);
   const [sepIRA, setSepIRA] = useState(0);
@@ -108,6 +110,92 @@ export default function SelfEmployed2026Page() {
   const [showAIBanner, setShowAIBanner] = useState(false);
 
   // ============================================================================
+  // BIDIRECTIONAL SYNC FUNCTIONS (SSOT)
+  // ============================================================================
+  // These functions update local state AND sync back to PlanConfig for consistency
+  // across all calculators and tabs. This follows the same pattern as income-2026.
+
+  // 1. Marital Status (Filing Status) sync
+  const updateMaritalInSSOT = (value: string) => {
+    const previousStatus = filingStatus;
+    const newIsSingle = value !== 'mfj';
+    const wasMarried = previousStatus === 'mfj';
+
+    setFilingStatus(value as FilingStatus);
+    updatePlanConfig({
+      marital: value === 'mfj' ? 'married' : 'single'
+    }, 'user-entered');
+    console.log('[SelfEmployed2026] Wrote marital status to PlanConfig SSOT:', value);
+
+    // Clear spouse-related local state when switching from married to single
+    if (newIsSingle && wasMarried) {
+      console.log('[SelfEmployed2026] Clearing spouse data (switched to single)');
+      setSpouseW2Income(0);
+      setSpouseWithholding(0);
+      setSpousePayFrequency("biweekly");
+      setSpouseAge(30);
+      setSpouseTraditional401k(0);
+      setSpouseRoth401k(0);
+    }
+  };
+
+  // 2. Primary Income (Guaranteed Payments) sync
+  const updateGuaranteedPaymentsInSSOT = (value: number) => {
+    setGuaranteedPayments(value);
+    updatePlanConfig({ annualIncome1: value }, 'user-entered');
+    console.log('[SelfEmployed2026] Wrote guaranteed payments to PlanConfig SSOT:', value);
+  };
+
+  // 3. Spouse W2 Income sync
+  const updateSpouseIncomeInSSOT = (value: number) => {
+    setSpouseW2Income(value);
+    updatePlanConfig({ annualIncome2: value }, 'user-entered');
+    console.log('[SelfEmployed2026] Wrote spouse W2 income to PlanConfig SSOT:', value);
+  };
+
+  // 4. Traditional 401(k) sync
+  const updateTraditional401kInSSOT = (value: number) => {
+    setTraditional401k(value);
+    updatePlanConfig({ cPre1: value }, 'user-entered');
+    console.log('[SelfEmployed2026] Wrote traditional 401k to PlanConfig SSOT:', value);
+  };
+
+  // 5. Roth 401(k) sync
+  const updateRoth401kInSSOT = (value: number) => {
+    setRoth401k(value);
+    updatePlanConfig({ cPost1: value }, 'user-entered');
+    console.log('[SelfEmployed2026] Wrote roth 401k to PlanConfig SSOT:', value);
+  };
+
+  // 6. Spouse Traditional 401(k) sync
+  const updateSpouseTraditional401kInSSOT = (value: number) => {
+    setSpouseTraditional401k(value);
+    updatePlanConfig({ cPre2: value }, 'user-entered');
+    console.log('[SelfEmployed2026] Wrote spouse traditional 401k to PlanConfig SSOT:', value);
+  };
+
+  // 7. Spouse Roth 401(k) sync
+  const updateSpouseRoth401kInSSOT = (value: number) => {
+    setSpouseRoth401k(value);
+    updatePlanConfig({ cPost2: value }, 'user-entered');
+    console.log('[SelfEmployed2026] Wrote spouse roth 401k to PlanConfig SSOT:', value);
+  };
+
+  // 8. Age sync
+  const updateAgeInSSOT = (value: number) => {
+    setAge(value);
+    updatePlanConfig({ age1: value }, 'user-entered');
+    console.log('[SelfEmployed2026] Wrote age to PlanConfig SSOT:', value);
+  };
+
+  // 9. Spouse Age sync
+  const updateSpouseAgeInSSOT = (value: number) => {
+    setSpouseAge(value);
+    updatePlanConfig({ age2: value }, 'user-entered');
+    console.log('[SelfEmployed2026] Wrote spouse age to PlanConfig SSOT:', value);
+  };
+
+  // ============================================================================
   // COMPUTED VALUES
   // ============================================================================
 
@@ -123,104 +211,152 @@ export default function SelfEmployed2026Page() {
   // Auto-fill from AI Onboarding data (only for self-employed users)
   // Pre-populate form from PlanConfig (single source of truth)
   useEffect(() => {
-    console.log('[SELF-EMPLOYED-2026] Pre-populating from PlanConfig:', planConfig);
-
     // Priority 1: Use direct values from PlanConfig if available
+
+    // ===== FILING STATUS (from marital status) =====
     if (planConfig.marital) {
+      // Map planConfig marital status to FilingStatus
+      // 'married' -> 'mfj', 'single' -> 'single'
+      // Note: PlanConfig uses 'married'/'single', this page uses FilingStatus enum
       setFilingStatus(planConfig.marital === 'married' ? 'mfj' : 'single');
     }
 
-    // Set ages from PlanConfig
-    if (planConfig.age1) {
+    // ===== AGES =====
+    if (planConfig.age1 && planConfig.age1 > 0) {
       setAge(planConfig.age1);
-      console.log('[SELF-EMPLOYED-2026] Loaded age from PlanConfig:', planConfig.age1);
     }
 
-    if (planConfig.age2) {
+    if (planConfig.age2 && planConfig.age2 > 0) {
       setSpouseAge(planConfig.age2);
-      console.log('[SELF-EMPLOYED-2026] Loaded spouse age from PlanConfig:', planConfig.age2);
     }
 
+    // ===== STATE SELECTION (pre-populate state tax rate) =====
+    // The stateRate in planConfig is already a percentage (e.g., 4.5 for 4.5%)
+    if (planConfig.stateRate !== undefined && planConfig.stateRate > 0) {
+      setStateRate(planConfig.stateRate);
+    }
+
+    // ===== INCOME PRE-POPULATION =====
     // Check if user is self-employed (includes K-1 income)
     const isSelfEmployed =
       planConfig.employmentType1 === 'self-employed' ||
       planConfig.employmentType1 === 'both';
 
     if (isSelfEmployed && planConfig.annualIncome1 && planConfig.annualIncome1 > 0) {
+      // For self-employed, annualIncome1 represents guaranteed payments
       setGuaranteedPayments(planConfig.annualIncome1);
-      console.log('[SELF-EMPLOYED-2026] Loaded Person 1 income from PlanConfig:', planConfig.annualIncome1);
+
+      // Set gross compensation higher than guaranteed payments by default
+      // (distributive share = grossCompensation - guaranteedPayments)
+      // If no specific gross comp is set, estimate as 1.3x guaranteed payments
+      const estimatedGross = Math.round(planConfig.annualIncome1 * 1.3);
+      setGrossCompensation(estimatedGross);
     }
 
+    // ===== SPOUSE INCOME =====
     if (planConfig.marital === 'married' && planConfig.annualIncome2 && planConfig.annualIncome2 > 0) {
       setSpouseW2Income(planConfig.annualIncome2);
-      console.log('[SELF-EMPLOYED-2026] Loaded Person 2 (spouse) income from PlanConfig:', planConfig.annualIncome2);
+
+      // If spouse is also self-employed, detect it
+      if (planConfig.employmentType2 === 'self-employed' || planConfig.employmentType2 === 'both') {
+        // Spouse is also self-employed - could add additional handling here
+        console.log('[SelfEmployed2026] Spouse also self-employed - income set as W2 equivalent');
+      }
     }
 
+    // ===== RETIREMENT CONTRIBUTIONS =====
     // Pre-fill retirement contributions from PlanConfig
-    if (planConfig.cPre1 && planConfig.cPre1 > 0) {
+    if (planConfig.cPre1 !== undefined && planConfig.cPre1 > 0) {
       setTraditional401k(planConfig.cPre1);
-      console.log('[SELF-EMPLOYED-2026] Loaded traditional 401k from PlanConfig:', planConfig.cPre1);
     }
 
-    if (planConfig.cPost1 && planConfig.cPost1 > 0) {
+    if (planConfig.cPost1 !== undefined && planConfig.cPost1 > 0) {
       setRoth401k(planConfig.cPost1);
-      console.log('[SELF-EMPLOYED-2026] Loaded Roth 401k from PlanConfig:', planConfig.cPost1);
     }
 
     // Pre-fill spouse retirement contributions
     if (planConfig.marital === 'married') {
-      if (planConfig.cPre2 && planConfig.cPre2 > 0) {
+      if (planConfig.cPre2 !== undefined && planConfig.cPre2 > 0) {
         setSpouseTraditional401k(planConfig.cPre2);
-        console.log('[SELF-EMPLOYED-2026] Loaded spouse traditional 401k from PlanConfig:', planConfig.cPre2);
       }
 
-      if (planConfig.cPost2 && planConfig.cPost2 > 0) {
+      if (planConfig.cPost2 !== undefined && planConfig.cPost2 > 0) {
         setSpouseRoth401k(planConfig.cPost2);
-        console.log('[SELF-EMPLOYED-2026] Loaded spouse Roth 401k from PlanConfig:', planConfig.cPost2);
       }
     }
 
-    // Pre-fill expenses from PlanConfig (if available)
-    if (planConfig.monthlyMortgageRent && planConfig.monthlyMortgageRent > 0) {
-      setMortgage(planConfig.monthlyMortgageRent);
-      console.log('[SELF-EMPLOYED-2026] Loaded mortgage from PlanConfig:', planConfig.monthlyMortgageRent);
+    // ===== HEALTHCARE PRE-POPULATION =====
+    // Set health insurance coverage type based on marital status and family
+    if (planConfig.marital === 'married') {
+      // If married, default to self+spouse or family coverage
+      if (planConfig.numChildren && planConfig.numChildren > 0) {
+        setHealthInsuranceCoverage('family');
+      } else {
+        setHealthInsuranceCoverage('self_spouse');
+      }
+    } else {
+      setHealthInsuranceCoverage('self');
     }
 
-    // Load additional expense fields from PlanConfig (populated by wizard)
-    if (planConfig.monthlyUtilities && planConfig.monthlyUtilities > 0) {
-      // Fold utilities into household expenses
-      setHouseholdExpenses(prev => prev + planConfig.monthlyUtilities!);
-      console.log('[SELF-EMPLOYED-2026] Added utilities to household expenses:', planConfig.monthlyUtilities);
-    }
-    if (planConfig.monthlyOtherExpenses && planConfig.monthlyOtherExpenses > 0) {
-      setHouseholdExpenses(prev => prev + planConfig.monthlyOtherExpenses!);
-      console.log('[SELF-EMPLOYED-2026] Added other expenses to household expenses:', planConfig.monthlyOtherExpenses);
-    }
+    // Pre-fill healthcare costs from planConfig
     if (planConfig.monthlyHealthcareP1 && planConfig.monthlyHealthcareP1 > 0) {
       // Use wizard healthcare estimate for health insurance premium (annualized)
       const totalMonthlyHealthcare = planConfig.monthlyHealthcareP1 + (planConfig.monthlyHealthcareP2 ?? 0);
       setHealthInsurancePremium(totalMonthlyHealthcare * 12);
-      console.log('[SELF-EMPLOYED-2026] Loaded healthcare from PlanConfig:', totalMonthlyHealthcare, '/mo');
-    }
-    if (planConfig.monthlyInsurancePropertyTax && planConfig.monthlyInsurancePropertyTax > 0) {
-      // Fold insurance/property tax into household expenses
-      setHouseholdExpenses(prev => prev + planConfig.monthlyInsurancePropertyTax!);
-      console.log('[SELF-EMPLOYED-2026] Added insurance/property tax to household expenses:', planConfig.monthlyInsurancePropertyTax);
     }
 
-    // State tax rate
-    if (planConfig.stateRate !== undefined) {
-      setStateRate(planConfig.stateRate);
-      console.log('[SELF-EMPLOYED-2026] Loaded state rate from PlanConfig:', planConfig.stateRate);
+    // ===== HSA PRE-POPULATION WITH 2026 LIMITS =====
+    // Calculate correct HSA max based on coverage type and age
+    const currentAge = planConfig.age1 || 42;
+    const isFamilyCoverage = planConfig.marital === 'married';
+    const hsaBaseLimit = isFamilyCoverage ? HSA_LIMITS_2026.FAMILY : HSA_LIMITS_2026.SELF_ONLY;
+    const hsaCatchUp = currentAge >= 55 ? HSA_LIMITS_2026.CATCHUP_55_PLUS : 0;
+    const maxHSAContrib = hsaBaseLimit + hsaCatchUp;
+
+    // Set a reasonable default HSA contribution (max allowed)
+    setHsaContribution(maxHSAContrib);
+
+    // ===== EXPENSE PRE-POPULATION =====
+    // Pre-fill expenses from PlanConfig (if available)
+    if (planConfig.monthlyMortgageRent && planConfig.monthlyMortgageRent > 0) {
+      setMortgage(planConfig.monthlyMortgageRent);
     }
 
+    // ===== NEW EXPENSE CATEGORIES (for 2026 calculators) =====
+    // Pre-fill household expenses directly from PlanConfig (if available)
+    if (planConfig.monthlyHouseholdExpenses && planConfig.monthlyHouseholdExpenses > 0) {
+      setHouseholdExpenses(planConfig.monthlyHouseholdExpenses);
+      console.log('[SelfEmployed2026] ✅ Loaded household expenses from PlanConfig:', planConfig.monthlyHouseholdExpenses);
+    } else {
+      // Fallback: Calculate total household expenses from various planConfig fields
+      let totalHouseholdExpenses = 1500; // Default base
+      if (planConfig.monthlyUtilities && planConfig.monthlyUtilities > 0) {
+        totalHouseholdExpenses = planConfig.monthlyUtilities;
+      }
+      if (planConfig.monthlyOtherExpenses && planConfig.monthlyOtherExpenses > 0) {
+        totalHouseholdExpenses += planConfig.monthlyOtherExpenses;
+      }
+      if (planConfig.monthlyInsurancePropertyTax && planConfig.monthlyInsurancePropertyTax > 0) {
+        totalHouseholdExpenses += planConfig.monthlyInsurancePropertyTax;
+      }
+      if (totalHouseholdExpenses > 1500) {
+        setHouseholdExpenses(totalHouseholdExpenses);
+      }
+    }
+
+    // Pre-fill discretionary spending directly from PlanConfig (if available)
+    if (planConfig.monthlyDiscretionary && planConfig.monthlyDiscretionary > 0) {
+      setDiscretionaryBudget(planConfig.monthlyDiscretionary);
+      console.log('[SelfEmployed2026] ✅ Loaded discretionary spending from PlanConfig:', planConfig.monthlyDiscretionary);
+    }
+
+    // ===== AI ONBOARDING DETECTION =====
     // Detect if data came from AI onboarding via PlanConfig fieldMetadata (preferred)
     const hasAISuggestedFields = planConfig.fieldMetadata &&
       Object.values(planConfig.fieldMetadata).some((meta: any) => meta?.source === 'ai-suggested');
     if (hasAISuggestedFields) {
       setIsFromAIOnboarding(true);
       setShowAIBanner(true);
-      console.log('[SELF-EMPLOYED-2026] Detected AI-suggested data via PlanConfig fieldMetadata');
     }
 
     // Priority 2: Fall back to legacy sharedIncomeData for backward compatibility
@@ -232,18 +368,25 @@ export default function SelfEmployed2026Page() {
           sharedData.source === 'ai-onboarding' &&
           (sharedData.employmentType1 === 'self-employed' || sharedData.employmentType1 === 'both')
         ) {
-          console.log('[SELF-EMPLOYED-2026] Found legacy AI onboarding data:', sharedData);
           setGuaranteedPayments(sharedData.annualIncome1);
+          // Also set gross compensation based on shared data
+          setGrossCompensation(Math.round(sharedData.annualIncome1 * 1.3));
+
           if (sharedData.maritalStatus === 'married' && sharedData.annualIncome2) {
             setSpouseW2Income(sharedData.annualIncome2);
           }
+
+          // Pre-populate state if available from sharedData
+          if (sharedData.state) {
+            // Could map state abbreviation to tax rate here if needed
+            console.log('[SelfEmployed2026] State from AI onboarding:', sharedData.state);
+          }
+
           setIsFromAIOnboarding(true);
           setShowAIBanner(true);
         }
       }
     }
-
-    console.log('[SELF-EMPLOYED-2026] Form pre-populated successfully');
   }, [planConfig]); // Re-run when PlanConfig changes
 
   // Clear and start fresh
@@ -256,28 +399,72 @@ export default function SelfEmployed2026Page() {
     setGrossCompensation(750000);
     setGuaranteedPayments(550000);
     setSpouseW2Income(145000);
-    console.log('[SELF-EMPLOYED-2026] Cleared AI onboarding data');
   };
 
   // Apply 2026 self-employed planner values to main retirement plan
   const handleApplyToMainPlan = () => {
-    console.log('[SELF-EMPLOYED-2026] Applying values to main retirement plan (PlanConfig)');
-
     const isMarried = filingStatus === 'mfj';
 
+    // Calculate adjusted income after SE tax deduction
+    // This is the "adjusted gross income" concept for retirement planning
+    const seTaxDeductible = results?.seTaxResult?.deductiblePortion ?? 0;
+    const adjustedIncome1 = guaranteedPayments + distributiveShare - seTaxDeductible;
+
+    // Calculate total retirement contributions including employer portions
+    const totalRetirement1 = traditional401k + roth401k + definedBenefitPlan + sepIRA + solo401kEmployer;
+    const totalRetirement2 = isMarried ? (spouseTraditional401k + spouseRoth401k) : 0;
+
+    // Max 401k contribution limits based on age (for validation/reference)
+    const max401kPerson1 = getMax401kContribution(age);
+    const max401kPerson2 = isMarried ? getMax401kContribution(spouseAge) : 0;
+
     updatePlanConfig({
+      // Basic info
       marital: isMarried ? 'married' : 'single',
       employmentType1: 'self-employed',
-      annualIncome1: guaranteedPayments,
+      employmentType2: isMarried ? 'w2' : undefined,
+
+      // Ages
+      age1: age,
+      age2: isMarried ? spouseAge : planConfig.age2,
+
+      // Income (use adjusted income for better retirement projections)
+      annualIncome1: adjustedIncome1,
       annualIncome2: isMarried ? spouseW2Income : 0,
-      cPre1: traditional401k,
+
+      // Retirement contributions
+      cPre1: traditional401k + definedBenefitPlan + sepIRA, // All pre-tax contributions
       cPost1: roth401k,
       cPre2: isMarried ? spouseTraditional401k : 0,
       cPost2: isMarried ? spouseRoth401k : 0,
+
+      // Employer match equivalent (solo 401k employer portion)
+      cMatch1: solo401kEmployer,
+      cMatch2: isMarried ? planConfig.cMatch2 : 0,
+
+      // State tax rate
+      stateRate: stateRate,
+
+      // Healthcare expenses (monthly)
+      monthlyHealthcareP1: Math.round(healthInsurancePremium / 12),
+      monthlyHealthcareP2: isMarried ? Math.round(dentalVisionPremium / 12) : 0,
+
+      // Expense fields
+      monthlyMortgageRent: mortgage,
+      monthlyUtilities: Math.round(householdExpenses * 0.3), // Estimate utilities as 30% of household
+      monthlyOtherExpenses: Math.round(householdExpenses * 0.7 + discretionaryBudget),
     }, 'user-entered');
 
-    alert('✅ Your self-employed 2026 data has been applied to your main retirement plan!');
-    console.log('[SELF-EMPLOYED-2026] Successfully updated PlanConfig with 2026 values');
+    // Show confirmation with summary
+    const summaryMsg = `Self-employed 2026 data applied to main retirement plan:
+- Adjusted Annual Income: $${adjustedIncome1.toLocaleString()}
+- Total Retirement Contributions: $${totalRetirement1.toLocaleString()}
+- Max 401(k) for Age ${age}: $${max401kPerson1.toLocaleString()}
+${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
+- Spouse Retirement: $${totalRetirement2.toLocaleString()}
+- Spouse Max 401(k) for Age ${spouseAge}: $${max401kPerson2.toLocaleString()}` : ''}`;
+
+    alert(summaryMsg);
   };
 
   // ============================================================================
@@ -384,7 +571,7 @@ export default function SelfEmployed2026Page() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
           <Link href="/">
-            <Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
+            <Button variant="ghost" size="icon" aria-label="Go back to home page"><ArrowLeft className="w-4 h-4" aria-hidden="true" /></Button>
           </Link>
           <h1 className="font-semibold text-xl">Self-Employed / K-1 Partner Budget Calculator (2026)</h1>
         </div>
@@ -423,8 +610,9 @@ export default function SelfEmployed2026Page() {
                     size="icon"
                     onClick={() => setShowAIBanner(false)}
                     className="text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                    aria-label="Dismiss AI onboarding banner"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4" aria-hidden="true" />
                   </Button>
                 </div>
               </div>
@@ -473,14 +661,14 @@ export default function SelfEmployed2026Page() {
                   </span>
                 }
                 value={guaranteedPayments}
-                setter={setGuaranteedPayments}
+                setter={updateGuaranteedPaymentsInSSOT}
               />
             </div>
           </div>
 
           <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-900">
             <p className="text-sm">
-              <strong>Distributive Share (calculated):</strong> ${distributiveShare.toLocaleString()}
+              <strong>Distributive Share (calculated):</strong> {fmtFull(distributiveShare)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               This is your profit allocation and has different tax treatment than guaranteed payments.
@@ -594,7 +782,7 @@ export default function SelfEmployed2026Page() {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <Label>Filing Status</Label>
-              <Select value={filingStatus} onValueChange={(value: FilingStatus) => setFilingStatus(value)}>
+              <Select value={filingStatus} onValueChange={(value: FilingStatus) => updateMaritalInSSOT(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -616,7 +804,7 @@ export default function SelfEmployed2026Page() {
                 <Input
                   label="Spouse W-2 Annual Income"
                   value={spouseW2Income}
-                  setter={setSpouseW2Income}
+                  setter={updateSpouseIncomeInSSOT}
                 />
                 <Input
                   label="Spouse Federal Withholding (per paycheck)"
@@ -652,10 +840,10 @@ export default function SelfEmployed2026Page() {
             <Input
               label="Your Age"
               value={age}
-              setter={setAge}
+              setter={updateAgeInSSOT}
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Age {age}: Max 401(k) is ${max401k.toLocaleString()}
+              Age {age}: Max 401(k) is {fmtFull(max401k)}
               {age >= 50 && age < 60 && " (includes $8,000 catch-up)"}
               {age >= 60 && age <= 63 && " (includes $11,250 super catch-up)"}
             </p>
@@ -668,12 +856,12 @@ export default function SelfEmployed2026Page() {
             <Input
               label="Traditional 401(k)"
               value={traditional401k}
-              setter={setTraditional401k}
+              setter={updateTraditional401kInSSOT}
             />
             <Input
               label="Roth 401(k)"
               value={roth401k}
-              setter={setRoth401k}
+              setter={updateRoth401kInSSOT}
             />
             <Input
               label="Defined Benefit Plan"
@@ -704,21 +892,21 @@ export default function SelfEmployed2026Page() {
                 <Input
                   label="Spouse Age"
                   value={spouseAge}
-                  setter={setSpouseAge}
+                  setter={updateSpouseAgeInSSOT}
                 />
                 <Input
                   label="Spouse Traditional 401(k)"
                   value={spouseTraditional401k}
-                  setter={setSpouseTraditional401k}
+                  setter={updateSpouseTraditional401kInSSOT}
                 />
                 <Input
                   label="Spouse Roth 401(k)"
                   value={spouseRoth401k}
-                  setter={setSpouseRoth401k}
+                  setter={updateSpouseRoth401kInSSOT}
                 />
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Spouse age {spouseAge}: Max 401(k) is ${getMax401kContribution(spouseAge).toLocaleString()}
+                Spouse age {spouseAge}: Max 401(k) is {fmtFull(getMax401kContribution(spouseAge))}
                 {spouseAge >= 50 && spouseAge < 60 && " (includes $8,000 catch-up)"}
                 {spouseAge >= 60 && spouseAge <= 63 && " (includes $11,250 super catch-up)"}
               </p>
@@ -760,7 +948,7 @@ export default function SelfEmployed2026Page() {
                 setter={setHsaContribution}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Max: ${maxHSA.toLocaleString()}
+                Max: {fmtFull(maxHSA)}
               </p>
             </div>
             <Input
@@ -861,24 +1049,24 @@ export default function SelfEmployed2026Page() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-900">
                     <div className="text-sm text-green-700 dark:text-green-400">Gross Income</div>
-                    <div className="text-xl font-bold">${(results.yearSummary.totalGrossIncome ?? 0).toLocaleString()}</div>
+                    <div className="text-xl font-bold">{fmtFull(results.yearSummary.totalGrossIncome ?? 0)}</div>
                   </div>
                   <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg border border-red-200 dark:border-red-900">
                     <div className="text-sm text-red-700 dark:text-red-400">Total Taxes</div>
                     <div className="text-xl font-bold">
-                      ${((results.yearSummary.totalSelfEmploymentTax ?? 0) + (results.yearSummary.totalFederalTax ?? 0) + (results.yearSummary.totalStateTax ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      {fmtFull((results.yearSummary.totalSelfEmploymentTax ?? 0) + (results.yearSummary.totalFederalTax ?? 0) + (results.yearSummary.totalStateTax ?? 0))}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {((results.yearSummary.effectiveTaxRate ?? 0) * 100).toFixed(1)}% effective
+                      {fmtPercent(results.yearSummary.effectiveTaxRate ?? 0)} effective
                     </div>
                   </div>
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-900">
                     <div className="text-sm text-blue-700 dark:text-blue-400">Retirement Saved</div>
-                    <div className="text-xl font-bold">${(results.yearSummary.totalRetirement ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="text-xl font-bold">{fmtFull(results.yearSummary.totalRetirement ?? 0)}</div>
                   </div>
                   <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-900">
                     <div className="text-sm text-emerald-700 dark:text-emerald-400">Investable Proceeds</div>
-                    <div className="text-xl font-bold">${(results.yearSummary.totalInvestableProceeds ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="text-xl font-bold">{fmtFull(results.yearSummary.totalInvestableProceeds ?? 0)}</div>
                   </div>
                 </div>
 
@@ -887,30 +1075,30 @@ export default function SelfEmployed2026Page() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                   <div>
                     <div className="text-muted-foreground">Self-Employment Tax</div>
-                    <div className="font-semibold">${(results.seTaxResult.totalSETax ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="font-semibold">{fmtFull(results.seTaxResult.totalSETax ?? 0)}</div>
                     <div className="text-xs text-muted-foreground">
-                      SS: ${(results.seTaxResult.socialSecurityTax ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} |
-                      Medicare: ${((results.seTaxResult.medicareTax ?? 0) + (results.seTaxResult.additionalMedicareTax ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      SS: {fmtFull(results.seTaxResult.socialSecurityTax ?? 0)} |
+                      Medicare: {fmtFull((results.seTaxResult.medicareTax ?? 0) + (results.seTaxResult.additionalMedicareTax ?? 0))}
                     </div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Federal Income Tax</div>
-                    <div className="font-semibold">${(results.yearSummary.totalFederalTax ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="font-semibold">{fmtFull(results.yearSummary.totalFederalTax ?? 0)}</div>
                     <div className="text-xs text-muted-foreground">
-                      {((results.yearSummary.marginalTaxRate ?? 0) * 100).toFixed(0)}% marginal bracket
+                      {fmtPercent(results.yearSummary.marginalTaxRate ?? 0, 0)} marginal bracket
                     </div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">State Tax</div>
-                    <div className="font-semibold">${(results.yearSummary.totalStateTax ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="font-semibold">{fmtFull(results.yearSummary.totalStateTax ?? 0)}</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Health Benefits</div>
-                    <div className="font-semibold">${(results.yearSummary.totalHealthBenefits ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="font-semibold">{fmtFull(results.yearSummary.totalHealthBenefits ?? 0)}</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Fixed Expenses</div>
-                    <div className="font-semibold">${(results.yearSummary.totalFixedExpenses ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="font-semibold">{fmtFull(results.yearSummary.totalFixedExpenses ?? 0)}</div>
                   </div>
                 </div>
               </CardContent>
@@ -1149,11 +1337,11 @@ export default function SelfEmployed2026Page() {
 
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
                   <p className="text-sm">
-                    <strong>Social Security Cap Tracking:</strong> The SS wage base for 2026 is ${SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE.toLocaleString()}.
+                    <strong>Social Security Cap Tracking:</strong> The SS wage base for 2026 is {fmtFull(SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE)}.
                     Social Security tax stops once you reach this threshold. The table shows remaining room in the "SS Cap" column.
                   </p>
                   <p className="text-sm mt-2">
-                    <strong>Max SS Tax for 2026:</strong> ${(SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE * SE_TAX_2026.SOCIAL_SECURITY_RATE).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    <strong>Max SS Tax for 2026:</strong> {fmtFull(SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE * SE_TAX_2026.SOCIAL_SECURITY_RATE)}
                   </p>
                 </div>
               </CardContent>
@@ -1168,7 +1356,7 @@ export default function SelfEmployed2026Page() {
                 <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-900">
                   <p className="text-sm font-semibold">SE Tax Deduction</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    You can deduct ${results.seTaxResult.deductiblePortion.toLocaleString(undefined, { maximumFractionDigits: 0 })} (50% of SE tax excluding additional Medicare) as an above-the-line deduction.
+                    You can deduct {fmtFull(results.seTaxResult.deductiblePortion)} (50% of SE tax excluding additional Medicare) as an above-the-line deduction.
                   </p>
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-900">

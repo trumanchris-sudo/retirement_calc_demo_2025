@@ -49,8 +49,11 @@ export function GoalsStep({ data, savingsData, basicsData, onChange }: GoalsStep
 
   const handleRetirementAgeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value)
-    if (!isNaN(value) && value >= 50 && value <= 80) {
-      onChange({ retirementAge: value })
+    if (!isNaN(value)) {
+      // Constrain to valid range (must be > current age and within 50-80)
+      const minAge = Math.max(50, basicsData.age + 1)
+      const constrainedAge = Math.min(80, Math.max(minAge, value))
+      onChange({ retirementAge: constrainedAge })
     }
   }
 

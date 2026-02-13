@@ -20,6 +20,8 @@ import { TopBanner } from "@/components/layout/TopBanner";
 import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
 import { loadSharedIncomeData, clearSharedIncomeData, hasRecentIncomeData } from "@/lib/sharedIncomeData";
+import { fmtFull } from "@/lib/utils";
+import { METRIC_COLORS, TYPOGRAPHY } from "@/lib/designTokens";
 
 type FilingStatus = "single" | "married";
 type PayFrequency = "biweekly" | "semimonthly" | "monthly" | "weekly";
@@ -65,6 +67,22 @@ export default function Income2026Page() {
   // Marital status
   const [maritalStatus, setMaritalStatus] = useState<FilingStatus>("single");
 
+  // Ages (from PlanConfig) - stored for future use in tax calculations
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [p1Age, setP1Age] = useState(30);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [p2Age, setP2Age] = useState(30);
+
+  // State for tax calculations (from PlanConfig) - stored for future state tax integration
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [selectedState, setSelectedState] = useState("");
+
+  // Employment types (affects income type options) - stored for future W-2 vs self-employment calculations
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [p1EmploymentType, setP1EmploymentType] = useState<'w2' | 'self-employed' | 'both' | 'retired' | 'other'>('w2');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [p2EmploymentType, setP2EmploymentType] = useState<'w2' | 'self-employed' | 'both' | 'retired' | 'other'>('w2');
+
   // Person 1 (User) Income Inputs
   const [p1BaseIncome, setP1BaseIncome] = useState(0);
   const [p1Bonus, setP1Bonus] = useState(0);
@@ -79,6 +97,9 @@ export default function Income2026Page() {
   const [p1PreTaxHSA, setP1PreTaxHSA] = useState(0);
   const [p1PreTaxFSA, setP1PreTaxFSA] = useState(0);
 
+  // Person 1 Post-tax Contributions (Roth)
+  const [p1PostTaxRoth, setP1PostTaxRoth] = useState(0);
+
   // Person 2 (Spouse) Income Inputs
   const [p2BaseIncome, setP2BaseIncome] = useState(0);
   const [p2Bonus, setP2Bonus] = useState(0);
@@ -92,6 +113,9 @@ export default function Income2026Page() {
   const [p2PreTaxHealthInsurance, setP2PreTaxHealthInsurance] = useState(0);
   const [p2PreTaxHSA, setP2PreTaxHSA] = useState(0);
   const [p2PreTaxFSA, setP2PreTaxFSA] = useState(0);
+
+  // Person 2 Post-tax Contributions (Roth)
+  const [p2PostTaxRoth, setP2PostTaxRoth] = useState(0);
 
   // Tax Settings
   const [federalWithholdingExtra] = useState(0);
@@ -119,9 +143,8 @@ export default function Income2026Page() {
   const [p1LifeInsuranceAnnual, setP1LifeInsuranceAnnual] = useState(0);
   const [p2LifeInsuranceAnnual, setP2LifeInsuranceAnnual] = useState(0);
 
-  // Post-tax Deductions (Not Yet Implemented)
-  const [p1RothContribution] = useState(0);
-  const [p2RothContribution] = useState(0);
+  // Other Post-tax Deductions (Not Yet Implemented)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [p1DisabilityInsurance] = useState(0);
 
   // TODO: Net Worth Tracking Feature (Not Yet Implemented)
@@ -185,6 +208,34 @@ export default function Income2026Page() {
       setMaritalStatus(planConfig.marital);
     }
 
+    // Pre-fill ages from PlanConfig
+    if (planConfig.age1 && planConfig.age1 > 0) {
+      setP1Age(planConfig.age1);
+      console.log('[INCOME-2026] Loaded Person 1 age from PlanConfig:', planConfig.age1);
+    }
+
+    if (planConfig.marital === 'married' && planConfig.age2 && planConfig.age2 > 0) {
+      setP2Age(planConfig.age2);
+      console.log('[INCOME-2026] Loaded Person 2 age from PlanConfig:', planConfig.age2);
+    }
+
+    // Pre-fill employment types from PlanConfig
+    if (planConfig.employmentType1) {
+      setP1EmploymentType(planConfig.employmentType1);
+      console.log('[INCOME-2026] Loaded Person 1 employment type from PlanConfig:', planConfig.employmentType1);
+    }
+
+    if (planConfig.marital === 'married' && planConfig.employmentType2) {
+      setP2EmploymentType(planConfig.employmentType2);
+      console.log('[INCOME-2026] Loaded Person 2 employment type from PlanConfig:', planConfig.employmentType2);
+    }
+
+    // Pre-fill state for tax calculations (using stateRate as proxy for now)
+    // Note: PlanConfig has stateRate but not state name - we could add state name in the future
+    if (planConfig.stateRate !== undefined && planConfig.stateRate > 0) {
+      console.log('[INCOME-2026] Detected state tax rate from PlanConfig:', planConfig.stateRate);
+    }
+
     if (planConfig.annualIncome1 && planConfig.annualIncome1 > 0) {
       setP1BaseIncome(planConfig.annualIncome1);
       console.log('[INCOME-2026] Loaded Person 1 income from PlanConfig:', planConfig.annualIncome1);
@@ -198,10 +249,23 @@ export default function Income2026Page() {
     // Pre-fill 401k contributions from PlanConfig
     if (planConfig.cPre1 && planConfig.cPre1 > 0) {
       setP1PreTax401k(planConfig.cPre1);
+      console.log('[INCOME-2026] Loaded Person 1 401k contribution from PlanConfig:', planConfig.cPre1);
     }
 
     if (planConfig.marital === 'married' && planConfig.cPre2 && planConfig.cPre2 > 0) {
       setP2PreTax401k(planConfig.cPre2);
+      console.log('[INCOME-2026] Loaded Person 2 401k contribution from PlanConfig:', planConfig.cPre2);
+    }
+
+    // Pre-fill Roth contributions from PlanConfig (cPost1/cPost2)
+    if (planConfig.cPost1 && planConfig.cPost1 > 0) {
+      setP1PostTaxRoth(planConfig.cPost1);
+      console.log('[INCOME-2026] Loaded Person 1 Roth contribution from PlanConfig:', planConfig.cPost1);
+    }
+
+    if (planConfig.marital === 'married' && planConfig.cPost2 && planConfig.cPost2 > 0) {
+      setP2PostTaxRoth(planConfig.cPost2);
+      console.log('[INCOME-2026] Loaded Person 2 Roth contribution from PlanConfig:', planConfig.cPost2);
     }
 
     // Load mortgage payment from PlanConfig (SSOT)
@@ -246,9 +310,31 @@ export default function Income2026Page() {
       console.log('[INCOME-2026] ✅ Loaded other expenses from PlanConfig:', planConfig.monthlyOtherExpenses);
     }
 
+    // Load additional expense categories from PlanConfig (new fields for 2026 calculators)
+    if (planConfig.monthlyHouseholdExpenses && planConfig.monthlyHouseholdExpenses > 0) {
+      setHouseholdExpenses(planConfig.monthlyHouseholdExpenses);
+      console.log('[INCOME-2026] ✅ Loaded household expenses from PlanConfig:', planConfig.monthlyHouseholdExpenses);
+    }
+    if (planConfig.monthlyDiscretionary && planConfig.monthlyDiscretionary > 0) {
+      setDiscretionarySpending(planConfig.monthlyDiscretionary);
+      console.log('[INCOME-2026] ✅ Loaded discretionary spending from PlanConfig:', planConfig.monthlyDiscretionary);
+    }
+    if (planConfig.monthlyChildcare && planConfig.monthlyChildcare > 0) {
+      setChildcareCosts(planConfig.monthlyChildcare);
+      console.log('[INCOME-2026] ✅ Loaded childcare costs from PlanConfig:', planConfig.monthlyChildcare);
+    }
+    if (planConfig.annualLifeInsuranceP1 && planConfig.annualLifeInsuranceP1 > 0) {
+      setP1LifeInsuranceAnnual(planConfig.annualLifeInsuranceP1);
+      console.log('[INCOME-2026] ✅ Loaded P1 life insurance from PlanConfig:', planConfig.annualLifeInsuranceP1);
+    }
+    if (planConfig.marital === 'married' && planConfig.annualLifeInsuranceP2 && planConfig.annualLifeInsuranceP2 > 0) {
+      setP2LifeInsuranceAnnual(planConfig.annualLifeInsuranceP2);
+      console.log('[INCOME-2026] ✅ Loaded P2 life insurance from PlanConfig:', planConfig.annualLifeInsuranceP2);
+    }
+
     // Detect if data came from AI onboarding via PlanConfig fieldMetadata (preferred) or legacy sharedIncomeData
     const hasAISuggestedFields = planConfig.fieldMetadata &&
-      Object.values(planConfig.fieldMetadata).some((meta: any) => meta?.source === 'ai-suggested');
+      Object.values(planConfig.fieldMetadata).some((meta: { source?: string }) => meta?.source === 'ai-suggested');
     if (hasAISuggestedFields) {
       setIsFromAIOnboarding(true);
       setShowAIBanner(true);
@@ -311,6 +397,72 @@ export default function Income2026Page() {
     console.log('[INCOME-2026] ✍️ Wrote first pay date to PlanConfig SSOT:', date);
   };
 
+  // Bidirectional sync: write income values back to PlanConfig
+  const updateP1IncomeInSSOT = (value: number) => {
+    setP1BaseIncome(value);
+    updatePlanConfig({ annualIncome1: value }, 'user-entered');
+    console.log('[INCOME-2026] ✍️ Wrote Person 1 income to PlanConfig SSOT:', value);
+  };
+
+  const updateP2IncomeInSSOT = (value: number) => {
+    setP2BaseIncome(value);
+    updatePlanConfig({ annualIncome2: value }, 'user-entered');
+    console.log('[INCOME-2026] ✍️ Wrote Person 2 income to PlanConfig SSOT:', value);
+  };
+
+  // Bidirectional sync: write 401k contributions back to PlanConfig
+  const updateP1401kInSSOT = (value: number) => {
+    setP1PreTax401k(value);
+    updatePlanConfig({ cPre1: value }, 'user-entered');
+    console.log('[INCOME-2026] ✍️ Wrote Person 1 401k to PlanConfig SSOT:', value);
+  };
+
+  const updateP2401kInSSOT = (value: number) => {
+    setP2PreTax401k(value);
+    updatePlanConfig({ cPre2: value }, 'user-entered');
+    console.log('[INCOME-2026] ✍️ Wrote Person 2 401k to PlanConfig SSOT:', value);
+  };
+
+  // Bidirectional sync: write Roth contributions back to PlanConfig
+  const updateP1RothInSSOT = (value: number) => {
+    setP1PostTaxRoth(value);
+    updatePlanConfig({ cPost1: value }, 'user-entered');
+    console.log('[INCOME-2026] ✍️ Wrote Person 1 Roth to PlanConfig SSOT:', value);
+  };
+
+  const updateP2RothInSSOT = (value: number) => {
+    setP2PostTaxRoth(value);
+    updatePlanConfig({ cPost2: value }, 'user-entered');
+    console.log('[INCOME-2026] ✍️ Wrote Person 2 Roth to PlanConfig SSOT:', value);
+  };
+
+  // Bidirectional sync: write marital status back to PlanConfig
+  const updateMaritalStatusInSSOT = (value: FilingStatus) => {
+    const previousStatus = maritalStatus;
+    setMaritalStatus(value);
+    updatePlanConfig({ marital: value }, 'user-entered');
+    console.log('[INCOME-2026] ✍️ Wrote marital status to PlanConfig SSOT:', value);
+
+    // Clear spouse-related local state when switching from married to single
+    if (value === 'single' && previousStatus === 'married') {
+      console.log('[INCOME-2026] Clearing spouse data (switched to single)');
+      setP2Age(30);
+      setP2EmploymentType('w2');
+      setP2BaseIncome(0);
+      setP2Bonus(0);
+      setP2BonusMonth("December");
+      setP2OvertimeMonthly(0);
+      setP2PayFrequency("biweekly");
+      setP2FirstPayDate("2026-01-15");
+      setP2PreTax401k(0);
+      setP2PreTaxHealthInsurance(0);
+      setP2PreTaxHSA(0);
+      setP2PreTaxFSA(0);
+      setP2PostTaxRoth(0);
+      setP2LifeInsuranceAnnual(0);
+    }
+  };
+
   // Clear and start fresh
   const handleClearAIData = () => {
     clearSharedIncomeData();
@@ -327,15 +479,33 @@ export default function Income2026Page() {
   const handleApplyToMainPlan = () => {
     console.log('[INCOME-2026] Applying values to main retirement plan (PlanConfig)');
 
+    // Calculate effective tax rate from results if available
+    const effectiveTaxRate = results?.yearSummary?.effectiveTaxRate ?? 0;
+
     updatePlanConfig({
       marital: maritalStatus,
       annualIncome1: p1BaseIncome,
       annualIncome2: isMarried ? p2BaseIncome : 0,
       cPre1: p1PreTax401k,
       cPre2: isMarried ? p2PreTax401k : 0,
+      cPost1: p1PostTaxRoth,
+      cPost2: isMarried ? p2PostTaxRoth : 0,
+      // Update mortgage/rent in case it was changed here
+      monthlyMortgageRent: housingType === 'rent' ? rentPayment : mortgagePayment,
+      // Update expense fields
+      monthlyUtilities: monthlyUtilities,
+      monthlyHealthcareP1: monthlyHealthcare,
+      monthlyOtherExpenses: monthlyOtherExpenses,
+      // Update bonus info
+      eoyBonusAmount: p1Bonus,
+      eoyBonusMonth: p1BonusMonth,
+      firstPayDate: p1FirstPayDate,
     }, 'user-entered');
 
-    alert('✅ Your 2026 income data has been applied to your main retirement plan!');
+    // Log effective tax rate for reference (could be used by main calculator)
+    console.log('[INCOME-2026] Calculated effective tax rate:', (effectiveTaxRate * 100).toFixed(1) + '%');
+
+    alert('Your 2026 income data has been applied to your main retirement plan!');
     console.log('[INCOME-2026] Successfully updated PlanConfig with 2026 values');
   };
 
@@ -422,11 +592,11 @@ export default function Income2026Page() {
       if (p1PreTax401k < 0 || p2PreTax401k < 0) {
         throw new Error("401(k) contributions cannot be negative");
       }
-      if (p1PreTax401k > 24000) {
-        throw new Error("Your 401(k) contribution exceeds the 2026 limit of $24,000");
+      if (p1PreTax401k > 24500) {
+        throw new Error("Your 401(k) contribution exceeds the 2026 limit of $24,500");
       }
-      if (p2PreTax401k > 24000) {
-        throw new Error("Spouse 401(k) contribution exceeds the 2026 limit of $24,000");
+      if (p2PreTax401k > 24500) {
+        throw new Error("Spouse 401(k) contribution exceeds the 2026 limit of $24,500");
       }
       if (p1PreTaxHSA < 0 || p2PreTaxHSA < 0) {
         throw new Error("HSA contributions cannot be negative");
@@ -467,9 +637,9 @@ export default function Income2026Page() {
 
     // Constants
     const STANDARD_DEDUCTION = isMarried ? 30000 : 15000;
-    const SS_WAGE_BASE = 176100;
+    const SS_WAGE_BASE = 184500; // 2026 Social Security wage base
     const MEDICARE_THRESHOLD = 200000;
-    const MAX_401K = 24000; 
+    const MAX_401K = 24500; // 2026 401(k) limit 
     const MAX_DEP_FSA = 5000;
     const MAX_MED_FSA = 3200;
 
@@ -641,7 +811,7 @@ export default function Income2026Page() {
         // --- D. FICA ---
         const currentYtdWages = person === 'p1' ? p1YtdWages : p2YtdWages;
         
-        // Social Security (6.2% up to 176,100)
+        // Social Security (6.2% up to $184,500 for 2026)
         let ssTax = 0;
         if (currentYtdWages < SS_WAGE_BASE) {
             const taxableSS = Math.min(totalGross, SS_WAGE_BASE - currentYtdWages);
@@ -662,7 +832,7 @@ export default function Income2026Page() {
 
         // --- E. 401k ---
         // Calculated on GROSS (Base + Bonus usually, unless specified otherwise. We assume all eligible)
-        // But strictly capped at 24,000 YTD per person
+        // But strictly capped at $24,500 YTD per person (2026 limit)
         
         const userTarget401k = person === 'p1' ? p1PreTax401k : p2PreTax401k;
         const personYtd401k = person === 'p1' ? p1Ytd401k : p2Ytd401k;
@@ -749,8 +919,8 @@ export default function Income2026Page() {
 
     // Calculate annual post-tax deductions
     const totalPostTaxDeductions =
-      p1RothContribution +
-      (isMarried ? p2RothContribution : 0) +
+      p1PostTaxRoth +
+      (isMarried ? p2PostTaxRoth : 0) +
       p1DisabilityInsurance +
       p1LifeInsuranceAnnual;
 
@@ -779,10 +949,14 @@ export default function Income2026Page() {
       housing: (housingType === "own" ? mortgagePayment : rentPayment) * 12,
       discretionary: discretionarySpending * 12,
       contributions401k: total401k,
-      contributionsRoth: p1RothContribution + (isMarried ? p2RothContribution : 0),
+      contributionsRoth: p1PostTaxRoth + (isMarried ? p2PostTaxRoth : 0),
       contributionsTaxable: totalBrokerage,
       maritalStatus: maritalStatus,
     });
+
+    // Also update PlanConfig with calculated tax info for main calculator consumption
+    const calculatedEffectiveTaxRate = totalIncome > 0 ? (totalFIT + totalFICA) / totalIncome : 0;
+    console.log('[INCOME-2026] Feeding calculated tax rate back to main calculator:', (calculatedEffectiveTaxRate * 100).toFixed(1) + '%');
 
     console.log('[INCOME-2026] Updated budget context with calculated values');
 
@@ -927,7 +1101,7 @@ export default function Income2026Page() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
           <Link href="/">
-            <Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
+            <Button variant="ghost" size="icon" aria-label="Go back to home page"><ArrowLeft className="w-4 h-4" aria-hidden="true" /></Button>
           </Link>
           <h1 className="font-semibold text-xl">2026 Income & Cash Flow Planner</h1>
         </div>
@@ -966,8 +1140,9 @@ export default function Income2026Page() {
                     size="icon"
                     onClick={() => setShowAIBanner(false)}
                     className="text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                    aria-label="Dismiss AI onboarding banner"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4" aria-hidden="true" />
                   </Button>
                 </div>
               </div>
@@ -1007,7 +1182,7 @@ export default function Income2026Page() {
           <CardContent>
             <div className="space-y-2 max-w-xs">
               <Label htmlFor="marital-status">Marital Status</Label>
-              <Select value={maritalStatus} onValueChange={(value: FilingStatus) => { setMaritalStatus(value); handleInputChange(); }}>
+              <Select value={maritalStatus} onValueChange={(value: FilingStatus) => { updateMaritalStatusInSSOT(value); handleInputChange(); }}>
                 <SelectTrigger id="marital-status"><SelectValue placeholder="Select marital status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="single">Single</SelectItem>
@@ -1028,7 +1203,7 @@ export default function Income2026Page() {
               <div className="space-y-4">
                 <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Income Sources</h4>
                 <div className="space-y-4">
-                  <DualInputField label="Base Annual Salary" value1={p1BaseIncome} onChange1={setP1BaseIncome} value2={p2BaseIncome} onChange2={setP2BaseIncome} />
+                  <DualInputField label="Base Annual Salary" value1={p1BaseIncome} onChange1={updateP1IncomeInSSOT} value2={p2BaseIncome} onChange2={updateP2IncomeInSSOT} />
                   <DualInputField label="Annual Bonus" value1={p1Bonus} onChange1={updateBonusInSSOT} value2={p2Bonus} onChange2={setP2Bonus} />
                   <DualSelectField label="Bonus Payment Month" idPrefix="bonus-month" value1={p1BonusMonth} onChange1={updateBonusMonthInSSOT} value2={p2BonusMonth} onChange2={setP2BonusMonth} options={months.slice(0, 12)} />
                   <DualInputField label="Estimated Monthly Overtime" value1={p1OvertimeMonthly} onChange1={setP1OvertimeMonthly} value2={p2OvertimeMonthly} onChange2={setP2OvertimeMonthly} />
@@ -1042,10 +1217,19 @@ export default function Income2026Page() {
               <div className="space-y-4">
                 <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Annual Pre-Tax Deductions</h4>
                 <div className="space-y-4">
-                  <DualInputField label="401(k) Contribution (Annual)" value1={p1PreTax401k} onChange1={setP1PreTax401k} value2={p2PreTax401k} onChange2={setP2PreTax401k} />
+                  <DualInputField label="401(k) Contribution (Annual)" value1={p1PreTax401k} onChange1={updateP1401kInSSOT} value2={p2PreTax401k} onChange2={updateP2401kInSSOT} />
                   <DualInputField label="Health Insurance Premium" value1={p1PreTaxHealthInsurance} onChange1={setP1PreTaxHealthInsurance} value2={p2PreTaxHealthInsurance} onChange2={setP2PreTaxHealthInsurance} />
                   <DualInputField label="HSA Contribution" value1={p1PreTaxHSA} onChange1={setP1PreTaxHSA} value2={p2PreTaxHSA} onChange2={setP2PreTaxHSA} />
                   <DualInputField label="FSA Contribution" value1={p1PreTaxFSA} onChange1={setP1PreTaxFSA} value2={p2PreTaxFSA} onChange2={setP2PreTaxFSA} />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Post-Tax Retirement Contributions</h4>
+                <div className="space-y-4">
+                  <DualInputField label="Roth IRA/401(k) Contribution (Annual)" value1={p1PostTaxRoth} onChange1={updateP1RothInSSOT} value2={p2PostTaxRoth} onChange2={updateP2RothInSSOT} />
                 </div>
               </div>
             </div>
@@ -1192,12 +1376,12 @@ export default function Income2026Page() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800"><div className="text-sm text-green-700 dark:text-green-400">Total Income</div><div className="text-xl font-bold">${Math.round(results.yearSummary.totalIncome ?? 0).toLocaleString()}</div></div>
-                    <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg border border-red-200 dark:border-red-800"><div className="text-sm text-red-700 dark:text-red-400">Total Tax (Fed+FICA)</div><div className="text-xl font-bold">${Math.round((results.yearSummary.totalFIT ?? 0) + (results.yearSummary.totalFICA ?? 0)).toLocaleString()}</div></div>
-                    <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800"><div className="text-sm text-blue-700 dark:text-blue-400">401(k) Invested</div><div className="text-xl font-bold">${Math.round(results.yearSummary.total401k ?? 0).toLocaleString()}</div></div>
-                    <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800"><div className="text-sm text-emerald-700 dark:text-emerald-400">Net Cash Flow</div><div className="text-xl font-bold">${Math.round(results.yearSummary.netTakeHome ?? 0).toLocaleString()}</div></div>
+                    <div className={`${METRIC_COLORS.positive.bg} p-4 rounded-lg border ${METRIC_COLORS.positive.border}`}><div className={`${TYPOGRAPHY.metricLabel} ${METRIC_COLORS.positive.text}`}>Total Income</div><div className={TYPOGRAPHY.metricSmall}>{fmtFull(results.yearSummary.totalIncome ?? 0)}</div></div>
+                    <div className={`${METRIC_COLORS.negative.bg} p-4 rounded-lg border ${METRIC_COLORS.negative.border}`}><div className={`${TYPOGRAPHY.metricLabel} ${METRIC_COLORS.negative.text}`}>Total Tax (Fed+FICA)</div><div className={TYPOGRAPHY.metricSmall}>{fmtFull((results.yearSummary.totalFIT ?? 0) + (results.yearSummary.totalFICA ?? 0))}</div></div>
+                    <div className={`${METRIC_COLORS.neutral.bg} p-4 rounded-lg border ${METRIC_COLORS.neutral.border}`}><div className={`${TYPOGRAPHY.metricLabel} ${METRIC_COLORS.neutral.text}`}>401(k) Invested</div><div className={TYPOGRAPHY.metricSmall}>{fmtFull(results.yearSummary.total401k ?? 0)}</div></div>
+                    <div className={`${METRIC_COLORS.success.bg} p-4 rounded-lg border ${METRIC_COLORS.success.border}`}><div className={`${TYPOGRAPHY.metricLabel} ${METRIC_COLORS.success.text}`}>Net Cash Flow</div><div className={TYPOGRAPHY.metricSmall}>{fmtFull(results.yearSummary.netTakeHome ?? 0)}</div></div>
                 </div>
-                <div className="mt-3 text-sm text-muted-foreground text-center">
+                <div className={`mt-3 ${TYPOGRAPHY.bodyMuted} text-center`}>
                   Effective Tax Rate: {((results.yearSummary.effectiveTaxRate ?? 0) * 100).toFixed(1)}%
                 </div>
               </CardContent>
@@ -1219,7 +1403,6 @@ export default function Income2026Page() {
                   const monthlyPropertyCosts = housingType === "own" ? (propertyTaxAnnual + homeInsuranceAnnual + floodInsuranceAnnual) / 12 : 0;
                   const monthlyNet = monthlyGross - monthlyTax - monthly401k - monthlyPreTax - monthlyHousing - monthlyPropertyCosts - monthlyUtilities - monthlyHealthcare - householdExpenses - discretionarySpending - childcareCosts - monthlyOtherExpenses;
 
-                  const fmt = (n: number) => '$' + Math.round(n).toLocaleString();
                   const budgetLines = [
                     { label: 'Gross Monthly Income', amount: monthlyGross, color: 'text-green-700 dark:text-green-400', bold: true },
                     { label: 'Federal Tax + FICA', amount: -monthlyTax, color: 'text-red-600 dark:text-red-400' },
@@ -1241,7 +1424,7 @@ export default function Income2026Page() {
                         {budgetLines.map((line, i) => (
                           <div key={i} className={`flex justify-between py-1 ${line.bold ? 'font-bold' : ''}`}>
                             <span>{line.label}</span>
-                            <span className={line.color}>{line.amount >= 0 ? fmt(line.amount) : '-' + fmt(Math.abs(line.amount))}</span>
+                            <span className={line.color}>{line.amount >= 0 ? fmtFull(line.amount) : '-' + fmtFull(Math.abs(line.amount))}</span>
                           </div>
                         ))}
                       </div>
@@ -1249,7 +1432,7 @@ export default function Income2026Page() {
                       <div className="flex justify-between font-bold text-lg">
                         <span>Estimated Monthly Surplus</span>
                         <span className={monthlyNet >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                          {monthlyNet >= 0 ? fmt(monthlyNet) : '-' + fmt(Math.abs(monthlyNet))}
+                          {monthlyNet >= 0 ? fmtFull(monthlyNet) : '-' + fmtFull(Math.abs(monthlyNet))}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-2">Available for savings, investments, or additional spending.</p>
@@ -1287,8 +1470,7 @@ export default function Income2026Page() {
                       };
                     }).filter(m => m.numChecks > 0);
 
-                    const fmt = (n: number) => '$' + Math.round(n).toLocaleString();
-                    const fmtNeg = (n: number) => '-$' + Math.round(Math.abs(n)).toLocaleString();
+                    const fmtNeg = (n: number) => '-' + fmtFull(Math.abs(n));
 
                     return (
                       <table className="w-full text-sm border-collapse">
@@ -1308,26 +1490,26 @@ export default function Income2026Page() {
                           {monthlyData.map((m) => (
                             <tr key={m.month} className="hover:bg-muted/50 border-b">
                               <td className="py-2 px-3 font-medium">{m.month}</td>
-                              <td className="text-right py-2 px-3 text-green-700 dark:text-green-400">{fmt(m.gross)}</td>
+                              <td className="text-right py-2 px-3 text-green-700 dark:text-green-400">{fmtFull(m.gross)}</td>
                               <td className="text-right py-2 px-3 text-muted-foreground">{m.preTax > 0 ? fmtNeg(m.preTax) : '—'}</td>
                               <td className="text-right py-2 px-3 text-red-600 dark:text-red-400">{fmtNeg(m.fedTax)}</td>
                               <td className="text-right py-2 px-3 text-red-600 dark:text-red-400">{fmtNeg(m.fica)}</td>
                               <td className="text-right py-2 px-3 text-blue-600 dark:text-blue-400">{m.k401 > 0 ? fmtNeg(m.k401) : '—'}</td>
                               <td className="text-right py-2 px-3 text-orange-600 dark:text-orange-400">{fmtNeg(m.fixedExp)}</td>
-                              <td className="text-right py-2 px-3 font-bold">{fmt(m.net)}</td>
+                              <td className="text-right py-2 px-3 font-bold">{fmtFull(m.net)}</td>
                             </tr>
                           ))}
                         </tbody>
                         <tfoot>
                           <tr className="border-t-2 font-bold bg-muted/30">
                             <td className="py-2 px-3">Total</td>
-                            <td className="text-right py-2 px-3 text-green-700 dark:text-green-400">{fmt(monthlyData.reduce((s, m) => s + m.gross, 0))}</td>
+                            <td className="text-right py-2 px-3 text-green-700 dark:text-green-400">{fmtFull(monthlyData.reduce((s, m) => s + m.gross, 0))}</td>
                             <td className="text-right py-2 px-3 text-muted-foreground">{fmtNeg(monthlyData.reduce((s, m) => s + m.preTax, 0))}</td>
                             <td className="text-right py-2 px-3 text-red-600 dark:text-red-400">{fmtNeg(monthlyData.reduce((s, m) => s + m.fedTax, 0))}</td>
                             <td className="text-right py-2 px-3 text-red-600 dark:text-red-400">{fmtNeg(monthlyData.reduce((s, m) => s + m.fica, 0))}</td>
                             <td className="text-right py-2 px-3 text-blue-600 dark:text-blue-400">{fmtNeg(monthlyData.reduce((s, m) => s + m.k401, 0))}</td>
                             <td className="text-right py-2 px-3 text-orange-600 dark:text-orange-400">{fmtNeg(monthlyData.reduce((s, m) => s + m.fixedExp, 0))}</td>
-                            <td className="text-right py-2 px-3">{fmt(monthlyData.reduce((s, m) => s + m.net, 0))}</td>
+                            <td className="text-right py-2 px-3">{fmtFull(monthlyData.reduce((s, m) => s + m.net, 0))}</td>
                           </tr>
                         </tfoot>
                       </table>

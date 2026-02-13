@@ -1,11 +1,12 @@
 "use client"
 
-import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useRef, useMemo, useEffect, Suspense } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+// Static imports for lightweight recharts components used everywhere
 import {
-  LineChart,
   Line,
   XAxis,
   YAxis,
@@ -14,14 +15,32 @@ import {
   Legend,
   ResponsiveContainer,
   Area,
-  AreaChart,
-  ComposedChart,
-  PieChart,
   Pie,
   Cell,
-  Sankey,
   Rectangle,
 } from "recharts";
+
+// Lazy load heavy chart components
+const LineChart = dynamic(
+  () => import("recharts").then((mod) => ({ default: mod.LineChart })),
+  { ssr: false }
+);
+const AreaChart = dynamic(
+  () => import("recharts").then((mod) => ({ default: mod.AreaChart })),
+  { ssr: false }
+);
+const ComposedChart = dynamic(
+  () => import("recharts").then((mod) => ({ default: mod.ComposedChart })),
+  { ssr: false }
+);
+const PieChart = dynamic(
+  () => import("recharts").then((mod) => ({ default: mod.PieChart })),
+  { ssr: false }
+);
+const Sankey = dynamic(
+  () => import("recharts").then((mod) => ({ default: mod.Sankey })),
+  { ssr: false }
+);
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input as UIInput } from "@/components/ui/input";
@@ -35,7 +54,14 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 import { FlippingCard } from "@/components/FlippingCard";
 import { GenerationalResultCard } from "@/components/GenerationalResultCard";
 import { LegacyResultCard } from "@/components/LegacyResultCard";
-import { DynastyTimeline } from "@/components/calculator/DynastyTimeline";
+// Lazy load DynastyTimeline - only needed in generational wealth section
+const DynastyTimeline = dynamic(
+  () => import("@/components/calculator/DynastyTimeline").then((mod) => ({ default: mod.DynastyTimeline })),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded" />,
+  }
+);
 import AddToWalletButton from "@/components/AddToWalletButton";
 import DownloadCardButton from "@/components/DownloadCardButton";
 import DownloadPDFButton from "@/components/DownloadPDFButton";
@@ -56,13 +82,27 @@ import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
 import { TimelineView } from "@/components/calculator/TimelineView";
 import { PlanSummaryCard } from "@/components/calculator/PlanSummaryCard";
 import { NextStepsCard } from "@/components/calculator/NextStepsCard";
-import { MonteCarloVisualizer } from "@/components/calculator/MonteCarloVisualizerWrapper";
+// Lazy load MonteCarloVisualizer - only needed in results section
+const MonteCarloVisualizer = dynamic(
+  () => import("@/components/calculator/MonteCarloVisualizerWrapper").then((mod) => ({ default: mod.MonteCarloVisualizer })),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded" />,
+  }
+);
 import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
 import { CheckUsTab } from "@/components/calculator/CheckUsTab";
 import OptimizationTab from "@/components/calculator/OptimizationTab";
 import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
 import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexibilityChart";
-import { RothConversionOptimizer } from "@/components/calculator/RothConversionOptimizer";
+// Lazy load RothConversionOptimizer - only needed in advanced section
+const RothConversionOptimizer = dynamic(
+  () => import("@/components/calculator/RothConversionOptimizer").then((mod) => ({ default: mod.RothConversionOptimizer })),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded" />,
+  }
+);
 import { SSOTTab } from "@/components/calculator/SSOTTab";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
@@ -228,6 +268,13 @@ const SparkleIcon: React.FC<{ className?: string }> = ({ className = "" }) => (
   </svg>
 );
 
+// Loading fallback for lazy-loaded chart components
+const ChartLoadingFallback: React.FC<{ height?: string }> = ({ height = "h-64" }) => (
+  <div className={`${height} animate-pulse bg-gray-100 dark:bg-gray-800 rounded flex items-center justify-center`}>
+    <div className="text-gray-400 dark:text-gray-500 text-sm">Loading chart...</div>
+  </div>
+);
+
 // Helper function to convert text to title case (moved outside component to prevent re-render issues)
 const toTitleCase = (str: string) => {
   return str
@@ -262,7 +309,8 @@ const formatInsight = (text: string) => {
   });
 };
 
-const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading: boolean }> = ({ insight, error, isLoading }) => {
+// PERFORMANCE OPTIMIZATION: Memoize AiInsightBox to prevent re-renders when parent state changes
+const AiInsightBox = React.memo<{ insight: string; error?: string | null, isLoading: boolean }>(function AiInsightBox({ insight, error, isLoading }) {
   if (isLoading) {
      return (
       <div className="p-6 rounded-xl bg-card border shadow-sm">
@@ -308,16 +356,17 @@ const AiInsightBox: React.FC<{ insight: string; error?: string | null, isLoading
       </div>
     </div>
   );
-};
+});
 
-const StatCard: React.FC<{
+// PERFORMANCE OPTIMIZATION: Memoize StatCard to prevent unnecessary re-renders
+const StatCard = React.memo<{
   title: string;
   value: string;
   sub?: string;
   color?: ColorKey;
   icon?: React.ComponentType<any>;
   explanation?: string;
-}> = ({ title, value, sub, color = "blue", icon: Icon, explanation }) => {
+}>(function StatCard({ title, value, sub, color = "blue", icon: Icon, explanation }) {
   const c = COLOR[color] ?? COLOR.blue;
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -354,16 +403,17 @@ const StatCard: React.FC<{
       </CardContent>
     </Card>
   );
-};
+});
 
-const FlippingStatCard: React.FC<{
+// PERFORMANCE OPTIMIZATION: Memoize FlippingStatCard
+const FlippingStatCard = React.memo<{
   title: string;
   value: string;
   sub?: string;
   color?: ColorKey;
   icon?: React.ComponentType<any>;
   backContent?: React.ReactNode;
-}> = ({ title, value, sub, color = "blue", icon: Icon, backContent }) => {
+}>(function FlippingStatCard({ title, value, sub, color = "blue", icon: Icon, backContent }) {
   const c = COLOR[color] ?? COLOR.blue;
 
   const frontContent = (
@@ -404,7 +454,7 @@ const FlippingStatCard: React.FC<{
       backContent={backContent || defaultBackContent}
     />
   );
-};
+});
 
 const CollapsibleSection: React.FC<{
   title: string;
@@ -998,12 +1048,13 @@ export default function App() {
   const ssIncome2 = planConfig.ssIncome2 ?? 75000;
   const ssClaimAge2 = planConfig.ssClaimAge2 ?? 67;
 
-  // Family & Children (for generational wealth calculations)
-  const [numChildren, setNumChildren] = useState(0);
-  const [childrenAges, setChildrenAges] = useState<number[]>([]);
+  // Family & Children - read from context (synced with wizard)
+  const numChildren = planConfig.numChildren ?? 0;
+  const childrenAges = planConfig.childrenAges ?? [];
 
   // Helper setter functions - now using updatePlanConfig
-  const markDirty = () => res && setIsDirty(true);
+  // Note: markDirty should always mark dirty regardless of whether results exist
+  const markDirty = () => setIsDirty(true);
 
   const setMarital = (value: FilingStatus) => { updatePlanConfig({ marital: value }, 'user-entered'); markDirty(); };
   const setAge1 = (value: number) => { updatePlanConfig({ age1: value }, 'user-entered'); markDirty(); };
@@ -1043,44 +1094,76 @@ export default function App() {
   const setSSIncome2 = (value: number) => { updatePlanConfig({ ssIncome2: value }, 'user-entered'); markDirty(); };
   const setSSClaimAge2 = (value: number) => { updatePlanConfig({ ssClaimAge2: value }, 'user-entered'); markDirty(); };
 
-  // Healthcare costs (post-retirement)
-  const [includeMedicare, setIncludeMedicare] = useState(true);
-  const [medicarePremium, setMedicarePremium] = useState(400); // Monthly premium (Part B + D + Supplemental)
-  const [medicalInflation, setMedicalInflation] = useState(5.5); // Medical inflation rate %
-  const [irmaaThresholdSingle, setIrmaaThresholdSingle] = useState(103000); // IRMAA income threshold
-  const [irmaaThresholdMarried, setIrmaaThresholdMarried] = useState(206000);
-  const [irmaaSurcharge, setIrmaaSurcharge] = useState(350); // Monthly surcharge if over threshold
+  // Healthcare costs (post-retirement) - now synced to context
+  const includeMedicare = planConfig.includeMedicare ?? true;
+  const medicarePremium = planConfig.medicarePremium ?? 400;
+  const medicalInflation = planConfig.medicalInflation ?? 5.0;
+  const irmaaThresholdSingle = planConfig.irmaaThresholdSingle ?? 109000;
+  const irmaaThresholdMarried = planConfig.irmaaThresholdMarried ?? 218000;
+  const irmaaSurcharge = planConfig.irmaaSurcharge ?? 230;
 
-  const [includeLTC, setIncludeLTC] = useState(true);
-  const [ltcAnnualCost, setLtcAnnualCost] = useState(80000); // Annual long-term care cost
-  const [ltcProbability, setLtcProbability] = useState(70); // Probability of needing LTC (%)
-  const [ltcDuration, setLtcDuration] = useState(3.5); // Expected duration in years
-  const [ltcOnsetAge, setLtcOnsetAge] = useState(82); // Typical age when LTC begins
-  const [ltcAgeRangeStart, setLtcAgeRangeStart] = useState(75); // Earliest possible LTC onset
-  const [ltcAgeRangeEnd, setLtcAgeRangeEnd] = useState(90); // Latest possible LTC onset
+  const setIncludeMedicare = (value: boolean) => { updatePlanConfig({ includeMedicare: value }, 'user-entered'); markDirty(); };
+  const setMedicarePremium = (value: number) => { updatePlanConfig({ medicarePremium: value }, 'user-entered'); markDirty(); };
+  const setMedicalInflation = (value: number) => { updatePlanConfig({ medicalInflation: value }, 'user-entered'); markDirty(); };
+  const setIrmaaThresholdSingle = (value: number) => { updatePlanConfig({ irmaaThresholdSingle: value }, 'user-entered'); markDirty(); };
+  const setIrmaaThresholdMarried = (value: number) => { updatePlanConfig({ irmaaThresholdMarried: value }, 'user-entered'); markDirty(); };
+  const setIrmaaSurcharge = (value: number) => { updatePlanConfig({ irmaaSurcharge: value }, 'user-entered'); markDirty(); };
 
-  // Roth Conversion Strategy
-  const [enableRothConversions, setEnableRothConversions] = useState(false);
-  const [targetConversionBracket, setTargetConversionBracket] = useState(0.24); // 24% bracket default
+  // Long-Term Care - now synced to context
+  const includeLTC = planConfig.includeLTC ?? false;
+  const ltcAnnualCost = planConfig.ltcAnnualCost ?? 80000;
+  const ltcProbability = planConfig.ltcProbability ?? 50;
+  const ltcDuration = planConfig.ltcDuration ?? 2.5;
+  const ltcOnsetAge = planConfig.ltcOnsetAge ?? 82;
+  const ltcAgeRangeStart = planConfig.ltcAgeRangeStart ?? 75;
+  const ltcAgeRangeEnd = planConfig.ltcAgeRangeEnd ?? 90;
 
-  const [showGen, setShowGen] = useState(true);
+  const setIncludeLTC = (value: boolean) => { updatePlanConfig({ includeLTC: value }, 'user-entered'); markDirty(); };
+  const setLtcAnnualCost = (value: number) => { updatePlanConfig({ ltcAnnualCost: value }, 'user-entered'); markDirty(); };
+  const setLtcProbability = (value: number) => { updatePlanConfig({ ltcProbability: value }, 'user-entered'); markDirty(); };
+  const setLtcDuration = (value: number) => { updatePlanConfig({ ltcDuration: value }, 'user-entered'); markDirty(); };
+  const setLtcOnsetAge = (value: number) => { updatePlanConfig({ ltcOnsetAge: value }, 'user-entered'); markDirty(); };
+  const setLtcAgeRangeStart = (value: number) => { updatePlanConfig({ ltcAgeRangeStart: value }, 'user-entered'); markDirty(); };
+  const setLtcAgeRangeEnd = (value: number) => { updatePlanConfig({ ltcAgeRangeEnd: value }, 'user-entered'); markDirty(); };
+
+  // Roth Conversion Strategy - now synced to context
+  const enableRothConversions = planConfig.enableRothConversions ?? false;
+  const targetConversionBracket = planConfig.targetConversionBracket ?? 0.24;
+
+  const setEnableRothConversions = (value: boolean) => { updatePlanConfig({ enableRothConversions: value }, 'user-entered'); markDirty(); };
+  const setTargetConversionBracket = (value: number) => { updatePlanConfig({ targetConversionBracket: value }, 'user-entered'); markDirty(); };
+
+  // Generational Wealth - read from planConfig context
+  const showGen = planConfig.showGen ?? false;
+  const setShowGen = (value: boolean) => { updatePlanConfig({ showGen: value }, 'user-entered'); markDirty(); };
 
   // Generational wealth parameters (improved demographic model)
-  const [hypPerBen, setHypPerBen] = useState(100_000);
-  const [hypStartBens, setHypStartBens] = useState(2);
+  const hypPerBen = planConfig.hypPerBen ?? 30000;
+  const setHypPerBen = (value: number) => { updatePlanConfig({ hypPerBen: value }, 'user-entered'); markDirty(); };
+  const hypStartBens = planConfig.hypStartBens ?? 2;
+  const setHypStartBens = (value: number) => { updatePlanConfig({ hypStartBens: value }, 'user-entered'); markDirty(); };
 
-  // New intuitive beneficiary inputs - UPDATED to ask for current ages
-  const [childrenCurrentAges, setChildrenCurrentAges] = useState("5, 3"); // Comma-separated current ages
-  const [additionalChildrenExpected, setAdditionalChildrenExpected] = useState(0); // Number of additional children
+  // New intuitive beneficiary inputs - synced with context
+  const [childrenCurrentAges, setChildrenCurrentAges] = useState("5, 3"); // Comma-separated current ages (display only)
+  const additionalChildrenExpected = planConfig.additionalChildrenExpected ?? 0;
+  const setAdditionalChildrenExpected = (value: number) => {
+    updatePlanConfig({ additionalChildrenExpected: value }, 'user-entered');
+    markDirty();
+  };
 
   // Legacy inputs (kept for backward compatibility with presets)
   const [numberOfChildren, setNumberOfChildren] = useState(2);
   const [parentAgeAtFirstChild, setParentAgeAtFirstChild] = useState(30);
   const [childSpacingYears, setChildSpacingYears] = useState(3);
 
-  // Sync PlanConfig numChildren to legacy planning defaults.
+  // Sync PlanConfig numChildren to legacy planning defaults and hypStartBens in context.
   // Only override when the user/wizard explicitly set children info (tracked via fieldMetadata).
   // Default PlanConfig has numChildren=0 which should NOT clear legacy tab defaults.
+  //
+  // IMPORTANT: Use a ref to prevent infinite loops. This effect should only run when
+  // numChildren or childrenAges actually CHANGE, not on every render.
+  const lastSyncedChildrenRef = useRef<{ num: number; ages: number[] }>({ num: -1, ages: [] });
+
   useEffect(() => {
     const wasExplicitlySet = planConfig.fieldMetadata?.numChildren ||
                              planConfig.fieldMetadata?.childrenAges;
@@ -1091,45 +1174,83 @@ export default function App() {
     const numChildren = planConfig.numChildren ?? 0;
     const childAges = planConfig.childrenAges ?? [];
 
+    // Check if values actually changed to prevent infinite loops
+    const agesChanged = JSON.stringify(childAges) !== JSON.stringify(lastSyncedChildrenRef.current.ages);
+    const numChanged = numChildren !== lastSyncedChildrenRef.current.num;
+
+    if (!agesChanged && !numChanged) {
+      return; // No actual change, skip update
+    }
+
+    // Update ref to track what we've synced
+    lastSyncedChildrenRef.current = { num: numChildren, ages: [...childAges] };
+
     if (numChildren === 0 && childAges.length === 0) {
       // User explicitly said 0 children — respect that
-      setHypStartBens(0);
+      updatePlanConfig({ hypStartBens: 0 }, 'default');
       setChildrenCurrentAges("");
       setNumberOfChildren(0);
     } else if (childAges.length > 0) {
       // Use actual children ages from wizard
-      setHypStartBens(childAges.length);
+      updatePlanConfig({ hypStartBens: childAges.length }, 'default');
       setChildrenCurrentAges(childAges.join(", "));
       setNumberOfChildren(childAges.length);
     } else if (numChildren > 0) {
       // User specified number of children but no ages - use defaults
-      setHypStartBens(numChildren);
+      updatePlanConfig({ hypStartBens: numChildren }, 'default');
       setNumberOfChildren(numChildren);
     }
-  }, [planConfig.numChildren, planConfig.childrenAges, planConfig.fieldMetadata]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planConfig.numChildren, planConfig.childrenAges]);
 
-  const [totalFertilityRate, setTotalFertilityRate] = useState(2.1); // Children per person (lifetime)
-  const [generationLength, setGenerationLength] = useState(30); // Average age when having children
-  const [fertilityWindowStart, setFertilityWindowStart] = useState(25);
-  const [fertilityWindowEnd, setFertilityWindowEnd] = useState(40);
-  const [hypDeathAge, setHypDeathAge] = useState(95);
-  const [hypMinDistAge, setHypMinDistAge] = useState(21); // Minimum age to receive distributions
+  // Generational wealth demographic parameters - read from planConfig context
+  const totalFertilityRate = planConfig.totalFertilityRate ?? 2.1; // Children per person (lifetime)
+  const setTotalFertilityRate = (value: number) => { updatePlanConfig({ totalFertilityRate: value }, 'user-entered'); markDirty(); };
+  const generationLength = planConfig.generationLength ?? 30; // Average age when having children
+  const setGenerationLength = (value: number) => { updatePlanConfig({ generationLength: value }, 'user-entered'); markDirty(); };
+  const fertilityWindowStart = planConfig.fertilityWindowStart ?? 20;
+  const setFertilityWindowStart = (value: number) => { updatePlanConfig({ fertilityWindowStart: value }, 'user-entered'); markDirty(); };
+  const fertilityWindowEnd = planConfig.fertilityWindowEnd ?? 45;
+  const setFertilityWindowEnd = (value: number) => { updatePlanConfig({ fertilityWindowEnd: value }, 'user-entered'); markDirty(); };
+  const hypDeathAge = planConfig.hypDeathAge ?? 90;
+  const setHypDeathAge = (value: number) => { updatePlanConfig({ hypDeathAge: value }, 'user-entered'); markDirty(); };
+  const hypMinDistAge = planConfig.hypMinDistAge ?? 18; // Minimum age to receive distributions
+  const setHypMinDistAge = (value: number) => { updatePlanConfig({ hypMinDistAge: value }, 'user-entered'); markDirty(); };
 
   // Legacy state variables for backward compatibility with old simulation
   const [hypBirthMultiple, setHypBirthMultiple] = useState(1);
   const [hypBirthInterval, setHypBirthInterval] = useState(30);
 
-  const [retMode, setRetMode] = useState<"fixed" | "randomWalk">("randomWalk");
-  const [seed, setSeed] = useState(42);
-  const [walkSeries, setWalkSeries] = useState<"nominal" | "real" | "trulyRandom">("trulyRandom");
+  // Simulation Settings - synced to context
+  const retMode = planConfig.retMode ?? 'randomWalk';
+  const seed = planConfig.seed ?? 42;
+  const walkSeries = planConfig.walkSeries ?? 'trulyRandom';
 
-  // Bond Glide Path Configuration
-  const [allocationStrategy, setAllocationStrategy] = useState<'aggressive' | 'ageBased' | 'custom'>('aggressive');
-  const [bondStartPct, setBondStartPct] = useState(10);
-  const [bondEndPct, setBondEndPct] = useState(60);
-  const [bondStartAge, setBondStartAge] = useState(age1); // Will update dynamically
-  const [bondEndAge, setBondEndAge] = useState(75);
-  const [glidePathShape, setGlidePathShape] = useState<'linear' | 'accelerated' | 'decelerated'>('linear');
+  const setRetMode = (value: "fixed" | "randomWalk") => { updatePlanConfig({ retMode: value }, 'user-entered'); markDirty(); };
+  const setSeed = (value: number) => { updatePlanConfig({ seed: value }, 'user-entered'); markDirty(); };
+  const setWalkSeries = (value: "nominal" | "real" | "trulyRandom") => { updatePlanConfig({ walkSeries: value }, 'user-entered'); markDirty(); };
+
+  // Bond Glide Path Configuration - synced to context
+  const allocationStrategy = planConfig.allocationStrategy ?? 'aggressive';
+  const bondStartPct = planConfig.bondStartPct ?? 10;
+  const bondEndPct = planConfig.bondEndPct ?? 60;
+  const bondStartAge = planConfig.bondStartAge ?? age1;
+  const bondEndAge = planConfig.bondEndAge ?? 75;
+  const glidePathShape = planConfig.glidePathShape ?? 'linear';
+
+  const setAllocationStrategy = (value: 'aggressive' | 'ageBased' | 'custom') => { updatePlanConfig({ allocationStrategy: value }, 'user-entered'); markDirty(); };
+  const setBondStartPct = (value: number) => { updatePlanConfig({ bondStartPct: value }, 'user-entered'); markDirty(); };
+  const setBondEndPct = (value: number) => { updatePlanConfig({ bondEndPct: value }, 'user-entered'); markDirty(); };
+  const setBondStartAge = (value: number) => { updatePlanConfig({ bondStartAge: value }, 'user-entered'); markDirty(); };
+  const setBondEndAge = (value: number) => { updatePlanConfig({ bondEndAge: value }, 'user-entered'); markDirty(); };
+  const setGlidePathShape = (value: 'linear' | 'accelerated' | 'decelerated') => { updatePlanConfig({ glidePathShape: value }, 'user-entered'); markDirty(); };
+
+  // Sync bondStartAge with age1 when age1 changes
+  useEffect(() => {
+    if (bondStartAge !== age1) {
+      updatePlanConfig({ bondStartAge: age1 }, 'user-entered');
+    }
+  }, [age1, bondStartAge, updatePlanConfig]);
 
   const [res, setRes] = useState<CalculationResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -1204,15 +1325,21 @@ export default function App() {
   const [showSensitivity, setShowSensitivity] = useState(false);
   const [showScenarios, setShowScenarios] = useState(false);
   const [showBearMarket, setShowBearMarket] = useState(false);
-  const [historicalYear, setHistoricalYear] = useState<number | null>(null);
+  // Scenario Testing - synced to context
+  const historicalYear = planConfig.historicalYear ?? null;
+  const inflationShockRate = planConfig.inflationShockRate ?? 0; // elevated inflation % - default 0 means no shock
+  const inflationShockDuration = planConfig.inflationShockDuration ?? 5; // years
+
+  const setHistoricalYear = (value: number | null) => { updatePlanConfig({ historicalYear: value ?? undefined }, 'user-entered'); markDirty(); };
+  const setInflationShockRate = (value: number) => { updatePlanConfig({ inflationShockRate: value }, 'user-entered'); markDirty(); };
+  const setInflationShockDuration = (value: number) => { updatePlanConfig({ inflationShockDuration: value }, 'user-entered'); markDirty(); };
+
   const [scenarioName, setScenarioName] = useState<string>("");
   const [selectedScenarios, setSelectedScenarios] = useState<Set<string>>(new Set());
   const [showComparison, setShowComparison] = useState(false);
 
-  // Inflation shock scenarios
+  // Inflation shock scenarios UI state (not persisted)
   const [showInflationShock, setShowInflationShock] = useState(false);
-  const [inflationShockRate, setInflationShockRate] = useState<number>(0); // elevated inflation % - default 0 means no shock
-  const [inflationShockDuration, setInflationShockDuration] = useState<number>(5); // years
 
   // Estate tax sunset assumption (TCJA expires after 2025)
   const [assumeTaxCutsExtended, setAssumeTaxCutsExtended] = useState(false); // Default: assume sunset happens
@@ -1235,9 +1362,11 @@ export default function App() {
   const [resultsViewMode, setResultsViewMode] = useState<'quick' | 'detailed'>('detailed');
   const [showBackToTop, setShowBackToTop] = useState(false); // Show back-to-top button after scrolling
   const [activeChartTab, setActiveChartTab] = useState("accumulation"); // Track active chart tab
-  const [loaderComplete, setLoaderComplete] = useState(true); // DISABLED - skip loader to not interfere with wizard transition
-  const [loaderHandoff, setLoaderHandoff] = useState(true); // DISABLED - skip loader
-  const [cubeAppended, setCubeAppended] = useState(true); // DISABLED - skip loader
+  // NOTE: Brand loader is disabled - these are constants now (not useState)
+  // to avoid unnecessary state and re-renders
+  const loaderComplete = true;
+  const loaderHandoff = true;
+  const cubeAppended = true;
 
   // Tabbed interface state - foundation for future reorganization
   const [activeMainTab, setActiveMainTab] = useState<MainTabId>('all');
@@ -1374,19 +1503,31 @@ export default function App() {
     };
   }, [res?.finReal, age1]);
 
-  // Simple cache for AI Q&A responses (24 hour TTL)
+  // Simple cache for AI Q&A responses (24 hour TTL, max 50 entries with LRU eviction)
   const aiCache = useRef<Map<string, { response: string; timestamp: number }>>(new Map());
   const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  const MAX_CACHE_SIZE = 50;
 
   const getCacheKey = (question: string, calcResult: CalculationResult): string => {
     // Create a hash from key parameters + question
+    // Include all parameters that could affect the AI response to avoid stale cache
     const keyData = {
       q: question.toLowerCase().trim(),
+      // Core result metrics
       bal: Math.round(calcResult.finReal / 1000), // Round to nearest $1k
       wd: Math.round(calcResult.wdReal / 100), // Round to nearest $100
-      age: retAge,
       estate: Math.round((calcResult.estateTax || 0) / 10000), // Round to nearest $10k
       prob: calcResult.probRuin !== undefined ? Math.round(calcResult.probRuin * 100) : 0,
+      eol: Math.round(calcResult.eolReal / 1000), // End of life wealth
+      // Key input parameters that affect advice
+      age: retAge,
+      marital,
+      wdRate: Math.round(wdRate * 10), // Withdrawal rate (1 decimal precision)
+      retRate: Math.round(retRate * 10), // Return rate
+      infRate: Math.round(infRate * 10), // Inflation rate
+      includeSS: includeSS ? 1 : 0,
+      // Contribution totals (rounded)
+      contrib: Math.round((cTax1 + cPre1 + cPost1 + cTax2 + cPre2 + cPost2) / 1000),
     };
     return JSON.stringify(keyData);
   };
@@ -1394,6 +1535,8 @@ export default function App() {
   const getCachedResponse = (cacheKey: string): string | null => {
     const cached = aiCache.current.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      // Update timestamp for LRU tracking
+      cached.timestamp = Date.now();
       return cached.response;
     }
     if (cached) {
@@ -1404,6 +1547,20 @@ export default function App() {
   };
 
   const setCachedResponse = (cacheKey: string, response: string): void => {
+    // If cache is at max size, remove least recently used entry
+    if (aiCache.current.size >= MAX_CACHE_SIZE) {
+      let oldestKey: string | null = null;
+      let oldestTime = Infinity;
+      aiCache.current.forEach((value, key) => {
+        if (value.timestamp < oldestTime) {
+          oldestTime = value.timestamp;
+          oldestKey = key;
+        }
+      });
+      if (oldestKey) {
+        aiCache.current.delete(oldestKey);
+      }
+    }
     aiCache.current.set(cacheKey, {
       response,
       timestamp: Date.now(),
@@ -1831,9 +1988,19 @@ export default function App() {
   /**
    * Run comparison between baseline and selected scenarios
    * Merges comparison data onto existing res.data to preserve bal, real, p10, p90 keys
+   * Accepts optional overrides for scenario values to avoid stale closure issues
    */
-  const runComparison = useCallback(async () => {
+  const runComparison = useCallback(async (overrides?: {
+    historicalYear?: number | null;
+    inflationShockRate?: number;
+    inflationShockDuration?: number;
+  }) => {
     if (!comparisonMode || !res?.data) return;
+
+    // Use overrides if provided, otherwise fall back to state values
+    const effectiveHistoricalYear = overrides?.historicalYear !== undefined ? overrides.historicalYear : historicalYear;
+    const effectiveInflationRate = overrides?.inflationShockRate !== undefined ? overrides.inflationShockRate : inflationShockRate;
+    const effectiveInflationDuration = overrides?.inflationShockDuration !== undefined ? overrides.inflationShockDuration : inflationShockDuration;
 
     setErr(null);
     const younger = Math.min(age1, isMar ? age2 : age1);
@@ -1856,19 +2023,19 @@ export default function App() {
 
       // Calculate bear market scenario if specified
       let bearData = null;
-      if (historicalYear) {
-        const bearInputs = { ...baseInputs, historicalYear };
+      if (effectiveHistoricalYear) {
+        const bearInputs = { ...baseInputs, historicalYear: effectiveHistoricalYear };
         const bearResult = runSingleSimulation(bearInputs, seed);
         bearData = bearResult.balancesReal;
       }
 
       // Calculate inflation shock scenario if specified
       let inflationData = null;
-      if (inflationShockRate > 0) {
+      if (effectiveInflationRate > 0) {
         const inflationInputs = {
           ...baseInputs,
-          inflationShockRate,
-          inflationShockDuration
+          inflationShockRate: effectiveInflationRate,
+          inflationShockDuration: effectiveInflationDuration
         };
         const inflationResult = runSingleSimulation(inflationInputs, seed);
         inflationData = inflationResult.balancesReal;
@@ -1890,18 +2057,18 @@ export default function App() {
           visible: true,
           label: "Baseline",
         },
-        bearMarket: historicalYear ? {
+        bearMarket: effectiveHistoricalYear ? {
           data: mergedData,
           visible: true,
-          label: BEAR_MARKET_SCENARIOS.find(s => s.year === historicalYear)?.label || `${historicalYear} Crash`,
-          year: historicalYear,
+          label: BEAR_MARKET_SCENARIOS.find(s => s.year === effectiveHistoricalYear)?.label || `${effectiveHistoricalYear} Crash`,
+          year: effectiveHistoricalYear,
         } : null,
-        inflation: inflationShockRate > 0 ? {
+        inflation: effectiveInflationRate > 0 ? {
           data: mergedData,
           visible: true,
-          label: `${inflationShockRate}% Inflation (${inflationShockDuration}yr)`,
-          rate: inflationShockRate,
-          duration: inflationShockDuration,
+          label: `${effectiveInflationRate}% Inflation (${effectiveInflationDuration}yr)`,
+          rate: effectiveInflationRate,
+          duration: effectiveInflationDuration,
         } : null,
       });
 
@@ -1923,16 +2090,18 @@ export default function App() {
     // Randomly select an inflation shock scenario
     const randomInflationScenario = INFLATION_SHOCK_SCENARIOS[Math.floor(Math.random() * INFLATION_SHOCK_SCENARIOS.length)];
 
-    // Set the states
+    // Set the states for UI display
     setHistoricalYear(randomBearScenario.year);
     setInflationShockRate(randomInflationScenario.rate);
     setInflationShockDuration(randomInflationScenario.duration);
     setComparisonMode(true);
 
-    // Delay runComparison to ensure state updates are processed
-    setTimeout(() => {
-      runComparison();
-    }, 50);
+    // Pass values directly to runComparison to avoid stale closure issues
+    runComparison({
+      historicalYear: randomBearScenario.year,
+      inflationShockRate: randomInflationScenario.rate,
+      inflationShockDuration: randomInflationScenario.duration,
+    });
   }, [runComparison]);
 
   /**
@@ -1963,6 +2132,8 @@ export default function App() {
 
   // Generational wealth preset configurations
   const applyGenerationalPreset = useCallback((preset: 'conservative' | 'moderate' | 'aggressive') => {
+    // Enable generational modeling when a preset is selected
+    setShowGen(true);
     switch (preset) {
       case 'conservative':
         setHypPerBen(75_000);
@@ -1998,7 +2169,7 @@ export default function App() {
         setHypBirthInterval(28);
         break;
     }
-  }, []);
+  }, [setShowGen]);
 
   // Load results view mode preference from localStorage on mount
   useEffect(() => {
@@ -2017,8 +2188,12 @@ export default function App() {
     }
   }, [resultsViewMode]);
 
-  const calc = useCallback(async () => {
+  const calc = useCallback(async (optionsOrEvent?: { forceShowGen?: boolean } | React.MouseEvent) => {
     console.log('[CALC] Starting calculation...');
+    // Allow forcing showGen to true for Legacy tab calculations
+    // Check if it's an options object (has forceShowGen) or a mouse event (has target)
+    const options = optionsOrEvent && 'forceShowGen' in optionsOrEvent ? optionsOrEvent : undefined;
+    const effectiveShowGen = options?.forceShowGen ?? showGen;
     setErr(null);
     setAiInsight("");
     setAiError(null);
@@ -2274,10 +2449,10 @@ export default function App() {
         // Generational payout calculation (if enabled) - Monte Carlo version
         // NOW OPTIMIZED: Uses early-exit, decade chunking, and early termination for 90-99% speedup
         // See commit 0bd3a0e for optimization details
-        console.log('[CALC] Checking generational payout, showGen:', showGen, 'netEstate > 0:', netEstate > 0);
+        console.log('[CALC] Checking generational payout, effectiveShowGen:', effectiveShowGen, 'netEstate > 0:', netEstate > 0);
         let genPayout: GenerationalPayout | null = null;
 
-        if (showGen && netEstate > 0) {
+        if (effectiveShowGen && netEstate > 0) {
           console.log('[CALC] Starting generational payout calculation...');
           console.log('[CALC] hypBenAgesStr:', hypBenAgesStr);
           const benAges = hypBenAgesStr
@@ -3058,6 +3233,16 @@ export default function App() {
     }
   }, [isAIDocMode]);
 
+  // Show loading state while determining if wizard should be shown
+  // This prevents hydration mismatch since localStorage is only available client-side
+  if (shouldShowWizard === null) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white/60 text-sm">Loading...</div>
+      </div>
+    );
+  }
+
   // Show wizard IMMEDIATELY if user hasn't completed onboarding (no brand loader)
   if (shouldShowWizard) {
     return (
@@ -3787,6 +3972,7 @@ export default function App() {
 
                 {/* Actual Wealth Accumulation Chart */}
                 {!comparisonMode && res?.data && res.data.length > 0 && (
+                  <Suspense fallback={<ChartLoadingFallback height="h-[350px]" />}>
                   <div className="mb-6">
                     <ResponsiveContainer width="100%" height={350}>
                       <ComposedChart data={res.data}>
@@ -3854,6 +4040,7 @@ export default function App() {
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
+                  </Suspense>
                 )}
 
                 {/* Comparison Chart (if in comparison mode) */}
@@ -4036,6 +4223,7 @@ export default function App() {
                   </header>
 
                   {/* Actual RMD Chart */}
+                  <Suspense fallback={<ChartLoadingFallback height="h-[300px]" />}>
                   <div className="mb-6">
                     <ResponsiveContainer width="100%" height={300}>
                       <LineChart data={res.rmdData}>
@@ -4072,6 +4260,7 @@ export default function App() {
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
+                  </Suspense>
 
                   {/* Tax Planning Tip */}
                   <div className="mb-6 p-3 bg-amber-50 border border-amber-300 rounded">
@@ -4260,6 +4449,7 @@ export default function App() {
                 {res.eolAccounts && res.eol > 0 ? (
                   <>
                     {/* Sankey Diagram */}
+                    <Suspense fallback={<ChartLoadingFallback height="h-[350px]" />}>
                     <div className="mb-6" style={{ marginLeft: '-1rem', marginRight: '0.5rem' }}>
                       <ResponsiveContainer width="100%" height={350}>
                         <Sankey
@@ -4391,6 +4581,7 @@ export default function App() {
                         />
                       </ResponsiveContainer>
                     </div>
+                    </Suspense>
 
                     {/* Account Breakdown Table */}
                     <div className="mb-4">
@@ -4976,6 +5167,7 @@ export default function App() {
                     <CardContent className="space-y-4 pt-4">
                 {res.eolAccounts && res.eol > 0 ? (
                   <>
+                    <Suspense fallback={<ChartLoadingFallback height="h-[350px]" />}>
                     <div className="wealth-flow-responsive">
                     <ResponsiveContainer width="100%" height={350}>
                       <Sankey
@@ -5172,6 +5364,7 @@ export default function App() {
                       </Sankey>
                     </ResponsiveContainer>
                     </div>
+                    </Suspense>
 
                     {/* Disclaimer */}
                     <div className="pt-4 mt-2 border-t border-border">
@@ -5485,20 +5678,28 @@ export default function App() {
                         )}
 
                         {/* Comparison Chart */}
-                        {showComparison && selectedScenarios.size > 0 && (
+                        {showComparison && selectedScenarios.size > 0 && (() => {
+                          // Pre-compute selected scenarios and max values once (O(n) instead of O(n^2))
+                          const selectedScenariosArray = Array.from(selectedScenarios);
+                          const selectedScenarioData = selectedScenariosArray
+                            .map(id => savedScenarios.find(s => s.id === id))
+                            .filter((s): s is NonNullable<typeof s> => s !== undefined);
+
+                          const maxEOL = Math.max(...selectedScenarioData.map(s => s.results.eolReal || 0));
+                          const maxIncome = Math.max(...selectedScenarioData.map(s => s.results.wdReal || 0));
+                          const maxBalance = Math.max(...selectedScenarioData.map(s => s.results.finReal || 0));
+
+                          return (
                           <div className="comparison-chart mb-6 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 border-2 border-indigo-200 dark:border-indigo-800 rounded-lg print:border-gray-300">
                             <h4 className="font-semibold mb-4 text-indigo-900 dark:text-indigo-100">Visual Comparison</h4>
                             <div className="space-y-4">
                               {/* EOL Wealth Comparison */}
                               <div>
                                 <div className="text-xs font-medium mb-2 text-muted-foreground">End-of-Life Wealth (Real, Inflation-Adjusted)</div>
-                                {Array.from(selectedScenarios).map((id) => {
-                                  const scenario = savedScenarios.find(s => s.id === id);
-                                  if (!scenario) return null;
-                                  const maxEOL = Math.max(...Array.from(selectedScenarios).map(sid => savedScenarios.find(s => s.id === sid)?.results.eolReal || 0));
-                                  const pct = (scenario.results.eolReal / maxEOL) * 100;
+                                {selectedScenarioData.map((scenario) => {
+                                  const pct = maxEOL > 0 ? (scenario.results.eolReal / maxEOL) * 100 : 0;
                                   return (
-                                    <div key={id} className="mb-2">
+                                    <div key={scenario.id} className="mb-2">
                                       <div className="flex items-center justify-between text-xs mb-1">
                                         <span className="font-medium">{scenario.name}</span>
                                         <span className="text-muted-foreground">{fmt(scenario.results.eolReal)}</span>
@@ -5521,13 +5722,10 @@ export default function App() {
                               {/* Annual Income Comparison */}
                               <div>
                                 <div className="text-xs font-medium mb-2 text-muted-foreground">Annual Retirement Income (Real, Inflation-Adjusted)</div>
-                                {Array.from(selectedScenarios).map((id) => {
-                                  const scenario = savedScenarios.find(s => s.id === id);
-                                  if (!scenario) return null;
-                                  const maxIncome = Math.max(...Array.from(selectedScenarios).map(sid => savedScenarios.find(s => s.id === sid)?.results.wdReal || 0));
-                                  const pct = (scenario.results.wdReal / maxIncome) * 100;
+                                {selectedScenarioData.map((scenario) => {
+                                  const pct = maxIncome > 0 ? (scenario.results.wdReal / maxIncome) * 100 : 0;
                                   return (
-                                    <div key={id} className="mb-2">
+                                    <div key={scenario.id} className="mb-2">
                                       <div className="flex items-center justify-between text-xs mb-1">
                                         <span className="font-medium">{scenario.name}</span>
                                         <span className="text-muted-foreground">{fmt(scenario.results.wdReal)}</span>
@@ -5550,13 +5748,10 @@ export default function App() {
                               {/* Retirement Balance Comparison */}
                               <div>
                                 <div className="text-xs font-medium mb-2 text-muted-foreground">Balance at Retirement (Real, Inflation-Adjusted)</div>
-                                {Array.from(selectedScenarios).map((id) => {
-                                  const scenario = savedScenarios.find(s => s.id === id);
-                                  if (!scenario) return null;
-                                  const maxBalance = Math.max(...Array.from(selectedScenarios).map(sid => savedScenarios.find(s => s.id === sid)?.results.finReal || 0));
-                                  const pct = (scenario.results.finReal / maxBalance) * 100;
+                                {selectedScenarioData.map((scenario) => {
+                                  const pct = maxBalance > 0 ? (scenario.results.finReal / maxBalance) * 100 : 0;
                                   return (
-                                    <div key={id} className="mb-2">
+                                    <div key={scenario.id} className="mb-2">
                                       <div className="flex items-center justify-between text-xs mb-1">
                                         <span className="font-medium">{scenario.name}</span>
                                         <span className="text-muted-foreground">{fmt(scenario.results.finReal)}</span>
@@ -5577,7 +5772,8 @@ export default function App() {
                               </div>
                             </div>
                           </div>
-                        )}
+                          );
+                        })()}
 
                         {/* Print Header for Scenarios */}
                         <div className="print-only print-scenario-header">
@@ -5739,6 +5935,7 @@ export default function App() {
                     <CardDescription>Your projected wealth over time (inflation-adjusted)</CardDescription>
                   </CardHeader>
                   <CardContent>
+                    <Suspense fallback={<ChartLoadingFallback height="h-[400px]" />}>
                     <ResponsiveContainer width="100%" height={400}>
                       <AreaChart data={res.data}>
                         <defs>
@@ -5770,6 +5967,7 @@ export default function App() {
                         />
                       </AreaChart>
                     </ResponsiveContainer>
+                    </Suspense>
                   </CardContent>
                 </Card>
                 </AnimatedSection>
@@ -6260,6 +6458,7 @@ export default function App() {
                     <TabsContent value="rmd" className="space-y-4">
                       {res.rmdData && res.rmdData.length > 0 ? (
                         <>
+                          <Suspense fallback={<ChartLoadingFallback height="h-[400px]" />}>
                           <div className="chart-block">
                           <ResponsiveContainer width="100%" height={400}>
                             <LineChart data={res.rmdData}>
@@ -6301,6 +6500,7 @@ export default function App() {
                             </LineChart>
                           </ResponsiveContainer>
                           </div>
+                          </Suspense>
                           <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
                             <p className="text-sm text-amber-800 dark:text-amber-200">
                               <strong>Tax Planning Tip:</strong> When the red dashed line (RMD) crosses above the green line (Spending),
@@ -6324,10 +6524,12 @@ export default function App() {
             {/* Monte Carlo Visualizer - Temporarily disabled for performance */}
             {/* <div ref={monteCarloRef} className="scroll-mt-4">
               <AnimatedSection animation="fade-in" delay={400}>
-                <MonteCarloVisualizer
-                  isRunning={isLoadingAi}
-                  visible={walkSeries === 'trulyRandom'}
-                />
+                <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
+                  <MonteCarloVisualizer
+                    isRunning={isLoadingAi}
+                    visible={walkSeries === 'trulyRandom'}
+                  />
+                </Suspense>
               </AnimatedSection>
             </div> */}
 
@@ -6421,7 +6623,7 @@ export default function App() {
                     {marital === 'single' ? 'Your Contributions' : 'Your Contributions'}
                   </Badge>
                   <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} onInputChange={handleInputChange} defaultValue={12000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
-                  <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} onInputChange={handleInputChange} defaultValue={23000} validate={validate401kContribution} tip="2026 IRS limit: $24,000" />
+                  <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} onInputChange={handleInputChange} defaultValue={23000} validate={validate401kContribution} tip="2026 IRS limit: $24,500" />
                   <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} onInputChange={handleInputChange} defaultValue={7000} validate={validateIRAContribution} tip="2026 IRS limit: $7,000" />
                   <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} onInputChange={handleInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
                 </div>
@@ -6431,7 +6633,7 @@ export default function App() {
                       Spouse's Contributions
                     </Badge>
                     <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} onInputChange={handleInputChange} defaultValue={8000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
-                    <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} onInputChange={handleInputChange} defaultValue={23000} validate={validate401kContribution} tip="2026 IRS limit: $24,000" />
+                    <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} onInputChange={handleInputChange} defaultValue={23000} validate={validate401kContribution} tip="2026 IRS limit: $24,500" />
                     <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} onInputChange={handleInputChange} defaultValue={7000} validate={validateIRAContribution} tip="2026 IRS limit: $7,000" />
                     <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} onInputChange={handleInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
                   </div>
@@ -6614,7 +6816,7 @@ export default function App() {
                       <div className="text-xs text-muted-foreground mt-2">
                         <p>
                           Bond allocation will transition from {bondStartPct}% at age {bondStartAge} to {bondEndPct}% at age {bondEndAge}.
-                          Current allocation at age {age1}: {Math.round(calculateBondAllocation(age1, bondGlidePath || undefined as any))}% bonds.
+                          Current allocation at age {age1}: {Math.round(calculateBondAllocation(age1, bondGlidePath))}% bonds.
                         </p>
                       </div>
                     </div>
@@ -6751,6 +6953,12 @@ export default function App() {
                                       onInputChange={handleInputChange}
                                     />
                                   </div>
+                                  {/* Spousal Benefits Info */}
+                                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 text-sm">
+                                    <p className="text-blue-800 dark:text-blue-200">
+                                      <strong>Spousal Benefits:</strong> The calculator automatically determines if either spouse qualifies for spousal benefits (up to 50% of the higher earner&apos;s PIA). Each spouse receives the higher of their own benefit or the spousal benefit.
+                                    </p>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -6803,32 +7011,52 @@ export default function App() {
                               </div>
 
                               <div className="mt-4">
-                                <h4 className="text-sm font-semibold mb-2">IRMAA Surcharge Settings</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                  <Input
-                                    label="Single Threshold ($)"
-                                    value={irmaaThresholdSingle}
-                                    setter={setIrmaaThresholdSingle}
-                                    step={1000}
-                                    tip="MAGI threshold for IRMAA surcharge (single filers, 2025: $103,000)"
-                                    onInputChange={handleInputChange}
-                                  />
-                                  <Input
-                                    label="Married Threshold ($)"
-                                    value={irmaaThresholdMarried}
-                                    setter={setIrmaaThresholdMarried}
-                                    step={1000}
-                                    tip="MAGI threshold for IRMAA surcharge (married filing jointly, 2025: $206,000)"
-                                    onInputChange={handleInputChange}
-                                  />
-                                  <Input
-                                    label="Monthly Surcharge ($)"
-                                    value={irmaaSurcharge}
-                                    setter={setIrmaaSurcharge}
-                                    step={10}
-                                    tip="Additional monthly premium when income exceeds threshold (~$350/month for first bracket)"
-                                    onInputChange={handleInputChange}
-                                  />
+                                <h4 className="text-sm font-semibold mb-2">2026 IRMAA Brackets (Income-Related Monthly Adjustment Amount)</h4>
+                                <p className="text-xs text-muted-foreground mb-3">
+                                  Medicare surcharges are automatically calculated based on your estimated income (MAGI) using the official 2026 tiered brackets.
+                                </p>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm border-collapse">
+                                    <thead>
+                                      <tr className="bg-muted/50">
+                                        <th className="text-left p-2 border border-border font-medium">Single MAGI</th>
+                                        <th className="text-left p-2 border border-border font-medium">Married MAGI</th>
+                                        <th className="text-right p-2 border border-border font-medium">Monthly Surcharge</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <tr>
+                                        <td className="p-2 border border-border">Up to $109,000</td>
+                                        <td className="p-2 border border-border">Up to $218,000</td>
+                                        <td className="p-2 border border-border text-right text-green-600 dark:text-green-400">$0 (standard premium)</td>
+                                      </tr>
+                                      <tr className="bg-muted/30">
+                                        <td className="p-2 border border-border">$109,001 - $137,000</td>
+                                        <td className="p-2 border border-border">$218,001 - $274,000</td>
+                                        <td className="p-2 border border-border text-right">$81.00</td>
+                                      </tr>
+                                      <tr>
+                                        <td className="p-2 border border-border">$137,001 - $171,000</td>
+                                        <td className="p-2 border border-border">$274,001 - $342,000</td>
+                                        <td className="p-2 border border-border text-right">$202.40</td>
+                                      </tr>
+                                      <tr className="bg-muted/30">
+                                        <td className="p-2 border border-border">$171,001 - $214,000</td>
+                                        <td className="p-2 border border-border">$342,001 - $428,000</td>
+                                        <td className="p-2 border border-border text-right">$323.80</td>
+                                      </tr>
+                                      <tr>
+                                        <td className="p-2 border border-border">$214,001 - $500,000</td>
+                                        <td className="p-2 border border-border">$428,001 - $750,000</td>
+                                        <td className="p-2 border border-border text-right">$445.20</td>
+                                      </tr>
+                                      <tr className="bg-muted/30">
+                                        <td className="p-2 border border-border">Over $500,000</td>
+                                        <td className="p-2 border border-border">Over $750,000</td>
+                                        <td className="p-2 border border-border text-right text-red-600 dark:text-red-400">$487.00</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
                                 </div>
                               </div>
                             </div>
@@ -7111,7 +7339,17 @@ export default function App() {
                           type="text"
                           value={childrenCurrentAges}
                           onChange={(e) => {
-                            setChildrenCurrentAges(e.target.value);
+                            const newValue = e.target.value;
+                            setChildrenCurrentAges(newValue);
+                            // Sync to context: parse ages and update numChildren/childrenAges
+                            const parsedAges = newValue
+                              .split(',')
+                              .map(s => parseInt(s.trim(), 10))
+                              .filter(n => !isNaN(n) && n >= 0);
+                            updatePlanConfig({
+                              numChildren: parsedAges.length,
+                              childrenAges: parsedAges,
+                            }, 'user-entered');
                             handleInputChange?.();
                           }}
                           placeholder="5, 3"
@@ -7212,7 +7450,13 @@ export default function App() {
                   {/* Calculate Button */}
                   <div className="mt-8 flex justify-center">
                     <Button
-                      onClick={calc}
+                      onClick={() => {
+                        // Enable generational modeling when calculating from Legacy tab
+                        setShowGen(true);
+                        // Pass forceShowGen to ensure legacy calculation runs immediately
+                        // (state update may not be synchronous)
+                        calc({ forceShowGen: true });
+                      }}
                       disabled={isRunning}
                       size="lg"
                       className="px-8 py-6 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all"
@@ -7262,7 +7506,9 @@ export default function App() {
                       {/* Dynasty Timeline Visualization */}
                       {res.genPayout.p50?.generationData && res.genPayout.p50.generationData.length > 0 && (
                         <div className="mt-8">
-                          <DynastyTimeline generationData={res.genPayout.p50.generationData} />
+                          <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
+                            <DynastyTimeline generationData={res.genPayout.p50.generationData} />
+                          </Suspense>
                         </div>
                       )}
                       </div>
@@ -7487,7 +7733,7 @@ export default function App() {
                   <strong>Filing Status:</strong> This calculator is configurable for both single and married filing status.
                   Tax calculations automatically adjust based on your selection, using appropriate brackets
                   (single: $15K standard deduction, married: $30K), NIIT thresholds (single: $200K, married: $250K),
-                  and IRMAA thresholds (single: $103K, married: $206K). Select your filing status in the Configure tab
+                  and IRMAA thresholds (single: $109K, married: $218K). Select your filing status in the Configure tab
                   to ensure accurate tax projections.
                 </p>
               </div>
@@ -7634,7 +7880,7 @@ export default function App() {
                 <div>
                   <h4 className="text-lg font-semibold mb-2 text-blue-800">Social Security Benefits</h4>
                   <p className="text-gray-700 mb-2">
-                    If enabled, Social Security benefits are calculated using the 2025 bend point formula:
+                    If enabled, Social Security benefits are calculated using the 2026 bend point formula:
                   </p>
                   <ul className="list-disc pl-6 space-y-1 text-gray-700">
                     <li>90% of Average Indexed Monthly Earnings (AIME) up to ${SS_BEND_POINTS.first.toLocaleString()}/month</li>
@@ -7736,17 +7982,17 @@ export default function App() {
                   <h4 className="text-lg font-semibold mb-2 text-blue-800">Generational Wealth Model</h4>
                   <p className="text-gray-700 mb-2">
                     If enabled, the generational model simulates how long your estate could support future
-                    beneficiaries (children, grandchildren, etc.) with annual payouts in constant 2025 dollars:
+                    beneficiaries (children, grandchildren, etc.) with annual payouts in constant 2026 dollars:
                   </p>
                   <ul className="list-disc pl-6 space-y-1 text-gray-700">
-                    <li>The net estate (after estate tax) is deflated to 2025 purchasing power</li>
+                    <li>The net estate (after estate tax) is deflated to 2026 purchasing power</li>
                     <li>
                       <strong>Real Returns:</strong> For generational projections, we convert nominal returns to real returns
                       by subtracting inflation using the Fisher equation: Real Return = (1 + Nominal) / (1 + Inflation) - 1.
                       For example: 9.8% nominal - 2.6% inflation = ~7.0% real return used in perpetual threshold calculations.
-                      This ensures all values stay in constant 2025 dollars.
+                      This ensures all values stay in constant 2026 dollars.
                     </li>
-                    <li>Only beneficiaries at or above the minimum distribution age receive payouts in constant 2025 dollars</li>
+                    <li>Only beneficiaries at or above the minimum distribution age receive payouts in constant 2026 dollars</li>
                     <li>Beneficiaries age each year; those reaching max lifespan exit the model</li>
                     <li>
                       <strong>Fertility Window Model:</strong> Beneficiaries within the fertility window (default ages
@@ -7815,7 +8061,7 @@ export default function App() {
 
               <ul className="list-disc pl-6 space-y-2 text-gray-700">
                 <li>
-                  <strong>Tax Law Stability:</strong> Assumes current (2025) tax brackets, standard deductions,
+                  <strong>Tax Law Stability:</strong> Assumes current (2026) tax brackets, standard deductions,
                   RMD rules, and estate tax exemptions remain constant. Tax laws frequently change. This calculator
                   assumes the permanent $15M exemption enacted by the OBBBA (July 2025) remains in effect and is
                   not repealed by future legislation.
@@ -7866,12 +8112,12 @@ export default function App() {
               <h3 className="text-xl font-semibold mb-3 text-blue-900">Data Sources</h3>
               <ul className="list-disc pl-6 space-y-1 text-gray-700">
                 <li><strong>S&amp;P 500 Returns:</strong> Historical total return data (1928-2024, 97 years) used for random walk and Monte Carlo simulations</li>
-                <li><strong>Tax Brackets:</strong> 2025 federal ordinary income tax brackets (IRS)</li>
-                <li><strong>LTCG Brackets:</strong> 2025 long-term capital gains tax rates (IRS)</li>
+                <li><strong>Tax Brackets:</strong> 2026 federal ordinary income tax brackets (IRS)</li>
+                <li><strong>LTCG Brackets:</strong> 2026 long-term capital gains tax rates (IRS)</li>
                 <li><strong>RMD Table:</strong> IRS Uniform Lifetime Table (Publication 590-B)</li>
-                <li><strong>Social Security:</strong> 2025 bend points and claiming adjustment factors (SSA)</li>
+                <li><strong>Social Security:</strong> 2026 bend points and claiming adjustment factors (SSA)</li>
                 <li><strong>Estate Tax:</strong> OBBBA permanent exemption ($15M individual / $30M married for 2026, indexed annually for inflation starting 2027) and 40% rate</li>
-                <li><strong>Medicare &amp; IRMAA:</strong> 2025 Part B/D premiums and income thresholds (CMS)</li>
+                <li><strong>Medicare &amp; IRMAA:</strong> 2026 Part B/D premiums and income thresholds (CMS)</li>
                 <li><strong>Long-Term Care:</strong> National average costs based on Genworth 2024 Cost of Care Survey</li>
                 <li><strong>Medical Inflation:</strong> Historical healthcare cost growth trends (Kaiser Family Foundation, CMS)</li>
                 <li><strong>Net Worth Data:</strong> Federal Reserve 2022 Survey of Consumer Finances (released Oct 2023)</li>

@@ -32,7 +32,7 @@ const formatters = {
   percentage: (n: number) => `${n.toFixed(1)}%`
 };
 
-export const AnimatedStatCard: React.FC<AnimatedStatCardProps> = ({
+export const AnimatedStatCard: React.FC<AnimatedStatCardProps> = React.memo(({
   label,
   value,
   format,
@@ -105,4 +105,6 @@ export const AnimatedStatCard: React.FC<AnimatedStatCardProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+AnimatedStatCard.displayName = 'AnimatedStatCard';

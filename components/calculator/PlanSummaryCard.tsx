@@ -8,6 +8,7 @@ import type { CalculationResult } from '@/types/calculator'
 import type { BatchSummary } from '@/types/planner'
 import { fmt } from '@/lib/utils'
 import { InfoTooltip, TOOLTIP_CONTENT } from '@/components/ui/InfoTooltip'
+import { TYPOGRAPHY } from '@/lib/designTokens'
 
 interface PlanSummaryCardProps {
   result: CalculationResult | null
@@ -133,7 +134,7 @@ export function PlanSummaryCard({ result, batchSummary }: PlanSummaryCardProps) 
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-2xl font-bold">Plan Summary</CardTitle>
+            <CardTitle className={TYPOGRAPHY.metricMedium}>Plan Summary</CardTitle>
             <Badge className={`${classes.badge} border-0`}>{label}</Badge>
           </div>
           <div className={`p-3 rounded-full ${classes.iconBg}`}>
@@ -143,7 +144,7 @@ export function PlanSummaryCard({ result, batchSummary }: PlanSummaryCardProps) 
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Status Message */}
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className={`${TYPOGRAPHY.bodyMuted} leading-relaxed`}>
           {message}
         </p>
 
@@ -153,13 +154,13 @@ export function PlanSummaryCard({ result, batchSummary }: PlanSummaryCardProps) 
           {successRate !== undefined && (
             <div className="space-y-1">
               <div className="flex items-center gap-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <p className={TYPOGRAPHY.tableHeader}>
                   Success Rate
                 </p>
                 <InfoTooltip {...TOOLTIP_CONTENT.successRate} side="top" />
               </div>
-              <p className="text-2xl font-bold">{successRate.toFixed(0)}%</p>
-              <p className="text-xs text-muted-foreground">
+              <p className={TYPOGRAPHY.metricMedium}>{successRate.toFixed(0)}%</p>
+              <p className={TYPOGRAPHY.tableCellCompact + ' text-muted-foreground'}>
                 Chance of not running out during retirement
               </p>
             </div>
@@ -168,13 +169,13 @@ export function PlanSummaryCard({ result, batchSummary }: PlanSummaryCardProps) 
           {/* Safe Withdrawal */}
           <div className="space-y-1">
             <div className="flex items-center gap-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <p className={TYPOGRAPHY.tableHeader}>
                 Annual After-Tax Income
               </p>
               <InfoTooltip {...TOOLTIP_CONTENT.afterTaxWithdrawal} side="top" />
             </div>
-            <p className="text-2xl font-bold">{fmt(safeWithdrawal)}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className={TYPOGRAPHY.metricMedium}>{fmt(safeWithdrawal)}</p>
+            <p className={TYPOGRAPHY.tableCellCompact + ' text-muted-foreground'}>
               In retirement (real)
             </p>
           </div>
@@ -182,13 +183,13 @@ export function PlanSummaryCard({ result, batchSummary }: PlanSummaryCardProps) 
           {/* End-of-Life Wealth */}
           <div className="space-y-1">
             <div className="flex items-center gap-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <p className={TYPOGRAPHY.tableHeader}>
                 End-of-Life Wealth
               </p>
               <InfoTooltip {...TOOLTIP_CONTENT.endOfLifeWealth} side="top" />
             </div>
-            <p className="text-2xl font-bold">{fmt(eolWealthRange)}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className={TYPOGRAPHY.metricMedium}>{fmt(eolWealthRange)}</p>
+            <p className={TYPOGRAPHY.tableCellCompact + ' text-muted-foreground'}>
               Remaining assets (real)
             </p>
           </div>

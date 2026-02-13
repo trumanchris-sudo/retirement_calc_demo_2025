@@ -94,67 +94,6 @@ export function calculateBlendedReturn(
 }
 
 /**
- * Calculate portfolio volatility based on allocation
- * Uses standard deviation formula for two-asset portfolio
- * @param stockPct - Stock allocation (0-1)
- * @param bondPct - Bond allocation (0-1)
- * @param stockVol - Stock volatility (default 18%)
- * @param bondVol - Bond volatility (default 8%)
- * @param correlation - Stock-bond correlation (default 0.1)
- * @returns Portfolio volatility
- */
-export function calculatePortfolioVolatility(
-  stockPct: number,
-  bondPct: number,
-  stockVol: number = 0.18,
-  bondVol: number = 0.08,
-  correlation: number = 0.1
-): number {
-  // Portfolio variance formula: σ²p = w1²σ1² + w2²σ2² + 2w1w2σ1σ2ρ
-  const variance =
-    Math.pow(stockPct * stockVol, 2) +
-    Math.pow(bondPct * bondVol, 2) +
-    2 * stockPct * bondPct * stockVol * bondVol * correlation;
-
-  return Math.sqrt(variance);
-}
-
-/**
- * Generate allocation data points for visualization
- * @param glidePath - Bond glide path configuration
- * @param currentAge - User's current age
- * @param endAge - Planning horizon end age (typically 95)
- * @returns Array of {age, bondPct, stockPct} data points
- */
-export function generateAllocationChart(
-  glidePath: BondGlidePath | null,
-  currentAge: number,
-  endAge: number = 95
-): Array<{ age: number; bondPct: number; stockPct: number }> {
-  if (!glidePath) {
-    // Default to 100% stocks
-    return Array.from({ length: endAge - currentAge + 1 }, (_, i) => ({
-      age: currentAge + i,
-      bondPct: 0,
-      stockPct: 100,
-    }));
-  }
-
-  const dataPoints: Array<{ age: number; bondPct: number; stockPct: number }> = [];
-
-  for (let age = currentAge; age <= endAge; age++) {
-    const bondPct = calculateBondAllocation(age, glidePath);
-    dataPoints.push({
-      age,
-      bondPct: Math.round(bondPct * 10) / 10, // Round to 1 decimal
-      stockPct: Math.round((100 - bondPct) * 10) / 10,
-    });
-  }
-
-  return dataPoints;
-}
-
-/**
  * Preset glide path configurations
  */
 export const GLIDE_PATH_PRESETS = {

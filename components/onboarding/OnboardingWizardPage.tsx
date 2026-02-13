@@ -45,9 +45,9 @@ export function OnboardingWizardPage({ onComplete, onSkip }: OnboardingWizardPag
           emergencyFund: calculatorInputs.emergencyFund,
           // Critical fields per user request:
           monthlyMortgageRent: calculatorInputs.monthlyMortgageRent,
-          eoyBonusAmount: (calculatorInputs as any).eoyBonusAmount,
-          eoyBonusMonth: (calculatorInputs as any).eoyBonusMonth,
-          firstPayDate: (calculatorInputs as any).firstPayDate,
+          eoyBonusAmount: calculatorInputs.eoyBonusAmount,
+          eoyBonusMonth: calculatorInputs.eoyBonusMonth,
+          firstPayDate: calculatorInputs.firstPayDate,
           fullConfig: calculatorInputs,
         });
 

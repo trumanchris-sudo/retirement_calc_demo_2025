@@ -640,6 +640,25 @@ export function calculateYearSummary(
   federalTaxResult: FederalTaxResult,
   inputs: CalculationInputs
 ): YearSummary {
+  // Guard against empty periods array
+  if (!periods || periods.length === 0) {
+    return {
+      totalGrossIncome: federalTaxResult.grossIncome,
+      totalSelfEmploymentTax: seTaxResult.totalSETax,
+      totalFederalTax: 0,
+      totalStateTax: 0,
+      totalRetirement: inputs.retirementContributions.definedBenefitPlan || 0,
+      totalHealthBenefits: (inputs.healthBenefits.healthInsurancePremium +
+                           inputs.healthBenefits.dentalVisionPremium +
+                           inputs.healthBenefits.hsaContribution +
+                           inputs.healthBenefits.dependentCareFSA) || 0,
+      totalFixedExpenses: 0,
+      totalInvestableProceeds: 0,
+      effectiveTaxRate: 0,
+      marginalTaxRate: federalTaxResult.marginalRate,
+    };
+  }
+
   const lastPeriod = periods[periods.length - 1];
 
   // Total household gross income (partner + spouse)

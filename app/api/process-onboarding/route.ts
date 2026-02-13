@@ -23,7 +23,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { conversationHistory, extractedData } = await request.json();
+    let conversationHistory;
+    let extractedData;
+    try {
+      const body = await request.json();
+      conversationHistory = body.conversationHistory;
+      extractedData = body.extractedData;
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
 
     console.log('[Process Onboarding] Processing conversation', {
       messageCount: conversationHistory?.length || 0,
@@ -238,9 +249,16 @@ Response: {
   "summary": "I've set up your retirement plan with conservative expense assumptions scaled to your income level. You can adjust these estimates in the next screen."
 }`;
 
-    // Convert conversation history to Anthropic format
-    const messages = conversationHistory.map((msg: { role: string; content: string }) => ({
-      role: msg.role === 'assistant' ? 'assistant' : 'user',
+    // Type for Anthropic message format
+    type AnthropicMessageRole = 'user' | 'assistant';
+    interface AnthropicMessage {
+      role: AnthropicMessageRole;
+      content: string;
+    }
+
+    // Convert conversation history to Anthropic format with proper typing
+    const messages: AnthropicMessage[] = conversationHistory.map((msg: { role: string; content: string }) => ({
+      role: (msg.role === 'assistant' ? 'assistant' : 'user') as AnthropicMessageRole,
       content: msg.content
     }));
 
@@ -255,7 +273,7 @@ Response: {
       max_tokens: 4000,
       temperature: 0.7,
       system: systemPrompt,
-      messages: messages as any,
+      messages,
     });
 
     // Extract JSON from response

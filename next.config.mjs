@@ -21,6 +21,14 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  // Note: Custom webpack splitChunks removed - it was breaking Next.js chunk loading in dev mode.
+  // Next.js handles code splitting automatically and efficiently.
+  // Compress responses
+  compress: true,
+  // Enable React strict mode for development
+  reactStrictMode: false, // Disable to avoid double renders in dev
+  // Power optimization
+  poweredByHeader: false,
 }
 
 mergeConfig(nextConfig, userConfig)

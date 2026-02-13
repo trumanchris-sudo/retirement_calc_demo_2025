@@ -9,7 +9,7 @@ export const WealthTrajectoryChart = ({ data }: { data: { year: number; nominal:
       <YAxis tickFormatter={(v) => formatCurrency(v, { compact: true })} />
       <Tooltip formatter={(v: number) => formatCurrency(v)} />
       <Line type="monotone" dataKey="nominal" stroke="#d4a017" name="Nominal" />
-      <Line type="monotone" dataKey="real" stroke="#1a5fb4" name="Real (2025 $)" />
+      <Line type="monotone" dataKey="real" stroke="#1a5fb4" name="Real (2026 $)" />
     </LineChart>
   </ResponsiveContainer>
 );

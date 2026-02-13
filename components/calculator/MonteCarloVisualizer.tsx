@@ -348,30 +348,88 @@ export function MonteCarloVisualizer({ isRunning = false, visible = true }: Mont
     // Let the animation complete all 2000 paths naturally
   }, [isRunning, animateSimulation]);
 
+  // Calculate completion percentage for accessible progress
+  const completionPercentage = Math.round((pathsCompleted / 2000) * 100);
+
   return (
-    <Card style={{ visibility: visible ? 'visible' : 'hidden', position: visible ? 'relative' : 'absolute' }}>
+    <Card
+      style={{ visibility: visible ? 'visible' : 'hidden', position: visible ? 'relative' : 'absolute' }}
+      role="region"
+      aria-label="Monte Carlo Simulation Visualization"
+    >
       <CardHeader>
-        <CardTitle>Monte Carlo Simulation Visualizer</CardTitle>
-        <CardDescription>
+        <CardTitle id="monte-carlo-title">Monte Carlo Simulation Visualizer</CardTitle>
+        <CardDescription id="monte-carlo-desc">
           Visual representation of the Monte Carlo simulation complexity - each path represents a simulated retirement scenario
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="relative">
+          {/* Accessible description for screen readers */}
+          <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {isAnimating
+              ? `Monte Carlo simulation in progress. ${pathsCompleted} of 2000 paths completed, ${completionPercentage}% complete.`
+              : pathsCompleted > 0
+                ? `Monte Carlo simulation complete. ${pathsCompleted} retirement scenarios simulated.`
+                : "Monte Carlo simulation has not been run yet. Click Calculate to start."
+            }
+          </div>
+
+          {/* Canvas with proper accessibility attributes */}
           <canvas
             ref={canvasRef}
             className="w-full h-[250px] md:h-[400px] rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800"
+            role="img"
+            aria-labelledby="monte-carlo-title"
+            aria-describedby="monte-carlo-desc monte-carlo-alt"
           />
+
+          {/* Text alternative for chart - visible to screen readers */}
+          <div id="monte-carlo-alt" className="sr-only">
+            This visualization shows a network graph representing the Monte Carlo simulation.
+            Each node represents a decision point in a simulated retirement scenario,
+            and connections between nodes show possible paths through retirement.
+            Active paths are highlighted in blue and purple, showing the simulation
+            exploring different market conditions and outcomes.
+            {pathsCompleted > 0 && ` Currently showing ${pathsCompleted} simulated paths.`}
+          </div>
+
+          {/* Progress indicator with accessibility */}
           {isAnimating && (
-            <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-border">
+            <div
+              className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-border"
+              role="status"
+              aria-live="polite"
+            >
               <div className="text-xs font-mono text-muted-foreground">
+                <span className="sr-only">Simulation progress: </span>
                 Paths simulated: <span className="font-semibold text-foreground">{pathsCompleted}</span> / 2000
+                <span className="sr-only"> ({completionPercentage}% complete)</span>
+              </div>
+              {/* Visual progress bar */}
+              <div
+                className="mt-2 h-1 bg-secondary rounded-full overflow-hidden"
+                role="progressbar"
+                aria-valuenow={pathsCompleted}
+                aria-valuemin={0}
+                aria-valuemax={2000}
+                aria-label="Simulation progress"
+              >
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all duration-300"
+                  style={{ width: `${completionPercentage}%` }}
+                />
               </div>
             </div>
           )}
+
+          {/* Empty state message */}
           {!isAnimating && !isRunning && pathsCompleted === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-sm text-muted-foreground text-center">
+            <div
+              className="absolute inset-0 flex items-center justify-center"
+              role="status"
+            >
+              <div className="text-sm text-muted-foreground text-center px-4">
                 Run a Monte Carlo simulation to see the visualization
               </div>
             </div>

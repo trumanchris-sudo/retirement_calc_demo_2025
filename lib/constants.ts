@@ -22,13 +22,13 @@ export const RMD_DIVISORS: Record<number, number> = {
   113: 3.1, 114: 3.0, 115: 2.9, 116: 2.8, 117: 2.7, 118: 2.5, 119: 2.3, 120: 2.0,
 };
 
-/** Social Security Full Retirement Age bend points (2025 estimates) */
+/** Social Security Full Retirement Age bend points (2026 values) */
 export const SS_BEND_POINTS = {
-  first: 1226,  // 90% of AIME up to this
-  second: 7391, // 32% of AIME between first and second, 15% above
+  first: 1286,  // 90% of AIME up to this
+  second: 7749, // 32% of AIME between first and second, 15% above
 };
 
-/** Estate Tax (2025 OBBBA - One Big Beautiful Bill Act) */
+/** Estate Tax (OBBBA July 2025 - permanent $15M/$30M exemption, indexed for inflation starting 2027) */
 export const ESTATE_TAX_EXEMPTION: Record<'single' | 'married', number> = {
   single: 15_000_000,   // $15M for individual (OBBBA permanent, effective Jan 1, 2026)
   married: 30_000_000,  // $30M for married couple (double)
@@ -85,9 +85,33 @@ export const NIIT_THRESHOLD = {
   married: 250000,
 } as const;
 
-/** IRMAA (Income-Related Monthly Adjustment Amount) thresholds for Medicare surcharges */
-export const IRMAA_THRESHOLD_SINGLE = 103000;
-export const IRMAA_THRESHOLD_MARRIED = 206000;
+/** IRMAA (Income-Related Monthly Adjustment Amount) thresholds for Medicare surcharges (2026 values) */
+export const IRMAA_THRESHOLD_SINGLE = 109000;
+export const IRMAA_THRESHOLD_MARRIED = 218000;
+
+/**
+ * IRMAA Brackets for 2026 - Tiered surcharges based on MAGI
+ * Medicare Part B has 5 income tiers with increasing monthly surcharges
+ * Source: CMS Medicare Part B IRMAA adjustments
+ */
+export const IRMAA_BRACKETS_2026 = {
+  single: [
+    { threshold: 109000, surcharge: 0 },       // Standard premium, no surcharge
+    { threshold: 137000, surcharge: 81.20 },   // Tier 1: $284.10 total premium
+    { threshold: 171000, surcharge: 202.90 },  // Tier 2: $405.80 total premium
+    { threshold: 205000, surcharge: 324.60 },  // Tier 3: $527.50 total premium (was 214000)
+    { threshold: 500000, surcharge: 446.30 },  // Tier 4: $649.20 total premium
+    { threshold: Infinity, surcharge: 487.00 }, // Tier 5: $689.90 total premium (highest)
+  ],
+  married: [
+    { threshold: 218000, surcharge: 0 },       // Standard premium, no surcharge
+    { threshold: 274000, surcharge: 81.20 },   // Tier 1: $284.10 total premium
+    { threshold: 342000, surcharge: 202.90 },  // Tier 2: $405.80 total premium
+    { threshold: 410000, surcharge: 324.60 },  // Tier 3: $527.50 total premium (was 428000)
+    { threshold: 750000, surcharge: 446.30 },  // Tier 4: $649.20 total premium
+    { threshold: Infinity, surcharge: 487.00 }, // Tier 5: $689.90 total premium (highest)
+  ],
+} as const;
 
 /** Long-Term Care (LTC) default parameters */
 export const LTC_PROBABILITY = 70; // % probability of needing LTC

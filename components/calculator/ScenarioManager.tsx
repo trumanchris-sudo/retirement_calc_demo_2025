@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { usePlanConfig } from '@/lib/plan-config-context';
 import {
   getAllScenarios,
@@ -44,14 +44,14 @@ export function ScenarioManager() {
   const [scenarioName, setScenarioName] = useState('');
   const [scenarioDescription, setScenarioDescription] = useState('');
 
+  const refreshScenarios = useCallback(() => {
+    setScenarios(getAllScenarios());
+  }, []);
+
   // Load scenarios on mount
   useEffect(() => {
     refreshScenarios();
-  }, []);
-
-  const refreshScenarios = () => {
-    setScenarios(getAllScenarios());
-  };
+  }, [refreshScenarios]);
 
   const handleSave = () => {
     if (!scenarioName.trim()) {
@@ -172,16 +172,18 @@ export function ScenarioManager() {
             <Download className="w-4 h-4" />
             Export All
           </Button>
-          <label>
+          <label htmlFor="import-scenarios-file">
             <input
+              id="import-scenarios-file"
               type="file"
               accept=".json"
               onChange={handleImport}
               className="hidden"
+              aria-label="Import scenarios from JSON file"
             />
             <Button variant="outline" className="flex items-center gap-2" asChild>
               <span>
-                <Upload className="w-4 h-4" />
+                <Upload className="w-4 h-4" aria-hidden="true" />
                 Import
               </span>
             </Button>
@@ -222,24 +224,27 @@ export function ScenarioManager() {
                           variant="ghost"
                           onClick={() => handleLoad(scenario)}
                           title="Load this scenario"
+                          aria-label={`Load scenario: ${scenario.name}`}
                         >
-                          <FolderOpen className="w-4 h-4" />
+                          <FolderOpen className="w-4 h-4" aria-hidden="true" />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDuplicate(scenario)}
                           title="Duplicate this scenario"
+                          aria-label={`Duplicate scenario: ${scenario.name}`}
                         >
-                          <Copy className="w-4 h-4" />
+                          <Copy className="w-4 h-4" aria-hidden="true" />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDelete(scenario)}
                           title="Delete this scenario"
+                          aria-label={`Delete scenario: ${scenario.name}`}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
                         </Button>
                       </div>
                     </div>
@@ -308,6 +313,15 @@ export function ScenarioManager() {
                 key={scenario.id}
                 className="p-3 cursor-pointer hover:bg-accent transition-colors"
                 onClick={() => handleLoad(scenario)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleLoad(scenario);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`Load scenario: ${scenario.name}${scenario.description ? `. ${scenario.description}` : ''}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
@@ -322,7 +336,7 @@ export function ScenarioManager() {
                       )}
                     </div>
                   </div>
-                  <FolderOpen className="w-5 h-5 text-muted-foreground" />
+                  <FolderOpen className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
                 </div>
               </Card>
             ))}

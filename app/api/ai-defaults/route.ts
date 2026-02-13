@@ -170,7 +170,8 @@ Return ONLY the JSON object, no markdown formatting, no additional text.`
     })
 
     // Extract and parse Claude's response
-    const textContent = message.content[0].type === 'text' ? message.content[0].text : ''
+    const firstContent = message.content?.[0];
+    const textContent = firstContent && firstContent.type === 'text' ? firstContent.text : ''
 
     // Try to parse JSON from response
     let aiResponse: Partial<AIDefaultsResponse>

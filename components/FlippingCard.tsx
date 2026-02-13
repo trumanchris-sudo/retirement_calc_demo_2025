@@ -16,12 +16,14 @@ interface FlippingCardProps {
   frontContent: ReactNode;
   backContent: ReactNode;
   className?: string;
+  ariaLabel?: string;
 }
 
 export const FlippingCard: React.FC<FlippingCardProps> = ({
   frontContent,
   backContent,
-  className = ""
+  className = "",
+  ariaLabel = "Flip card to see more details"
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [cardHeight, setCardHeight] = useState<number | undefined>(undefined);
@@ -30,6 +32,13 @@ export const FlippingCard: React.FC<FlippingCardProps> = ({
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleFlip();
+    }
   };
 
   // Update height when flip state changes
@@ -48,7 +57,15 @@ export const FlippingCard: React.FC<FlippingCardProps> = ({
   }, [isFlipped, frontContent, backContent]);
 
   return (
-    <div className={`flip-card-scene ${className}`} onClick={handleFlip}>
+    <div
+      className={`flip-card-scene ${className}`}
+      onClick={handleFlip}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={ariaLabel}
+      aria-pressed={isFlipped}
+    >
       <div
         className={`flip-card ${isFlipped ? 'is-flipped' : ''}`}
         style={cardHeight ? { height: `${cardHeight}px` } : undefined}

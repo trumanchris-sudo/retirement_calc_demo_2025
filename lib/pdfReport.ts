@@ -9,6 +9,7 @@ import autoTable from 'jspdf-autotable';
 import type { CalculationResult } from '@/types/calculator';
 import type { FilingStatus } from './calculations/taxCalculations';
 import type { ReturnMode, WalkSeries } from '@/types/planner';
+import { fmt, fmtFull, fmtPctRaw } from '@/lib/utils';
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -120,21 +121,10 @@ const FONTS = {
 
 // ==================== Helper Functions ====================
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatPercent(value: number, decimals = 1): string {
-  return `${value.toFixed(decimals)}%`;
-}
-
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat('en-US').format(value);
-}
+// Note: Using standardized formatters from @/lib/utils:
+// - fmtFull: Full currency format (e.g., $1,234,567)
+// - fmt: Abbreviated currency (e.g., $1.23M)
+// - fmtPctRaw: Percentage from raw value (e.g., 95 -> "95.0%")
 
 function addPageHeader(doc: jsPDF, pageNum: number, reportDate: string) {
   doc.setFontSize(8);
@@ -313,8 +303,8 @@ function addExecutiveSummary(doc: jsPDF, data: PDFReportData, reportDate: string
   y = addSubsection(doc, 'Retirement Projection', y);
   y = addKeyValue(doc, 'Retirement Age', String(inputs.retAge), y, 0, false);
   y = addKeyValue(doc, 'Planning Horizon', `To age 95 (${95 - inputs.retAge} years)`, y, 0, true);
-  y = addKeyValue(doc, 'Probability of Success', formatPercent(successRate), y, 0, false);
-  y = addKeyValue(doc, 'End-of-Life Wealth', formatCurrency(results.eolReal) + ' (2025 dollars)', y, 0, true);
+  y = addKeyValue(doc, 'Probability of Success', fmtPctRaw(successRate), y, 0, false);
+  y = addKeyValue(doc, 'End-of-Life Wealth', fmtFull(results.eolReal) + ' (2026 dollars)', y, 0, true);
   y += 5;
 
   // Legacy Planning
@@ -324,10 +314,10 @@ function addExecutiveSummary(doc: jsPDF, data: PDFReportData, reportDate: string
     y = addKeyValue(doc, 'Generational Wealth Status', isPerpetual ? 'Perpetual Legacy' : `${results.genPayout.years} years`, y, 0, false);
 
     if (results.genPayout.probPerpetual !== undefined) {
-      y = addKeyValue(doc, 'Success Probability', formatPercent(results.genPayout.probPerpetual), y, 0, true);
+      y = addKeyValue(doc, 'Success Probability', fmtPctRaw(results.genPayout.probPerpetual), y, 0, true);
     }
 
-    y = addKeyValue(doc, 'Annual Beneficiary Distribution', formatCurrency(results.genPayout.perBenReal) + ' (real)', y, 0, false);
+    y = addKeyValue(doc, 'Annual Beneficiary Distribution', fmtFull(results.genPayout.perBenReal) + ' (real)', y, 0, false);
     y = addKeyValue(doc, 'Estimated Duration', isPerpetual ? 'Indefinite' : `${results.genPayout.years} years`, y, 0, true);
     y += 5;
   }
@@ -341,7 +331,7 @@ function addExecutiveSummary(doc: jsPDF, data: PDFReportData, reportDate: string
     y = addBulletPoint(doc, 'Estate structure supports multi-generational wealth transfer under current tax law assumptions', y);
   }
 
-  y = addBulletPoint(doc, `Effective tax rate of ${formatPercent((results.tax.tot / (results.yrsToSim * results.wd)) * 100)} demonstrates tax-efficient withdrawal strategy`, y);
+  y = addBulletPoint(doc, `Effective tax rate of ${fmtPctRaw((results.tax.tot / (results.yrsToSim * results.wd)) * 100)} demonstrates tax-efficient withdrawal strategy`, y);
 }
 
 // ==================== Planning Assumptions ====================
@@ -384,41 +374,41 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
   // Section 2: Financial Assumptions
   y = checkPageBreak(doc, y, 50, reportDate, pageNum);
   y = addSubsection(doc, 'ACCOUNT BALANCES (as of ' + new Date().toLocaleDateString() + ')', y);
-  y = addKeyValue(doc, 'Pre-Tax (401k/Traditional IRA)', formatCurrency(inputs.sPre), y, 0, false);
-  y = addKeyValue(doc, 'Taxable (Brokerage)', formatCurrency(inputs.sTax), y, 0, true);
-  y = addKeyValue(doc, 'Post-Tax (Roth IRA)', formatCurrency(inputs.sPost), y, 0, false);
-  y = addKeyValue(doc, 'Total Portfolio', formatCurrency(inputs.sPre + inputs.sTax + inputs.sPost), y, 0, true);
+  y = addKeyValue(doc, 'Pre-Tax (401k/Traditional IRA)', fmtFull(inputs.sPre), y, 0, false);
+  y = addKeyValue(doc, 'Taxable (Brokerage)', fmtFull(inputs.sTax), y, 0, true);
+  y = addKeyValue(doc, 'Post-Tax (Roth IRA)', fmtFull(inputs.sPost), y, 0, false);
+  y = addKeyValue(doc, 'Total Portfolio', fmtFull(inputs.sPre + inputs.sTax + inputs.sPost), y, 0, true);
   y += 5;
 
   y = checkPageBreak(doc, y, 50, reportDate, pageNum);
   y = addSubsection(doc, 'ANNUAL CONTRIBUTIONS', y);
 
   const person1Total = inputs.cPre1 + inputs.cTax1 + inputs.cPost1 + inputs.cMatch1;
-  y = addKeyValue(doc, 'Pre-Tax (Person 1)', formatCurrency(inputs.cPre1), y);
-  y = addKeyValue(doc, 'Taxable (Person 1)', formatCurrency(inputs.cTax1), y);
-  y = addKeyValue(doc, 'Post-Tax (Person 1)', formatCurrency(inputs.cPost1), y);
+  y = addKeyValue(doc, 'Pre-Tax (Person 1)', fmtFull(inputs.cPre1), y);
+  y = addKeyValue(doc, 'Taxable (Person 1)', fmtFull(inputs.cTax1), y);
+  y = addKeyValue(doc, 'Post-Tax (Person 1)', fmtFull(inputs.cPost1), y);
 
   if (inputs.cMatch1 > 0) {
-    y = addKeyValue(doc, 'Employer Match (Person 1)', formatCurrency(inputs.cMatch1), y);
+    y = addKeyValue(doc, 'Employer Match (Person 1)', fmtFull(inputs.cMatch1), y);
   }
 
   if (inputs.marital === 'married') {
     const person2Total = inputs.cPre2 + inputs.cTax2 + inputs.cPost2 + inputs.cMatch2;
-    y = addKeyValue(doc, 'Pre-Tax (Person 2)', formatCurrency(inputs.cPre2), y);
-    y = addKeyValue(doc, 'Taxable (Person 2)', formatCurrency(inputs.cTax2), y);
-    y = addKeyValue(doc, 'Post-Tax (Person 2)', formatCurrency(inputs.cPost2), y);
+    y = addKeyValue(doc, 'Pre-Tax (Person 2)', fmtFull(inputs.cPre2), y);
+    y = addKeyValue(doc, 'Taxable (Person 2)', fmtFull(inputs.cTax2), y);
+    y = addKeyValue(doc, 'Post-Tax (Person 2)', fmtFull(inputs.cPost2), y);
 
     if (inputs.cMatch2 > 0) {
-      y = addKeyValue(doc, 'Employer Match (Person 2)', formatCurrency(inputs.cMatch2), y);
+      y = addKeyValue(doc, 'Employer Match (Person 2)', fmtFull(inputs.cMatch2), y);
     }
 
-    y = addKeyValue(doc, 'Total Annual', formatCurrency(person1Total + person2Total), y);
+    y = addKeyValue(doc, 'Total Annual', fmtFull(person1Total + person2Total), y);
   } else {
-    y = addKeyValue(doc, 'Total Annual', formatCurrency(person1Total), y);
+    y = addKeyValue(doc, 'Total Annual', fmtFull(person1Total), y);
   }
 
   if (inputs.incContrib) {
-    y = addKeyValue(doc, 'Contribution Growth Rate', formatPercent(inputs.incRate) + ' annually', y);
+    y = addKeyValue(doc, 'Contribution Growth Rate', fmtPctRaw(inputs.incRate) + ' annually', y);
   }
   y += 5;
 
@@ -428,19 +418,26 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
 
   y = addSubsection(doc, 'RETURN ASSUMPTIONS', y);
 
-  const modelType = inputs.walkSeries === 'trulyRandom' ? 'Monte Carlo Bootstrap' :
-                    inputs.retMode === 'randomWalk' ? 'Historical Bootstrap' : 'Fixed Return';
+  // Determine model type based on simulation settings
+  const isMonteCarloMode = inputs.walkSeries === 'trulyRandom' || inputs.retMode === 'randomWalk';
+  const modelType = inputs.walkSeries === 'trulyRandom' ? 'Monte Carlo Bootstrap (Random Walk)' :
+                    inputs.retMode === 'randomWalk' ? 'Historical Bootstrap (Deterministic)' : 'Fixed Annual Return';
 
   y = addKeyValue(doc, 'Model Type', modelType, y);
 
-  if (inputs.retMode !== 'fixed') {
-    y = addKeyValue(doc, 'Historical Data', 'S&P 500 Total Returns (1928-2024)', y);
-    y = addKeyValue(doc, 'Simulations', '1,000 paths', y);
+  if (isMonteCarloMode) {
+    // Monte Carlo / Random Walk mode - emphasize historical data and simulations
+    y = addKeyValue(doc, 'Historical Data Source', 'S&P 500 Total Returns (1928-2024)', y);
+    y = addKeyValue(doc, 'Simulation Paths', '1,000 independent paths', y);
+    y = addKeyValue(doc, 'Historical Mean Return', '~9.8% nominal (varies by sequence)', y);
+    y = addKeyValue(doc, 'Inflation Assumption', fmtPctRaw(inputs.infRate), y);
+    y = addKeyValue(doc, 'Historical Real Return', '~7.2% (inflation-adjusted)', y);
+  } else {
+    // Fixed return mode - show the specific rate
+    y = addKeyValue(doc, 'Annual Fixed Return', fmtPctRaw(inputs.retRate), y);
+    y = addKeyValue(doc, 'Inflation Assumption', fmtPctRaw(inputs.infRate), y);
+    y = addKeyValue(doc, 'Real Return (Net of Inflation)', fmtPctRaw(inputs.retRate - inputs.infRate), y);
   }
-
-  y = addKeyValue(doc, 'Nominal Return (Expected)', formatPercent(inputs.retRate), y);
-  y = addKeyValue(doc, 'Inflation Assumption', formatPercent(inputs.infRate), y);
-  y = addKeyValue(doc, 'Real Return (Approximate)', formatPercent(inputs.retRate - inputs.infRate), y);
   y += 5;
 
   // Retirement Withdrawal Strategy
@@ -448,9 +445,9 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
   if (y === 30) pageNum++;
 
   y = addSubsection(doc, 'RETIREMENT WITHDRAWAL STRATEGY', y);
-  y = addKeyValue(doc, 'Initial Withdrawal Rate', formatPercent(inputs.wdRate), y);
+  y = addKeyValue(doc, 'Initial Withdrawal Rate', fmtPctRaw(inputs.wdRate), y);
   y = addKeyValue(doc, 'Withdrawal Method', 'Proportional across accounts', y);
-  y = addKeyValue(doc, 'Inflation Adjustment', 'Annual (' + formatPercent(inputs.infRate) + ')', y);
+  y = addKeyValue(doc, 'Inflation Adjustment', 'Annual (' + fmtPctRaw(inputs.infRate) + ')', y);
   y = addKeyValue(doc, 'Social Security', inputs.includeSS ? 'Included' : 'Not Included', y);
 
   if (inputs.includeSS) {
@@ -468,15 +465,15 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
   y = 30;
 
   y = addSectionTitle(doc, 'TAX PARAMETERS', y);
-  y = addKeyValue(doc, 'Federal Brackets', '2025 Tax Law (' + (inputs.marital === 'single' ? 'Single Filer' : 'Married Filing Jointly') + ')', y);
-  y = addKeyValue(doc, 'Standard Deduction', formatCurrency(inputs.marital === 'single' ? 15000 : 30000), y);
-  y = addKeyValue(doc, 'State Income Tax', formatPercent(inputs.stateRate), y);
+  y = addKeyValue(doc, 'Federal Brackets', '2026 Tax Law (' + (inputs.marital === 'single' ? 'Single Filer' : 'Married Filing Jointly') + ')', y);
+  y = addKeyValue(doc, 'Standard Deduction', fmtFull(inputs.marital === 'single' ? 15000 : 30000), y);
+  y = addKeyValue(doc, 'State Income Tax', fmtPctRaw(inputs.stateRate), y);
   y = addKeyValue(doc, 'Long-Term Capital Gains', 'Tiered (0%, 15%, 20%)', y);
-  y = addKeyValue(doc, 'NIIT (3.8%)', 'Applied above ' + formatCurrency(inputs.marital === 'single' ? 200000 : 250000) + ' AGI', y);
-  y = addKeyValue(doc, 'Estate Tax Exemption', formatCurrency(13990000), y);
+  y = addKeyValue(doc, 'NIIT (3.8%)', 'Applied above ' + fmtFull(inputs.marital === 'single' ? 200000 : 250000) + ' AGI', y);
+  y = addKeyValue(doc, 'Estate Tax Exemption', fmtFull(13990000), y);
   y += 5;
 
-  y = addWrappedText(doc, 'Note: Estate tax exemption scheduled to sunset 12/31/2025 to approximately $7M unless extended by Congress.', y, 9);
+  y = addWrappedText(doc, 'Note: Estate tax exemption made permanent at $15M by OBBBA (July 2025), indexed for inflation starting 2027.', y, 9);
   y += 5;
 
   // Healthcare Assumptions
@@ -486,15 +483,14 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
 
     y = addSubsection(doc, 'HEALTHCARE COST MODELING', y);
     y = addKeyValue(doc, 'Medicare Start Age', '65', y);
-    y = addKeyValue(doc, 'Monthly Premium', formatCurrency(inputs.medicarePremium), y);
-    y = addKeyValue(doc, 'Medical Inflation Rate', formatPercent(inputs.medicalInflation), y);
-    y = addKeyValue(doc, 'IRMAA Threshold', formatCurrency(inputs.marital === 'single' ? inputs.irmaaThresholdSingle : inputs.irmaaThresholdMarried), y);
-    y = addKeyValue(doc, 'IRMAA Surcharge', formatCurrency(inputs.irmaaSurcharge) + '/month', y);
+    y = addKeyValue(doc, 'Monthly Premium', fmtFull(inputs.medicarePremium), y);
+    y = addKeyValue(doc, 'Medical Inflation Rate', fmtPctRaw(inputs.medicalInflation), y);
+    y = addKeyValue(doc, 'IRMAA Brackets', '2026 tiered (6 tiers: $0-$487/mo)', y);
 
     if (inputs.includeLTC) {
-      y = addKeyValue(doc, 'Long-Term Care Probability', formatPercent(inputs.ltcProbability), y);
+      y = addKeyValue(doc, 'Long-Term Care Probability', fmtPctRaw(inputs.ltcProbability), y);
       y = addKeyValue(doc, 'LTC Average Duration', inputs.ltcDuration.toFixed(1) + ' years', y);
-      y = addKeyValue(doc, 'LTC Annual Cost', formatCurrency(inputs.ltcAnnualCost), y);
+      y = addKeyValue(doc, 'LTC Annual Cost', fmtFull(inputs.ltcAnnualCost), y);
       y = addKeyValue(doc, 'LTC Expected Onset Age', String(inputs.ltcOnsetAge), y);
     }
     y += 5;
@@ -506,17 +502,17 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
     if (y === 30) pageNum++;
 
     y = addSubsection(doc, 'GENERATIONAL WEALTH PARAMETERS', y);
-    y = addKeyValue(doc, 'Annual Distribution per Beneficiary', formatCurrency(inputs.hypPerBen) + ' (2025 dollars)', y);
+    y = addKeyValue(doc, 'Annual Distribution per Beneficiary', fmtFull(inputs.hypPerBen) + ' (2026 dollars)', y);
     y = addKeyValue(doc, 'Minimum Distribution Age', '25', y);
     y = addKeyValue(doc, 'Maximum Lifespan', '95', y);
     y = addKeyValue(doc, 'Fertility Window', `Ages ${inputs.fertilityWindowStart}-${inputs.fertilityWindowEnd}`, y);
-    y = addKeyValue(doc, 'Real Return (Post-Death)', formatPercent(inputs.retRate - inputs.infRate), y);
+    y = addKeyValue(doc, 'Real Return (Post-Death)', fmtPctRaw(inputs.retRate - inputs.infRate), y);
 
     const popGrowth = ((inputs.totalFertilityRate - 2) / 2) * 100;
-    y = addKeyValue(doc, 'Population Growth Rate', formatPercent(popGrowth, 1), y);
+    y = addKeyValue(doc, 'Population Growth Rate', fmtPctRaw(popGrowth, 1), y);
 
     const perpetualThreshold = (inputs.retRate - inputs.infRate) - popGrowth;
-    y = addKeyValue(doc, 'Perpetual Threshold', formatPercent(perpetualThreshold, 1) + ' distribution rate', y);
+    y = addKeyValue(doc, 'Perpetual Threshold', fmtPctRaw(perpetualThreshold, 1) + ' distribution rate', y);
   }
 }
 
@@ -535,9 +531,9 @@ function addResultsAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string)
   // Wealth Accumulation
   y = addSubsection(doc, 'WEALTH ACCUMULATION (To Retirement)', y);
   y = addKeyValue(doc, 'Years to Retirement', String(results.yrsToRet), y, 0, false);
-  y = addKeyValue(doc, 'Total Contributions', formatCurrency(results.totC), y, 0, true);
-  y = addKeyValue(doc, 'Portfolio at Retirement (Nominal)', formatCurrency(results.finNom), y, 0, false);
-  y = addKeyValue(doc, 'Portfolio at Retirement (Real)', formatCurrency(results.finReal), y, 0, true);
+  y = addKeyValue(doc, 'Total Contributions', fmtFull(results.totC), y, 0, true);
+  y = addKeyValue(doc, 'Portfolio at Retirement (Nominal)', fmtFull(results.finNom), y, 0, false);
+  y = addKeyValue(doc, 'Portfolio at Retirement (Real)', fmtFull(results.finReal), y, 0, true);
   y += 5;
 
   // Retirement Sustainability
@@ -546,13 +542,13 @@ function addResultsAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string)
 
   y = addSubsection(doc, 'RETIREMENT SUSTAINABILITY', y);
   y = addKeyValue(doc, 'Planning Horizon', `Age ${inputs.retAge}-95 (${95 - inputs.retAge} years)`, y, 0, false);
-  y = addKeyValue(doc, 'Median End-of-Life Wealth (Nominal)', formatCurrency(results.eol), y, 0, true);
-  y = addKeyValue(doc, 'Median End-of-Life Wealth (Real)', formatCurrency(results.eolReal), y, 0, false);
+  y = addKeyValue(doc, 'Median End-of-Life Wealth (Nominal)', fmtFull(results.eol), y, 0, true);
+  y = addKeyValue(doc, 'Median End-of-Life Wealth (Real)', fmtFull(results.eolReal), y, 0, false);
 
   if (results.probRuin !== undefined) {
     const successRate = 100 - results.probRuin;
-    y = addKeyValue(doc, 'Probability of Success', formatPercent(successRate), y, 0, true);
-    y = addKeyValue(doc, 'Probability of Running Out', formatPercent(results.probRuin), y, 0, false);
+    y = addKeyValue(doc, 'Probability of Success', fmtPctRaw(successRate), y, 0, true);
+    y = addKeyValue(doc, 'Probability of Running Out', fmtPctRaw(results.probRuin), y, 0, false);
   }
   y += 5;
 
@@ -561,10 +557,10 @@ function addResultsAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string)
   if (y === 30) pageNum++;
 
   y = addSubsection(doc, 'WITHDRAWAL ANALYSIS (Year 1)', y);
-  y = addKeyValue(doc, 'Gross Annual Withdrawal', formatCurrency(results.wd), y);
-  y = addKeyValue(doc, 'After-Tax Withdrawal', formatCurrency(results.wdAfter), y);
-  y = addKeyValue(doc, 'Inflation-Adjusted (Real)', formatCurrency(results.wdReal), y);
-  y = addKeyValue(doc, 'Effective Withdrawal Rate', formatPercent((results.wd / results.finNom) * 100), y);
+  y = addKeyValue(doc, 'Gross Annual Withdrawal', fmtFull(results.wd), y);
+  y = addKeyValue(doc, 'After-Tax Withdrawal', fmtFull(results.wdAfter), y);
+  y = addKeyValue(doc, 'Inflation-Adjusted (Real)', fmtFull(results.wdReal), y);
+  y = addKeyValue(doc, 'Effective Withdrawal Rate', fmtPctRaw((results.wd / results.finNom) * 100), y);
   y += 5;
 
   // Tax Analysis
@@ -572,12 +568,12 @@ function addResultsAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string)
   if (y === 30) pageNum++;
 
   y = addSubsection(doc, 'LIFETIME TAX SUMMARY', y);
-  y = addKeyValue(doc, 'Total Taxes Paid (Retirement Phase)', formatCurrency(results.tax.tot), y);
-  y = addKeyValue(doc, 'Effective Tax Rate', formatPercent((results.tax.tot / (results.yrsToSim * results.wd)) * 100), y);
-  y = addKeyValue(doc, 'Average Annual Tax Burden', formatCurrency(results.tax.tot / results.yrsToSim), y);
+  y = addKeyValue(doc, 'Total Taxes Paid (Retirement Phase)', fmtFull(results.tax.tot), y);
+  y = addKeyValue(doc, 'Effective Tax Rate', fmtPctRaw((results.tax.tot / (results.yrsToSim * results.wd)) * 100), y);
+  y = addKeyValue(doc, 'Average Annual Tax Burden', fmtFull(results.tax.tot / results.yrsToSim), y);
 
   if (results.estateTax > 0) {
-    y = addKeyValue(doc, 'Estate Tax', formatCurrency(results.estateTax), y);
+    y = addKeyValue(doc, 'Estate Tax', fmtFull(results.estateTax), y);
   } else {
     y = addKeyValue(doc, 'Estate Tax', '$0', y);
   }
@@ -592,9 +588,9 @@ function addResultsAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string)
   const taxablePct = (results.eolAccounts.taxable / results.eol) * 100;
 
   // Approximate breakdown (simplified)
-  y = addKeyValue(doc, 'Roth Withdrawals (Tax-Free)', formatPercent(rothPct) + ' of balance', y);
-  y = addKeyValue(doc, 'Pre-Tax Withdrawals (Ordinary Income)', formatPercent(pretaxPct) + ' of balance', y);
-  y = addKeyValue(doc, 'Taxable Withdrawals (LTCG)', formatPercent(taxablePct) + ' of balance', y);
+  y = addKeyValue(doc, 'Roth Withdrawals (Tax-Free)', fmtPctRaw(rothPct) + ' of balance', y);
+  y = addKeyValue(doc, 'Pre-Tax Withdrawals (Ordinary Income)', fmtPctRaw(pretaxPct) + ' of balance', y);
+  y = addKeyValue(doc, 'Taxable Withdrawals (LTCG)', fmtPctRaw(taxablePct) + ' of balance', y);
   y += 5;
 
   // Legacy Planning Results
@@ -611,23 +607,23 @@ function addResultsAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string)
     y = addSubsection(doc, 'Outcome: ' + (isPerpetual ? 'Perpetual Legacy' : `${results.genPayout.years}-Year Legacy`), y);
 
     if (results.genPayout.probPerpetual !== undefined) {
-      y = addKeyValue(doc, 'Probability of Perpetual Legacy', formatPercent(results.genPayout.probPerpetual), y);
+      y = addKeyValue(doc, 'Probability of Perpetual Legacy', fmtPctRaw(results.genPayout.probPerpetual), y);
     }
     y += 5;
 
     if (results.genPayout.p10 && results.genPayout.p50 && results.genPayout.p90) {
       y = addSubsection(doc, 'Three-Scenario Analysis', y);
       y = addKeyValue(doc, 'Conservative (25th %ile estate)',
-        results.genPayout.p10.isPerpetual ? 'Perpetual' : `Depletes Year ${2025 + results.genPayout.p10.years}`, y);
+        results.genPayout.p10.isPerpetual ? 'Perpetual' : `Depletes Year ${2026 + results.genPayout.p10.years}`, y);
       y = addKeyValue(doc, 'Expected (50th %ile estate)',
-        results.genPayout.p50.isPerpetual ? 'Perpetual' : `Depletes Year ${2025 + results.genPayout.p50.years}`, y);
+        results.genPayout.p50.isPerpetual ? 'Perpetual' : `Depletes Year ${2026 + results.genPayout.p50.years}`, y);
       y = addKeyValue(doc, 'Optimistic (75th %ile estate)',
-        results.genPayout.p90.isPerpetual ? 'Perpetual' : `Depletes Year ${2025 + results.genPayout.p90.years}`, y);
+        results.genPayout.p90.isPerpetual ? 'Perpetual' : `Depletes Year ${2026 + results.genPayout.p90.years}`, y);
       y += 5;
     }
 
     y = addSubsection(doc, 'Distribution Details', y);
-    y = addKeyValue(doc, 'Annual Beneficiary Distribution', formatCurrency(results.genPayout.perBenReal) + ' (2025 dollars)', y);
+    y = addKeyValue(doc, 'Annual Beneficiary Distribution', fmtFull(results.genPayout.perBenReal) + ' (2026 dollars)', y);
     y = addWrappedText(doc, 'Inflation-Adjusted: Maintains purchasing power indefinitely', y, 9);
     y += 5;
 
@@ -644,11 +640,11 @@ function addResultsAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string)
     const actualRate = (results.genPayout.perBenReal * results.genPayout.startBeneficiaries / results.eolReal) * 100;
     const surplus = sustainableRate - actualRate;
 
-    y = addKeyValue(doc, 'Real Return Rate', formatPercent(realReturn), y);
-    y = addKeyValue(doc, 'Population Growth Rate', formatPercent(popGrowth), y);
-    y = addKeyValue(doc, 'Sustainable Distribution Rate', formatPercent(sustainableRate), y);
-    y = addKeyValue(doc, 'Actual Distribution Rate', formatPercent(actualRate), y);
-    y = addKeyValue(doc, 'Surplus', formatPercent(surplus) + ' annual (portfolio grows)', y);
+    y = addKeyValue(doc, 'Real Return Rate', fmtPctRaw(realReturn), y);
+    y = addKeyValue(doc, 'Population Growth Rate', fmtPctRaw(popGrowth), y);
+    y = addKeyValue(doc, 'Sustainable Distribution Rate', fmtPctRaw(sustainableRate), y);
+    y = addKeyValue(doc, 'Actual Distribution Rate', fmtPctRaw(actualRate), y);
+    y = addKeyValue(doc, 'Surplus', fmtPctRaw(surplus) + ' annual (portfolio grows)', y);
   }
 }
 
@@ -682,8 +678,8 @@ function addRiskFactorsAndMethodology(doc: jsPDF, data: PDFReportData, reportDat
   if (y === 30) pageNum++;
 
   y = addSubsection(doc, 'Tax Law Changes', y);
-  y = addWrappedText(doc, 'Analysis assumes current (2025) tax law remains constant. Significant changes expected:', y, 10);
-  y = addBulletPoint(doc, 'Estate tax exemption sunsets 12/31/2025 ($13.99M → ~$7M)', y, 5);
+  y = addWrappedText(doc, 'Analysis assumes current (2026) tax law remains constant. Significant changes expected:', y, 10);
+  y = addBulletPoint(doc, 'Estate tax exemption permanently set at $15M (OBBBA July 2025), indexed for inflation', y, 5);
   y = addBulletPoint(doc, 'Income tax brackets subject to legislative changes', y, 5);
   y = addBulletPoint(doc, 'RMD age requirements have changed frequently', y, 5);
   y += 5;
@@ -694,7 +690,7 @@ function addRiskFactorsAndMethodology(doc: jsPDF, data: PDFReportData, reportDat
 
   if (inputs.includeMedicare) {
     y = addSubsection(doc, 'Healthcare Cost Inflation', y);
-    y = addWrappedText(doc, `Medical costs historically inflate faster than general CPI (${formatPercent(inputs.medicalInflation)} vs ${formatPercent(inputs.infRate)}). Actual costs vary significantly by health status and geographic location.`, y, 10);
+    y = addWrappedText(doc, `Medical costs historically inflate faster than general CPI (${fmtPctRaw(inputs.medicalInflation)} vs ${fmtPctRaw(inputs.infRate)}). Actual costs vary significantly by health status and geographic location.`, y, 10);
     y += 5;
   }
 
@@ -705,7 +701,7 @@ function addRiskFactorsAndMethodology(doc: jsPDF, data: PDFReportData, reportDat
 
     y = addSubsection(doc, 'Legacy Planning Assumptions', y);
     y = addWrappedText(doc, 'Generational wealth projections assume:', y, 10);
-    y = addBulletPoint(doc, `Constant real returns (${formatPercent(inputs.retRate - inputs.infRate)}) over millennia`, y, 5);
+    y = addBulletPoint(doc, `Constant real returns (${fmtPctRaw(inputs.retRate - inputs.infRate)}) over millennia`, y, 5);
     y = addBulletPoint(doc, 'Stable fertility patterns and family structure', y, 5);
     y = addBulletPoint(doc, 'No external income for beneficiaries', y, 5);
     y = addBulletPoint(doc, 'Legal structures (dynasty trusts) remain available', y, 5);
@@ -777,7 +773,7 @@ function addRiskFactorsAndMethodology(doc: jsPDF, data: PDFReportData, reportDat
     const perpetualThreshold = realReturn - popGrowth;
     y = addWrappedText(doc, 'Maximum sustainable distribution rate calculated as:', y, 10);
     y = addWrappedText(doc, `  Real Return - Population Growth Rate = Perpetual Threshold`, y, 10);
-    y = addWrappedText(doc, `  ${formatPercent(realReturn)} - ${formatPercent(popGrowth)} = ${formatPercent(perpetualThreshold)}`, y, 10);
+    y = addWrappedText(doc, `  ${fmtPctRaw(realReturn)} - ${fmtPctRaw(popGrowth)} = ${fmtPctRaw(perpetualThreshold)}`, y, 10);
     y += 3;
     y = addWrappedText(doc, 'If actual distribution rate < threshold, portfolio grows indefinitely (perpetual legacy).', y, 9);
   }
@@ -806,7 +802,7 @@ function addDisclosures(doc: jsPDF, reportDate: string) {
   if (y === 30) pageNum++;
 
   y = addSubsection(doc, 'Tax Law Complexity', y);
-  y = addWrappedText(doc, 'Tax calculations use simplified assumptions and current (2025) federal tax law. Actual tax liability depends on:', y, 10);
+  y = addWrappedText(doc, 'Tax calculations use simplified assumptions and current (2026) federal tax law. Actual tax liability depends on:', y, 10);
   y = addBulletPoint(doc, 'Changes to tax legislation', y, 5);
   y = addBulletPoint(doc, 'State and local taxes', y, 5);
   y = addBulletPoint(doc, 'Specific trust and estate structures', y, 5);
@@ -824,7 +820,7 @@ function addDisclosures(doc: jsPDF, reportDate: string) {
   y = addBulletPoint(doc, 'Federal exemption only (state estate taxes not modeled)', y, 5);
   y = addBulletPoint(doc, 'No spousal transfers or portability elections', y, 5);
   y = addBulletPoint(doc, 'No advanced gifting or trust strategies', y, 5);
-  y = addBulletPoint(doc, 'Current exemption levels ($13.99M) which sunset 12/31/2025', y, 5);
+  y = addBulletPoint(doc, 'Permanent $15M exemption (OBBBA July 2025), indexed for inflation starting 2027', y, 5);
   y += 3;
   y = addWrappedText(doc, 'Consult an estate planning attorney for structures appropriate to your situation.', y, 9);
   y += 5;
@@ -865,7 +861,7 @@ function addDisclosures(doc: jsPDF, reportDate: string) {
   y = addBulletPoint(doc, 'S&P 500 Returns: Historical total return data (1928-2024)', y, 5);
   y = addBulletPoint(doc, 'Tax Brackets: IRS Publication 17, Rev. Proc. 2024-40', y, 5);
   y = addBulletPoint(doc, 'RMD Tables: IRS Publication 590-B, Uniform Lifetime Table', y, 5);
-  y = addBulletPoint(doc, 'Social Security: SSA bend points and adjustment factors (2025)', y, 5);
+  y = addBulletPoint(doc, 'Social Security: SSA bend points and adjustment factors (2026)', y, 5);
   y = addBulletPoint(doc, 'Healthcare Costs: CMS data, Genworth Cost of Care Survey', y, 5);
   y = addBulletPoint(doc, 'Demographic Data: U.S. Census Bureau, CDC vital statistics', y, 5);
   y += 5;
@@ -875,7 +871,7 @@ function addDisclosures(doc: jsPDF, reportDate: string) {
 
   y = addSubsection(doc, 'Report Generation', y);
   y = addKeyValue(doc, 'Generated', reportDate, y);
-  y = addKeyValue(doc, 'Calculator Version', '2025.1', y);
+  y = addKeyValue(doc, 'Calculator Version', '2026.1', y);
 }
 
 // ==================== Main Generation Function ====================

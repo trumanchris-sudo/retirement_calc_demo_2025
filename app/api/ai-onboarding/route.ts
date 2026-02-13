@@ -11,8 +11,95 @@ import type {
   AssumptionWithReasoning,
   ConversationPhase,
   StreamEvent,
+  ConfidenceLevel,
 } from '@/types/ai-onboarding';
 import { NextRequest } from 'next/server';
+
+// ==================== Tool Input Types ====================
+
+/**
+ * Type for update_extracted_data tool input
+ * Matches the schema defined in the tools array
+ */
+interface UpdateExtractedDataInput extends Partial<ExtractedData> {
+  // All fields are optional and match ExtractedData keys
+}
+
+/**
+ * Type for add_assumption tool input
+ */
+interface AddAssumptionInput {
+  field: string;
+  displayName: string;
+  value: unknown;
+  reasoning: string;
+  confidence: ConfidenceLevel;
+}
+
+/**
+ * Type for transition_phase tool input
+ */
+interface TransitionPhaseInput {
+  newPhase: 'data-collection' | 'assumptions-review' | 'refinement' | 'complete';
+}
+
+/**
+ * Union type for all possible tool inputs
+ */
+type ToolInput = UpdateExtractedDataInput | AddAssumptionInput | TransitionPhaseInput;
+
+// ==================== Type Guards ====================
+
+/**
+ * Set of valid keys for ExtractedData (used for runtime validation)
+ */
+const EXTRACTED_DATA_KEYS_SET: Set<string> = new Set([
+  'age', 'spouseAge', 'maritalStatus', 'state',
+  'numChildren', 'childrenAges', 'additionalChildrenExpected',
+  'employmentType1', 'employmentType2', 'annualIncome1', 'annualIncome2', 'bonusInfo',
+  'emergencyFund', 'currentTaxable', 'currentTraditional', 'currentRoth',
+  'savingsRateTaxable1', 'savingsRateTraditional1', 'savingsRateRoth1',
+  'savingsRateTaxable2', 'savingsRateTraditional2', 'savingsRateRoth2',
+  'contributionTraditional', 'contributionRoth', 'contributionTaxable', 'contributionMatch',
+  'monthlyMortgageRent', 'monthlyUtilities', 'monthlyInsurancePropertyTax',
+  'monthlyHealthcareP1', 'monthlyHealthcareP2', 'monthlyOtherExpenses',
+  'retirementAge', 'desiredRetirementSpending',
+]);
+
+/**
+ * Check if a key is a valid ExtractedData key (runtime validation)
+ * Returns the key typed as keyof ExtractedData if valid, undefined otherwise
+ */
+function validateExtractedDataKey(key: string): keyof ExtractedData | undefined {
+  return EXTRACTED_DATA_KEYS_SET.has(key) ? (key as keyof ExtractedData) : undefined;
+}
+
+/**
+ * Type guard to check if input is an AddAssumptionInput
+ */
+function isAddAssumptionInput(input: unknown): input is AddAssumptionInput {
+  return (
+    typeof input === 'object' &&
+    input !== null &&
+    'field' in input &&
+    'displayName' in input &&
+    'value' in input &&
+    'reasoning' in input &&
+    'confidence' in input
+  );
+}
+
+/**
+ * Type guard to check if input is a TransitionPhaseInput
+ */
+function isTransitionPhaseInput(input: unknown): input is TransitionPhaseInput {
+  return (
+    typeof input === 'object' &&
+    input !== null &&
+    'newPhase' in input &&
+    typeof (input as TransitionPhaseInput).newPhase === 'string'
+  );
+}
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -278,24 +365,30 @@ export async function POST(request: NextRequest) {
             for (const block of finalMessage.content) {
               if (block.type === 'tool_use') {
                 const toolName = block.name;
-                const toolInput = block.input as any;
+                // Type assertion required due to Anthropic SDK ContentBlock typing limitations
+                // The SDK types block.input as Record<string, unknown>, but we know the shape
+                // based on our tool definitions
+                const toolInput = block.input as ToolInput;
 
                 if (toolName === 'update_extracted_data') {
-                  // Update extracted data
-                  for (const [key, value] of Object.entries(toolInput)) {
-                    if (value !== undefined && value !== null) {
-                      updatedData[key as keyof ExtractedData] = value as any;
+                  // Update extracted data - input matches UpdateExtractedDataInput (Partial<ExtractedData>)
+                  const updateInput = toolInput as UpdateExtractedDataInput;
+                  for (const [key, value] of Object.entries(updateInput)) {
+                    const validKey = validateExtractedDataKey(key);
+                    if (value !== undefined && value !== null && validKey !== undefined) {
+                      // Use type-safe assignment with validated key
+                      (updatedData as Record<keyof ExtractedData, ExtractedData[keyof ExtractedData]>)[validKey] = value as ExtractedData[keyof ExtractedData];
 
                       sendEvent({
                         type: 'data_update',
-                        field: key as keyof ExtractedData,
+                        field: validKey,
                         value,
                       });
                     }
                   }
                 }
 
-                if (toolName === 'add_assumption') {
+                if (toolName === 'add_assumption' && isAddAssumptionInput(toolInput)) {
                   const assumption: AssumptionWithReasoning = {
                     field: toolInput.field,
                     displayName: toolInput.displayName,
@@ -313,7 +406,7 @@ export async function POST(request: NextRequest) {
                   });
                 }
 
-                if (toolName === 'transition_phase') {
+                if (toolName === 'transition_phase' && isTransitionPhaseInput(toolInput)) {
                   currentPhase = toolInput.newPhase;
 
                   sendEvent({

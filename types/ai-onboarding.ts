@@ -75,6 +75,13 @@ export interface ExtractedData {
   monthlyHealthcareP2?: number;
   monthlyOtherExpenses?: number;
 
+  // Additional Expense Categories (for income calculators)
+  monthlyHouseholdExpenses?: number;     // Groceries, supplies, etc.
+  monthlyDiscretionary?: number;          // Entertainment, dining, shopping
+  monthlyChildcare?: number;              // Childcare/daycare costs
+  annualLifeInsuranceP1?: number;        // Person 1 life insurance (annual)
+  annualLifeInsuranceP2?: number;        // Person 2 life insurance (annual)
+
   // Goals
   retirementAge?: number;
   desiredRetirementSpending?: number;
@@ -351,4 +358,9 @@ export const FIELD_DISPLAY_NAMES: Record<keyof ExtractedData, string> = {
   monthlyHealthcareP1: 'Your Monthly Healthcare Premium',
   monthlyHealthcareP2: 'Spouse Monthly Healthcare Premium',
   monthlyOtherExpenses: 'Other Monthly Expenses',
+  monthlyHouseholdExpenses: 'Monthly Household Expenses',
+  monthlyDiscretionary: 'Monthly Discretionary Spending',
+  monthlyChildcare: 'Monthly Childcare Costs',
+  annualLifeInsuranceP1: 'Your Life Insurance (Annual)',
+  annualLifeInsuranceP2: 'Spouse Life Insurance (Annual)',
 };

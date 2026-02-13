@@ -7,7 +7,23 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const metric = await request.json();
+    let metric;
+    try {
+      metric = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+
+    // Validate metric has required structure
+    if (!metric || typeof metric !== 'object') {
+      return NextResponse.json(
+        { error: 'Metric must be a valid object' },
+        { status: 400 }
+      );
+    }
 
     // Log metric (in production, you'd send to a service like Google Analytics, Datadog, etc.)
     console.log('[Analytics]', metric);
