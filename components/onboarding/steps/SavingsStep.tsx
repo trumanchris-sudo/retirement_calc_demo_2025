@@ -179,7 +179,7 @@ export function SavingsStep({ data, basicsData, onChange }: SavingsStepProps) {
       {/* AI-Generated Suggestions */}
       {loading && data.savingsMode === 'typical' && (
         <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
-          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+          <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
           <AlertDescription className="text-blue-900 dark:text-blue-100">
             Analyzing your profile to suggest optimal savings rates...
           </AlertDescription>
@@ -188,7 +188,7 @@ export function SavingsStep({ data, basicsData, onChange }: SavingsStepProps) {
 
       {defaults && data.savingsMode === 'typical' && (
         <Alert className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-purple-200 dark:border-purple-800">
-          <Sparkles className="h-4 w-4 text-purple-600" />
+          <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           <AlertDescription className="space-y-2">
             <p className="font-medium text-purple-900 dark:text-purple-100">
               AI-Suggested Savings Plan

@@ -114,8 +114,8 @@ export function OnboardingSelector({ onComplete, onSkip }: OnboardingSelectorPro
             aria-label="Quick Estimate — answer 3 questions for instant results"
           >
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
-                <Zap className="w-5 h-5 text-amber-600" aria-hidden="true" />
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center group-hover:bg-amber-200 dark:group-hover:bg-amber-900/50 transition-colors">
+                <Zap className="w-5 h-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
@@ -137,8 +137,8 @@ export function OnboardingSelector({ onComplete, onSkip }: OnboardingSelectorPro
             aria-label="Guided Setup — conversational walkthrough in 2-3 minutes"
           >
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                <MessageSquare className="w-5 h-5 text-blue-600" aria-hidden="true" />
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
+                <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">

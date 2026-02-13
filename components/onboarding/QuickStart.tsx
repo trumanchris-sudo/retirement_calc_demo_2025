@@ -132,19 +132,19 @@ function getReadinessStatus(
     return {
       status: 'ahead',
       message: 'Excellent! You\'re ahead of schedule.',
-      color: 'text-green-600'
+      color: 'text-green-600 dark:text-green-400'
     };
   } else if (ratio >= 0.8) {
     return {
       status: 'on-track',
       message: 'Good progress! You\'re on track.',
-      color: 'text-blue-600'
+      color: 'text-blue-600 dark:text-blue-400'
     };
   } else {
     return {
       status: 'behind',
       message: 'Room for improvement. Small changes add up!',
-      color: 'text-amber-600'
+      color: 'text-amber-600 dark:text-amber-400'
     };
   }
 }
@@ -307,7 +307,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
       <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm mb-4">
             <Sparkles className="w-4 h-4" />
             <span>30-second estimate</span>
           </div>
@@ -327,7 +327,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                 {/* Question 1: Age */}
                 <div className="space-y-2">
                   <Label htmlFor="age" className="text-base font-medium text-foreground flex items-center gap-2">
-                    <Users className="w-4 h-4 text-blue-600" />
+                    <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     How old are you?
                   </Label>
                   <Input
@@ -346,7 +346,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                 {/* Filing Status */}
                 <div className="space-y-2">
                   <Label className="text-base font-medium text-foreground flex items-center gap-2">
-                    <Users className="w-4 h-4 text-blue-600" />
+                    <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     Filing Status
                   </Label>
                   <div className="flex gap-2">
@@ -382,7 +382,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                 {/* Question 2: Income */}
                 <div className="space-y-2">
                   <Label htmlFor="income" className="text-base font-medium text-foreground flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-green-600" />
+                    <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
                     What&apos;s your household income?
                   </Label>
                   <div className="relative">
@@ -403,7 +403,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                 {/* Question 3: Savings */}
                 <div className="space-y-2">
                   <Label htmlFor="savings" className="text-base font-medium text-foreground flex items-center gap-2">
-                    <PiggyBank className="w-4 h-4 text-amber-600" />
+                    <PiggyBank className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                     How much have you saved for retirement?
                   </Label>
                   <div className="relative">
@@ -465,7 +465,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                     {formatCurrency(projection.futureValue)}
                   </p>
                   <p className="text-muted-foreground">
-                    That&apos;s <span className="text-green-600 font-semibold">{formatCurrency(projection.monthlyIncome)}/month</span> in retirement
+                    That&apos;s <span className="text-green-600 dark:text-green-400 font-semibold">{formatCurrency(projection.monthlyIncome)}/month</span> in retirement
                   </p>
                 </div>
 
@@ -509,11 +509,11 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                 <div className="space-y-3">
                   <button
                     onClick={() => setShowRefinement(!showRefinement)}
-                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl hover:border-emerald-300 transition-colors"
+                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-emerald-700" />
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
                       </div>
                       <div className="text-left">
                         <p className="font-medium text-foreground">Want to add {formatCurrency(projection.additionalValue)} more?</p>
@@ -525,11 +525,11 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
 
                   <button
                     onClick={handleContinue}
-                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-xl hover:border-purple-300 transition-colors"
+                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-xl hover:border-purple-300 dark:hover:border-purple-700 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                        <Target className="w-5 h-5 text-purple-700" />
+                      <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                        <Target className="w-5 h-5 text-purple-700 dark:text-purple-400" />
                       </div>
                       <div className="text-left">
                         <p className="font-medium text-foreground">See what your kids could inherit</p>

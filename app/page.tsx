@@ -59,7 +59,7 @@ const DynastyTimeline = dynamic(
   () => import("@/components/calculator/DynastyTimeline").then((mod) => ({ default: mod.DynastyTimeline })),
   {
     ssr: false,
-    loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded" />,
+    loading: () => <div className="h-64 animate-pulse bg-gray-100 dark:bg-gray-800 rounded" />,
   }
 );
 import AddToWalletButton from "@/components/AddToWalletButton";
@@ -87,7 +87,7 @@ const MonteCarloVisualizer = dynamic(
   () => import("@/components/calculator/MonteCarloVisualizerWrapper").then((mod) => ({ default: mod.MonteCarloVisualizer })),
   {
     ssr: false,
-    loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded" />,
+    loading: () => <div className="h-64 animate-pulse bg-gray-100 dark:bg-gray-800 rounded" />,
   }
 );
 import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
@@ -109,7 +109,7 @@ const RothConversionOptimizer = dynamic(
   () => import("@/components/calculator/RothConversionOptimizer").then((mod) => ({ default: mod.RothConversionOptimizer })),
   {
     ssr: false,
-    loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded" />,
+    loading: () => <div className="h-64 animate-pulse bg-gray-100 dark:bg-gray-800 rounded" />,
   }
 );
 // Lazy load Planning Tools - only needed in tools tab
@@ -137,6 +137,7 @@ import { createDefaultPlanConfig } from "@/types/plan-config";
 import { OnboardingSelector } from "@/components/onboarding/OnboardingSelector";
 import { AIReviewPanel } from "@/components/AIReviewPanel";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { useTheme } from "@/lib/theme-context";
 
 // Import types
 import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress, BondGlidePath } from "@/types/calculator";
@@ -495,17 +496,17 @@ const CollapsibleSection: React.FC<{
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-b border-gray-200 last:border-b-0">
+    <div className="border-b border-gray-200 dark:border-gray-700 last:border-b-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between py-4 px-2 hover:bg-gray-50 transition-colors rounded-md"
+        className="w-full flex items-center justify-between py-4 px-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors rounded-md"
       >
         <div className="flex items-center gap-3">
-          {Icon && <Icon className="w-5 h-5 text-blue-600" />}
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          {Icon && <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
         </div>
         <svg
-          className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+          className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${
             isOpen ? 'rotate-90' : ''
           }`}
           fill="none"
@@ -1473,7 +1474,8 @@ export default function App() {
     inflation: null,
   });
 
-  const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
+  const { resolvedTheme, toggleTheme } = useTheme();
+  const isDarkMode = resolvedTheme === 'dark';
   const [aiReviewOpen, setAiReviewOpen] = useState(false);
   const [showP10, setShowP10] = useState(false); // Show 10th percentile line
   const [showP90, setShowP90] = useState(false); // Show 90th percentile line
@@ -1546,16 +1548,8 @@ export default function App() {
     };
   }, []);
 
-  // TRUE SIDE EFFECT: DOM class manipulation
-  // Directly modifies the document element outside React's virtual DOM,
-  // necessary for CSS dark mode class toggling at the root level.
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
+  // Dark mode is now managed by useTheme() from the theme context.
+  // The ThemeProvider handles adding/removing the 'dark' class on <html>.
 
   // TRUE SIDE EFFECT: Window scroll event subscription
   // Subscribes to browser scroll events outside React's control to show/hide
@@ -1956,6 +1950,14 @@ export default function App() {
       // Generate unique request ID to match response
       const requestId = `legacy_${Date.now()}_${Math.random()}`;
 
+      // Timeout after 60 seconds to prevent infinite hangs if worker dies silently
+      const timeout = setTimeout(() => {
+        worker.removeEventListener('message', handleMessage);
+        worker.removeEventListener('error', handleError);
+        console.error('[LEGACY] Worker timed out after 60s for request:', requestId);
+        reject(new Error("Legacy simulation timed out after 60 seconds"));
+      }, 60_000);
+
       const handleMessage = (e: MessageEvent) => {
         if (!e.data) return;
 
@@ -1963,10 +1965,12 @@ export default function App() {
 
         // Only process messages for this specific request
         if (type === 'legacy-complete' && responseId === requestId) {
+          clearTimeout(timeout);
           worker.removeEventListener('message', handleMessage);
           worker.removeEventListener('error', handleError);
           resolve(result);
         } else if (type === 'error' && responseId === requestId) {
+          clearTimeout(timeout);
           worker.removeEventListener('message', handleMessage);
           worker.removeEventListener('error', handleError);
           reject(new Error(error));
@@ -1974,6 +1978,7 @@ export default function App() {
       };
 
       const handleError = (e: ErrorEvent) => {
+        clearTimeout(timeout);
         worker.removeEventListener('message', handleMessage);
         worker.removeEventListener('error', handleError);
         reject(new Error(`Worker error: ${e.message}`));
@@ -3544,7 +3549,7 @@ export default function App() {
 
       <PageHeader
         isDarkMode={isDarkMode}
-        onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        onToggleDarkMode={toggleTheme}
         showActions={!!res}
         cubeAppended={cubeAppended}
         onAIReview={() => setAiReviewOpen(true)}
@@ -4259,13 +4264,13 @@ export default function App() {
             {/* 2026 Income Planner CTA */}
             {res && (
               <div className="print:hidden mt-6">
-                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-900">
+                    <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
                       <TrendingUpIcon className="w-5 h-5" />
                       Ready to Plan Your 2026 Income?
                     </CardTitle>
-                    <CardDescription className="text-blue-700">
+                    <CardDescription className="text-blue-700 dark:text-blue-300">
                       Your retirement plan is complete! Now build a detailed 2026 income budget with pre-filled estimates from your calculations.
                     </CardDescription>
                   </CardHeader>
@@ -4286,7 +4291,7 @@ export default function App() {
                               View {plannerName} →
                             </Button>
                           </Link>
-                          <p className="text-xs text-blue-600 mt-2">
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
                             Fields will be pre-populated based on your {fmt(cPre1 + cPre2)} annual contributions
                           </p>
                         </>
@@ -5682,12 +5687,10 @@ export default function App() {
       )}
     {/* Close ai-doc-mode-active wrapper */}
 
-      {/* AI Review Panel */}
+      {/* QA Review Panel */}
       <AIReviewPanel
         open={aiReviewOpen}
         onOpenChange={setAiReviewOpen}
-        config={planConfig}
-        results={res}
       />
     </div>
   );

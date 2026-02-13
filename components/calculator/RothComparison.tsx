@@ -38,6 +38,7 @@ interface ScenarioResult {
   grandkidsInheritance: number;  // After another generation
   taxDrag: number;               // Cumulative tax drag over lifetime
   yearlyData: YearDataPoint[];
+  taxAdjustedBalances: number[]; // After-tax equivalent value per year
   rothBalance: number;
   pretaxBalance: number;
   taxableBalance: number;
@@ -194,15 +195,41 @@ function runScenario(
     ? avgWithdrawal * INHERITED_IRA_TAX_RATE * yearsInRetirement * 0.5 // Rough estimate
     : 0;
 
-  // Build yearly data for chart
+  // Build yearly data for chart and compute tax-adjusted balances.
+  // The tax-adjusted balance subtracts the embedded tax liability on
+  // pre-tax dollars so the two scenarios visually diverge.
   const yearlyData: YearDataPoint[] = [];
+  const taxAdjustedBalances: number[] = [];
+
+  // Track estimated account breakdown over time based on contribution ratios.
+  // Starting balances seed the initial split; annual contributions shift the mix.
+  const isMar = inputs.marital === "married";
+  const annualPre = inputs.cPre1 + inputs.cMatch1 + (isMar ? inputs.cPre2 + inputs.cMatch2 : 0);
+  const annualPost = inputs.cPost1 + (isMar ? inputs.cPost2 : 0);
+  const annualTax = inputs.cTax1 + (isMar ? inputs.cTax2 : 0);
+
   for (let i = 0; i <= eolIndex; i++) {
     const age = inputs.age1 + i;
+    const nominalBalance = result.balancesNominal[i] || 0;
+
+    // Estimate the pre-tax share of the portfolio at year i.
+    // We track cumulative contributions by account type and use ratios.
+    const cumPre = inputs.pretaxBalance + annualPre * i;
+    const cumPost = inputs.rothBalance + annualPost * i;
+    const cumTax = inputs.taxableBalance + annualTax * i;
+    const cumTotal = cumPre + cumPost + cumTax;
+    const pretaxShare = cumTotal > 0 ? cumPre / cumTotal : 0;
+
+    // Tax-adjusted value: subtract embedded tax liability on the pre-tax portion
+    const embeddedTax = nominalBalance * pretaxShare * INHERITED_IRA_TAX_RATE;
+    const taxAdjusted = nominalBalance - embeddedTax;
+
+    taxAdjustedBalances.push(taxAdjusted);
     yearlyData.push({
       age,
       year: new Date().getFullYear() + i,
-      currentPath: result.balancesNominal[i] || 0,
-      rothFirst: result.balancesNominal[i] || 0, // Will be updated by comparison
+      currentPath: taxAdjusted,
+      rothFirst: taxAdjusted, // Will be overwritten during merge
       difference: 0,
     });
   }
@@ -218,6 +245,7 @@ function runScenario(
     grandkidsInheritance,
     taxDrag: inheritanceTaxOnKids + estimatedLifetimeTax,
     yearlyData,
+    taxAdjustedBalances,
     rothBalance,
     pretaxBalance,
     taxableBalance,
@@ -546,7 +574,10 @@ export const RothComparison = React.memo(function RothComparison({
         {/* Timeline Chart */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="font-semibold">Wealth Growth Timeline: Two Paths Diverge</h4>
+            <div>
+              <h4 className="font-semibold">Wealth Growth Timeline: Two Paths Diverge</h4>
+              <p className="text-xs text-muted-foreground mt-0.5">After-tax equivalent value (pre-tax balances reduced by embedded tax liability)</p>
+            </div>
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-gray-400"></div>

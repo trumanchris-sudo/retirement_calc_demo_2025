@@ -171,13 +171,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             <>
               <div className="w-px h-6 bg-border mx-1" aria-hidden="true" />
 
-              {/* AI Review Button */}
+              {/* QA Review Button */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={onAIReview}
                 className="md:hidden no-print"
-                aria-label="AI Plan Review"
+                aria-label="QA Review"
               >
                 <Bot className="w-4 h-4" />
               </Button>
@@ -188,7 +188,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                 className="hidden md:inline-flex no-print"
               >
                 <Bot className="w-4 h-4 mr-2" />
-                AI Review
+                QA Review
               </Button>
 
               {/* Adjust Button with Popover */}

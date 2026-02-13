@@ -208,7 +208,7 @@ function MetricCard({ metric, isVisible }: { metric: MetricData; isVisible: bool
               metric.color.replace('bg-gradient-to-r', 'bg-opacity-10')
             )}
           >
-            <Icon className={cn('w-5 h-5', metric.color.includes('purple') ? 'text-purple-600' : metric.color.includes('emerald') ? 'text-emerald-600' : metric.color.includes('blue') ? 'text-blue-600' : 'text-amber-600')} />
+            <Icon className={cn('w-5 h-5', metric.color.includes('purple') ? 'text-purple-600 dark:text-purple-400' : metric.color.includes('emerald') ? 'text-emerald-600 dark:text-emerald-400' : metric.color.includes('blue') ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400')} />
           </div>
           <Sparkles className="w-4 h-4 text-yellow-500 animate-pulse" />
         </div>
@@ -304,9 +304,9 @@ function InsightCard({ insight, index }: { insight: InsightData; index: number }
         <Lightbulb
           className={cn(
             'w-5 h-5 mt-0.5 flex-shrink-0',
-            insight.type === 'positive' && 'text-emerald-600',
-            insight.type === 'neutral' && 'text-blue-600',
-            insight.type === 'actionable' && 'text-amber-600'
+            insight.type === 'positive' && 'text-emerald-600 dark:text-emerald-400',
+            insight.type === 'neutral' && 'text-blue-600 dark:text-blue-400',
+            insight.type === 'actionable' && 'text-amber-600 dark:text-amber-400'
           )}
         />
         <div>
@@ -367,7 +367,7 @@ function ShareOptions({ onCopy, copied }: { onCopy: () => void; copied: boolean 
       >
         {copied ? (
           <>
-            <Check className="w-4 h-4 text-emerald-600" />
+            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span className="hidden sm:inline">Copied!</span>
           </>
         ) : (
@@ -694,7 +694,7 @@ export function OnboardingComplete({
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3 text-center sm:text-left">
                 <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                  <Share2 className="w-5 h-5 text-purple-600" />
+                  <Share2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
                   <p className="font-medium">Share Your Achievement</p>

@@ -103,7 +103,7 @@ export function GoalsStep({ data, savingsData, basicsData, onChange }: GoalsStep
         </div>
         {defaults && (
           <Alert className="bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800">
-            <Info className="h-4 w-4 text-purple-600" />
+            <Info className="h-4 w-4 text-purple-600 dark:text-purple-400" />
             <AlertDescription className="text-sm text-purple-900 dark:text-purple-100">
               Based on your age ({basicsData.age}) and income, retiring at age {defaults.retirementAge} provides a balanced timeline. Adjust if needed!
             </AlertDescription>

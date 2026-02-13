@@ -14,9 +14,11 @@ import { ResultsGrid } from "@/components/results/ResultsGrid";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { DollarSign, TrendingUp, PiggyBank, Wallet } from "lucide-react";
 import { announceToScreenReader } from "@/components/a11y/LiveRegion";
+import { useTheme } from "@/lib/theme-context";
 
 export default function DemoPage() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { resolvedTheme, toggleTheme } = useTheme();
+  const isDarkMode = resolvedTheme === 'dark';
   const [age, setAge] = useState(35);
   const [balance, setBalance] = useState(500000);
   const [returnRate, setReturnRate] = useState(7.5);
@@ -24,14 +26,13 @@ export default function DemoPage() {
   const [isCalculating, setIsCalculating] = useState(false);
 
   const toggleDarkMode = useCallback(() => {
-    setIsDarkMode(prev => !prev);
-    document.documentElement.classList.toggle("dark");
+    toggleTheme();
     // Announce mode change to screen readers
     announceToScreenReader(
       `Switched to ${isDarkMode ? "light" : "dark"} mode`,
       "polite"
     );
-  }, [isDarkMode]);
+  }, [isDarkMode, toggleTheme]);
 
   // Calculate projected values for demo
   const years = 65 - age;

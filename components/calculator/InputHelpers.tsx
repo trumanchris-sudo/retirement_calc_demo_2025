@@ -158,7 +158,8 @@ export const Input: React.FC<InputProps> = ({
   label,
   value,
   setter,
-  step = 1,
+  // step is accepted for API compatibility but not used since input type="text"
+  step = 1, // eslint-disable-line @typescript-eslint/no-unused-vars
   min = 0,
   max,
   tip,

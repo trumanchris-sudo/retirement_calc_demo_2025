@@ -169,7 +169,7 @@ export function TabNavigation({
         aria-label="Calculator sections"
         aria-describedby="tab-nav-instructions"
         className={cn(
-          "flex space-x-1 overflow-x-auto pb-px -mb-px",
+          "flex gap-1 overflow-x-auto pb-px -mb-px",
           // Mobile: show scrollbar, add padding for fade overlays
           "px-2 sm:px-0",
           // Smooth scrolling and snap
@@ -212,6 +212,7 @@ export function TabNavigation({
                 // Base styles with mobile-friendly touch targets (min 44px height)
                 "group relative flex items-center gap-2 py-3 px-4 text-sm font-medium whitespace-nowrap",
                 "min-h-[44px] min-w-[44px]", // WCAG 2.5.5 touch target
+                "flex-shrink-0", // Prevent tabs from shrinking/overlapping in scroll container
                 "transition-all duration-200 rounded-t-lg",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                 // Snap alignment for mobile scrolling

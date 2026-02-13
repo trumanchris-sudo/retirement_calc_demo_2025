@@ -26,12 +26,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { config, results, copilotMode, userQuestion, context, conversationHistory } = body || {};
+    const { config, results, copilotMode, userQuestion, context, conversationHistory, pageState } = body || {};
 
     // Copilot mode allows questions without results (for general advice)
-    if (!copilotMode && (!config || !results)) {
+    if (!copilotMode && !pageState) {
       return new Response(
-        JSON.stringify({ error: 'Missing config or results data.' }),
+        JSON.stringify({ error: 'Missing page state data for QA review.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     // Build the appropriate prompt based on mode
     const prompt = copilotMode
       ? buildCopilotPrompt(userQuestion, context, conversationHistory, config, results)
-      : buildReviewPrompt(config, results);
+      : buildQAReviewPrompt(pageState);
 
     // Stream the response for a better UX
     const encoder = new TextEncoder();
@@ -93,66 +93,105 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function buildReviewPrompt(
-  config: Record<string, unknown>,
-  results: Record<string, unknown>
-): string {
-  const c = config;
-  const r = results;
+interface PageStateData {
+  url: string;
+  viewportWidth: number;
+  viewportHeight: number;
+  activeTab: string;
+  visibleSections: string[];
+  emptyContainers: string[];
+  consoleErrors: string[];
+  consoleWarnings: string[];
+  missingImages: string[];
+  brokenLinks: string[];
+  accessibilityIssues: string[];
+  overflowingElements: string[];
+  hiddenButShouldShow: string[];
+  interactiveElements: { tag: string; text: string; disabled: boolean; ariaLabel: string | null }[];
+  colorContrastIssues: string[];
+  computedStyles: string[];
+  dataDisplayIssues: string[];
+  darkMode: boolean;
+  onboardingVisible: boolean;
+  chartsRendered: string[];
+  chartsMissing: string[];
+  formValidationErrors: string[];
+  componentTree: string;
+  timestamp: string;
+}
 
-  // Format account balances
-  const eolAccounts = r.eolAccounts as { taxable: number; pretax: number; roth: number } | undefined;
-  const eolBreakdown = eolAccounts
-    ? `Taxable $${eolAccounts.taxable.toLocaleString()}, Pre-tax $${eolAccounts.pretax.toLocaleString()}, Roth $${eolAccounts.roth.toLocaleString()}`
-    : 'N/A';
-
-  return `You are a senior retirement planning analyst reviewing the output of a tax-aware retirement calculator for a beta tester. Your job is to identify specific fixes, optimizations, and potential issues in their plan configuration and results.
+function buildQAReviewPrompt(pageState: PageStateData): string {
+  return `You are a senior QA engineer and beta testing assistant for a web-based retirement calculator application. Your job is to analyze the current page state snapshot and identify real, actionable UI/UX issues.
 
 INSTRUCTIONS:
-- Analyze the inputs and outputs below for correctness, tax efficiency, and optimization opportunities
-- Structure your review into clear sections
-- Be specific and actionable — reference actual numbers from the data
-- Do not use generic financial advice or disclaimers
-- If something looks misconfigured or suboptimal, say so directly with the fix
-- Keep total response under 800 words
+- Analyze the page state data below for bugs, rendering problems, accessibility issues, and UX problems
+- Be specific: reference exact elements, containers, and areas of the page
+- Output a numbered list of issues found, ordered by severity (critical first)
+- For each issue, include: what's wrong, where it is, and suggested fix
+- If the page looks good, say so — but still note any minor improvements
+- Focus ONLY on page quality issues. Do NOT analyze or comment on the user's financial data or retirement plan
+- Keep total response under 600 words
+- Format as a developer-friendly QA report
 
-PLAN CONFIGURATION:
-- Age: ${c.age1}, Retirement Age: ${c.retirementAge}
-- Marital Status: ${c.marital}
-- Income (P1): $${Number(c.primaryIncome).toLocaleString()}${c.marital === 'married' ? `, Income (P2): $${Number(c.spouseIncome || 0).toLocaleString()}` : ''}
-- Starting Balances: Taxable $${Number(c.taxableBalance).toLocaleString()} | Pre-tax $${Number(c.pretaxBalance).toLocaleString()} | Roth $${Number(c.rothBalance).toLocaleString()}
-- Emergency Fund: $${Number(c.emergencyFund || 0).toLocaleString()}
-- Contributions (P1): Taxable $${Number(c.cTax1).toLocaleString()}/yr, Pre-tax $${Number(c.cPre1).toLocaleString()}/yr, Roth $${Number(c.cPost1).toLocaleString()}/yr, Match $${Number(c.cMatch1).toLocaleString()}/yr
-${c.marital === 'married' ? `- Contributions (P2): Taxable $${Number(c.cTax2).toLocaleString()}/yr, Pre-tax $${Number(c.cPre2).toLocaleString()}/yr, Roth $${Number(c.cPost2).toLocaleString()}/yr, Match $${Number(c.cMatch2).toLocaleString()}/yr` : ''}
-- Return Rate: ${c.retRate}% | Inflation: ${c.inflationRate}% | State Tax: ${c.stateRate}%
-- Return Model: ${c.retMode === 'fixed' ? `Fixed ${c.retRate}%` : 'Historical S&P 500 bootstrap'}
-- Withdrawal Rate: ${c.wdRate}%
-- Contribution Growth: ${c.incContrib ? `${c.incRate}%/yr` : 'Disabled'}
-- Social Security: ${c.includeSS ? `Enabled (Avg earnings $${Number(c.ssIncome).toLocaleString()}, Claim age ${c.ssClaimAge})` : 'Disabled'}
-- Dividend Yield: ${c.dividendYield}%
+PAGE STATE SNAPSHOT:
+- URL: ${pageState.url}
+- Viewport: ${pageState.viewportWidth}x${pageState.viewportHeight}
+- Dark Mode: ${pageState.darkMode ? 'ON' : 'OFF'}
+- Active Tab: ${pageState.activeTab}
+- Onboarding Visible: ${pageState.onboardingVisible}
+- Timestamp: ${pageState.timestamp}
 
-CALCULATION RESULTS:
-- Years to Retirement: ${r.yrsToRet}
-- Balance at Retirement (Nominal): $${Number(r.finNom).toLocaleString()}
-- Balance at Retirement (Real): $${Number(r.finReal).toLocaleString()}
-- Year 1 Gross Withdrawal: $${Number(r.wd).toLocaleString()} (${c.wdRate}% rate)
-- Year 1 After-Tax Income: $${Number(r.wdAfter).toLocaleString()}
-- Portfolio Survival: ${r.survYrs}/${r.yrsToSim} years${Number(r.survYrs) >= Number(r.yrsToSim) ? ' (FULL)' : ' (DEPLETED)'}
-- End-of-Life Wealth (Nominal): $${Number(r.eol).toLocaleString()}
-- End-of-Life Wealth (Real): $${Number(r.eolReal).toLocaleString()}
-- Final Accounts: ${eolBreakdown}
-- Total Lifetime Tax: $${Number((r.tax as { tot: number })?.tot || 0).toLocaleString()}
-- Total RMDs: $${Number(r.totalRMDs || 0).toLocaleString()}
-- Estate Tax: $${Number(r.estateTax || 0).toLocaleString()}
-- Net Estate: $${Number(r.netEstate || 0).toLocaleString()}
-${r.probRuin !== undefined ? `- Monte Carlo Failure Rate: ${(Number(r.probRuin) * 100).toFixed(1)}%` : ''}
+VISIBLE SECTIONS:
+${pageState.visibleSections.length > 0 ? pageState.visibleSections.map(s => `  - ${s}`).join('\n') : '  (none detected)'}
 
-Please provide your review in these sections:
-1. CONFIGURATION CHECK — Any inputs that look wrong, missing, or unusual
-2. TAX OPTIMIZATION — Roth vs pre-tax allocation, tax bracket management, RMD impact
-3. WITHDRAWAL STRATEGY — Is the withdrawal rate appropriate given the portfolio and timeline?
-4. RISK ASSESSMENT — Portfolio survival, Monte Carlo failure rate, sequence-of-returns risk
-5. QUICK WINS — 2-3 highest-impact changes they could make right now`;
+CHARTS RENDERED:
+${pageState.chartsRendered.length > 0 ? pageState.chartsRendered.map(c => `  - ${c}`).join('\n') : '  (none)'}
+
+CHARTS EXPECTED BUT MISSING:
+${pageState.chartsMissing.length > 0 ? pageState.chartsMissing.map(c => `  - ${c}`).join('\n') : '  (none)'}
+
+EMPTY CONTAINERS (may indicate missing content):
+${pageState.emptyContainers.length > 0 ? pageState.emptyContainers.map(e => `  - ${e}`).join('\n') : '  (none)'}
+
+CONSOLE ERRORS:
+${pageState.consoleErrors.length > 0 ? pageState.consoleErrors.map(e => `  - ${e}`).join('\n') : '  (none)'}
+
+CONSOLE WARNINGS:
+${pageState.consoleWarnings.length > 0 ? pageState.consoleWarnings.map(w => `  - ${w}`).join('\n') : '  (none)'}
+
+MISSING IMAGES:
+${pageState.missingImages.length > 0 ? pageState.missingImages.map(i => `  - ${i}`).join('\n') : '  (none)'}
+
+BROKEN LINKS:
+${pageState.brokenLinks.length > 0 ? pageState.brokenLinks.map(l => `  - ${l}`).join('\n') : '  (none)'}
+
+ACCESSIBILITY ISSUES:
+${pageState.accessibilityIssues.length > 0 ? pageState.accessibilityIssues.map(a => `  - ${a}`).join('\n') : '  (none detected)'}
+
+OVERFLOWING/CLIPPED ELEMENTS:
+${pageState.overflowingElements.length > 0 ? pageState.overflowingElements.map(o => `  - ${o}`).join('\n') : '  (none)'}
+
+COLOR CONTRAST ISSUES:
+${pageState.colorContrastIssues.length > 0 ? pageState.colorContrastIssues.map(c => `  - ${c}`).join('\n') : '  (none detected)'}
+
+DATA DISPLAY INCONSISTENCIES:
+${pageState.dataDisplayIssues.length > 0 ? pageState.dataDisplayIssues.map(d => `  - ${d}`).join('\n') : '  (none)'}
+
+FORM VALIDATION ERRORS:
+${pageState.formValidationErrors.length > 0 ? pageState.formValidationErrors.map(f => `  - ${f}`).join('\n') : '  (none)'}
+
+INTERACTIVE ELEMENTS (sample):
+${pageState.interactiveElements.length > 0 ? pageState.interactiveElements.slice(0, 20).map(el => `  - <${el.tag}> "${el.text}" disabled=${el.disabled} aria-label=${el.ariaLabel || 'MISSING'}`).join('\n') : '  (none found)'}
+
+COMPONENT TREE SUMMARY:
+${pageState.componentTree || '(not captured)'}
+
+Provide your QA report in these sections:
+1. CRITICAL ISSUES -- Bugs that block functionality or break the UI
+2. RENDERING PROBLEMS -- Visual/layout issues, missing content, broken charts
+3. ACCESSIBILITY -- Missing labels, contrast problems, keyboard navigation issues
+4. WARNINGS -- Minor issues, potential improvements, edge cases
+5. SUMMARY -- "Found N issues: [brief list]" one-liner at the end`;
 }
 
 /**

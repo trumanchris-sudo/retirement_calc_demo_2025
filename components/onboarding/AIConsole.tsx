@@ -734,18 +734,18 @@ ${getNextQuestion(0, {})}`;
               role="alert"
               aria-live="assertive"
               aria-atomic="true"
-              className="sticky top-0 z-10 bg-red-50 border-2 border-red-300 rounded-lg p-4 sm:p-6 shadow-xl"
+              className="sticky top-0 z-10 bg-red-50 dark:bg-red-950/30 border-2 border-red-300 dark:border-red-800 rounded-lg p-4 sm:p-6 shadow-xl"
             >
               <div className="flex items-start gap-3">
                 <div
-                  className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center"
+                  className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center"
                   aria-hidden="true"
                 >
-                  <AlertCircle className="w-5 h-5 text-red-600" />
+                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-lg text-red-800">Connection Error</p>
-                  <p className="text-sm sm:text-base mt-2 text-red-700">{error}</p>
+                  <p className="font-bold text-lg text-red-800 dark:text-red-200">Connection Error</p>
+                  <p className="text-sm sm:text-base mt-2 text-red-700 dark:text-red-300">{error}</p>
                   <div className="flex gap-2 mt-4">
                     <Button
                       size="sm"
@@ -762,7 +762,7 @@ ${getNextQuestion(0, {})}`;
                       size="sm"
                       variant="outline"
                       onClick={() => setError(null)}
-                      className="text-red-700 border-red-300 hover:bg-red-100 min-h-[44px] px-4"
+                      className="text-red-700 dark:text-red-300 border-red-300 dark:border-red-700 hover:bg-red-100 dark:hover:bg-red-900/30 min-h-[44px] px-4"
                       aria-label="Dismiss error message"
                     >
                       Dismiss

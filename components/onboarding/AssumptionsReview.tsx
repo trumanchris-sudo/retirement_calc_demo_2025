@@ -125,7 +125,7 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
                   className={cn(
                     'space-y-2 p-3 rounded-lg border transition-colors',
                     isEdited
-                      ? 'bg-blue-50 border-blue-200'
+                      ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800'
                       : 'bg-card border'
                   )}
                 >
@@ -138,7 +138,7 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
                       {assumption.userProvided && !isEdited && (
                         <Badge
                           variant="outline"
-                          className="h-5 px-1.5 text-[10px] bg-green-50 text-green-700 border-green-200"
+                          className="h-5 px-1.5 text-[10px] bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
                         >
                           <Check className="w-2.5 h-2.5 mr-0.5" aria-hidden="true" />
                           Confirmed
@@ -147,7 +147,7 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
                       {isEdited && (
                         <Badge
                           variant="outline"
-                          className="h-5 px-1.5 text-[10px] bg-blue-50 text-blue-700 border-blue-200"
+                          className="h-5 px-1.5 text-[10px] bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
                         >
                           <Edit2 className="w-2.5 h-2.5 mr-0.5" aria-hidden="true" />
                           Edited
@@ -158,8 +158,8 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
                         className={cn(
                           'h-5 px-1.5 text-[10px] flex items-center gap-0.5',
                           assumption.confidence === 'high' && 'bg-muted text-muted-foreground border',
-                          assumption.confidence === 'medium' && 'bg-yellow-50 text-yellow-700 border-yellow-200',
-                          assumption.confidence === 'low' && 'bg-red-50 text-red-700 border-red-200'
+                          assumption.confidence === 'medium' && 'bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
+                          assumption.confidence === 'low' && 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
                         )}
                         aria-label={`Confidence: ${assumption.confidence}`}
                       >
@@ -193,8 +193,8 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
 
       {/* Update Assumptions button - show when user has made edits */}
       {hasEdits && onUpdateAssumptions && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800 mb-3">
+        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
             You've made {Object.keys(userEdits).length} change{Object.keys(userEdits).length !== 1 ? 's' : ''}.
             Click below to recalculate assumptions with your updated values.
           </p>
