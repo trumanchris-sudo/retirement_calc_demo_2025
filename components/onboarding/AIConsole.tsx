@@ -49,7 +49,7 @@ const ADMIN_PRESETS: Record<string, ExtractedData> = {
     contributionRoth: 15000,         // Max backdoor Roth for both ($7.5k each, 2026 limit)
     contributionTaxable: 100000,     // Additional brokerage savings
     contributionMatch: 15000,        // Estimated employer match
-    retirementAge: 60,
+    retirementAge: 65,
     // Housing
     monthlyMortgageRent: 5859,
     monthlyUtilities: 400,
