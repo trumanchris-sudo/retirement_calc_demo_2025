@@ -12,7 +12,7 @@ export interface ErrorContext {
   userId?: string;
   component?: string;
   action?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -43,8 +43,8 @@ export function trackError(error: Error, context?: ErrorContext) {
  */
 export function trackCalculationError(
   error: Error,
-  inputs?: Record<string, any>
-) {
+  inputs?: Record<string, unknown>
+): void {
   trackError(error, {
     component: 'RetirementCalculator',
     action: 'calculation',
@@ -60,8 +60,8 @@ export function trackCalculationError(
 export function trackRenderError(
   error: Error,
   componentName: string,
-  props?: Record<string, any>
-) {
+  props?: Record<string, unknown>
+): void {
   trackError(error, {
     component: componentName,
     action: 'render',
@@ -74,7 +74,7 @@ export function trackRenderError(
 /**
  * Sanitize sensitive data from inputs before logging
  */
-function sanitizeInputs(inputs: Record<string, any>): Record<string, any> {
+function sanitizeInputs(inputs: Record<string, unknown>): Record<string, unknown> {
   const sanitized = { ...inputs };
 
   // Remove or redact sensitive fields
@@ -95,8 +95,8 @@ function sanitizeInputs(inputs: Record<string, any>): Record<string, any> {
 export function trackPerformance(
   operationName: string,
   duration: number,
-  metadata?: Record<string, any>
-) {
+  metadata?: Record<string, unknown>
+): void {
   if (process.env.NODE_ENV === 'development') {
     console.log(`[Performance] ${operationName}: ${duration}ms`, metadata);
   }
@@ -113,7 +113,7 @@ export function trackPerformance(
 export async function measureAsync<T>(
   operationName: string,
   operation: () => Promise<T>,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<T> {
   const start = performance.now();
 

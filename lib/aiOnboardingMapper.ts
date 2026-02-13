@@ -25,11 +25,11 @@ const STATE_TAX_RATES: Record<string, number> = {
  * Default return assumptions
  */
 const DEFAULT_ASSUMPTIONS = {
-  retRate: 9.8,       // Historical S&P 500 nominal return
-  infRate: 2.6,       // Long-term inflation average
-  wdRate: 3.5,        // Safe withdrawal rate
-  dividendYield: 2.0, // Typical dividend yield
-  incRate: 4.5,       // Wage inflation + raises
+  retRate: 9.8,           // Historical S&P 500 nominal return
+  inflationRate: 2.6,     // Long-term inflation average
+  wdRate: 3.5,            // Safe withdrawal rate
+  dividendYield: 2.0,     // Typical dividend yield
+  incRate: 4.5,           // Wage inflation + raises
 };
 
 /**
@@ -45,10 +45,10 @@ export function mapAIDataToCalculator(
   const addAssumption = (
     field: string,
     displayName: string,
-    value: any,
+    value: string | number | boolean | null,
     reasoning: string,
     confidence: 'high' | 'medium' | 'low' = 'medium'
-  ) => {
+  ): void => {
     generatedAssumptions.push({
       field,
       displayName,
@@ -189,9 +189,9 @@ export function mapAIDataToCalculator(
 
   // === Current Balances ===
   const emergencyFund = extractedData.emergencyFund ?? Math.round(annualIncome1 * 0.25); // 3 months
-  const sTax = extractedData.currentTaxable ?? 50000;
-  const sPre = extractedData.currentTraditional ?? 150000;
-  const sPost = extractedData.currentRoth ?? 25000;
+  const taxableBalance = extractedData.currentTaxable ?? 50000;
+  const pretaxBalance = extractedData.currentTraditional ?? 150000;
+  const rothBalance = extractedData.currentRoth ?? 25000;
 
   if (!extractedData.emergencyFund) {
     addAssumption(
@@ -205,9 +205,9 @@ export function mapAIDataToCalculator(
 
   if (!extractedData.currentTaxable) {
     addAssumption(
-      'sTax',
+      'taxableBalance',
       'Taxable Brokerage',
-      sTax,
+      taxableBalance,
       'Estimated based on typical savings patterns',
       'low'
     );
@@ -215,9 +215,9 @@ export function mapAIDataToCalculator(
 
   if (!extractedData.currentTraditional) {
     addAssumption(
-      'sPre',
+      'pretaxBalance',
       'Traditional 401k/IRA',
-      sPre,
+      pretaxBalance,
       'Estimated based on age and income level',
       'low'
     );
@@ -225,9 +225,9 @@ export function mapAIDataToCalculator(
 
   if (!extractedData.currentRoth) {
     addAssumption(
-      'sPost',
+      'rothBalance',
       'Roth Accounts',
-      sPost,
+      rothBalance,
       'Estimated based on typical retirement account mix',
       'low'
     );
@@ -469,19 +469,19 @@ export function mapAIDataToCalculator(
 
   // === Retirement Goals ===
   // IMPORTANT: Use user-specified retirement age if provided, don't override it
-  const retAge = extractedData.retirementAge ?? calculateRecommendedRetirementAge(age1, annualIncome1);
+  const retirementAge = extractedData.retirementAge ?? calculateRecommendedRetirementAge(age1, annualIncome1);
 
   console.log('[aiOnboardingMapper] Retirement age:', {
     userProvided: extractedData.retirementAge,
     calculated: calculateRecommendedRetirementAge(age1, annualIncome1),
-    final: retAge,
+    final: retirementAge,
   });
 
   if (!extractedData.retirementAge) {
     addAssumption(
-      'retAge',
+      'retirementAge',
       'Target Retirement Age',
-      retAge,
+      retirementAge,
       'Based on current age and financial profile',
       'medium'
     );
@@ -494,7 +494,7 @@ export function mapAIDataToCalculator(
     Math.round(totalIncome * 0.8); // 80% replacement ratio
 
   // Convert to withdrawal rate
-  const estimatedPortfolio = sTax + sPre + sPost + emergencyFund;
+  const estimatedPortfolio = taxableBalance + pretaxBalance + rothBalance + emergencyFund;
   const wdRate = estimatedPortfolio > 0 ? (desiredSpending / estimatedPortfolio) * 100 : 3.5;
 
   if (!extractedData.desiredRetirementSpending) {
@@ -531,9 +531,9 @@ export function mapAIDataToCalculator(
   );
 
   addAssumption(
-    'infRate',
+    'inflationRate',
     'Inflation Rate',
-    DEFAULT_ASSUMPTIONS.infRate,
+    DEFAULT_ASSUMPTIONS.inflationRate,
     'Long-term historical inflation average',
     'high'
   );
@@ -575,7 +575,7 @@ export function mapAIDataToCalculator(
     marital,
     age1,
     age2,
-    retAge,
+    retirementAge,
     // Only include children fields when explicitly provided by the wizard,
     // so fieldMetadata won't track them and legacy tab keeps its defaults.
     ...(numChildren !== undefined && { numChildren }),
@@ -585,8 +585,8 @@ export function mapAIDataToCalculator(
     // Employment & Income
     employmentType1,
     employmentType2,
-    annualIncome1,
-    annualIncome2,
+    primaryIncome: annualIncome1,
+    spouseIncome: annualIncome2,
 
     // Income Calculator Details
     ...(eoyBonusAmount !== undefined && { eoyBonusAmount }),
@@ -595,9 +595,9 @@ export function mapAIDataToCalculator(
 
     // Current Balances
     emergencyFund,
-    sTax,
-    sPre,
-    sPost,
+    taxableBalance,
+    pretaxBalance,
+    rothBalance,
 
     // Contributions
     cTax1: Math.round(cTax1),
@@ -648,7 +648,7 @@ export function mapAIDataToCalculator(
 
     // Rates & Assumptions
     retRate: DEFAULT_ASSUMPTIONS.retRate,
-    infRate: DEFAULT_ASSUMPTIONS.infRate,
+    inflationRate: DEFAULT_ASSUMPTIONS.inflationRate,
     stateRate,
     incContrib: true, // Enable annual increases
     incRate: DEFAULT_ASSUMPTIONS.incRate,
@@ -663,8 +663,8 @@ export function mapAIDataToCalculator(
     ssClaimAge2,
 
     // Simulation defaults - use Monte Carlo (random walk) for realistic projections
-    retMode: 'randomWalk',
-    walkSeries: 'trulyRandom',
+    returnMode: 'randomWalk',
+    randomWalkSeries: 'trulyRandom',
     seed: 12345,
   };
 
@@ -702,7 +702,7 @@ function calculateRecommendedRetirementAge(currentAge: number, income: number): 
 /**
  * Validate that calculator inputs are complete and valid
  */
-export function validateCalculatorInputs(inputs: Partial<CalculatorInputs>): {
+export function validateCalculatorInputsAI(inputs: Partial<CalculatorInputs>): {
   isValid: boolean;
   missingFields: string[];
   errors: string[];
@@ -711,16 +711,16 @@ export function validateCalculatorInputs(inputs: Partial<CalculatorInputs>): {
     'marital',
     'age1',
     'age2',
-    'retAge',
-    'sTax',
-    'sPre',
-    'sPost',
+    'retirementAge',
+    'taxableBalance',
+    'pretaxBalance',
+    'rothBalance',
     'cTax1',
     'cPre1',
     'cPost1',
     'cMatch1',
     'retRate',
-    'infRate',
+    'inflationRate',
     'wdRate',
   ];
 
@@ -732,7 +732,7 @@ export function validateCalculatorInputs(inputs: Partial<CalculatorInputs>): {
     errors.push('Age must be between 18 and 100');
   }
 
-  if (inputs.retAge && inputs.age1 && inputs.retAge <= inputs.age1) {
+  if (inputs.retirementAge && inputs.age1 && inputs.retirementAge <= inputs.age1) {
     errors.push('Retirement age must be greater than current age');
   }
 

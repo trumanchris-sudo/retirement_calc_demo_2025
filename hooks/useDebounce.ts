@@ -52,7 +52,7 @@ export function useDebounce<T>(value: T, delay: number = 300): T {
  *   localStorage.setItem('key', JSON.stringify(data));
  * }, 500);
  */
-export function useDebounceCallback<T extends (...args: any[]) => any>(
+export function useDebounceCallback<T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number = 300
 ): (...args: Parameters<T>) => void {
@@ -100,7 +100,7 @@ export function useDebounceCallback<T extends (...args: any[]) => any>(
  *   updateScrollPosition(e.target.scrollTop);
  * }, 100);
  */
-export function useThrottleCallback<T extends (...args: any[]) => any>(
+export function useThrottleCallback<T extends (...args: unknown[]) => unknown>(
   callback: T,
   interval: number = 300
 ): (...args: Parameters<T>) => void {

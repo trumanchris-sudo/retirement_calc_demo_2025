@@ -17,7 +17,7 @@ export type UpdateSource = 'user-entered' | 'ai-suggested' | 'default' | 'import
  * Metadata about which fields were set by user vs AI
  */
 export interface FieldMetadata {
-  /** Field path (e.g., "annualIncome1", "sPre") */
+  /** Field path (e.g., "primaryIncome", "pretaxBalance") */
   field: string;
   /** How the value was determined */
   source: 'user-entered' | 'ai-suggested' | 'default' | 'imported';
@@ -56,7 +56,8 @@ export interface PlanConfig extends CalculatorInputs {
   assumptions?: Array<{
     field: string;
     displayName: string;
-    value: any;
+    /** The assumed value - type varies by field (number, string, boolean, etc.) */
+    value: string | number | boolean | null;
     reasoning: string;
     confidence: 'high' | 'medium' | 'low';
   }>;
@@ -78,7 +79,7 @@ export function createDefaultPlanConfig(): PlanConfig {
     marital: 'single',
     age1: 30,
     age2: 30,
-    retAge: 65,
+    retirementAge: 65,
     numChildren: 0,
     childrenAges: [],
     additionalChildrenExpected: 0,
@@ -86,14 +87,14 @@ export function createDefaultPlanConfig(): PlanConfig {
     // Employment & Income
     employmentType1: 'w2',
     employmentType2: undefined,
-    annualIncome1: 100000,
-    annualIncome2: 0,
+    primaryIncome: 100000,
+    spouseIncome: 0,
 
     // Current Balances
     emergencyFund: 20000,
-    sTax: 50000,
-    sPre: 150000,
-    sPost: 25000,
+    taxableBalance: 50000,
+    pretaxBalance: 150000,
+    rothBalance: 25000,
 
     // Contributions
     cTax1: 10000,
@@ -107,7 +108,7 @@ export function createDefaultPlanConfig(): PlanConfig {
 
     // Rates & Assumptions
     retRate: 9.8,
-    infRate: 2.6,
+    inflationRate: 2.6,
     stateRate: 0,
     incContrib: true,
     incRate: 4.5,
@@ -122,8 +123,8 @@ export function createDefaultPlanConfig(): PlanConfig {
     ssClaimAge2: 67,
 
     // Simulation
-    retMode: 'randomWalk',
-    walkSeries: 'trulyRandom',
+    returnMode: 'randomWalk',
+    randomWalkSeries: 'trulyRandom',
     seed: 12345,
 
     // Bond Glide Path Configuration
@@ -163,7 +164,7 @@ export function createDefaultPlanConfig(): PlanConfig {
     // Generational Wealth
     showGen: false,
     hypPerBen: 30000,
-    hypStartBens: 65,
+    numberOfBeneficiaries: 65,
     totalFertilityRate: 2.1,
     generationLength: 30,
     hypDeathAge: 90,
@@ -192,12 +193,12 @@ export function createDefaultPlanConfig(): PlanConfig {
 export function isConfigComplete(config: PlanConfig): boolean {
   const requiredFields: Array<keyof PlanConfig> = [
     'age1',
-    'retAge',
+    'retirementAge',
     'marital',
-    'annualIncome1',
-    'sTax',
-    'sPre',
-    'sPost',
+    'primaryIncome',
+    'taxableBalance',
+    'pretaxBalance',
+    'rothBalance',
   ];
 
   return requiredFields.every(field =>
@@ -213,18 +214,18 @@ export function isConfigComplete(config: PlanConfig): boolean {
 export function getMissingFields(config: PlanConfig): string[] {
   const requiredFields = [
     { key: 'age1', name: 'Your Age' },
-    { key: 'retAge', name: 'Retirement Age' },
+    { key: 'retirementAge', name: 'Retirement Age' },
     { key: 'marital', name: 'Marital Status' },
-    { key: 'annualIncome1', name: 'Annual Income' },
-    { key: 'sTax', name: 'Taxable Account Balance' },
-    { key: 'sPre', name: 'Traditional 401k/IRA Balance' },
-    { key: 'sPost', name: 'Roth Account Balance' },
+    { key: 'primaryIncome', name: 'Annual Income' },
+    { key: 'taxableBalance', name: 'Taxable Account Balance' },
+    { key: 'pretaxBalance', name: 'Traditional 401k/IRA Balance' },
+    { key: 'rothBalance', name: 'Roth Account Balance' },
   ];
 
   if (config.marital === 'married') {
     requiredFields.push(
       { key: 'age2', name: 'Spouse Age' },
-      { key: 'annualIncome2', name: 'Spouse Income' }
+      { key: 'spouseIncome', name: 'Spouse Income' }
     );
   }
 
@@ -262,7 +263,7 @@ export function mergeConfigUpdates(
   // If marital status is changing to 'single', clear spouse-related fields
   if (updates.marital === 'single' && current.marital !== 'single') {
     // Also update fieldMetadata for all cleared spouse fields
-    const spouseFields = ['age2', 'employmentType2', 'annualIncome2', 'cTax2', 'cPre2', 'cPost2', 'cMatch2', 'ssIncome2', 'ssClaimAge2'];
+    const spouseFields = ['age2', 'employmentType2', 'spouseIncome', 'cTax2', 'cPre2', 'cPost2', 'cMatch2', 'ssIncome2', 'ssClaimAge2'];
     spouseFields.forEach(field => {
       newFieldMetadata[field] = {
         field,
@@ -277,7 +278,7 @@ export function mergeConfigUpdates(
       // Clear spouse-related fields (use defaults)
       age2: 30,
       employmentType2: undefined,
-      annualIncome2: 0,
+      spouseIncome: 0,
       cTax2: 0,
       cPre2: 0,
       cPost2: 0,

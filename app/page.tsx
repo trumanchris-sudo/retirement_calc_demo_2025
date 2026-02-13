@@ -74,7 +74,7 @@ import { SliderInput } from "@/components/form/SliderInput";
 import { BrandLoader } from "@/components/BrandLoader";
 import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
 import { Input, Spinner, Tip, TrendingUpIcon } from "@/components/calculator/InputHelpers";
-import { TabNavigation, type MainTabId } from "@/components/calculator/TabNavigation";
+import { TabNavigation, type MainTabId, isMainTabId } from "@/components/calculator/TabNavigation";
 import { TabPanel } from "@/components/calculator/TabPanel";
 import { LastCalculatedBadge } from "@/components/calculator/LastCalculatedBadge";
 import { RecalculateButton } from "@/components/calculator/RecalculateButton";
@@ -93,6 +93,13 @@ const MonteCarloVisualizer = dynamic(
 import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
 import { CheckUsTab } from "@/components/calculator/CheckUsTab";
 import OptimizationTab from "@/components/calculator/OptimizationTab";
+// Extracted tab components for cleaner organization
+import {
+  ConfigureTab,
+  LegacyTab,
+  ScenariosTab,
+  ResultsTab,
+} from "@/components/calculator/tabs";
 import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
 import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexibilityChart";
 // Lazy load RothConversionOptimizer - only needed in advanced section
@@ -358,13 +365,16 @@ const AiInsightBox = React.memo<{ insight: string; error?: string | null, isLoad
   );
 });
 
+/** Props for icon components used in stat cards */
+type IconComponentProps = { className?: string };
+
 // PERFORMANCE OPTIMIZATION: Memoize StatCard to prevent unnecessary re-renders
 const StatCard = React.memo<{
   title: string;
   value: string;
   sub?: string;
   color?: ColorKey;
-  icon?: React.ComponentType<any>;
+  icon?: React.ComponentType<IconComponentProps>;
   explanation?: string;
 }>(function StatCard({ title, value, sub, color = "blue", icon: Icon, explanation }) {
   const c = COLOR[color] ?? COLOR.blue;
@@ -411,7 +421,7 @@ const FlippingStatCard = React.memo<{
   value: string;
   sub?: string;
   color?: ColorKey;
-  icon?: React.ComponentType<any>;
+  icon?: React.ComponentType<IconComponentProps>;
   backContent?: React.ReactNode;
 }>(function FlippingStatCard({ title, value, sub, color = "blue", icon: Icon, backContent }) {
   const c = COLOR[color] ?? COLOR.blue;
@@ -458,7 +468,7 @@ const FlippingStatCard = React.memo<{
 
 const CollapsibleSection: React.FC<{
   title: string;
-  icon?: React.ComponentType<any>;
+  icon?: React.ComponentType<IconComponentProps>;
   defaultOpen?: boolean;
   children: React.ReactNode;
 }> = ({ title, icon: Icon, defaultOpen = false, children }) => {
@@ -902,6 +912,9 @@ interface ComparisonChartProps {
 const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data, comparisonData, isDarkMode, fmt }) => {
   const [isMobile, setIsMobile] = React.useState(false);
 
+  // TRUE SIDE EFFECT: Window resize event subscription
+  // Subscribes to browser resize events to adjust chart layout responsively.
+  // Window dimensions are external to React and require event listeners.
   React.useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 640);
@@ -991,6 +1004,9 @@ export default function App() {
 
   // AI Documentation Mode - Secret feature (Ctrl+Shift+D)
   const [isAIDocMode, setIsAIDocMode] = useState(false);
+  // TRUE SIDE EFFECT: DOM event listener subscription
+  // This useEffect manages a keyboard shortcut listener and must remain a side effect
+  // because it interacts with the browser's event system outside React's control.
   useEffect(() => {
     const handleKeyboard = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
@@ -1008,19 +1024,19 @@ export default function App() {
   const marital = planConfig.marital ?? 'single';
   const age1 = planConfig.age1 ?? 35;
   const age2 = planConfig.age2 ?? 33;
-  const retAge = planConfig.retAge ?? 65;
+  const retirementAge = planConfig.retirementAge ?? 65;
 
   // Employment & Income
   const employmentType1 = planConfig.employmentType1 ?? 'w2';
   const employmentType2 = planConfig.employmentType2;
-  const annualIncome1 = planConfig.annualIncome1 ?? 100000;
-  const annualIncome2 = planConfig.annualIncome2 ?? 0;
+  const primaryIncome = planConfig.primaryIncome ?? 100000;
+  const spouseIncome = planConfig.spouseIncome ?? 0;
 
   // Current Account Balances
   const emergencyFund = planConfig.emergencyFund ?? 20000;
-  const sTax = planConfig.sTax ?? 50000;
-  const sPre = planConfig.sPre ?? 150000;
-  const sPost = planConfig.sPost ?? 25000;
+  const taxableBalance = planConfig.taxableBalance ?? 50000;
+  const pretaxBalance = planConfig.pretaxBalance ?? 150000;
+  const rothBalance = planConfig.rothBalance ?? 25000;
 
   // Annual Contributions
   const cTax1 = planConfig.cTax1 ?? 12000;
@@ -1034,7 +1050,7 @@ export default function App() {
 
   // Return and Withdrawal Assumptions
   const retRate = planConfig.retRate ?? 9.8;
-  const infRate = planConfig.infRate ?? 2.6;
+  const inflationRate = planConfig.inflationRate ?? 2.6;
   const stateRate = planConfig.stateRate ?? 0;
   const incContrib = planConfig.incContrib ?? false;
   const incRate = planConfig.incRate ?? 4.5;
@@ -1057,19 +1073,32 @@ export default function App() {
   const markDirty = () => setIsDirty(true);
 
   const setMarital = (value: FilingStatus) => { updatePlanConfig({ marital: value }, 'user-entered'); markDirty(); };
-  const setAge1 = (value: number) => { updatePlanConfig({ age1: value }, 'user-entered'); markDirty(); };
+  // setAge1 atomically updates bondStartAge when it follows age1 (not explicitly overridden)
+  // This eliminates the useEffect cascade that was syncing bondStartAge with age1
+  const setAge1 = (value: number) => {
+    const currentBondStartAge = planConfig.bondStartAge;
+    const currentAge1 = planConfig.age1 ?? 35;
+    // If bondStartAge was tracking age1 (not user-overridden), keep it in sync atomically
+    const bondStartAgeFollowsAge = currentBondStartAge === undefined || currentBondStartAge === currentAge1;
+    const updates: Partial<typeof planConfig> = { age1: value };
+    if (bondStartAgeFollowsAge) {
+      updates.bondStartAge = value;
+    }
+    updatePlanConfig(updates, 'user-entered');
+    markDirty();
+  };
   const setAge2 = (value: number) => { updatePlanConfig({ age2: value }, 'user-entered'); markDirty(); };
-  const setRetAge = (value: number) => { updatePlanConfig({ retAge: value }, 'user-entered'); markDirty(); };
+  const setRetirementAge = (value: number) => { updatePlanConfig({ retirementAge: value }, 'user-entered'); markDirty(); };
 
   const setEmploymentType1 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other') => { updatePlanConfig({ employmentType1: value }, 'user-entered'); markDirty(); };
   const setEmploymentType2 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other' | undefined) => { updatePlanConfig({ employmentType2: value }, 'user-entered'); markDirty(); };
-  const setAnnualIncome1 = (value: number) => { updatePlanConfig({ annualIncome1: value }, 'user-entered'); markDirty(); };
-  const setAnnualIncome2 = (value: number) => { updatePlanConfig({ annualIncome2: value }, 'user-entered'); markDirty(); };
+  const setPrimaryIncome = (value: number) => { updatePlanConfig({ primaryIncome: value }, 'user-entered'); markDirty(); };
+  const setSpouseIncome = (value: number) => { updatePlanConfig({ spouseIncome: value }, 'user-entered'); markDirty(); };
 
   const setEmergencyFund = (value: number) => { updatePlanConfig({ emergencyFund: value }, 'user-entered'); markDirty(); };
-  const setSTax = (value: number) => { updatePlanConfig({ sTax: value }, 'user-entered'); markDirty(); };
-  const setSPre = (value: number) => { updatePlanConfig({ sPre: value }, 'user-entered'); markDirty(); };
-  const setSPost = (value: number) => { updatePlanConfig({ sPost: value }, 'user-entered'); markDirty(); };
+  const setTaxableBalance = (value: number) => { updatePlanConfig({ taxableBalance: value }, 'user-entered'); markDirty(); };
+  const setPretaxBalance = (value: number) => { updatePlanConfig({ pretaxBalance: value }, 'user-entered'); markDirty(); };
+  const setRothBalance = (value: number) => { updatePlanConfig({ rothBalance: value }, 'user-entered'); markDirty(); };
 
   const setCTax1 = (value: number) => { updatePlanConfig({ cTax1: value }, 'user-entered'); markDirty(); };
   const setCPre1 = (value: number) => { updatePlanConfig({ cPre1: value }, 'user-entered'); markDirty(); };
@@ -1081,7 +1110,7 @@ export default function App() {
   const setCMatch2 = (value: number) => { updatePlanConfig({ cMatch2: value }, 'user-entered'); markDirty(); };
 
   const setRetRate = (value: number) => { updatePlanConfig({ retRate: value }, 'user-entered'); markDirty(); };
-  const setInfRate = (value: number) => { updatePlanConfig({ infRate: value }, 'user-entered'); markDirty(); };
+  const setInflationRate = (value: number) => { updatePlanConfig({ inflationRate: value }, 'user-entered'); markDirty(); };
   const setStateRate = (value: number) => { updatePlanConfig({ stateRate: value }, 'user-entered'); markDirty(); };
   const setIncContrib = (value: boolean) => { updatePlanConfig({ incContrib: value }, 'user-entered'); markDirty(); };
   const setIncRate = (value: number) => { updatePlanConfig({ incRate: value }, 'user-entered'); markDirty(); };
@@ -1140,68 +1169,105 @@ export default function App() {
   // Generational wealth parameters (improved demographic model)
   const hypPerBen = planConfig.hypPerBen ?? 30000;
   const setHypPerBen = (value: number) => { updatePlanConfig({ hypPerBen: value }, 'user-entered'); markDirty(); };
-  const hypStartBens = planConfig.hypStartBens ?? 2;
-  const setHypStartBens = (value: number) => { updatePlanConfig({ hypStartBens: value }, 'user-entered'); markDirty(); };
+  const numberOfBeneficiaries = planConfig.numberOfBeneficiaries ?? 2;
+  const setNumberOfBeneficiaries = (value: number) => { updatePlanConfig({ numberOfBeneficiaries: value }, 'user-entered'); markDirty(); };
 
-  // New intuitive beneficiary inputs - synced with context
-  const [childrenCurrentAges, setChildrenCurrentAges] = useState("5, 3"); // Comma-separated current ages (display only)
+  // Beneficiary inputs - DERIVED from planConfig (no useEffect sync needed)
+  // childrenCurrentAges and numberOfChildren are now computed directly from planConfig
+  // This eliminates the infinite loop bug that occurred with useEffect-based syncing
   const additionalChildrenExpected = planConfig.additionalChildrenExpected ?? 0;
   const setAdditionalChildrenExpected = (value: number) => {
     updatePlanConfig({ additionalChildrenExpected: value }, 'user-entered');
     markDirty();
   };
 
+  // DERIVED STATE: Compute children display values directly from planConfig
+  // This replaces the useEffect that was syncing state and causing cascade updates
+  const derivedChildrenState = useMemo(() => {
+    const wasExplicitlySet = planConfig.fieldMetadata?.numChildren ||
+                             planConfig.fieldMetadata?.childrenAges;
+    const numChildrenFromConfig = planConfig.numChildren ?? 0;
+    const childAgesFromConfig = planConfig.childrenAges ?? [];
+
+    if (!wasExplicitlySet) {
+      // Children info is just the default - use legacy planning defaults (2 kids, ages "5, 3")
+      return {
+        childrenCurrentAges: "5, 3",
+        numberOfChildren: 2,
+        numberOfBeneficiaries: planConfig.numberOfBeneficiaries ?? 2, // Keep existing numberOfBeneficiaries or default
+      };
+    }
+
+    if (numChildrenFromConfig === 0 && childAgesFromConfig.length === 0) {
+      // User explicitly said 0 children
+      return {
+        childrenCurrentAges: "",
+        numberOfChildren: 0,
+        numberOfBeneficiaries: 0,
+      };
+    } else if (childAgesFromConfig.length > 0) {
+      // Use actual children ages from wizard
+      return {
+        childrenCurrentAges: childAgesFromConfig.join(", "),
+        numberOfChildren: childAgesFromConfig.length,
+        numberOfBeneficiaries: childAgesFromConfig.length,
+      };
+    } else if (numChildrenFromConfig > 0) {
+      // User specified number of children but no ages
+      return {
+        childrenCurrentAges: "5, 3", // Keep default display
+        numberOfChildren: numChildrenFromConfig,
+        numberOfBeneficiaries: numChildrenFromConfig,
+      };
+    }
+
+    // Fallback to defaults
+    return {
+      childrenCurrentAges: "5, 3",
+      numberOfChildren: 2,
+      numberOfBeneficiaries: planConfig.numberOfBeneficiaries ?? 2,
+    };
+  }, [planConfig.fieldMetadata?.numChildren, planConfig.fieldMetadata?.childrenAges,
+      planConfig.numChildren, planConfig.childrenAges, planConfig.numberOfBeneficiaries]);
+
+  // Extract derived values for use throughout the component
+  const childrenCurrentAges = derivedChildrenState.childrenCurrentAges;
+  const numberOfChildren = derivedChildrenState.numberOfChildren;
+  // Note: numberOfBeneficiaries is still controlled via planConfig, but we ensure it stays in sync
+  // by updating it atomically when children are modified (see consolidated update below)
+
   // Legacy inputs (kept for backward compatibility with presets)
-  const [numberOfChildren, setNumberOfChildren] = useState(2);
+  // parentAgeAtFirstChild and childSpacingYears are only used for preset calculations
   const [parentAgeAtFirstChild, setParentAgeAtFirstChild] = useState(30);
   const [childSpacingYears, setChildSpacingYears] = useState(3);
 
-  // Sync PlanConfig numChildren to legacy planning defaults and hypStartBens in context.
-  // Only override when the user/wizard explicitly set children info (tracked via fieldMetadata).
-  // Default PlanConfig has numChildren=0 which should NOT clear legacy tab defaults.
-  //
-  // IMPORTANT: Use a ref to prevent infinite loops. This effect should only run when
-  // numChildren or childrenAges actually CHANGE, not on every render.
-  const lastSyncedChildrenRef = useRef<{ num: number; ages: number[] }>({ num: -1, ages: [] });
+  // Consolidated update function for children-related state
+  // This replaces the useEffect cascade with atomic updates
+  const updateChildrenConfig = useCallback((updates: {
+    numChildren?: number;
+    childrenAges?: number[];
+  }) => {
+    const newNumChildren = updates.numChildren ?? planConfig.numChildren ?? 0;
+    const newChildAges = updates.childrenAges ?? planConfig.childrenAges ?? [];
 
-  useEffect(() => {
-    const wasExplicitlySet = planConfig.fieldMetadata?.numChildren ||
-                             planConfig.fieldMetadata?.childrenAges;
-    if (!wasExplicitlySet) {
-      return; // Children info is just the default — keep legacy planning defaults (2 kids, ages "5, 3")
+    // Calculate numberOfBeneficiaries atomically with the children update
+    let newHypStartBens = planConfig.numberOfBeneficiaries ?? 2;
+    if (newChildAges.length > 0) {
+      newHypStartBens = newChildAges.length;
+    } else if (newNumChildren > 0) {
+      newHypStartBens = newNumChildren;
+    } else if (newNumChildren === 0 && newChildAges.length === 0) {
+      newHypStartBens = 0;
     }
 
-    const numChildren = planConfig.numChildren ?? 0;
-    const childAges = planConfig.childrenAges ?? [];
-
-    // Check if values actually changed to prevent infinite loops
-    const agesChanged = JSON.stringify(childAges) !== JSON.stringify(lastSyncedChildrenRef.current.ages);
-    const numChanged = numChildren !== lastSyncedChildrenRef.current.num;
-
-    if (!agesChanged && !numChanged) {
-      return; // No actual change, skip update
-    }
-
-    // Update ref to track what we've synced
-    lastSyncedChildrenRef.current = { num: numChildren, ages: [...childAges] };
-
-    if (numChildren === 0 && childAges.length === 0) {
-      // User explicitly said 0 children — respect that
-      updatePlanConfig({ hypStartBens: 0 }, 'default');
-      setChildrenCurrentAges("");
-      setNumberOfChildren(0);
-    } else if (childAges.length > 0) {
-      // Use actual children ages from wizard
-      updatePlanConfig({ hypStartBens: childAges.length }, 'default');
-      setChildrenCurrentAges(childAges.join(", "));
-      setNumberOfChildren(childAges.length);
-    } else if (numChildren > 0) {
-      // User specified number of children but no ages - use defaults
-      updatePlanConfig({ hypStartBens: numChildren }, 'default');
-      setNumberOfChildren(numChildren);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planConfig.numChildren, planConfig.childrenAges]);
+    // Single atomic update to planConfig - no cascade needed
+    updatePlanConfig({
+      numChildren: newNumChildren,
+      childrenAges: newChildAges,
+      numberOfBeneficiaries: newHypStartBens,
+    }, 'user-entered');
+    markDirty();
+  }, [planConfig.numChildren, planConfig.childrenAges, planConfig.numberOfBeneficiaries, updatePlanConfig]);
 
   // Generational wealth demographic parameters - read from planConfig context
   const totalFertilityRate = planConfig.totalFertilityRate ?? 2.1; // Children per person (lifetime)
@@ -1222,13 +1288,13 @@ export default function App() {
   const [hypBirthInterval, setHypBirthInterval] = useState(30);
 
   // Simulation Settings - synced to context
-  const retMode = planConfig.retMode ?? 'randomWalk';
+  const returnMode = planConfig.returnMode ?? 'randomWalk';
   const seed = planConfig.seed ?? 42;
-  const walkSeries = planConfig.walkSeries ?? 'trulyRandom';
+  const randomWalkSeries = planConfig.randomWalkSeries ?? 'trulyRandom';
 
-  const setRetMode = (value: "fixed" | "randomWalk") => { updatePlanConfig({ retMode: value }, 'user-entered'); markDirty(); };
+  const setReturnMode = (value: "fixed" | "randomWalk") => { updatePlanConfig({ returnMode: value }, 'user-entered'); markDirty(); };
   const setSeed = (value: number) => { updatePlanConfig({ seed: value }, 'user-entered'); markDirty(); };
-  const setWalkSeries = (value: "nominal" | "real" | "trulyRandom") => { updatePlanConfig({ walkSeries: value }, 'user-entered'); markDirty(); };
+  const setRandomWalkSeries = (value: "nominal" | "real" | "trulyRandom") => { updatePlanConfig({ randomWalkSeries: value }, 'user-entered'); markDirty(); };
 
   // Bond Glide Path Configuration - synced to context
   const allocationStrategy = planConfig.allocationStrategy ?? 'aggressive';
@@ -1245,12 +1311,8 @@ export default function App() {
   const setBondEndAge = (value: number) => { updatePlanConfig({ bondEndAge: value }, 'user-entered'); markDirty(); };
   const setGlidePathShape = (value: 'linear' | 'accelerated' | 'decelerated') => { updatePlanConfig({ glidePathShape: value }, 'user-entered'); markDirty(); };
 
-  // Sync bondStartAge with age1 when age1 changes
-  useEffect(() => {
-    if (bondStartAge !== age1) {
-      updatePlanConfig({ bondStartAge: age1 }, 'user-entered');
-    }
-  }, [age1, bondStartAge, updatePlanConfig]);
+  // NOTE: bondStartAge sync with age1 is now handled atomically in setAge1()
+  // This eliminates the useEffect cascade that was causing unnecessary re-renders
 
   const [res, setRes] = useState<CalculationResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -1319,8 +1381,20 @@ export default function App() {
   const [userQuestion, setUserQuestion] = useState<string>("");
   const [olderAgeForAnalysis, setOlderAgeForAnalysis] = useState<number>(0);
 
+  /** Type for sensitivity analysis variation data point */
+  interface SensitivityVariation {
+    label: string;
+    high: number;
+    low: number;
+    range: number;
+  }
+  /** Type for complete sensitivity analysis result */
+  interface SensitivityAnalysisData {
+    baseline: number;
+    variations: SensitivityVariation[];
+  }
   // Sensitivity analysis and scenario comparison
-  const [sensitivityData, setSensitivityData] = useState<any>(null);
+  const [sensitivityData, setSensitivityData] = useState<SensitivityAnalysisData | null>(null);
   const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>([]);
   const [showSensitivity, setShowSensitivity] = useState(false);
   const [showScenarios, setShowScenarios] = useState(false);
@@ -1376,10 +1450,13 @@ export default function App() {
 
   // Handle tab switching via URL query params
   const searchParams = useSearchParams();
+  // TRUE SIDE EFFECT: URL/Router state synchronization
+  // This useEffect reads from the browser URL and cannot be derived since
+  // searchParams comes from Next.js router which operates outside React state.
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && ['all', 'configure', 'ssot', 'results', 'stress', 'legacy', 'optimize', 'math', 'checkUs'].includes(tab)) {
-      setActiveMainTab(tab as MainTabId);
+    if (tab && isMainTabId(tab)) {
+      setActiveMainTab(tab);
     }
   }, [searchParams]);
 
@@ -1406,7 +1483,9 @@ export default function App() {
   // State for tracking simulation progress
   const [calcProgress, setCalcProgress] = useState<CalculationProgress | null>(null);
 
-  // Initialize web worker
+  // TRUE SIDE EFFECT: Web Worker lifecycle management
+  // Web Workers are external browser resources that must be initialized and
+  // cleaned up via side effects. This cannot be derived state.
   useEffect(() => {
     console.log('[WORKER] Initializing web worker...');
     try {
@@ -1429,7 +1508,9 @@ export default function App() {
     };
   }, []);
 
-  // Apply dark mode class to document
+  // TRUE SIDE EFFECT: DOM class manipulation
+  // Directly modifies the document element outside React's virtual DOM,
+  // necessary for CSS dark mode class toggling at the root level.
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -1438,7 +1519,9 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  // Handle scroll to show/hide back-to-top button
+  // TRUE SIDE EFFECT: Window scroll event subscription
+  // Subscribes to browser scroll events outside React's control to show/hide
+  // the back-to-top button based on scroll position.
   useEffect(() => {
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 400);
@@ -1448,7 +1531,7 @@ export default function App() {
   }, []);
 
   const isMar = useMemo(() => marital === "married", [marital]);
-  const total = useMemo(() => sTax + sPre + sPost, [sTax, sPre, sPost]);
+  const total = useMemo(() => taxableBalance + pretaxBalance + rothBalance, [taxableBalance, pretaxBalance, rothBalance]);
 
   // Memoize formatters to avoid recreating on every render
   const formatters = useMemo(() => ({
@@ -1520,11 +1603,11 @@ export default function App() {
       prob: calcResult.probRuin !== undefined ? Math.round(calcResult.probRuin * 100) : 0,
       eol: Math.round(calcResult.eolReal / 1000), // End of life wealth
       // Key input parameters that affect advice
-      age: retAge,
+      age: retirementAge,
       marital,
       wdRate: Math.round(wdRate * 10), // Withdrawal rate (1 decimal precision)
       retRate: Math.round(retRate * 10), // Return rate
-      infRate: Math.round(infRate * 10), // Inflation rate
+      inflationRate: Math.round(inflationRate * 10), // Inflation rate
       includeSS: includeSS ? 1 : 0,
       // Contribution totals (rounded)
       contrib: Math.round((cTax1 + cPre1 + cPost1 + cTax2 + cPre2 + cPost2) / 1000),
@@ -1572,7 +1655,7 @@ export default function App() {
     if (!calcResult) return "";
 
     const probability = calcResult.probRuin !== undefined ? Math.round((1 - calcResult.probRuin) * 100) : 100;
-    const endAge = retAge + calcResult.survYrs;
+    const endAge = retirementAge + calcResult.survYrs;
     const estateTax = calcResult.estateTax || 0;
     const hasRMDs = (calcResult.totalRMDs || 0) > 0;
     const eolWealth = calcResult.eol;
@@ -1669,7 +1752,7 @@ export default function App() {
         },
         body: JSON.stringify({
           age: olderAge,
-          retirementAge: retAge,
+          retirementAge: retirementAge,
           currentBalance: total,
           futureBalance: calcResult.finNom,
           realBalance: calcResult.finReal,
@@ -1682,7 +1765,7 @@ export default function App() {
           maritalStatus: marital,
           withdrawalRate: wdRate,
           returnRate: retRate,
-          inflationRate: infRate,
+          inflationRate: inflationRate,
           stateRate: stateRate,
           // Advanced features
           totalRMDs: calcResult.totalRMDs || 0,
@@ -1693,12 +1776,12 @@ export default function App() {
           ssIncome: includeSS ? ssIncome : 0,
           ssClaimAge: includeSS ? ssClaimAge : 0,
           // Account allocation
-          startingTaxable: sTax,
-          startingPretax: sPre,
-          startingRoth: sPost,
+          startingTaxable: taxableBalance,
+          startingPretax: pretaxBalance,
+          startingRoth: rothBalance,
           // Contribution details
           totalContributions: calcResult.totC,
-          returnModel: retMode,
+          returnModel: returnMode,
           // User question
           userQuestion: customQuestion,
         }),
@@ -1724,7 +1807,7 @@ export default function App() {
     } finally {
       setIsLoadingAi(false);
     }
-  }, [retAge, total, marital, wdRate, retRate, infRate, stateRate, includeSS, ssIncome, ssClaimAge, sTax, sPre, sPost, retMode]);
+  }, [retirementAge, total, marital, wdRate, retRate, inflationRate, stateRate, includeSS, ssIncome, ssClaimAge, taxableBalance, pretaxBalance, rothBalance, returnMode]);
 
   const handleAskQuestion = async () => {
     if (!userQuestion.trim() || !res) {
@@ -1930,7 +2013,7 @@ export default function App() {
       return;
     }
 
-    if (retAge >= RMD_START_AGE) {
+    if (retirementAge >= RMD_START_AGE) {
       console.log('[ROTH-OPT] Skipping - already at or past RMD age');
       setRothResult(null);
       return;
@@ -1974,7 +2057,7 @@ export default function App() {
     worker.postMessage({
       type: 'roth-optimizer',
       params: {
-        retAge,
+        retirementAge,
         pretaxBalance,
         marital,
         ssIncome: ssAnnualIncome,
@@ -1983,7 +2066,7 @@ export default function App() {
         growthRate: retRate / 100,
       }
     });
-  }, [retAge, marital, includeSS, ssIncome, ssIncome2, isMar, wdRate, retRate]);
+  }, [retirementAge, marital, includeSS, ssIncome, ssIncome2, isMar, wdRate, retRate]);
 
   /**
    * Run comparison between baseline and selected scenarios
@@ -2004,15 +2087,15 @@ export default function App() {
 
     setErr(null);
     const younger = Math.min(age1, isMar ? age2 : age1);
-    const yrsToRet = retAge - younger;
+    const yrsToRet = retirementAge - younger;
 
     try {
       // Prepare baseline inputs
       const baseInputs = {
-        marital, age1, age2, retAge, sTax, sPre, sPost,
+        marital, age1, age2, retirementAge, taxableBalance, pretaxBalance, rothBalance,
         cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-        retRate, infRate, stateRate, incContrib, incRate, wdRate,
-        retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+        retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
+        returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
         historicalYear: undefined,
         inflationShockRate: null,
         inflationShockDuration: 5,
@@ -2075,9 +2158,9 @@ export default function App() {
     } catch (error: unknown) {
       setErr(error instanceof Error ? error.message : 'An unknown error occurred');
     }
-  }, [comparisonMode, res, age1, age2, retAge, marital, sTax, sPre, sPost, cTax1, cPre1, cPost1, cMatch1,
-      cTax2, cPre2, cPost2, cMatch2, retRate, infRate, stateRate, incContrib, incRate, wdRate,
-      retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+  }, [comparisonMode, res, age1, age2, retirementAge, marital, taxableBalance, pretaxBalance, rothBalance, cTax1, cPre1, cPost1, cMatch1,
+      cTax2, cPre2, cPost2, cMatch2, retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
+      returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
       historicalYear, inflationShockRate, inflationShockDuration, seed, isMar]);
 
   /**
@@ -2137,7 +2220,7 @@ export default function App() {
     switch (preset) {
       case 'conservative':
         setHypPerBen(75_000);
-        setHypStartBens(2);
+        setNumberOfBeneficiaries(2);
         setTotalFertilityRate(1.5); // Slow growth
         setGenerationLength(32);
         setFertilityWindowStart(27);
@@ -2148,7 +2231,7 @@ export default function App() {
         break;
       case 'moderate':
         setHypPerBen(100_000);
-        setHypStartBens(2);
+        setNumberOfBeneficiaries(2);
         setTotalFertilityRate(2.1); // Replacement rate
         setGenerationLength(30);
         setFertilityWindowStart(25);
@@ -2159,7 +2242,7 @@ export default function App() {
         break;
       case 'aggressive':
         setHypPerBen(150_000);
-        setHypStartBens(3);
+        setNumberOfBeneficiaries(3);
         setTotalFertilityRate(2.5); // Fast growth
         setGenerationLength(28);
         setFertilityWindowStart(23);
@@ -2171,7 +2254,9 @@ export default function App() {
     }
   }, [setShowGen]);
 
-  // Load results view mode preference from localStorage on mount
+  // TRUE SIDE EFFECT: localStorage read on mount
+  // localStorage is a browser API that exists outside React's control.
+  // This hydrates component state from persisted user preferences.
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('wdr_results_view_mode');
@@ -2181,7 +2266,8 @@ export default function App() {
     }
   }, []);
 
-  // Save results view mode preference
+  // TRUE SIDE EFFECT: localStorage write on state change
+  // Persists user preference to browser storage for cross-session persistence.
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('wdr_results_view_mode', resultsViewMode)
@@ -2223,7 +2309,7 @@ export default function App() {
     let olderAgeForAI: number = 0;
 
     let currentSeed = seed;
-    if (walkSeries === 'trulyRandom') {
+    if (randomWalkSeries === 'trulyRandom') {
       currentSeed = Math.floor(Math.random() * 1000000);
       setSeed(currentSeed);
       console.log('[CALC] Using Monte Carlo mode with seed:', currentSeed);
@@ -2235,10 +2321,10 @@ export default function App() {
       const validationResult = validateCalculatorInputs({
         age1,
         age2: isMar ? age2 : undefined,
-        retAge,
-        sTax,
-        sPre,
-        sPost,
+        retirementAge,
+        taxableBalance,
+        pretaxBalance,
+        rothBalance,
         cTax1,
         cPre1,
         cPost1,
@@ -2249,7 +2335,7 @@ export default function App() {
         cMatch2: isMar ? cMatch2 : undefined,
         wdRate,
         retRate,
-        infRate,
+        inflationRate,
         stateRate,
         marital
       });
@@ -2265,8 +2351,8 @@ export default function App() {
       const older = Math.max(age1, isMar ? age2 : age1);
       olderAgeForAI = older;
 
-      const yrsToRet = retAge - younger;
-      const infl = infRate / 100;
+      const yrsToRet = retirementAge - younger;
+      const infl = inflationRate / 100;
 
       const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
 
@@ -2277,31 +2363,31 @@ export default function App() {
       // ========================================
 
       // Calculate initial asset allocation ratios for accurate RMD estimation
-      const initialTotal = sTax + sPre + sPost;
-      const initialPretaxRatio = initialTotal > 0 ? sPre / initialTotal : 0.5; // Default to 50% if no savings
-      const initialTaxableRatio = initialTotal > 0 ? sTax / initialTotal : 0.3;
-      const initialRothRatio = initialTotal > 0 ? sPost / initialTotal : 0.2;
+      const initialTotal = taxableBalance + pretaxBalance + rothBalance;
+      const initialPretaxRatio = initialTotal > 0 ? pretaxBalance / initialTotal : 0.5; // Default to 50% if no savings
+      const initialTaxableRatio = initialTotal > 0 ? taxableBalance / initialTotal : 0.3;
+      const initialRothRatio = initialTotal > 0 ? rothBalance / initialTotal : 0.2;
       console.log('[CALC] Initial asset allocation ratios - Pretax:', initialPretaxRatio.toFixed(2),
                   'Taxable:', initialTaxableRatio.toFixed(2), 'Roth:', initialRothRatio.toFixed(2));
 
       // Determine simulation count based on mode
-      const simCount = walkSeries === 'trulyRandom' ? 1000 : 1;
-      console.log('[CALC] Running', simCount, 'simulation(s) via web worker for mode:', walkSeries);
+      const simCount = randomWalkSeries === 'trulyRandom' ? 1000 : 1;
+      console.log('[CALC] Running', simCount, 'simulation(s) via web worker for mode:', randomWalkSeries);
 
       console.log('[CALC] Worker ref exists:', !!workerRef.current);
       const inputs: Inputs = {
         // Personal & Family
-        marital, age1, age2, retAge,
+        marital, age1, age2, retirementAge,
         numChildren, childrenAges, additionalChildrenExpected,
         // Employment & Income
-        employmentType1, employmentType2, annualIncome1, annualIncome2,
+        employmentType1, employmentType2, primaryIncome, spouseIncome,
         // Account Balances
-        emergencyFund, sTax, sPre, sPost,
+        emergencyFund, taxableBalance, pretaxBalance, rothBalance,
         // Contributions
         cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
         // Rates & Assumptions
-        retRate, infRate, stateRate, incContrib, incRate, wdRate,
-        retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+        retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
+        returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
         historicalYear: historicalYear || undefined,
         inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
         inflationShockDuration,
@@ -2462,14 +2548,14 @@ export default function App() {
           console.log('[CALC] benAges parsed:', benAges);
 
           // Guard: Skip generational simulation if inputs are degenerate
-          const totalAnnualDist = hypPerBen * Math.max(1, hypStartBens);
+          const totalAnnualDist = hypPerBen * Math.max(1, numberOfBeneficiaries);
           const hasValidBeneficiaries = benAges.length > 0 && benAges.some(age => age >= 0);
           const hasValidDistribution = hypPerBen > 0 && totalAnnualDist > 0;
 
           if (!hasValidBeneficiaries || !hasValidDistribution) {
             console.log('[CALC] Skipping generational simulation - degenerate inputs:', {
               benAges,
-              hypStartBens,
+              numberOfBeneficiaries,
               hypPerBen,
               totalAnnualDist,
               hasValidBeneficiaries,
@@ -2497,8 +2583,8 @@ export default function App() {
           const netEstateP75 = eolP75 - estateTaxP75;
           console.log('[CALC] Net estates - p25:', netEstateP25.toLocaleString(), 'p50:', netEstateP50.toLocaleString(), 'p75:', netEstateP75.toLocaleString());
           console.log('[SUCCESS RATE DEBUG] Distribution per beneficiary: $' + hypPerBen.toLocaleString() + '/year');
-          console.log('[SUCCESS RATE DEBUG] Initial beneficiaries:', hypStartBens);
-          console.log('[SUCCESS RATE DEBUG] Total annual distribution: $' + (hypPerBen * hypStartBens).toLocaleString());
+          console.log('[SUCCESS RATE DEBUG] Initial beneficiaries:', numberOfBeneficiaries);
+          console.log('[SUCCESS RATE DEBUG] Total annual distribution: $' + (hypPerBen * numberOfBeneficiaries).toLocaleString());
 
           // ========================================
           // Calculate Implied CAGR for Legacy Simulations
@@ -2507,18 +2593,18 @@ export default function App() {
           // (not the user's static retRate), to properly model volatility drag effects.
           // P50 uses the user's nominal retRate as the "expected" scenario.
 
-          const startingBalance = sTax + sPre + sPost;
+          const startingBalance = taxableBalance + pretaxBalance + rothBalance;
           const yearsTotal = yrsToRet + yrsToSim;
 
           // P25: Calculate implied real CAGR from unlucky accumulation outcome
           const totalGrowthP25 = batchSummary.eolReal_p25 / startingBalance;
           const impliedRealCAGR_P25 = Math.pow(totalGrowthP25, 1 / yearsTotal) - 1;
-          const impliedNominal_P25 = ((1 + impliedRealCAGR_P25) * (1 + infRate / 100) - 1) * 100;
+          const impliedNominal_P25 = ((1 + impliedRealCAGR_P25) * (1 + inflationRate / 100) - 1) * 100;
 
           // P75: Calculate implied real CAGR from lucky accumulation outcome
           const totalGrowthP75 = batchSummary.eolReal_p75 / startingBalance;
           const impliedRealCAGR_P75 = Math.pow(totalGrowthP75, 1 / yearsTotal) - 1;
-          const impliedNominal_P75 = ((1 + impliedRealCAGR_P75) * (1 + infRate / 100) - 1) * 100;
+          const impliedNominal_P75 = ((1 + impliedRealCAGR_P75) * (1 + inflationRate / 100) - 1) * 100;
 
           console.log('[CALC] Implied CAGR - P25 Real:', (impliedRealCAGR_P25 * 100).toFixed(2) + '%, Nominal:', impliedNominal_P25.toFixed(2) + '%');
           console.log('[CALC] Implied CAGR - P50: Using user retRate:', retRate + '%');
@@ -2596,7 +2682,7 @@ export default function App() {
           // Apply backfill logic
           const backfilledBeneficiaries = backfillYoungerGenerations(
             benAges,
-            hypStartBens,
+            numberOfBeneficiaries,
             fertilityWindowEnd,
             generationLength,
             totalFertilityRate
@@ -2608,7 +2694,7 @@ export default function App() {
           const adjustedStartBens = backfilledBeneficiaries.reduce((sum, b) => sum + b.size, 0);
 
           console.log('[BACKFILL] Summary:');
-          console.log('[BACKFILL] Original beneficiaries:', hypStartBens, 'at ages', benAges);
+          console.log('[BACKFILL] Original beneficiaries:', numberOfBeneficiaries, 'at ages', benAges);
           console.log('[BACKFILL] Backfilled cohorts:', backfilledBeneficiaries.map(b => `Gen${b.generation}(age=${b.age}, size=${b.size.toFixed(2)})`).join(', '));
           console.log('[BACKFILL] Adjusted total beneficiaries:', adjustedStartBens.toFixed(2));
 
@@ -2633,7 +2719,7 @@ export default function App() {
             eolNominal: netEstateP25,
             yearsFrom2025,
             nominalRet: impliedNominal_P25,
-            inflPct: infRate,
+            inflPct: inflationRate,
             perBenReal: hypPerBen,
             startBens: finalStartBens,
             totalFertilityRate,
@@ -2650,7 +2736,7 @@ export default function App() {
             eolNominal: netEstateP50,
             yearsFrom2025,
             nominalRet: retRate,
-            inflPct: infRate,
+            inflPct: inflationRate,
             perBenReal: hypPerBen,
             startBens: finalStartBens,
             totalFertilityRate,
@@ -2667,7 +2753,7 @@ export default function App() {
             eolNominal: netEstateP75,
             yearsFrom2025,
             nominalRet: impliedNominal_P75,
-            inflPct: infRate,
+            inflPct: inflationRate,
             perBenReal: hypPerBen,
             startBens: finalStartBens,
             totalFertilityRate,
@@ -2690,10 +2776,10 @@ export default function App() {
           console.log('[SUCCESS RATE DEBUG] ====================');
 
           // Step 1: Calculate minimum estate required for perpetual legacy
-          const realReturnRate = realReturn(retRate, infRate);
+          const realReturnRate = realReturn(retRate, inflationRate);
           const populationGrowthRate = (totalFertilityRate - 2.0) / generationLength;
           const sustainableDistRate = realReturnRate - populationGrowthRate;
-          const totalAnnualDist = hypPerBen * Math.max(1, hypStartBens);
+          const totalAnnualDist = hypPerBen * Math.max(1, numberOfBeneficiaries);
           const minEstateRequired = totalAnnualDist / sustainableDistRate;
           const safeMinEstate = minEstateRequired * 1.05; // 5% safety margin
 
@@ -2745,7 +2831,7 @@ export default function App() {
             perBenReal: hypPerBen,
             years: simP50.years,
             fundLeftReal: simP50.fundLeftReal,
-            startBeneficiaries: Math.max(1, hypStartBens),
+            startBeneficiaries: Math.max(1, numberOfBeneficiaries),
             lastLivingCount: simP50.lastLivingCount,
             totalFertilityRate,
             generationLength,
@@ -2891,12 +2977,12 @@ export default function App() {
       console.log('[CALC] Finished calculation, clearing loading state');
     }
   }, [
-    age1, age2, retAge, isMar, sTax, sPre, sPost,
+    age1, age2, retirementAge, isMar, taxableBalance, pretaxBalance, rothBalance,
     cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-    retRate, infRate, stateRate, incContrib, incRate, wdRate,
+    retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
     showGen, total, marital,
-    hypPerBen, hypStartBens, hypBirthMultiple, hypBirthInterval, hypDeathAge, hypMinDistAge,
-    retMode, seed, walkSeries, historicalYear,
+    hypPerBen, numberOfBeneficiaries, hypBirthMultiple, hypBirthInterval, hypDeathAge, hypMinDistAge,
+    returnMode, seed, randomWalkSeries, historicalYear,
     inflationShockRate, inflationShockDuration,
     includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2, hypBenAgesStr,
     activeMainTab, setActiveMainTab, isFromWizard,
@@ -2916,10 +3002,10 @@ export default function App() {
 
     // Base inputs for simulations
     const baseInputs: SimulationInputs = {
-      marital, age1, age2, retAge, sTax, sPre, sPost,
+      marital, age1, age2, retirementAge, taxableBalance, pretaxBalance, rothBalance,
       cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-      retRate, infRate, stateRate, incContrib, incRate, wdRate,
-      retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+      retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
+      returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
       historicalYear: historicalYear || undefined,
       inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
       inflationShockDuration,
@@ -2933,10 +3019,10 @@ export default function App() {
     // Run baseline simulation
     const baselineSim = runSingleSimulation(baseInputs, seed);
     const baselineEOL = baselineSim.eolReal;
-    const infl = infRate / 100;
+    const infl = inflationRate / 100;
     const younger = Math.min(age1, isMar ? age2 : age1);
     const older = Math.max(age1, isMar ? age2 : age1);
-    const yrsToRet = retAge - younger;
+    const yrsToRet = retirementAge - younger;
     const yearsFrom2025 = (LIFE_EXP - older);
     const baselineNominal = baselineEOL * Math.pow(1 + infl, yearsFrom2025);
 
@@ -2953,8 +3039,8 @@ export default function App() {
     });
 
     // 2. Retirement Age: ±2 years
-    const highRetAgeSim = runSingleSimulation({ ...baseInputs, retAge: retAge + 2 }, seed);
-    const lowRetAgeSim = runSingleSimulation({ ...baseInputs, retAge: Math.max(younger + 5, retAge - 2) }, seed); // Don't retire before age younger+5
+    const highRetAgeSim = runSingleSimulation({ ...baseInputs, retirementAge: retirementAge + 2 }, seed);
+    const lowRetAgeSim = runSingleSimulation({ ...baseInputs, retirementAge: Math.max(younger + 5, retirementAge - 2) }, seed); // Don't retire before age younger+5
     variations.push({
       label: "Retirement Age",
       high: (highRetAgeSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
@@ -2976,15 +3062,15 @@ export default function App() {
     const savingsFactor = 0.15;
     const highSavingsSim = runSingleSimulation({
       ...baseInputs,
-      sTax: sTax * (1 + savingsFactor),
-      sPre: sPre * (1 + savingsFactor),
-      sPost: sPost * (1 + savingsFactor),
+      taxableBalance: taxableBalance * (1 + savingsFactor),
+      pretaxBalance: pretaxBalance * (1 + savingsFactor),
+      rothBalance: rothBalance * (1 + savingsFactor),
     }, seed);
     const lowSavingsSim = runSingleSimulation({
       ...baseInputs,
-      sTax: sTax * (1 - savingsFactor),
-      sPre: sPre * (1 - savingsFactor),
-      sPost: sPost * (1 - savingsFactor),
+      taxableBalance: taxableBalance * (1 - savingsFactor),
+      pretaxBalance: pretaxBalance * (1 - savingsFactor),
+      rothBalance: rothBalance * (1 - savingsFactor),
     }, seed);
     variations.push({
       label: "Starting Savings",
@@ -3025,11 +3111,11 @@ export default function App() {
     });
 
     // 6. Inflation Rate: ±0.5%
-    const highInflSim = runSingleSimulation({ ...baseInputs, infRate: infRate + 0.5 }, seed);
-    const lowInflSim = runSingleSimulation({ ...baseInputs, infRate: infRate - 0.5 }, seed);
+    const highInflSim = runSingleSimulation({ ...baseInputs, inflationRate: inflationRate + 0.5 }, seed);
+    const lowInflSim = runSingleSimulation({ ...baseInputs, inflationRate: inflationRate - 0.5 }, seed);
     // Higher inflation reduces real purchasing power, lower inflation increases it
-    const highInflNominal = highInflSim.eolReal * Math.pow(1 + (infRate + 0.5) / 100, yearsFrom2025);
-    const lowInflNominal = lowInflSim.eolReal * Math.pow(1 + (infRate - 0.5) / 100, yearsFrom2025);
+    const highInflNominal = highInflSim.eolReal * Math.pow(1 + (inflationRate + 0.5) / 100, yearsFrom2025);
+    const lowInflNominal = lowInflSim.eolReal * Math.pow(1 + (inflationRate - 0.5) / 100, yearsFrom2025);
     variations.push({
       label: "Inflation Rate",
       high: lowInflNominal - baselineNominal, // Lower inflation = higher real purchasing power
@@ -3045,10 +3131,10 @@ export default function App() {
       variations,
     };
   }, [
-    res, marital, age1, age2, retAge, sTax, sPre, sPost,
+    res, marital, age1, age2, retirementAge, taxableBalance, pretaxBalance, rothBalance,
     cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-    retRate, infRate, stateRate, incContrib, incRate, wdRate,
-    retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+    retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
+    returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
     historicalYear, inflationShockRate, inflationShockDuration,
     includeMedicare, medicarePremium, medicalInflation,
     irmaaThresholdSingle, irmaaThresholdMarried, irmaaSurcharge,
@@ -3057,7 +3143,8 @@ export default function App() {
     bondGlidePath, isMar, seed,
   ]);
 
-  // Load scenarios from localStorage on mount
+  // TRUE SIDE EFFECT: localStorage read on mount for saved scenarios
+  // Hydrates saved scenarios from browser storage on component mount.
   useEffect(() => {
     try {
       const stored = localStorage.getItem('retirement-scenarios');
@@ -3069,7 +3156,9 @@ export default function App() {
     }
   }, []);
 
-  // Navigation State Persistence: Restore calculation results when returning from 2026 Income page
+  // TRUE SIDE EFFECT: sessionStorage read on mount for navigation state
+  // Restores calculation results when returning from another page (e.g., 2026 Income).
+  // sessionStorage is a browser API outside React's control.
   useEffect(() => {
     try {
       const savedResults = sessionStorage.getItem('calculatorResults');
@@ -3085,10 +3174,9 @@ export default function App() {
         sessionStorage.removeItem('calculatorResults');
       }
 
-      if (savedTab) {
-        const tab = savedTab as MainTabId;
-        console.log('[NAV PERSISTENCE] Restoring tab:', tab);
-        setActiveMainTab(tab);
+      if (savedTab && isMainTabId(savedTab)) {
+        console.log('[NAV PERSISTENCE] Restoring tab:', savedTab);
+        setActiveMainTab(savedTab);
         sessionStorage.removeItem('calculatorTab');
       }
     } catch (e) {
@@ -3096,7 +3184,9 @@ export default function App() {
     }
   }, []);
 
-  // Save calculation results to sessionStorage when they change (for 2026 Income navigation)
+  // TRUE SIDE EFFECT: sessionStorage write and context population on result changes
+  // Persists results to sessionStorage for cross-page navigation and populates
+  // the budget context for seamless data flow to other pages.
   useEffect(() => {
     if (res) {
       try {
@@ -3138,12 +3228,12 @@ export default function App() {
       timestamp: Date.now(),
       inputs: {
         // Use planConfig as source (single source of truth)
-        marital, age1, age2, retAge,
-        employmentType1, employmentType2, annualIncome1, annualIncome2,
-        emergencyFund, sTax, sPre, sPost,
+        marital, age1, age2, retirementAge,
+        employmentType1, employmentType2, primaryIncome, spouseIncome,
+        emergencyFund, taxableBalance, pretaxBalance, rothBalance,
         cTax1, cPre1, cPost1, cMatch1,
         cTax2, cPre2, cPost2, cMatch2,
-        retRate, infRate, stateRate, incContrib, incRate, wdRate, dividendYield,
+        retRate, inflationRate, stateRate, incContrib, incRate, wdRate, dividendYield,
         includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
       },
       results: {
@@ -3163,11 +3253,11 @@ export default function App() {
     setSavedScenarios(updated);
     localStorage.setItem('retirement-scenarios', JSON.stringify(updated));
     setScenarioName("");
-  }, [res, scenarioName, savedScenarios, marital, age1, age2, retAge,
-      employmentType1, employmentType2, annualIncome1, annualIncome2,
-      emergencyFund, sTax, sPre, sPost,
+  }, [res, scenarioName, savedScenarios, marital, age1, age2, retirementAge,
+      employmentType1, employmentType2, primaryIncome, spouseIncome,
+      emergencyFund, taxableBalance, pretaxBalance, rothBalance,
       cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-      retRate, infRate, stateRate, incContrib, incRate, wdRate, dividendYield,
+      retRate, inflationRate, stateRate, incContrib, incRate, wdRate, dividendYield,
       includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2]);
 
   // Delete a scenario
@@ -3186,18 +3276,18 @@ export default function App() {
       // Personal Info
       age1: inp.age1 ?? 30,
       age2: inp.age2 ?? 30,
-      retAge: inp.retAge ?? 65,
+      retirementAge: inp.retirementAge ?? 65,
       marital: inp.marital ?? 'single',
       // Employment & Income
       employmentType1: inp.employmentType1 ?? 'w2',
       employmentType2: inp.employmentType2,
-      annualIncome1: inp.annualIncome1 ?? 100000,
-      annualIncome2: inp.annualIncome2 ?? 0,
+      primaryIncome: inp.primaryIncome ?? 100000,
+      spouseIncome: inp.spouseIncome ?? 0,
       // Current Balances
       emergencyFund: inp.emergencyFund ?? 0,
-      sTax: inp.sTax ?? 0,
-      sPre: inp.sPre ?? 0,
-      sPost: inp.sPost ?? 0,
+      taxableBalance: inp.taxableBalance ?? 0,
+      pretaxBalance: inp.pretaxBalance ?? 0,
+      rothBalance: inp.rothBalance ?? 0,
       // Contributions
       cTax1: inp.cTax1 ?? 0,
       cPre1: inp.cPre1 ?? 0,
@@ -3209,7 +3299,7 @@ export default function App() {
       cMatch2: inp.cMatch2 ?? 0,
       // Assumptions
       retRate: inp.retRate ?? 7,
-      infRate: inp.infRate ?? 3,
+      inflationRate: inp.inflationRate ?? 3,
       stateRate: inp.stateRate ?? 0,
       wdRate: inp.wdRate ?? 4,
       incContrib: inp.incContrib ?? false,
@@ -3224,8 +3314,9 @@ export default function App() {
     }, 'user-entered');
   }, [updatePlanConfig]);
 
-  // Auto-run calculations when entering AI Doc Mode
-  // IMPORTANT: This hook must be before the early return to avoid hooks violation
+  // TRUE SIDE EFFECT: Auto-run calculations when entering AI Doc Mode
+  // This triggers an async calculation side effect when the secret mode is activated.
+  // IMPORTANT: This hook must be before the early return to avoid hooks violation.
   useEffect(() => {
     if (isAIDocMode && !res) {
       console.log('[AI Doc Mode] Auto-running calculations...');
@@ -3262,7 +3353,7 @@ export default function App() {
           // CRITICAL: Wait for React to update planConfig and re-render
           // The wizard updates planConfig in OnboardingWizardPage.handleComplete,
           // but calc() needs to wait for the component to re-render with new values
-          // before reading age1, age2, retAge, etc. from planConfig
+          // before reading age1, age2, retirementAge, etc. from planConfig
           console.log('[WIZARD] Waiting for planConfig to propagate...');
           await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -3399,16 +3490,16 @@ export default function App() {
           const { generatePDFReport } = await import('@/lib/pdfReport');
           const reportData = {
             inputs: {
-              marital, age1, age2, retAge, sTax, sPre, sPost,
+              marital, age1, age2, retirementAge, taxableBalance, pretaxBalance, rothBalance,
               cTax1, cPre1, cPost1, cMatch1,
               cTax2, cPre2, cPost2, cMatch2,
-              retRate, infRate, stateRate, wdRate, incContrib, incRate,
-              retMode, walkSeries,
+              retRate, inflationRate, stateRate, wdRate, incContrib, incRate,
+              returnMode, randomWalkSeries,
               includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
               includeMedicare, medicarePremium, medicalInflation,
               irmaaThresholdSingle, irmaaThresholdMarried, irmaaSurcharge,
               includeLTC, ltcAnnualCost, ltcProbability, ltcDuration, ltcOnsetAge,
-              showGen, hypPerBen, numberOfChildren,
+              showGen, hypPerBen, numberOfBeneficiaries: numberOfChildren,
               totalFertilityRate, generationLength,
               fertilityWindowStart, fertilityWindowEnd
             },
@@ -3421,7 +3512,7 @@ export default function App() {
           if (!res) return;
           const shareData = {
             title: 'Tax-Aware Retirement Plan',
-            text: `Retirement projection: ${fmt(res.finReal)} by age ${retAge}, ${fmt(res.wdReal)}/yr after-tax income`,
+            text: `Retirement projection: ${fmt(res.finReal)} by age ${retirementAge}, ${fmt(res.wdReal)}/yr after-tax income`,
             url: window.location.href
           };
           if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
@@ -3520,13 +3611,13 @@ export default function App() {
                   <p className="text-xs text-gray-700 mt-1">
                     Generated on {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} •
                     {scenarioName ? ` Scenario: ${scenarioName}` : ' Base Case Analysis'} •
-                    {walkSeries === 'trulyRandom' ? ' Monte Carlo Simulation (1,000 runs)' : ' Single Path Projection'}
+                    {randomWalkSeries === 'trulyRandom' ? ' Monte Carlo Simulation (1,000 runs)' : ' Single Path Projection'}
                   </p>
                 </header>
 
                 {/* 4 Key Metric Cards - Prominent placement on Page 1 */}
                 <div className="grid grid-cols-1 print:grid-cols-2 gap-4 mb-6">
-                  {walkSeries === 'trulyRandom' ? (
+                  {randomWalkSeries === 'trulyRandom' ? (
                     <>
                       {/* Monte Carlo Mode - "The Odds View" */}
                       {/* Card 1: Probability of Success */}
@@ -3543,7 +3634,7 @@ export default function App() {
                         <div className="text-xs uppercase text-red-800 font-semibold mb-1">Worst-Case Wealth (P10)</div>
                         <div className="text-3xl font-bold text-red-900 mb-1">
                           {batchSummary && batchSummary.p10BalancesReal ?
-                            fmt(batchSummary.p10BalancesReal[batchSummary.p10BalancesReal.length - 1] * Math.pow(1 + infRate / 100, batchSummary.p10BalancesReal.length - 1))
+                            fmt(batchSummary.p10BalancesReal[batchSummary.p10BalancesReal.length - 1] * Math.pow(1 + inflationRate / 100, batchSummary.p10BalancesReal.length - 1))
                             : fmt(res.eol * 0.3)}
                         </div>
                         <div className="text-sm text-red-700">Bottom 10% outcome</div>
@@ -3561,7 +3652,7 @@ export default function App() {
                         <div className="text-xs uppercase text-purple-800 font-semibold mb-1">Best-Case Wealth (P90)</div>
                         <div className="text-3xl font-bold text-purple-900 mb-1">
                           {batchSummary && batchSummary.p90BalancesReal ?
-                            fmt(batchSummary.p90BalancesReal[batchSummary.p90BalancesReal.length - 1] * Math.pow(1 + infRate / 100, batchSummary.p90BalancesReal.length - 1))
+                            fmt(batchSummary.p90BalancesReal[batchSummary.p90BalancesReal.length - 1] * Math.pow(1 + inflationRate / 100, batchSummary.p90BalancesReal.length - 1))
                             : fmt(res.eol * 1.8)}
                         </div>
                         <div className="text-sm text-purple-700">Top 10% outcome</div>
@@ -3638,10 +3729,10 @@ export default function App() {
                   <h3 className="text-base font-semibold mb-2 text-black">Plan Summary</h3>
                   <div className="space-y-1 text-sm text-gray-800">
                     <p>
-                      <strong>Retirement Timeline:</strong> Age {age1} to {retAge} (accumulation), then {retAge} to {LIFE_EXP} (retirement)
+                      <strong>Retirement Timeline:</strong> Age {age1} to {retirementAge} (accumulation), then {retirementAge} to {LIFE_EXP} (retirement)
                     </p>
                     <p>
-                      <strong>Starting Balance:</strong> {fmt(sTax + sPre + sPost)} across all accounts
+                      <strong>Starting Balance:</strong> {fmt(taxableBalance + pretaxBalance + rothBalance)} across all accounts
                     </p>
                     <p>
                       <strong>Annual Contributions:</strong> {fmt(cTax1 + cPre1 + cPost1 + cMatch1)}{isMar ? ` (Primary) + ${fmt(cTax2 + cPre2 + cPost2 + cMatch2)} (Spouse)` : ''} until retirement
@@ -3650,7 +3741,7 @@ export default function App() {
                       <strong>Withdrawal Strategy:</strong> {wdRate}% initial withdrawal rate, inflation-adjusted annually
                     </p>
                     <p>
-                      <strong>Return Assumptions:</strong> {retMode === 'fixed' ? `${retRate}% nominal (${(retRate - infRate).toFixed(1)}% real)` : 'Historical S&P 500 bootstrap (1928-2024)'} with {infRate}% inflation
+                      <strong>Return Assumptions:</strong> {returnMode === 'fixed' ? `${retRate}% nominal (${(retRate - inflationRate).toFixed(1)}% real)` : 'Historical S&P 500 bootstrap (1928-2024)'} with {inflationRate}% inflation
                     </p>
                   </div>
                 </div>
@@ -3680,7 +3771,7 @@ export default function App() {
                       )}
                       <tr className="bg-gray-50">
                         <th className="px-3 py-2 text-left font-semibold text-black">Retirement Age</th>
-                        <td className="px-3 py-2 text-right text-black">{retAge}</td>
+                        <td className="px-3 py-2 text-right text-black">{retirementAge}</td>
                       </tr>
                       <tr>
                         <th className="px-3 py-2 text-left font-semibold text-black">Life Expectancy Assumption</th>
@@ -3692,11 +3783,11 @@ export default function App() {
                       </tr>
                       <tr>
                         <th className="px-3 py-2 text-left font-semibold text-black">Years to Retirement</th>
-                        <td className="px-3 py-2 text-right text-black">{retAge - age1}</td>
+                        <td className="px-3 py-2 text-right text-black">{retirementAge - age1}</td>
                       </tr>
                       <tr className="bg-gray-50">
                         <th className="px-3 py-2 text-left font-semibold text-black">Retirement Duration</th>
-                        <td className="px-3 py-2 text-right text-black">{LIFE_EXP - retAge} years</td>
+                        <td className="px-3 py-2 text-right text-black">{LIFE_EXP - retirementAge} years</td>
                       </tr>
                     </tbody>
                   </table>
@@ -3709,19 +3800,19 @@ export default function App() {
                     <tbody>
                       <tr className="bg-gray-50">
                         <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Taxable (Brokerage)</th>
-                        <td className="px-3 py-2 text-right text-black">{fmt(sTax)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(taxableBalance)}</td>
                       </tr>
                       <tr>
                         <th className="px-3 py-2 text-left font-semibold text-black">Pre-Tax (Traditional 401k/IRA)</th>
-                        <td className="px-3 py-2 text-right text-black">{fmt(sPre)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(pretaxBalance)}</td>
                       </tr>
                       <tr className="bg-gray-50">
                         <th className="px-3 py-2 text-left font-semibold text-black">Roth (Tax-Free)</th>
-                        <td className="px-3 py-2 text-right text-black">{fmt(sPost)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(rothBalance)}</td>
                       </tr>
                       <tr className="border-t-2 border-gray-900">
                         <th className="px-3 py-2 text-left font-bold text-black">Total Starting Balance</th>
-                        <td className="px-3 py-2 text-right font-bold text-black">{fmt(sTax + sPre + sPost)}</td>
+                        <td className="px-3 py-2 text-right font-bold text-black">{fmt(taxableBalance + pretaxBalance + rothBalance)}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -3817,14 +3908,14 @@ export default function App() {
                       <tr className="bg-gray-50">
                         <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Market Simulation Model</th>
                         <td className="px-3 py-2 text-right text-black">
-                          {walkSeries === 'trulyRandom'
+                          {randomWalkSeries === 'trulyRandom'
                             ? 'Stochastic Monte Carlo (1,000 Iterations)'
-                            : retMode === 'fixed'
+                            : returnMode === 'fixed'
                             ? `Linear Projection (${retRate}% Constant)`
                             : 'Historical Bootstrap (Deterministic)'}
                         </td>
                       </tr>
-                      {retMode === 'fixed' ? (
+                      {returnMode === 'fixed' ? (
                         <>
                           <tr>
                             <th className="px-3 py-2 text-left font-semibold text-black">Nominal Expected Return</th>
@@ -3832,7 +3923,7 @@ export default function App() {
                           </tr>
                           <tr className="bg-gray-50">
                             <th className="px-3 py-2 text-left font-semibold text-black">Real Expected Return</th>
-                            <td className="px-3 py-2 text-right text-black">{(retRate - infRate).toFixed(2)}%</td>
+                            <td className="px-3 py-2 text-right text-black">{(retRate - inflationRate).toFixed(2)}%</td>
                           </tr>
                         </>
                       ) : (
@@ -3844,12 +3935,12 @@ export default function App() {
                           <tr className="bg-gray-50">
                             <th className="px-3 py-2 text-left font-semibold text-black">Sampling Method</th>
                             <td className="px-3 py-2 text-right text-black">
-                              {walkSeries === 'trulyRandom' ? 'Random with replacement' : 'Sequential from seed'}
+                              {randomWalkSeries === 'trulyRandom' ? 'Random with replacement' : 'Sequential from seed'}
                             </td>
                           </tr>
                         </>
                       )}
-                      {retMode === 'randomWalk' && (
+                      {returnMode === 'randomWalk' && (
                         <tr className="bg-gray-50">
                           <th className="px-3 py-2 text-left font-semibold text-black">Sequence-of-Returns Risk</th>
                           <td className="px-3 py-2 text-right text-black">Modeled (historical variability)</td>
@@ -3899,7 +3990,7 @@ export default function App() {
                     <tbody>
                       <tr className="bg-gray-50">
                         <th className="w-1/2 px-3 py-2 text-left font-semibold text-black">Baseline Inflation Rate</th>
-                        <td className="px-3 py-2 text-right text-black">{infRate}% annually</td>
+                        <td className="px-3 py-2 text-right text-black">{inflationRate}% annually</td>
                       </tr>
                       {showInflationShock && inflationShockRate > 0 && (
                         <>
@@ -3964,7 +4055,7 @@ export default function App() {
                 <header className="mb-4 border-b-2 border-gray-900 pb-3">
                   <h2 className="text-xl font-bold text-black">Wealth Accumulation Projection</h2>
                   <p className="text-xs text-gray-700 mt-1">
-                    {walkSeries === 'trulyRandom'
+                    {randomWalkSeries === 'trulyRandom'
                       ? 'Monte Carlo Simulation: Showing conservative average (P25-P50) outcome with "cone of uncertainty" (P10-P90 range). The shaded area represents the range of 80% of possible outcomes across 1,000 simulations. Key metrics use the average of 25th-50th percentile for more conservative projections.'
                       : 'Deterministic projection based on fixed return assumptions'}
                   </p>
@@ -4015,7 +4106,7 @@ export default function App() {
                           dot={false}
                           name="Real Balance (Today's $)"
                         />
-                        {(showP10 || walkSeries === 'trulyRandom') && (
+                        {(showP10 || randomWalkSeries === 'trulyRandom') && (
                           <Line
                             type="monotone"
                             dataKey="p10"
@@ -4026,7 +4117,7 @@ export default function App() {
                             name="10th Percentile - Worst Case (Nominal)"
                           />
                         )}
-                        {(showP90 || walkSeries === 'trulyRandom') && (
+                        {(showP90 || randomWalkSeries === 'trulyRandom') && (
                           <Line
                             type="monotone"
                             dataKey="p90"
@@ -4110,17 +4201,17 @@ export default function App() {
                     <tbody>
                       <tr>
                         <td className="px-3 py-2 text-left text-black">Age {age1} (Today)</td>
-                        <td className="px-3 py-2 text-right text-black">{fmt(sTax + sPre + sPost)}</td>
-                        <td className="px-3 py-2 text-right text-black">{fmt(sTax + sPre + sPost)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(taxableBalance + pretaxBalance + rothBalance)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(taxableBalance + pretaxBalance + rothBalance)}</td>
                         <td className="px-3 py-2 text-left text-black text-xs">Current balance</td>
                       </tr>
                       <tr className="bg-gray-50">
-                        <td className="px-3 py-2 text-left text-black">Age {retAge} (Retirement)</td>
+                        <td className="px-3 py-2 text-left text-black">Age {retirementAge} (Retirement)</td>
                         <td className="px-3 py-2 text-right text-black">{fmt(res.finNom)}</td>
                         <td className="px-3 py-2 text-right text-black">{fmt(res.finReal)}</td>
                         <td className="px-3 py-2 text-left text-black text-xs">Retirement begins, withdrawals start</td>
                       </tr>
-                      {RMD_START_AGE >= retAge && RMD_START_AGE < LIFE_EXP && (
+                      {RMD_START_AGE >= retirementAge && RMD_START_AGE < LIFE_EXP && (
                         <tr>
                           <td className="px-3 py-2 text-left text-black">Age {RMD_START_AGE} (RMD Start)</td>
                           <td className="px-3 py-2 text-right text-black">—</td>
@@ -4128,8 +4219,8 @@ export default function App() {
                           <td className="px-3 py-2 text-left text-black text-xs">Required Minimum Distributions begin</td>
                         </tr>
                       )}
-                      <tr className={RMD_START_AGE >= retAge ? '' : 'bg-gray-50'}>
-                        <td className="px-3 py-2 text-left text-black">Age {Math.floor((retAge + LIFE_EXP) / 2)}</td>
+                      <tr className={RMD_START_AGE >= retirementAge ? '' : 'bg-gray-50'}>
+                        <td className="px-3 py-2 text-left text-black">Age {Math.floor((retirementAge + LIFE_EXP) / 2)}</td>
                         <td className="px-3 py-2 text-right text-black">—</td>
                         <td className="px-3 py-2 text-right text-black">—</td>
                         <td className="px-3 py-2 text-left text-black text-xs">Mid-retirement checkpoint</td>
@@ -4159,12 +4250,12 @@ export default function App() {
                     <tbody>
                       <tr>
                         <td className="px-3 py-2 text-left text-black">Today (Age {age1})</td>
-                        <td className="px-3 py-2 text-right text-black">{fmt(sTax)}</td>
-                        <td className="px-3 py-2 text-right text-black">{fmt(sPre)}</td>
-                        <td className="px-3 py-2 text-right text-black">{fmt(sPost)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(taxableBalance)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(pretaxBalance)}</td>
+                        <td className="px-3 py-2 text-right text-black">{fmt(rothBalance)}</td>
                       </tr>
                       <tr className="bg-gray-50">
-                        <td className="px-3 py-2 text-left text-black">Retirement (Age {retAge})</td>
+                        <td className="px-3 py-2 text-left text-black">Retirement (Age {retirementAge})</td>
                         <td className="px-3 py-2 text-right text-black">—</td>
                         <td className="px-3 py-2 text-right text-black">—</td>
                         <td className="px-3 py-2 text-right text-black">—</td>
@@ -4405,7 +4496,7 @@ export default function App() {
                         <tr className="bg-gray-50">
                           <th className="w-1/3 px-3 py-2 text-left font-semibold text-black">Baseline</th>
                           <td className="px-3 py-2 text-left text-black">
-                            {retMode === 'fixed' ? `${retRate}% nominal return` : 'Historical S&P 500 returns'} with {infRate}% inflation
+                            {returnMode === 'fixed' ? `${retRate}% nominal return` : 'Historical S&P 500 returns'} with {inflationRate}% inflation
                           </td>
                         </tr>
                         {comparisonData.bearMarket?.visible && (
@@ -4714,7 +4805,7 @@ export default function App() {
                                 </div>
                               </div>
                               <p className="text-xs text-gray-700 leading-relaxed">
-                                <strong>Impact:</strong> {inflationShockRate}% inflation for {inflationShockDuration} years starting at retirement, then returning to {infRate}% baseline.
+                                <strong>Impact:</strong> {inflationShockRate}% inflation for {inflationShockDuration} years starting at retirement, then returning to {inflationRate}% baseline.
                               </p>
                             </div>
                           ) : (
@@ -4745,7 +4836,7 @@ export default function App() {
                           <tr>
                             <td className="px-3 py-2 text-black font-semibold">Baseline</td>
                             <td className="px-3 py-2 text-black">
-                              {retMode === 'fixed' ? `${retRate}% nominal return` : 'Historical S&P 500 returns'} with {infRate}% inflation
+                              {returnMode === 'fixed' ? `${retRate}% nominal return` : 'Historical S&P 500 returns'} with {inflationRate}% inflation
                             </td>
                           </tr>
                           {comparisonData.bearMarket?.visible && comparisonData.bearMarket && (
@@ -4812,12 +4903,12 @@ export default function App() {
                     <ul className="list-disc list-inside space-y-1 ml-2">
                       <li>All projections are based on the assumptions and inputs you provided, which may not reflect actual future conditions.</li>
                       <li>
-                        {retMode === 'fixed'
+                        {returnMode === 'fixed'
                           ? `Fixed return assumptions (${retRate}% nominal) do not account for market volatility or sequence-of-returns risk.`
                           : 'Historical return data (1928-2024) may not predict future market performance. Past performance does not guarantee future results.'}
                       </li>
                       <li>Tax laws, brackets, and exemptions are subject to change and may differ significantly in the future.</li>
-                      <li>Inflation assumptions ({infRate}% baseline) are estimates and actual inflation may vary substantially.</li>
+                      <li>Inflation assumptions ({inflationRate}% baseline) are estimates and actual inflation may vary substantially.</li>
                       <li>The model assumes consistent contribution and withdrawal patterns, which may not reflect real-world behavior.</li>
                       <li>Healthcare costs, long-term care, and other major expenses are not explicitly modeled unless incorporated into withdrawal rates.</li>
                       <li>Estate tax exemptions reflect OBBBA legislation ({fmt(marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single)} exemption for 2026, indexed for inflation starting 2027, {(ESTATE_TAX_RATE * 100).toFixed(0)}% rate). Future legislation could repeal or modify these provisions.</li>
@@ -4827,7 +4918,7 @@ export default function App() {
                   <div>
                     <h3 className="text-sm font-semibold mb-2 text-black">Monte Carlo Limitations</h3>
                     <p>
-                      {walkSeries === 'trulyRandom'
+                      {randomWalkSeries === 'trulyRandom'
                         ? 'While Monte Carlo simulation (1,000 runs) provides probabilistic outcomes, it is only as good as its underlying assumptions. Real-world outcomes may differ due to factors not captured in the model.'
                         : 'This report uses a deterministic (single-path) projection, which does not account for sequence-of-returns risk or stochastic variability. Actual outcomes may vary significantly.'}
                     </p>
@@ -4875,18 +4966,18 @@ export default function App() {
             <div className="hidden">
             <UserInputsPrintSummary
               age={age1}
-              retirementAge={retAge}
+              retirementAge={retirementAge}
               maritalStatus={marital}
-              taxable={fmt(sTax)}
-              pretax={fmt(sPre)}
-              roth={fmt(sPost)}
+              taxable={fmt(taxableBalance)}
+              pretax={fmt(pretaxBalance)}
+              roth={fmt(rothBalance)}
               taxableContrib={fmt(cTax1)}
               pretaxContrib={fmt(cPre1)}
               rothContrib={fmt(cPost1)}
-              inflation={infRate}
+              inflation={inflationRate}
               withdrawalRate={wdRate}
               monteCarloRuns={1000}
-              returnModel={retMode === 'fixed' ? `Fixed at ${retRate}%` : 'Historical 1928–2024 bootstrap'}
+              returnModel={returnMode === 'fixed' ? `Fixed at ${retRate}%` : 'Historical 1928–2024 bootstrap'}
             />
             </div>
 
@@ -4958,7 +5049,7 @@ export default function App() {
               <FlippingStatCard
                 title="Future Balance"
                 value={fmt(res.finNom)}
-                sub={`At age ${retAge} (nominal)`}
+                sub={`At age ${retirementAge} (nominal)`}
                 color="blue"
                 icon={DollarSignIcon}
                 backContent={
@@ -4969,7 +5060,7 @@ export default function App() {
                     </div>
                     <div className="flip-card-body-details">
                       <p className="mb-4">
-                        This is your projected total retirement balance at age {retAge} in future dollars (nominal).
+                        This is your projected total retirement balance at age {retirementAge} in future dollars (nominal).
                       </p>
                       <ul className="flip-card-list">
                         <li>
@@ -4995,7 +5086,7 @@ export default function App() {
                       </ul>
                       <p className="flip-card-details-text">
                         Includes current savings plus all contributions and growth from now until retirement,
-                        accounting for mid-year contributions and {retMode === 'fixed' ? `compounding returns at ${retRate}% annual return` : 'historical S&P 500 total-return bootstrap (1928–2024)'}.
+                        accounting for mid-year contributions and {returnMode === 'fixed' ? `compounding returns at ${retRate}% annual return` : 'historical S&P 500 total-return bootstrap (1928–2024)'}.
                       </p>
                     </div>
                   </>
@@ -5004,7 +5095,7 @@ export default function App() {
               <FlippingStatCard
                 title="Today's Dollars"
                 value={fmt(res.finReal)}
-                sub={`At age ${retAge} (real)`}
+                sub={`At age ${retirementAge} (real)`}
                 color="indigo"
                 icon={TrendingUpIcon}
                 backContent={
@@ -5028,7 +5119,7 @@ export default function App() {
                         </li>
                         <li>
                           <span className="flip-card-list-label">Inflation Rate</span>
-                          <span className="flip-card-list-value">{infRate}%</span>
+                          <span className="flip-card-list-value">{inflationRate}%</span>
                         </li>
                         <li>
                           <span className="flip-card-list-label">Years to Retirement</span>
@@ -5036,7 +5127,7 @@ export default function App() {
                         </li>
                       </ul>
                       <p className="flip-card-details-text">
-                        Formula: Real Value = Nominal Value ÷ (1 + {infRate/100})<sup>{res.yrsToRet}</sup>
+                        Formula: Real Value = Nominal Value ÷ (1 + {inflationRate/100})<sup>{res.yrsToRet}</sup>
                         <br/>
                         This helps you understand what your retirement savings will actually buy in terms of today's purchasing power.
                       </p>
@@ -5079,7 +5170,7 @@ export default function App() {
                         </li>
                       </ul>
                       <p className="flip-card-details-text">
-                        In all future years, this amount will be adjusted upward by the rate of inflation ({infRate}%) to maintain your purchasing power, regardless of market performance.
+                        In all future years, this amount will be adjusted upward by the rate of inflation ({inflationRate}%) to maintain your purchasing power, regardless of market performance.
                       </p>
                     </div>
                   </>
@@ -5509,7 +5600,7 @@ export default function App() {
 
                     {/* Impact Ranking List */}
                     <div className="space-y-4">
-                      {sensitivityData.variations.map((variation: any, idx: number) => {
+                      {sensitivityData.variations.map((variation: SensitivityVariation, idx: number) => {
                         const maxRange = sensitivityData.variations[0].range;
                         const impactScore = Math.min(5, Math.max(1, Math.round((variation.range / maxRange) * 5)));
 
@@ -5816,7 +5907,7 @@ export default function App() {
                                 <tr className="border-b border-border bg-primary/5">
                                   {savedScenarios.length >= 2 && <td className="py-2 px-2"></td>}
                                   <td className="py-2 px-2 font-medium text-primary">Current Plan (unsaved)</td>
-                                  <td className="text-right py-2 px-2">{retAge}</td>
+                                  <td className="text-right py-2 px-2">{retirementAge}</td>
                                   <td className="text-right py-2 px-2">{fmt(res.finReal)} <span className="text-xs text-muted-foreground">real</span></td>
                                   <td className="text-right py-2 px-2">{fmt(res.wdReal)}</td>
                                   <td className="text-right py-2 px-2">{fmt(res.eol)}</td>
@@ -5848,7 +5939,7 @@ export default function App() {
                                     </td>
                                   )}
                                   <td className="py-2 px-2 font-medium">{scenario.name}</td>
-                                  <td className="text-right py-2 px-2">{scenario.inputs.retAge}</td>
+                                  <td className="text-right py-2 px-2">{scenario.inputs.retirementAge}</td>
                                   <td className="text-right py-2 px-2">{fmt(scenario.results.finReal)} <span className="text-xs text-muted-foreground">real</span></td>
                                   <td className="text-right py-2 px-2">{fmt(scenario.results.wdReal)}</td>
                                   <td className="text-right py-2 px-2">{fmt(scenario.results.eol)}</td>
@@ -5987,8 +6078,8 @@ export default function App() {
               <RiskSummaryCard
                 baseSuccessRate={res.probRuin !== undefined ? (1 - res.probRuin) * 100 : undefined}
                 currentScenario={{
-                  name: retMode === 'fixed' ? 'Fixed Returns' : 'Historical Bootstrap',
-                  description: retMode === 'fixed'
+                  name: returnMode === 'fixed' ? 'Fixed Returns' : 'Historical Bootstrap',
+                  description: returnMode === 'fixed'
                     ? `Assumes constant ${retRate}% annual return`
                     : 'Based on historical market data (1928-2024)',
                   successRate: res.probRuin !== undefined ? (1 - res.probRuin) * 100 : 100,
@@ -6411,7 +6502,7 @@ export default function App() {
                     </TabsList>
 
                     <TabsContent value="accumulation" className="space-y-4">
-                      {walkSeries === 'trulyRandom' && (
+                      {randomWalkSeries === 'trulyRandom' && (
                         <div className="flex gap-6 items-center print-hide">
                           <div className="flex items-center space-x-2">
                             <Checkbox
@@ -6527,7 +6618,7 @@ export default function App() {
                 <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
                   <MonteCarloVisualizer
                     isRunning={isLoadingAi}
-                    visible={walkSeries === 'trulyRandom'}
+                    visible={randomWalkSeries === 'trulyRandom'}
                   />
                 </Suspense>
               </AnimatedSection>
@@ -6538,7 +6629,7 @@ export default function App() {
               <AnimatedSection animation="fade-in" delay={500}>
                 <SequenceRiskChart
                   batchSummary={batchSummary}
-                  retAge={retAge}
+                  retirementAge={retirementAge}
                   age1={age1}
                 />
               </AnimatedSection>
@@ -6562,699 +6653,108 @@ export default function App() {
         {/* Input Form - Hide from print and All-in-One tab */}
         {activeMainTab !== 'all' && (
         <TabPanel id="configure" activeTab={activeMainTab}>
-        <AnimatedSection animation="fade-in" delay={100}>
-          <Card className="print:hidden">
-          <CardHeader>
-            <CardTitle>Plan Your Retirement</CardTitle>
-            <CardDescription>Enter your information to calculate your retirement projections</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            {/* Tabbed Form Sections */}
-            <TabGroup
-              ref={tabGroupRef}
-              tabs={[
-                {
-                  id: "personal",
-                  label: "Personal Info",
-                  defaultOpen: false,
-                  content: (
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <Label>Marital Status</Label>
-                        <select
-                          value={marital}
-                          onChange={(e) => { setMarital(e.target.value as FilingStatus); setInputsModified(true); }}
-                          className="flex h-11 md:h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
-                        >
-                          <option value="single">Single</option>
-                          <option value="married">Married</option>
-                        </select>
-                      </div>
-                      <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} onInputChange={handleInputChange} defaultValue={35} validate={(val) => validateAge(val, 'Your age')} />
-                      <Input label="Retirement Age" value={retAge} setter={setRetAge} min={30} max={90} onInputChange={handleInputChange} defaultValue={65} validate={(val) => validateRetirementAge(val, age1)} />
-                      {isMar && (
-                        <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} onInputChange={handleInputChange} defaultValue={33} validate={(val) => validateAge(val, 'Spouse age')} />
-                      )}
-                    </div>
-                  ),
-                },
-                {
-                  id: "balances",
-                  label: "Current Balances",
-                  defaultOpen: false,
-                  content: (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 gap-4">
-                        <Input label="Taxable Brokerage" value={sTax} setter={setSTax} step={1000} onInputChange={handleInputChange} defaultValue={50000} validate={(val) => validateBalance(val, 'Taxable balance')} />
-                        <Input label="Pre-Tax (401k/IRA)" value={sPre} setter={setSPre} step={1000} onInputChange={handleInputChange} defaultValue={150000} validate={(val) => validateBalance(val, 'Pre-tax balance')} />
-                        <Input label="Post-Tax (Roth)" value={sPost} setter={setSPost} step={1000} onInputChange={handleInputChange} defaultValue={25000} validate={(val) => validateBalance(val, 'Roth balance')} />
-                      </div>
-                    </div>
-                  ),
-                },
-                {
-                  id: "contributions",
-                  label: "Annual Contributions",
-                  defaultOpen: false,
-                  content: (
-              <div className="grid grid-cols-1 gap-8">
-                <div className="space-y-4">
-                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
-                    {marital === 'single' ? 'Your Contributions' : 'Your Contributions'}
-                  </Badge>
-                  <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} onInputChange={handleInputChange} defaultValue={12000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
-                  <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} onInputChange={handleInputChange} defaultValue={23000} validate={validate401kContribution} tip="2026 IRS limit: $24,500" />
-                  <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} onInputChange={handleInputChange} defaultValue={7000} validate={validateIRAContribution} tip="2026 IRS limit: $7,000" />
-                  <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} onInputChange={handleInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
-                </div>
-                {isMar && (
-                  <div className="space-y-4">
-                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
-                      Spouse's Contributions
-                    </Badge>
-                    <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} onInputChange={handleInputChange} defaultValue={8000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
-                    <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} onInputChange={handleInputChange} defaultValue={23000} validate={validate401kContribution} tip="2026 IRS limit: $24,500" />
-                    <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} onInputChange={handleInputChange} defaultValue={7000} validate={validateIRAContribution} tip="2026 IRS limit: $7,000" />
-                    <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} onInputChange={handleInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
-                  </div>
-                )}
-                      </div>
-                    ),
-                  },
-                  {
-                    id: "assumptions",
-                    label: "Assumptions",
-                    defaultOpen: false,
-                    content: (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {retMode === 'fixed' && (
-                    <SliderInput
-                      label="Return Rate"
-                      value={retRate}
-                      onChange={setRetRate}
-                      min={0}
-                      max={20}
-                      step={0.1}
-                      unit="%"
-                      description={retMode === 'fixed' ? "Historical median ≈ 9.8% (context only)" : "Used for 'Fixed' mode only"}
-                      onInputChange={handleInputChange}
-                    />
-                  )}
-                  <SliderInput
-                    label="Inflation"
-                    value={infRate}
-                    onChange={setInfRate}
-                    min={0}
-                    max={10}
-                    step={0.1}
-                    unit="%"
-                    description="US avg ~2.6%"
-                    onInputChange={handleInputChange}
-                  />
-                  <SliderInput
-                    label="State Tax"
-                    value={stateRate}
-                    onChange={setStateRate}
-                    min={0}
-                    max={15}
-                    step={0.1}
-                    unit="%"
-                    description="Income tax rate"
-                    onInputChange={handleInputChange}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-2">
-                    <Label>Return Model</Label>
-                    <select
-                      value={retMode}
-                      onChange={(e) => {
-                        const newMode = e.target.value as "fixed" | "randomWalk";
-                        setRetMode(newMode);
-                        if (newMode === "randomWalk") {
-                          setWalkSeries("trulyRandom");
-                        }
-                        setInputsModified(true);
-                      }}
-                      className="flex h-11 md:h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
-                    >
-                      <option value="fixed">Fixed (single rate)</option>
-                      <option value="randomWalk">Random Walk (S&P bootstrap)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Asset Allocation Strategy */}
-                <Separator className="my-6" />
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-semibold text-foreground">Asset Allocation Strategy</h4>
-                    <Tip text="Choose how your portfolio is allocated between stocks and bonds. Bonds reduce volatility but also lower expected returns." />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Allocation Type</Label>
-                    <select
-                      value={allocationStrategy}
-                      onChange={(e) => {
-                        const newStrategy = e.target.value as 'aggressive' | 'ageBased' | 'custom';
-                        setAllocationStrategy(newStrategy);
-                        setInputsModified(true);
-                      }}
-                      className="flex h-11 md:h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
-                    >
-                      <option value="aggressive">100% Stocks (Aggressive)</option>
-                      <option value="ageBased">Age-Based (Bond % = Your Age)</option>
-                      <option value="custom">Custom Glide Path</option>
-                    </select>
-                  </div>
-
-                  {allocationStrategy === 'custom' && (
-                    <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <h5 className="font-semibold text-sm">Custom Bond Glide Path</h5>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Starting Bond %</Label>
-                          <UIInput
-                            type="number"
-                            value={bondStartPct}
-                            onChange={(e) => {
-                              setBondStartPct(Number(e.target.value));
-                              setInputsModified(true);
-                            }}
-                            min={0}
-                            max={100}
-                            className="w-full"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Ending Bond %</Label>
-                          <UIInput
-                            type="number"
-                            value={bondEndPct}
-                            onChange={(e) => {
-                              setBondEndPct(Number(e.target.value));
-                              setInputsModified(true);
-                            }}
-                            min={0}
-                            max={100}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Start at Age</Label>
-                          <UIInput
-                            type="number"
-                            value={bondStartAge}
-                            onChange={(e) => {
-                              setBondStartAge(Number(e.target.value));
-                              setInputsModified(true);
-                            }}
-                            min={age1}
-                            max={95}
-                            className="w-full"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>End at Age</Label>
-                          <UIInput
-                            type="number"
-                            value={bondEndAge}
-                            onChange={(e) => {
-                              setBondEndAge(Number(e.target.value));
-                              setInputsModified(true);
-                            }}
-                            min={age1}
-                            max={95}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Transition Shape</Label>
-                        <select
-                          value={glidePathShape}
-                          onChange={(e) => {
-                            setGlidePathShape(e.target.value as 'linear' | 'accelerated' | 'decelerated');
-                            setInputsModified(true);
-                          }}
-                          className="flex h-11 md:h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
-                        >
-                          <option value="linear">Linear (steady increase)</option>
-                          <option value="accelerated">Accelerated (faster early)</option>
-                          <option value="decelerated">Decelerated (faster late)</option>
-                        </select>
-                      </div>
-
-                      <div className="text-xs text-muted-foreground mt-2">
-                        <p>
-                          Bond allocation will transition from {bondStartPct}% at age {bondStartAge} to {bondEndPct}% at age {bondEndAge}.
-                          Current allocation at age {age1}: {Math.round(calculateBondAllocation(age1, bondGlidePath))}% bonds.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {allocationStrategy === 'ageBased' && (
-                    <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800 text-sm">
-                      <p>
-                        Conservative glide path: 10% bonds (age &lt;40), gradually increasing to 60% bonds (age 60+).
-                        {(() => {
-                          const tempGlidePath: BondGlidePath = { strategy: 'ageBased', startAge: age1, endAge: 95, startPct: 10, endPct: 60, shape: 'linear' };
-                          const bondPct = Math.round(calculateBondAllocation(age1, tempGlidePath));
-                          return ` At age ${age1}: ${bondPct}% bonds, ${100 - bondPct}% stocks.`;
-                        })()}
-                      </p>
-                    </div>
-                  )}
-
-                  {allocationStrategy === 'aggressive' && (
-                    <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800 text-sm">
-                      <p>
-                        Your portfolio will remain 100% stocks for maximum growth potential.
-                        This provides higher expected returns but with greater volatility.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-6">
-                  <SliderInput
-                    label="Withdrawal Rate"
-                    value={wdRate}
-                    onChange={setWdRate}
-                    min={1}
-                    max={8}
-                    step={0.1}
-                    unit="%"
-                    description="Annual spending rate"
-                    onInputChange={handleInputChange}
-                  />
-                  <div className="space-y-4">
-                    <Input
-                      label="Increase Rate (%)"
-                      value={incRate}
-                      setter={setIncRate}
-                      step={0.1}
-                      isRate
-                      disabled={!incContrib}
-                      onInputChange={handleInputChange}
-                    />
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="inc-contrib"
-                        checked={incContrib}
-                        onChange={(e) => { setIncContrib(e.target.checked); setInputsModified(true); }}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
-                      />
-                      <Label htmlFor="inc-contrib" className="cursor-pointer">
-                        Increase contributions annually {incContrib && <span className="print-only">✓</span>}
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-                      </div>
-                    ),
-                  },
-                  {
-                    id: "advanced-settings",
-                    label: "Advanced Settings",
-                    defaultOpen: false,
-                    content: (
-                      <div className="space-y-6">
-                        {/* Social Security Section */}
-                        <div className="space-y-4">
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id="include-ss"
-                              checked={includeSS}
-                              onChange={(e) => { setIncludeSS(e.target.checked); setInputsModified(true); }}
-                              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
-                            />
-                            <Label htmlFor="include-ss" className="text-base font-semibold cursor-pointer">
-                              Include Social Security Benefits {includeSS && <span className="print-only">✓</span>}
-                            </Label>
-                          </div>
-
-                          {includeSS && (
-                            <div className="space-y-6 pl-7">
-                              <div>
-                                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 mb-2">Primary</Badge>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <Input
-                                    label="Avg Career Earnings ($/yr)"
-                                    value={ssIncome}
-                                    setter={setSSIncome}
-                                    step={1000}
-                                    tip="Your average indexed earnings for SS calculation (AIME)"
-                                    onInputChange={handleInputChange}
-                                  />
-                                  <Input
-                                    label="Claim Age"
-                                    value={ssClaimAge}
-                                    setter={setSSClaimAge}
-                                    step={1}
-                                    min={62}
-                                    max={70}
-                                    tip="Age when you start claiming SS (62-70). FRA is typically 67."
-                                    onInputChange={handleInputChange}
-                                  />
-                                </div>
-                              </div>
-                              {isMar && (
-                                <div>
-                                  <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 mb-2">Spouse</Badge>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <Input
-                                      label="Avg Career Earnings ($/yr)"
-                                      value={ssIncome2}
-                                      setter={setSSIncome2}
-                                      step={1000}
-                                      tip="Spouse's average indexed earnings for SS calculation (AIME)"
-                                      onInputChange={handleInputChange}
-                                    />
-                                    <Input
-                                      label="Claim Age"
-                                      value={ssClaimAge2}
-                                      setter={setSSClaimAge2}
-                                      step={1}
-                                      min={62}
-                                      max={70}
-                                      tip="Age when spouse starts claiming SS (62-70). FRA is typically 67."
-                                      onInputChange={handleInputChange}
-                                    />
-                                  </div>
-                                  {/* Spousal Benefits Info */}
-                                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 text-sm">
-                                    <p className="text-blue-800 dark:text-blue-200">
-                                      <strong>Spousal Benefits:</strong> The calculator automatically determines if either spouse qualifies for spousal benefits (up to 50% of the higher earner&apos;s PIA). Each spouse receives the higher of their own benefit or the spousal benefit.
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        <Separator />
-
-                        {/* Medicare Section */}
-                        <div className="space-y-4">
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id="include-medicare"
-                              checked={includeMedicare}
-                              onChange={(e) => { setIncludeMedicare(e.target.checked); setInputsModified(true); }}
-                              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
-                            />
-                            <Label htmlFor="include-medicare" className="text-base font-semibold cursor-pointer">
-                              Include Medicare Premiums (Age 65+) {includeMedicare && <span className="print-only">✓</span>}
-                            </Label>
-                          </div>
-
-                          {includeMedicare && (
-                            <div className="space-y-4 pl-7">
-                              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  Medicare premiums start at age 65. IRMAA (Income-Related Monthly Adjustment Amount) surcharges apply when income exceeds thresholds.
-                                </p>
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
-                                  label="Base Monthly Premium ($)"
-                                  value={medicarePremium}
-                                  setter={setMedicarePremium}
-                                  step={10}
-                                  tip="Typical combined cost for Part B, Part D, and Medigap supplement (~$400/month)"
-                                  onInputChange={handleInputChange}
-                                />
-                                <Input
-                                  label="Medical Inflation Rate (%)"
-                                  value={medicalInflation}
-                                  setter={setMedicalInflation}
-                                  step={0.1}
-                                  isRate
-                                  tip="Healthcare costs typically inflate faster than general inflation (5-6% vs 2-3%)"
-                                  onInputChange={handleInputChange}
-                                />
-                              </div>
-
-                              <div className="mt-4">
-                                <h4 className="text-sm font-semibold mb-2">2026 IRMAA Brackets (Income-Related Monthly Adjustment Amount)</h4>
-                                <p className="text-xs text-muted-foreground mb-3">
-                                  Medicare surcharges are automatically calculated based on your estimated income (MAGI) using the official 2026 tiered brackets.
-                                </p>
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-sm border-collapse">
-                                    <thead>
-                                      <tr className="bg-muted/50">
-                                        <th className="text-left p-2 border border-border font-medium">Single MAGI</th>
-                                        <th className="text-left p-2 border border-border font-medium">Married MAGI</th>
-                                        <th className="text-right p-2 border border-border font-medium">Monthly Surcharge</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      <tr>
-                                        <td className="p-2 border border-border">Up to $109,000</td>
-                                        <td className="p-2 border border-border">Up to $218,000</td>
-                                        <td className="p-2 border border-border text-right text-green-600 dark:text-green-400">$0 (standard premium)</td>
-                                      </tr>
-                                      <tr className="bg-muted/30">
-                                        <td className="p-2 border border-border">$109,001 - $137,000</td>
-                                        <td className="p-2 border border-border">$218,001 - $274,000</td>
-                                        <td className="p-2 border border-border text-right">$81.00</td>
-                                      </tr>
-                                      <tr>
-                                        <td className="p-2 border border-border">$137,001 - $171,000</td>
-                                        <td className="p-2 border border-border">$274,001 - $342,000</td>
-                                        <td className="p-2 border border-border text-right">$202.40</td>
-                                      </tr>
-                                      <tr className="bg-muted/30">
-                                        <td className="p-2 border border-border">$171,001 - $214,000</td>
-                                        <td className="p-2 border border-border">$342,001 - $428,000</td>
-                                        <td className="p-2 border border-border text-right">$323.80</td>
-                                      </tr>
-                                      <tr>
-                                        <td className="p-2 border border-border">$214,001 - $500,000</td>
-                                        <td className="p-2 border border-border">$428,001 - $750,000</td>
-                                        <td className="p-2 border border-border text-right">$445.20</td>
-                                      </tr>
-                                      <tr className="bg-muted/30">
-                                        <td className="p-2 border border-border">Over $500,000</td>
-                                        <td className="p-2 border border-border">Over $750,000</td>
-                                        <td className="p-2 border border-border text-right text-red-600 dark:text-red-400">$487.00</td>
-                                      </tr>
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <Separator />
-
-                        {/* Long-Term Care Section */}
-                        <div className="space-y-4">
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id="include-ltc"
-                              checked={includeLTC}
-                              onChange={(e) => { setIncludeLTC(e.target.checked); setInputsModified(true); }}
-                              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
-                            />
-                            <Label htmlFor="include-ltc" className="text-base font-semibold cursor-pointer">
-                              Include Long-Term Care Planning {includeLTC && <span className="print-only">✓</span>}
-                            </Label>
-                          </div>
-
-                          {includeLTC && (
-                            <div className="space-y-4 pl-7">
-                              <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  <strong>~70% of Americans need long-term care at some point.</strong> In deterministic mode, costs are averaged. In Monte Carlo mode, LTC events occur randomly based on probability.
-                                </p>
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
-                                  label="Annual LTC Cost ($)"
-                                  value={ltcAnnualCost}
-                                  setter={setLtcAnnualCost}
-                                  step={5000}
-                                  tip="Typical cost: $80,000/year for nursing home or home health aide"
-                                  onInputChange={handleInputChange}
-                                />
-                                <Input
-                                  label="Probability of Need (%)"
-                                  value={ltcProbability}
-                                  setter={setLtcProbability}
-                                  step={5}
-                                  min={0}
-                                  max={100}
-                                  isRate
-                                  tip="Percentage chance you'll need long-term care (national average: 70%)"
-                                  onInputChange={handleInputChange}
-                                />
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
-                                  label="Expected Duration (years)"
-                                  value={ltcDuration}
-                                  setter={setLtcDuration}
-                                  step={0.5}
-                                  isRate
-                                  tip="Average duration of long-term care need (typical: 3-4 years)"
-                                  onInputChange={handleInputChange}
-                                />
-                                <Input
-                                  label="Typical Onset Age"
-                                  value={ltcOnsetAge}
-                                  setter={setLtcOnsetAge}
-                                  step={1}
-                                  min={65}
-                                  max={95}
-                                  tip="Average age when LTC begins (median: 82)"
-                                  onInputChange={handleInputChange}
-                                />
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
-                                  label="Age Range Start"
-                                  value={ltcAgeRangeStart}
-                                  setter={setLtcAgeRangeStart}
-                                  step={1}
-                                  min={65}
-                                  max={90}
-                                  tip="Earliest age LTC might begin (for Monte Carlo distribution)"
-                                  onInputChange={handleInputChange}
-                                />
-                                <Input
-                                  label="Age Range End"
-                                  value={ltcAgeRangeEnd}
-                                  setter={setLtcAgeRangeEnd}
-                                  step={1}
-                                  min={75}
-                                  max={95}
-                                  tip="Latest age LTC might begin (for Monte Carlo distribution)"
-                                  onInputChange={handleInputChange}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <Separator />
-
-                        {/* Roth Conversion Strategy Section */}
-                        <div className="space-y-4">
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id="enable-roth-conversions"
-                              checked={enableRothConversions}
-                              onChange={(e) => { setEnableRothConversions(e.target.checked); setInputsModified(true); }}
-                              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
-                            />
-                            <Label htmlFor="enable-roth-conversions" className="text-base font-semibold cursor-pointer">
-                              Enable Automatic Roth Conversions {enableRothConversions && <span className="print-only">✓</span>}
-                            </Label>
-                          </div>
-
-                          {enableRothConversions && (
-                            <div className="space-y-4 pl-7">
-                              <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  <strong>Automatic Roth conversions can reduce lifetime taxes.</strong> Before RMDs begin (age 73), convert pre-tax to Roth up to your target tax bracket each year. Taxes are paid from your taxable account.
-                                </p>
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label>Target Tax Bracket</Label>
-                                <select
-                                  value={targetConversionBracket}
-                                  onChange={(e) => {
-                                    setTargetConversionBracket(parseFloat(e.target.value));
-                                    setInputsModified(true);
-                                  }}
-                                  className="flex h-11 md:h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
-                                >
-                                  <option value={0.10}>10% - Low income bracket</option>
-                                  <option value={0.12}>12% - Lower-middle bracket (default for many retirees)</option>
-                                  <option value={0.22}>22% - Middle bracket</option>
-                                  <option value={0.24}>24% - Upper-middle bracket (recommended)</option>
-                                  <option value={0.32}>32% - High bracket</option>
-                                  <option value={0.35}>35% - Very high bracket</option>
-                                  <option value={0.37}>37% - Top bracket</option>
-                                </select>
-                                <p className="text-xs text-muted-foreground">
-                                  Convert pre-tax to Roth each year to fill up to this tax bracket. Higher brackets mean more conversions but higher taxes paid upfront.
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ),
-                  },
-                ]}
-              />
-
-            <Separator />
-
-            <div className="flex flex-col items-center pt-6 pb-2 no-print">
-              <Button
-                onClick={() => {
-                  calc();
-                }}
-                disabled={isLoadingAi}
-                size="lg"
-                className="w-full md:w-auto text-lg px-16 py-7 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
-              >
-                {isLoadingAi ? (
-                  <span className="flex items-center gap-3">
-                    <Spinner />
-                    <span>
-                      {calcProgress
-                        ? `${calcProgress.message} (${calcProgress.percent}%)`
-                        : 'Calculating...'}
-                    </span>
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-3">
-                    <TrendingUpIcon className="w-6 h-6" />
-                    Calculate Retirement Plan
-                  </span>
-                )}
-              </Button>
-              {err && (
-                <div className="mt-6 p-5 bg-red-50 border-2 border-red-300 rounded-xl shadow-md max-w-2xl">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-red-800 font-medium text-base">{err}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-        </AnimatedSection>
+          <ConfigureTab
+            marital={marital}
+            setMarital={setMarital}
+            age1={age1}
+            setAge1={setAge1}
+            age2={age2}
+            setAge2={setAge2}
+            retirementAge={retirementAge}
+            setRetirementAge={setRetirementAge}
+            isMar={isMar}
+            taxableBalance={taxableBalance}
+            setTaxableBalance={setTaxableBalance}
+            pretaxBalance={pretaxBalance}
+            setPretaxBalance={setPretaxBalance}
+            rothBalance={rothBalance}
+            setRothBalance={setRothBalance}
+            cTax1={cTax1}
+            setCTax1={setCTax1}
+            cPre1={cPre1}
+            setCPre1={setCPre1}
+            cPost1={cPost1}
+            setCPost1={setCPost1}
+            cMatch1={cMatch1}
+            setCMatch1={setCMatch1}
+            cTax2={cTax2}
+            setCTax2={setCTax2}
+            cPre2={cPre2}
+            setCPre2={setCPre2}
+            cPost2={cPost2}
+            setCPost2={setCPost2}
+            cMatch2={cMatch2}
+            setCMatch2={setCMatch2}
+            retRate={retRate}
+            setRetRate={setRetRate}
+            inflationRate={inflationRate}
+            setInflationRate={setInflationRate}
+            stateRate={stateRate}
+            setStateRate={setStateRate}
+            incContrib={incContrib}
+            setIncContrib={setIncContrib}
+            incRate={incRate}
+            setIncRate={setIncRate}
+            wdRate={wdRate}
+            setWdRate={setWdRate}
+            returnMode={returnMode}
+            setReturnMode={setReturnMode}
+            randomWalkSeries={randomWalkSeries}
+            setRandomWalkSeries={setRandomWalkSeries}
+            allocationStrategy={allocationStrategy}
+            setAllocationStrategy={setAllocationStrategy}
+            bondStartPct={bondStartPct}
+            setBondStartPct={setBondStartPct}
+            bondEndPct={bondEndPct}
+            setBondEndPct={setBondEndPct}
+            bondStartAge={bondStartAge}
+            setBondStartAge={setBondStartAge}
+            bondEndAge={bondEndAge}
+            setBondEndAge={setBondEndAge}
+            glidePathShape={glidePathShape}
+            setGlidePathShape={setGlidePathShape}
+            bondGlidePath={bondGlidePath}
+            includeSS={includeSS}
+            setIncludeSS={setIncludeSS}
+            ssIncome={ssIncome}
+            setSSIncome={setSSIncome}
+            ssClaimAge={ssClaimAge}
+            setSSClaimAge={setSSClaimAge}
+            ssIncome2={ssIncome2}
+            setSSIncome2={setSSIncome2}
+            ssClaimAge2={ssClaimAge2}
+            setSSClaimAge2={setSSClaimAge2}
+            includeMedicare={includeMedicare}
+            setIncludeMedicare={setIncludeMedicare}
+            medicarePremium={medicarePremium}
+            setMedicarePremium={setMedicarePremium}
+            medicalInflation={medicalInflation}
+            setMedicalInflation={setMedicalInflation}
+            includeLTC={includeLTC}
+            setIncludeLTC={setIncludeLTC}
+            ltcAnnualCost={ltcAnnualCost}
+            setLtcAnnualCost={setLtcAnnualCost}
+            ltcProbability={ltcProbability}
+            setLtcProbability={setLtcProbability}
+            ltcDuration={ltcDuration}
+            setLtcDuration={setLtcDuration}
+            ltcOnsetAge={ltcOnsetAge}
+            setLtcOnsetAge={setLtcOnsetAge}
+            ltcAgeRangeStart={ltcAgeRangeStart}
+            setLtcAgeRangeStart={setLtcAgeRangeStart}
+            ltcAgeRangeEnd={ltcAgeRangeEnd}
+            setLtcAgeRangeEnd={setLtcAgeRangeEnd}
+            enableRothConversions={enableRothConversions}
+            setEnableRothConversions={setEnableRothConversions}
+            targetConversionBracket={targetConversionBracket}
+            setTargetConversionBracket={setTargetConversionBracket}
+            onCalculate={calc}
+            onInputChange={handleInputChange}
+            isLoading={isLoadingAi}
+            err={err}
+            calcProgress={calcProgress}
+            tabGroupRef={tabGroupRef}
+          />
         </TabPanel>
         )}
 
@@ -7270,256 +6770,45 @@ export default function App() {
         {/* Generational Wealth Modeling - Legacy Tab - Hide from All-in-One tab */}
         {activeMainTab !== 'all' && (
         <TabPanel id="legacy" activeTab={activeMainTab}>
-        <AnimatedSection animation="fade-in" delay={100}>
-          <Card className="print:hidden">
-            <CardHeader>
-              <CardTitle>Generational Wealth Modeling</CardTitle>
-              <CardDescription>Model multi-generational wealth transfer and dynasty trusts</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                  {/* Preset Buttons */}
-                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <p className="text-sm font-semibold mb-3 text-foreground">Quick Presets:</p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <Button
-                        onClick={() => applyGenerationalPreset('conservative')}
-                        variant="outline"
-                        className="w-full text-left justify-start hover:bg-blue-100 dark:hover:bg-blue-900"
-                      >
-                        <div>
-                          <div className="font-semibold">Conservative</div>
-                          <div className="text-xs text-muted-foreground">$75k/person, 1.5 children</div>
-                        </div>
-                      </Button>
-                      <Button
-                        onClick={() => applyGenerationalPreset('moderate')}
-                        variant="outline"
-                        className="w-full text-left justify-start hover:bg-indigo-100 dark:hover:bg-indigo-900"
-                      >
-                        <div>
-                          <div className="font-semibold">Moderate</div>
-                          <div className="text-xs text-muted-foreground">$100k/person, 2.1 children</div>
-                        </div>
-                      </Button>
-                      <Button
-                        onClick={() => applyGenerationalPreset('aggressive')}
-                        variant="outline"
-                        className="w-full text-left justify-start hover:bg-purple-100 dark:hover:bg-purple-900"
-                      >
-                        <div>
-                          <div className="font-semibold">Aggressive</div>
-                          <div className="text-xs text-muted-foreground">$150k/person, 2.5 children</div>
-                        </div>
-                      </Button>
-                    </div>
-                  </div>
-
-                  <Separator className="my-6" />
-
-                  {/* Core Configuration */}
-                  <div className="space-y-4 mb-6">
-                    <h5 className="font-semibold text-foreground">Core Settings</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Input
-                        label="Annual Per Beneficiary (real $)"
-                        value={hypPerBen}
-                        setter={setHypPerBen}
-                        step={10000}
-                        tip="How much each person receives per year, adjusted for inflation"
-                        onInputChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-1.5 text-foreground">
-                          Children's Current Ages
-                          <Tip text="Enter current ages of your children, separated by commas (e.g., 5, 3)" />
-                        </Label>
-                        <UIInput
-                          type="text"
-                          value={childrenCurrentAges}
-                          onChange={(e) => {
-                            const newValue = e.target.value;
-                            setChildrenCurrentAges(newValue);
-                            // Sync to context: parse ages and update numChildren/childrenAges
-                            const parsedAges = newValue
-                              .split(',')
-                              .map(s => parseInt(s.trim(), 10))
-                              .filter(n => !isNaN(n) && n >= 0);
-                            updatePlanConfig({
-                              numChildren: parsedAges.length,
-                              childrenAges: parsedAges,
-                            }, 'user-entered');
-                            handleInputChange?.();
-                          }}
-                          placeholder="5, 3"
-                          className="w-full"
-                        />
-                      </div>
-                      <Input
-                        label="Additional Children Expected"
-                        value={additionalChildrenExpected}
-                        setter={setAdditionalChildrenExpected}
-                        min={0}
-                        max={10}
-                        step={1}
-                        tip="Number of children you plan to have in the future (will be born at 2-year intervals)"
-                        onInputChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Input
-                        label="Children Per Person (Lifetime)"
-                        value={totalFertilityRate}
-                        setter={setTotalFertilityRate}
-                        min={0}
-                        max={5}
-                        step={0.1}
-                        isRate
-                        tip="Average children per person. 2.1 = replacement rate, 2.5 = growing dynasty, 1.5 = slow decline"
-                        onInputChange={handleInputChange}
-                      />
-                      <Input
-                        label="Generation Length (years)"
-                        value={generationLength}
-                        setter={handleGenerationLengthChange}
-                        min={20}
-                        max={40}
-                        onInputChange={handleInputChange}
-                        step={1}
-                        tip="Average age when people have children. Typical: 28-32. Shorter = faster generational turnover"
-                      />
-                    </div>
-                  </div>
-
-                  <Separator className="my-6" />
-
-                  {/* Advanced Demographics */}
-                  <Accordion type="single" collapsible className="mb-4">
-                    <AccordionItem value="advanced">
-                      <AccordionTrigger className="text-sm font-semibold">
-                        Advanced Demographics
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-4 pt-2">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                              label="Fertility Window Start"
-                              value={fertilityWindowStart}
-                              setter={setFertilityWindowStart}
-                              min={18}
-                              max={35}
-                              step={1}
-                              tip="Earliest age when people have children (typical: 25)"
-                            />
-                            <Input
-                              label="Fertility Window End"
-                              value={fertilityWindowEnd}
-                              setter={setFertilityWindowEnd}
-                              min={25}
-                              max={45}
-                              step={1}
-                              tip="Latest age when people have children (typical: 35)"
-                            />
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                              label="Maximum Lifespan"
-                              value={hypDeathAge}
-                              setter={setHypDeathAge}
-                              min={70}
-                              max={100}
-                              step={1}
-                              tip="Maximum age for all beneficiaries"
-                            />
-                            <Input
-                              label="Minimum Distribution Age"
-                              value={hypMinDistAge}
-                              setter={setHypMinDistAge}
-                              min={0}
-                              max={30}
-                              step={1}
-                              tip="Minimum age before beneficiaries can receive distributions (e.g., 21 for legal adulthood)"
-                            />
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-
-                  {/* Calculate Button */}
-                  <div className="mt-8 flex justify-center">
-                    <Button
-                      onClick={() => {
-                        // Enable generational modeling when calculating from Legacy tab
-                        setShowGen(true);
-                        // Pass forceShowGen to ensure legacy calculation runs immediately
-                        // (state update may not be synchronous)
-                        calc({ forceShowGen: true });
-                      }}
-                      disabled={isRunning}
-                      size="lg"
-                      className="px-8 py-6 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all"
-                    >
-                      {isRunning ? (
-                        <>
-                          <Spinner className="mr-2" />
-                          Calculating...
-                        </>
-                      ) : (
-                        'Calculate Legacy Plan'
-                      )}
-                    </Button>
-                  </div>
-
-                  {res?.genPayout && (
-                    <>
-                      <Separator className="my-6" />
-                      <div ref={genRef} className="mt-6">
-                      {/* Single LegacyResultCard with calculated success rate */}
-                      <p className="text-sm text-muted-foreground mb-4 text-center">
-                        This success rate shows what percentage of simulations leave enough estate
-                        to sustain distributions indefinitely—a higher bar than retirement survival.
-                      </p>
-                      <div className="flex justify-center mb-6">
-                        <div ref={legacyCardRefLegacy}>
-                          <LegacyResultCard
-                            payout={res.genPayout.perBenReal}
-                            duration={res.genPayout.years}
-                            isPerpetual={res.genPayout.p50?.isPerpetual === true}
-                            successRate={(res.genPayout.probPerpetual || 0) * 100}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="mt-6 flex flex-col md:flex-row justify-center gap-3">
-                        <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
-                        <DownloadCardButton
-                          enabled={!!legacyResult}
-                          cardRef={legacyCardRefLegacy}
-                          filename="legacy-card.png"
-                        />
-                        <AddToWalletButton result={legacyResult} />
-                      </div>
-
-                      {/* Dynasty Timeline Visualization */}
-                      {res.genPayout.p50?.generationData && res.genPayout.p50.generationData.length > 0 && (
-                        <div className="mt-8">
-                          <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
-                            <DynastyTimeline generationData={res.genPayout.p50.generationData} />
-                          </Suspense>
-                        </div>
-                      )}
-                      </div>
-                    </>
-                  )}
-            </CardContent>
-          </Card>
-        </AnimatedSection>
+          <LegacyTab
+            showGen={showGen}
+            setShowGen={setShowGen}
+            hypPerBen={hypPerBen}
+            setHypPerBen={setHypPerBen}
+            numberOfBeneficiaries={numChildren || 1}
+            setNumberOfBeneficiaries={(v: number) => updatePlanConfig({ numChildren: v }, 'user-entered')}
+            childrenCurrentAges={childrenCurrentAges}
+            setChildrenCurrentAges={(v: string) => {
+              const parsedAges = v.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n) && n >= 0);
+              updatePlanConfig({ childrenAges: parsedAges, numChildren: parsedAges.length }, 'user-entered');
+            }}
+            additionalChildrenExpected={additionalChildrenExpected}
+            setAdditionalChildrenExpected={setAdditionalChildrenExpected}
+            totalFertilityRate={totalFertilityRate}
+            setTotalFertilityRate={setTotalFertilityRate}
+            generationLength={generationLength}
+            handleGenerationLengthChange={handleGenerationLengthChange}
+            fertilityWindowStart={fertilityWindowStart}
+            setFertilityWindowStart={setFertilityWindowStart}
+            fertilityWindowEnd={fertilityWindowEnd}
+            setFertilityWindowEnd={setFertilityWindowEnd}
+            hypDeathAge={hypDeathAge}
+            setHypDeathAge={setHypDeathAge}
+            hypMinDistAge={hypMinDistAge}
+            setHypMinDistAge={setHypMinDistAge}
+            applyGenerationalPreset={applyGenerationalPreset}
+            onCalculate={calc}
+            isRunning={isRunning}
+            isLoadingAi={isLoadingAi}
+            res={res}
+            legacyResult={legacyResult}
+            legacyCardRef={legacyCardRefLegacy as React.RefObject<HTMLDivElement>}
+            genRef={genRef}
+            updatePlanConfig={(updates, source) => updatePlanConfig(updates, source as 'user-entered' | 'default')}
+            onInputChange={handleInputChange}
+          />
         </TabPanel>
         )}
-
         {/* Budget Tab - HIDDEN per user request (contains Retirement Timeline & Implied Budget) */}
         {false && (
         <TabPanel id="budget" activeTab={activeMainTab}>
@@ -7530,7 +6819,7 @@ export default function App() {
               <TimelineView
                 result={res!}
                 currentAge={Math.max(age1, isMar ? age2 : age1)}
-                retirementAge={retAge}
+                retirementAge={retirementAge}
                 spouseAge={Math.min(age1, isMar ? age2 : age1)}
               />
             </div>
@@ -7678,10 +6967,10 @@ export default function App() {
           {res && (
             <OptimizationTab
               inputs={{
-                marital, age1, age2, retAge, sTax, sPre, sPost,
+                marital, age1, age2, retirementAge, taxableBalance, pretaxBalance, rothBalance,
                 cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-                retRate, infRate, stateRate, incContrib, incRate, wdRate,
-                retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+                retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
+                returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
                 historicalYear: historicalYear || undefined,
                 inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
                 inflationShockDuration,
@@ -7704,7 +6993,7 @@ export default function App() {
                 bondGlidePath,
               }}
               currentAge={Math.min(age1, isMar ? age2 : age1)}
-              plannedRetirementAge={retAge}
+              plannedRetirementAge={retirementAge}
             />
           )}
         </AnimatedSection>

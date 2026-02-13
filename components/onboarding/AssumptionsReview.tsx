@@ -8,23 +8,26 @@ import { Input } from '@/components/ui/input';
 import { Check, AlertCircle, Info, Edit2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/** Type for user override values */
+type OverrideValue = string | number | boolean | null;
+
 interface AssumptionsReviewProps {
   assumptions: AssumptionWithReasoning[];
   onRefine: (refinementText: string) => void;
-  onUpdateAssumptions?: (overrides: Record<string, any>) => void;
+  onUpdateAssumptions?: (overrides: Record<string, OverrideValue>) => void;
   isUpdating?: boolean;
 }
 
 export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, isUpdating = false }: AssumptionsReviewProps) {
   // Track user edits: field -> edited value
-  const [userEdits, setUserEdits] = useState<Record<string, any>>({});
+  const [userEdits, setUserEdits] = useState<Record<string, OverrideValue>>({});
 
   // Track which fields are currently being edited (for focus state)
   const [editingField, setEditingField] = useState<string | null>(null);
 
   if (assumptions.length === 0) return null;
 
-  const handleValueChange = (field: string, newValue: any) => {
+  const handleValueChange = (field: string, newValue: OverrideValue): void => {
     setUserEdits(prev => ({
       ...prev,
       [field]: newValue
@@ -219,10 +222,10 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
 
 // Editable field component - handles different value types
 interface EditableFieldProps {
-  value: any;
-  originalValue: any;
+  value: OverrideValue;
+  originalValue: OverrideValue;
   field: string;
-  onChange: (value: any) => void;
+  onChange: (value: OverrideValue) => void;
   onFocus: () => void;
   onBlur: () => void;
   isEditing: boolean;
@@ -256,11 +259,14 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
   const isPercentageField = (fieldLower.includes('rate') && !fieldLower.startsWith('c')) ||
                             (fieldLower.includes('savingsrate'));
 
+  // Safely convert value to string for select elements
+  const stringValue = value == null ? '' : String(value);
+
   // Handle string/select fields (maritalStatus, state, employmentType, etc.)
   if (field === 'maritalStatus') {
     return (
       <select
-        value={value}
+        value={stringValue}
         onChange={(e) => onChange(e.target.value)}
         onFocus={onFocus}
         onBlur={onBlur}
@@ -275,7 +281,7 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
   if (field === 'employmentType1' || field === 'employmentType2') {
     return (
       <select
-        value={value}
+        value={stringValue}
         onChange={(e) => onChange(e.target.value)}
         onFocus={onFocus}
         onBlur={onBlur}
@@ -306,8 +312,10 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
   }
 
   if (isNumber) {
+    // Safely convert to number for numeric operations
+    const numValue = typeof value === 'number' ? value : 0;
     // Handle NaN - NEVER show "NaN" to the user
-    const isValidNumber = !isNaN(value) && isFinite(value);
+    const isValidNumber = typeof value === 'number' && !isNaN(value) && isFinite(value);
 
     // Format display value based on field type
     let displayValue = '';
@@ -320,18 +328,18 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
       displayValue = '';
     } else if (isCurrencyField) {
       // Display as currency: $100,000
-      displayValue = Math.round(value).toLocaleString('en-US');
+      displayValue = Math.round(numValue).toLocaleString('en-US');
       prefix = '$';
       placeholder = '$0';
     } else if (isPercentageField) {
       // Display as percentage: 7.0%
       // Value is stored as decimal (0.07), display as 7.0
-      displayValue = (value * 100).toFixed(1);
+      displayValue = (numValue * 100).toFixed(1);
       suffix = '%';
       placeholder = '0%';
     } else {
       // Default number display
-      displayValue = String(value);
+      displayValue = String(numValue);
       placeholder = '0';
     }
 
@@ -368,7 +376,7 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
   return (
     <Input
       type="text"
-      value={value || ''}
+      value={stringValue}
       placeholder="—"
       onChange={(e) => onChange(e.target.value)}
       onFocus={onFocus}

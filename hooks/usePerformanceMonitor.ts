@@ -58,7 +58,7 @@ export function configurePerformanceMonitor(config: Partial<PerformanceConfig>) 
  *   // ... component logic
  * }
  */
-export function useRenderCount(componentName: string, props?: Record<string, any>): number {
+export function useRenderCount(componentName: string, props?: Record<string, unknown>): number {
   const renderCount = useRef(0);
   const lastProps = useRef(props);
 
@@ -146,9 +146,9 @@ export function useRenderTime(componentName: string): () => void {
  */
 export function useWhyDidYouRender(
   componentName: string,
-  values: Record<string, any>
+  values: Record<string, unknown>
 ): void {
-  const previousValues = useRef<Record<string, any> | undefined>(undefined);
+  const previousValues = useRef<Record<string, unknown> | undefined>(undefined);
 
   useEffect(() => {
     if (!IS_DEV || !globalConfig.verboseLogging) return;
@@ -247,7 +247,8 @@ export function resetPerformanceCounters(): void {
  * Call this from console: window.__logPerfHotspots?.()
  */
 if (IS_DEV && typeof window !== 'undefined') {
-  (window as any).__logPerfHotspots = () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Window augmentation for dev debugging tools
+  (window as { __logPerfHotspots?: () => void }).__logPerfHotspots = () => {
     const sorted = Array.from(renderCounters.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
@@ -259,7 +260,8 @@ if (IS_DEV && typeof window !== 'undefined') {
     console.groupEnd();
   };
 
-  (window as any).__resetPerfCounters = resetPerformanceCounters;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Window augmentation for dev debugging tools
+  (window as { __resetPerfCounters?: typeof resetPerformanceCounters }).__resetPerfCounters = resetPerformanceCounters;
 }
 
 /**

@@ -1,18 +1,56 @@
 /**
  * Retirement Calculation Engine
  * Core simulation logic for retirement planning
+ *
+ * This module uses shared calculation logic from ./shared/ to ensure
+ * consistency with the Monte Carlo web worker.
  */
 
 import type { ReturnMode, WalkSeries } from "@/types/planner";
-import type { FilingStatus } from "./taxCalculations";
 import type { BondGlidePath } from "@/types/calculator";
-import { calcOrdinaryTax, calcLTCGTax } from "./taxCalculations";
-import { computeWithdrawalTaxes } from "./withdrawalTax";
-import { getBearReturns } from "@/lib/simulation/bearMarkets";
-import { getEffectiveInflation } from "@/lib/simulation/inflationShocks";
-import { LIFE_EXP, RMD_START_AGE, RMD_DIVISORS, SP500_YOY_NOMINAL, BOND_NOMINAL_AVG, calculateBondReturn, TAX_BRACKETS, SS_BEND_POINTS, ESTATE_TAX_EXEMPTION, ESTATE_TAX_RATE, getCurrYear, IRMAA_BRACKETS_2026 } from "@/lib/constants";
-import { mulberry32 } from "@/lib/utils";
-import { calculateBondAllocation, calculateBlendedReturn } from "@/lib/bondAllocation";
+
+// Import shared calculation functions and constants
+// These are the single source of truth, also used by the Monte Carlo worker
+import {
+  // Constants
+  LIFE_EXP,
+  RMD_START_AGE,
+  RMD_DIVISORS,
+  SP500_YOY_NOMINAL,
+  BOND_NOMINAL_AVG,
+  TAX_BRACKETS,
+  SS_BEND_POINTS,
+  // Types
+  type FilingStatus,
+  // Utility functions
+  mulberry32,
+  getEffectiveInflation,
+  // Tax calculations
+  calcOrdinaryTax,
+  calcLTCGTax,
+  getIRMAASurcharge,
+  // Bond allocation
+  calculateBondReturn,
+  calculateBondAllocation,
+  calculateBlendedReturn,
+  // Withdrawal taxes
+  computeWithdrawalTaxes,
+  // Return generator
+  buildReturnGenerator as sharedBuildReturnGenerator,
+  // RMD
+  calcRMD as sharedCalcRMD,
+  // Social Security
+  calcSocialSecurity as sharedCalcSocialSecurity,
+  calcPIA as sharedCalcPIA,
+  calculateEffectiveSS as sharedCalculateEffectiveSS,
+} from "./shared";
+
+// Import from lib/constants for things not in shared (like estate tax, getCurrYear)
+import { ESTATE_TAX_EXEMPTION, ESTATE_TAX_RATE, getCurrYear, IRMAA_BRACKETS_2026 } from "@/lib/constants";
+
+// Re-export types and functions for consumers of this module
+export type { FilingStatus };
+export { getIRMAASurcharge, computeWithdrawalTaxes, calcOrdinaryTax, calcLTCGTax };
 
 /**
  * Input parameters for a single simulation run
@@ -22,20 +60,20 @@ export type SimulationInputs = {
   marital: FilingStatus;
   age1: number;
   age2: number;
-  retAge: number;
+  retirementAge: number;
   numChildren?: number;
   childrenAges?: number[];
   additionalChildrenExpected?: number;
   // Employment & Income (used for income calculator sync)
   employmentType1?: 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
   employmentType2?: 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
-  annualIncome1?: number;
-  annualIncome2?: number;
+  primaryIncome?: number;
+  spouseIncome?: number;
   // Account Balances
   emergencyFund?: number;  // Emergency fund (yields inflation rate only, no market exposure)
-  sTax: number;
-  sPre: number;
-  sPost: number;
+  taxableBalance: number;
+  pretaxBalance: number;
+  rothBalance: number;
   // Contributions
   cTax1: number;
   cPre1: number;
@@ -47,13 +85,13 @@ export type SimulationInputs = {
   cMatch2: number;
   // Rates & Assumptions
   retRate: number;
-  infRate: number;
+  inflationRate: number;
   stateRate: number;
   incContrib: boolean;
   incRate: number;
   wdRate: number;
-  retMode: ReturnMode;
-  walkSeries: WalkSeries;
+  returnMode: ReturnMode;
+  randomWalkSeries: WalkSeries;
   // Social Security
   includeSS: boolean;
   ssIncome: number;
@@ -103,13 +141,17 @@ export type SimulationResult = {
   conversionTaxesPaid?: number;  // cumulative conversion taxes paid
 };
 
+// ===============================
+// Re-export shared functions as public API
+// These delegate to the shared module (single source of truth)
+// ===============================
+
+/** Type for the return generator function */
+type ReturnGeneratorFactory = () => Generator<number, void, unknown>;
+
 /**
  * Build a generator that yields annual gross return factors.
- * Returns a function that when called returns a generator.
- * Supports fixed, historical sequential, and random bootstrap modes.
- *
- * OPTIMIZATION: Pre-compute bond allocations and inflation factors
- * to avoid repeated calculations inside the generator loops.
+ * Delegates to the shared implementation for consistency with Monte Carlo worker.
  */
 export function buildReturnGenerator(options: {
   mode: ReturnMode;
@@ -122,238 +164,41 @@ export function buildReturnGenerator(options: {
   startYear?: number;
   bondGlidePath?: BondGlidePath | null;
   currentAge?: number;
-}) {
-  const {
-    mode,
-    years,
-    nominalPct = 9.8,
-    infPct = 2.6,
-    walkSeries = "nominal",
-    walkData = SP500_YOY_NOMINAL,
-    seed = 12345,
-    startYear,
-    bondGlidePath = null,
-    currentAge = 35,
-  } = options;
-
-  // Pre-compute inflation rate to avoid division inside loops
-  const inflRate = infPct / 100;
-  const inflFactor = 1 + inflRate;
-
-  // Pre-compute bond allocations for each year if glide path is configured
-  // This hoists the calculation out of the inner loop
-  const bondAllocations: number[] | null = bondGlidePath
-    ? Array.from({ length: years }, (_, i) => calculateBondAllocation(currentAge + i, bondGlidePath))
-    : null;
-
-  if (mode === "fixed") {
-    // Pre-compute the fixed bond return
-    const bondReturnPct = BOND_NOMINAL_AVG;
-
-    return function* fixedGen() {
-      for (let i = 0; i < years; i++) {
-        let returnPct = nominalPct;
-
-        // Apply bond blending if glide path is configured (using pre-computed allocations)
-        if (bondAllocations) {
-          returnPct = calculateBlendedReturn(nominalPct, bondReturnPct, bondAllocations[i]);
-        }
-
-        yield 1 + returnPct / 100;
-      }
-    };
-  }
-
-  if (!walkData.length) throw new Error("walkData is empty");
-
-  // Historical sequential playback
-  if (startYear !== undefined) {
-    const startIndex = startYear - 1928; // SP500_YOY_NOMINAL starts at 1928
-    const isRealSeries = walkSeries === "real";
-    const dataLength = walkData.length;
-
-    return function* historicalGen() {
-      for (let i = 0; i < years; i++) {
-        const ix = (startIndex + i) % dataLength; // Wrap around if we exceed data
-        const stockPct = walkData[ix];
-
-        // Calculate bond return correlated with stock return
-        const bondPct = calculateBondReturn(stockPct);
-
-        // Apply bond blending if glide path is configured (using pre-computed allocations)
-        const pct = bondAllocations
-          ? calculateBlendedReturn(stockPct, bondPct, bondAllocations[i])
-          : stockPct;
-
-        if (isRealSeries) {
-          yield (1 + pct / 100) / inflFactor;
-        } else {
-          yield 1 + pct / 100;
-        }
-      }
-    };
-  }
-
-  // Random bootstrap
-  const rnd = mulberry32(seed);
-  const isRealSeries = walkSeries === "real";
-  const dataLength = walkData.length;
-
-  return function* walkGen() {
-    for (let i = 0; i < years; i++) {
-      const ix = Math.floor(rnd() * dataLength);
-      const stockPct = walkData[ix];
-
-      // Calculate bond return correlated with stock return
-      const bondPct = calculateBondReturn(stockPct);
-
-      // Apply bond blending if glide path is configured (using pre-computed allocations)
-      const pct = bondAllocations
-        ? calculateBlendedReturn(stockPct, bondPct, bondAllocations[i])
-        : stockPct;
-
-      if (isRealSeries) {
-        yield (1 + pct / 100) / inflFactor;
-      } else {
-        yield 1 + pct / 100;
-      }
-    }
-  };
+}): ReturnGeneratorFactory {
+  return sharedBuildReturnGenerator(options);
 }
 
 /**
  * Calculate Required Minimum Distribution
- * @param pretaxBalance - Balance in pre-tax accounts (401k, IRA)
- * @param age - Current age
+ * Delegates to the shared implementation.
  */
 export function calcRMD(pretaxBalance: number, age: number): number {
-  if (age < RMD_START_AGE || pretaxBalance <= 0) return 0;
-
-  const divisor = RMD_DIVISORS[age] || 2.0; // Use 2.0 for ages beyond 120
-
-  return pretaxBalance / divisor;
+  return sharedCalcRMD(pretaxBalance, age);
 }
 
 /**
  * Calculate Social Security annual benefit
- * Uses bend point formula with early/delayed claiming adjustments
- * @param avgAnnualIncome - Average indexed monthly earnings (in annual terms)
- * @param claimAge - Age when claiming benefits (62-70)
- * @param fullRetirementAge - Full retirement age (typically 67)
+ * Delegates to the shared implementation.
  */
 export function calcSocialSecurity(
   avgAnnualIncome: number,
   claimAge: number,
   fullRetirementAge: number = 67
 ): number {
-  if (avgAnnualIncome <= 0) return 0;
-
-  // Convert annual to monthly
-  const aime = avgAnnualIncome / 12;
-
-  // Apply bend points to calculate PIA (Primary Insurance Amount)
-  let pia = 0;
-  if (aime <= SS_BEND_POINTS.first) {
-    pia = aime * 0.90;
-  } else if (aime <= SS_BEND_POINTS.second) {
-    pia = SS_BEND_POINTS.first * 0.90 + (aime - SS_BEND_POINTS.first) * 0.32;
-  } else {
-    pia = SS_BEND_POINTS.first * 0.90 +
-          (SS_BEND_POINTS.second - SS_BEND_POINTS.first) * 0.32 +
-          (aime - SS_BEND_POINTS.second) * 0.15;
-  }
-
-  // Adjust for early/delayed claiming
-  const monthsFromFRA = (claimAge - fullRetirementAge) * 12;
-  let adjustmentFactor = 1.0;
-
-  if (monthsFromFRA < 0) {
-    // Early claiming: reduce by 5/9 of 1% for first 36 months, then 5/12 of 1% for each additional month
-    const earlyMonths = Math.abs(monthsFromFRA);
-    if (earlyMonths <= 36) {
-      adjustmentFactor = 1 - (earlyMonths * 5/9 / 100);
-    } else {
-      adjustmentFactor = 1 - (36 * 5/9 / 100) - ((earlyMonths - 36) * 5/12 / 100);
-    }
-  } else if (monthsFromFRA > 0) {
-    // Delayed claiming: increase by 2/3 of 1% per month (8% per year)
-    adjustmentFactor = 1 + (monthsFromFRA * 2/3 / 100);
-  }
-
-  // Return annual benefit
-  return pia * adjustmentFactor * 12;
+  return sharedCalcSocialSecurity(avgAnnualIncome, claimAge, fullRetirementAge);
 }
 
 /**
  * Calculate Primary Insurance Amount (PIA) for Social Security
- * This is the benefit at Full Retirement Age before any claiming adjustments
- * @param avgAnnualIncome - Average indexed monthly earnings (in annual terms)
- * @returns Monthly PIA
+ * Delegates to the shared implementation.
  */
 export function calcPIA(avgAnnualIncome: number): number {
-  if (avgAnnualIncome <= 0) return 0;
-
-  // Convert annual to monthly
-  const aime = avgAnnualIncome / 12;
-
-  // Apply bend points to calculate PIA (Primary Insurance Amount)
-  let pia = 0;
-  if (aime <= SS_BEND_POINTS.first) {
-    pia = aime * 0.90;
-  } else if (aime <= SS_BEND_POINTS.second) {
-    pia = SS_BEND_POINTS.first * 0.90 + (aime - SS_BEND_POINTS.first) * 0.32;
-  } else {
-    pia = SS_BEND_POINTS.first * 0.90 +
-          (SS_BEND_POINTS.second - SS_BEND_POINTS.first) * 0.32 +
-          (aime - SS_BEND_POINTS.second) * 0.15;
-  }
-
-  return pia;
-}
-
-/**
- * Adjust own Social Security benefit for claiming age
- * @param monthlyPIA - Monthly Primary Insurance Amount
- * @param claimAge - Age when claiming benefits
- * @param fra - Full Retirement Age (typically 67)
- * @returns Adjusted monthly benefit
- */
-function adjustSSForClaimAge(monthlyPIA: number, claimAge: number, fra: number = 67): number {
-  if (monthlyPIA <= 0) return 0;
-
-  const monthsFromFRA = (claimAge - fra) * 12;
-  let adjustmentFactor = 1.0;
-
-  if (monthsFromFRA < 0) {
-    // Early claiming: reduce by 5/9 of 1% for first 36 months, then 5/12 of 1% for each additional month
-    const earlyMonths = Math.abs(monthsFromFRA);
-    if (earlyMonths <= 36) {
-      adjustmentFactor = 1 - (earlyMonths * 5/9 / 100);
-    } else {
-      adjustmentFactor = 1 - (36 * 5/9 / 100) - ((earlyMonths - 36) * 5/12 / 100);
-    }
-  } else if (monthsFromFRA > 0) {
-    // Delayed claiming: increase by 2/3 of 1% per month (8% per year)
-    adjustmentFactor = 1 + (monthsFromFRA * 2/3 / 100);
-  }
-
-  return monthlyPIA * adjustmentFactor;
+  return sharedCalcPIA(avgAnnualIncome);
 }
 
 /**
  * Calculate effective Social Security benefits including spousal benefits
- *
- * SSA Rules for Spousal Benefits:
- * 1. A spouse can receive up to 50% of the other spouse's PIA at Full Retirement Age
- * 2. The spouse receives the HIGHER of: their own benefit OR the spousal benefit (not both)
- * 3. Spousal benefits are reduced if claimed before FRA (different formula than own benefits)
- * 4. Spousal benefits do NOT increase for delayed claiming past FRA
- *
- * @param ownPIA - Person's own Primary Insurance Amount (monthly)
- * @param spousePIA - Spouse's Primary Insurance Amount (monthly)
- * @param ownClaimAge - Age when person claims benefits
- * @param fra - Full Retirement Age (typically 67)
- * @returns Effective monthly benefit (higher of own or spousal)
+ * Delegates to the shared implementation.
  */
 export function calculateEffectiveSS(
   ownPIA: number,
@@ -361,27 +206,7 @@ export function calculateEffectiveSS(
   ownClaimAge: number,
   fra: number = 67
 ): number {
-  // Calculate own benefit with early/late claiming adjustment
-  const ownBenefit = adjustSSForClaimAge(ownPIA, ownClaimAge, fra);
-
-  // Spousal benefit is up to 50% of spouse's PIA (not their adjusted benefit)
-  // Reduced if claimed before FRA using spousal-specific reduction formula
-  let spousalBenefit = spousePIA * 0.5;
-
-  if (ownClaimAge < fra) {
-    // Spousal benefits reduced by 25/36 of 1% per month for first 36 months early
-    // Then 5/12 of 1% for additional months
-    const monthsEarly = (fra - ownClaimAge) * 12;
-    if (monthsEarly <= 36) {
-      spousalBenefit *= (1 - monthsEarly * (25/36) / 100);
-    } else {
-      spousalBenefit *= (1 - 36 * (25/36) / 100 - (monthsEarly - 36) * (5/12) / 100);
-    }
-  }
-  // Note: Spousal benefits do NOT increase for delayed claiming past FRA
-
-  // Return the higher benefit
-  return Math.max(ownBenefit, spousalBenefit);
+  return sharedCalculateEffectiveSS(ownPIA, spousePIA, ownClaimAge, fra);
 }
 
 /**
@@ -447,23 +272,8 @@ export function calcEstateTax(
   return taxableEstate * ESTATE_TAX_RATE;
 }
 
-/**
- * Calculate IRMAA (Income-Related Monthly Adjustment Amount) surcharge
- * Based on 2026 tiered brackets - returns monthly surcharge amount
- * @param magi - Modified Adjusted Gross Income
- * @param isMarried - Whether filing status is married
- * @returns Monthly IRMAA surcharge amount
- */
-export function getIRMAASurcharge(magi: number, isMarried: boolean): number {
-  const brackets = isMarried ? IRMAA_BRACKETS_2026.married : IRMAA_BRACKETS_2026.single;
-  for (const bracket of brackets) {
-    if (magi <= bracket.threshold) {
-      return bracket.surcharge;
-    }
-  }
-  // Fallback to highest tier (should not reach here due to Infinity threshold)
-  return brackets[brackets.length - 1].surcharge;
-}
+// Note: getIRMAASurcharge is imported from ./shared and re-exported
+// See the shared module for the implementation
 
 /**
  * Pre-Medicare Healthcare Cost Constants (in 2024 dollars)
@@ -720,10 +530,10 @@ export function calculateEmploymentTaxes(
  */
 export function runSingleSimulation(params: SimulationInputs, seed: number): SimulationResult {
   const {
-    marital, age1, age2, retAge, sTax, sPre, sPost,
+    marital, age1, age2, retirementAge, taxableBalance, pretaxBalance, rothBalance,
     cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-    retRate, infRate, stateRate, incContrib, incRate, wdRate,
-    retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+    retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
+    returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
     historicalYear,
     inflationShockRate,
     inflationShockDuration = 5,
@@ -750,8 +560,8 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     childrenAges = [] as number[],
     additionalChildrenExpected = 0,
     // Employment & Income
-    annualIncome1 = 0,
-    annualIncome2 = 0,
+    primaryIncome = 0,
+    spouseIncome = 0,
     employmentType1 = 'w2' as const,
     employmentType2 = 'w2' as const,
   } = params;
@@ -760,28 +570,28 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   if (isNaN(age1) || !isFinite(age1) || age1 < 0 || age1 > 120) {
     throw new Error(`Invalid age: ${age1}. Age must be between 0 and 120.`);
   }
-  if (isNaN(retAge) || !isFinite(retAge) || retAge < 0 || retAge > 120) {
-    throw new Error(`Invalid retirement age: ${retAge}. Retirement age must be between 0 and 120.`);
+  if (isNaN(retirementAge) || !isFinite(retirementAge) || retirementAge < 0 || retirementAge > 120) {
+    throw new Error(`Invalid retirement age: ${retirementAge}. Retirement age must be between 0 and 120.`);
   }
   if (isNaN(retRate) || !isFinite(retRate)) {
     throw new Error(`Invalid return rate: ${retRate}. Return rate must be a valid number.`);
   }
-  if (isNaN(infRate) || !isFinite(infRate) || infRate < 0) {
-    throw new Error(`Invalid inflation rate: ${infRate}. Inflation rate must be a non-negative number.`);
+  if (isNaN(inflationRate) || !isFinite(inflationRate) || inflationRate < 0) {
+    throw new Error(`Invalid inflation rate: ${inflationRate}. Inflation rate must be a non-negative number.`);
   }
   if (isNaN(wdRate) || !isFinite(wdRate) || wdRate < 0 || wdRate > 100) {
     throw new Error(`Invalid withdrawal rate: ${wdRate}. Withdrawal rate must be between 0 and 100.`);
   }
 
   // Validate starting balances are non-negative numbers
-  if (isNaN(sTax) || !isFinite(sTax) || sTax < 0) {
-    throw new Error(`Invalid taxable balance: ${sTax}. Balance must be a non-negative number.`);
+  if (isNaN(taxableBalance) || !isFinite(taxableBalance) || taxableBalance < 0) {
+    throw new Error(`Invalid taxable balance: ${taxableBalance}. Balance must be a non-negative number.`);
   }
-  if (isNaN(sPre) || !isFinite(sPre) || sPre < 0) {
-    throw new Error(`Invalid pre-tax balance: ${sPre}. Balance must be a non-negative number.`);
+  if (isNaN(pretaxBalance) || !isFinite(pretaxBalance) || pretaxBalance < 0) {
+    throw new Error(`Invalid pre-tax balance: ${pretaxBalance}. Balance must be a non-negative number.`);
   }
-  if (isNaN(sPost) || !isFinite(sPost) || sPost < 0) {
-    throw new Error(`Invalid Roth balance: ${sPost}. Balance must be a non-negative number.`);
+  if (isNaN(rothBalance) || !isFinite(rothBalance) || rothBalance < 0) {
+    throw new Error(`Invalid Roth balance: ${rothBalance}. Balance must be a non-negative number.`);
   }
 
   const isMar = marital === "married";
@@ -794,13 +604,13 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   const younger = Math.min(age1, isMar ? age2 : age1);
   const older = Math.max(age1, isMar ? age2 : age1);
 
-  if (retAge <= younger) {
+  if (retirementAge <= younger) {
     throw new Error("Retirement age must be greater than current age");
   }
 
-  const yrsToRet = retAge - younger;
+  const yrsToRet = retirementAge - younger;
   const g_fixed = 1 + retRate / 100;
-  const infl = infRate / 100;
+  const infl = inflationRate / 100;
   const infl_factor = 1 + infl;
 
   // Track cumulative inflation for variable inflation scenarios
@@ -809,11 +619,11 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
 
   const accGen = buildReturnGenerator({
-    mode: retMode,
+    mode: returnMode,
     years: yrsToRet + 1,
     nominalPct: retRate,
-    infPct: infRate,
-    walkSeries,
+    infPct: inflationRate,
+    walkSeries: randomWalkSeries,
     seed: seed,
     startYear: historicalYear, // Pass historicalYear to handle bear market sequences naturally
     bondGlidePath: params.bondGlidePath || null,
@@ -821,21 +631,21 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   })();
 
   const drawGen = buildReturnGenerator({
-    mode: retMode,
+    mode: returnMode,
     years: yrsToSim,
     nominalPct: retRate,
-    infPct: infRate,
-    walkSeries,
+    infPct: inflationRate,
+    walkSeries: randomWalkSeries,
     seed: seed + 1,
     startYear: historicalYear ? historicalYear + yrsToRet : undefined, // Continue from retirement year
     bondGlidePath: params.bondGlidePath || null,
     currentAge: older + yrsToRet,
   })();
 
-  let bTax = sTax;
-  let bPre = sPre;
-  let bPost = sPost;
-  let basisTax = sTax;
+  let bTax = taxableBalance;
+  let bPre = pretaxBalance;
+  let bPost = rothBalance;
+  let basisTax = taxableBalance;
   // Emergency fund: grows at inflation rate only (preserves purchasing power, no market risk)
   let bEmergency = emergencyFund;
 
@@ -849,7 +659,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   // Accumulation phase
   for (let y = 0; y <= yrsToRet; y++) {
     // Generator handles historical sequences naturally via startYear
-    const g = retMode === "fixed" ? g_fixed : (accGen.next().value as number);
+    const g = returnMode === "fixed" ? g_fixed : (accGen.next().value as number);
 
     const a1 = age1 + y;
     const a2 = isMar ? age2 + y : null;
@@ -885,13 +695,13 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
 
     const addMidYear = (amt: number) => amt * (1 + (g - 1) * 0.5);
 
-    if (a1 < retAge) {
+    if (a1 < retirementAge) {
       bTax += addMidYear(c.p.tax);
       bPre += addMidYear(c.p.pre + c.p.match);
       bPost += addMidYear(c.p.post);
       basisTax += c.p.tax;
     }
-    if (isMar && a2! < retAge) {
+    if (isMar && a2! < retirementAge) {
       bTax += addMidYear(c.s.tax);
       bPre += addMidYear(c.s.pre + c.s.match);
       bPost += addMidYear(c.s.post);
@@ -934,15 +744,15 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
 
       // Child expenses reduce taxable savings (the most liquid account)
       // This represents decreased ability to save due to child-related costs
-      if (childExpenses > 0 && a1 < retAge) {
+      if (childExpenses > 0 && a1 < retirementAge) {
         bTax = Math.max(0, bTax - childExpenses);
       }
     }
 
     // Calculate employment taxes during accumulation phase
     // This reduces effective savings capacity
-    if (a1 < retAge && annualIncome1 > 0) {
-      const empTax1 = calculateEmploymentTaxes(annualIncome1 * Math.pow(1 + incRate / 100, y), employmentType1);
+    if (a1 < retirementAge && primaryIncome > 0) {
+      const empTax1 = calculateEmploymentTaxes(primaryIncome * Math.pow(1 + incRate / 100, y), employmentType1);
       // Employment taxes are already accounted for in take-home pay used for contributions
       // But for self-employed, the full 15.3% comes out of pocket (vs 7.65% for W2)
       // The difference affects available savings
@@ -952,9 +762,9 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
         bTax = Math.max(0, bTax - extraTax);
       }
     }
-    if (isMar && a2! < retAge && annualIncome2 > 0) {
+    if (isMar && a2! < retirementAge && spouseIncome > 0) {
       if (employmentType2 === 'self-employed') {
-        const empTax2 = calculateEmploymentTaxes(annualIncome2 * Math.pow(1 + incRate / 100, y), employmentType2);
+        const empTax2 = calculateEmploymentTaxes(spouseIncome * Math.pow(1 + incRate / 100, y), employmentType2);
         const extraTax = empTax2 * 0.5;
         bTax = Math.max(0, bTax - extraTax);
       }
@@ -963,7 +773,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     // Calculate pre-Medicare healthcare costs during accumulation phase
     // These are working-years healthcare expenses (employer premiums, ACA marketplace, etc.)
     // before Medicare eligibility at age 65
-    if (a1 < retAge) {
+    if (a1 < retirementAge) {
       // Count dependent children for healthcare cost calculation
       let dependentChildCount = 0;
       if (childrenAges.length > 0) {
@@ -1003,7 +813,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     const bal = bTax + bPre + bPost + bEmergency;
 
     // Apply year-specific inflation (handles inflation shocks)
-    const yearInflation = getEffectiveInflation(y, yrsToRet, infRate, inflationShockRate ?? null, inflationShockDuration);
+    const yearInflation = getEffectiveInflation(y, yrsToRet, inflationRate, inflationShockRate ?? null, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
     balancesReal.push(bal / cumulativeInflation);
     balancesNominal.push(bal);
@@ -1045,7 +855,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   // Drawdown phase
   for (let y = 1; y <= yrsToSim; y++) {
     // Generator handles historical sequences naturally via startYear
-    const g_retire = retMode === "fixed" ? g_fixed : (drawGen.next().value as number);
+    const g_retire = returnMode === "fixed" ? g_fixed : (drawGen.next().value as number);
 
     retBalTax *= g_retire;
     retBalPre *= g_retire;
@@ -1255,7 +1065,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     const totalNow = retBalTax + retBalPre + retBalRoth + retBalEmergency;
 
     // Apply year-specific inflation (handles inflation shocks)
-    const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, infRate, inflationShockRate ?? null, inflationShockDuration);
+    const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, inflationRate, inflationShockRate ?? null, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
     balancesReal.push(totalNow / cumulativeInflation);
     balancesNominal.push(totalNow);

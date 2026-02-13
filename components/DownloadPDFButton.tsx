@@ -13,10 +13,10 @@ interface DownloadPDFButtonProps {
   marital: FilingStatus;
   age1: number;
   age2: number;
-  retAge: number;
-  sTax: number;
-  sPre: number;
-  sPost: number;
+  retirementAge: number;
+  taxableBalance: number;
+  pretaxBalance: number;
+  rothBalance: number;
   cTax1: number;
   cPre1: number;
   cPost1: number;
@@ -26,13 +26,13 @@ interface DownloadPDFButtonProps {
   cPost2: number;
   cMatch2: number;
   retRate: number;
-  infRate: number;
+  inflationRate: number;
   stateRate: number;
   wdRate: number;
   incContrib: boolean;
   incRate: number;
-  retMode: ReturnMode;
-  walkSeries: WalkSeries;
+  returnMode: ReturnMode;
+  randomWalkSeries: WalkSeries;
   includeSS: boolean;
   ssIncome: number;
   ssClaimAge: number;
@@ -51,7 +51,7 @@ interface DownloadPDFButtonProps {
   ltcOnsetAge: number;
   showGen: boolean;
   hypPerBen: number;
-  numberOfChildren: number;
+  numberOfBeneficiaries: number;
   totalFertilityRate: number;
   generationLength: number;
   fertilityWindowStart: number;
@@ -72,10 +72,10 @@ export const DownloadPDFButton: React.FC<DownloadPDFButtonProps> = ({
   marital,
   age1,
   age2,
-  retAge,
-  sTax,
-  sPre,
-  sPost,
+  retirementAge,
+  taxableBalance,
+  pretaxBalance,
+  rothBalance,
   cTax1,
   cPre1,
   cPost1,
@@ -85,13 +85,13 @@ export const DownloadPDFButton: React.FC<DownloadPDFButtonProps> = ({
   cPost2,
   cMatch2,
   retRate,
-  infRate,
+  inflationRate,
   stateRate,
   wdRate,
   incContrib,
   incRate,
-  retMode,
-  walkSeries,
+  returnMode,
+  randomWalkSeries,
   includeSS,
   ssIncome,
   ssClaimAge,
@@ -110,7 +110,7 @@ export const DownloadPDFButton: React.FC<DownloadPDFButtonProps> = ({
   ltcOnsetAge,
   showGen,
   hypPerBen,
-  numberOfChildren,
+  numberOfBeneficiaries,
   totalFertilityRate,
   generationLength,
   fertilityWindowStart,
@@ -137,10 +137,10 @@ export const DownloadPDFButton: React.FC<DownloadPDFButtonProps> = ({
         marital,
         age1,
         age2,
-        retAge,
-        sTax,
-        sPre,
-        sPost,
+        retirementAge,
+        taxableBalance,
+        pretaxBalance,
+        rothBalance,
         cTax1,
         cPre1,
         cPost1,
@@ -150,13 +150,13 @@ export const DownloadPDFButton: React.FC<DownloadPDFButtonProps> = ({
         cPost2,
         cMatch2,
         retRate,
-        infRate,
+        inflationRate,
         stateRate,
         wdRate,
         incContrib,
         incRate,
-        retMode,
-        walkSeries,
+        returnMode,
+        randomWalkSeries,
         includeSS,
         ssIncome,
         ssClaimAge,
@@ -175,7 +175,7 @@ export const DownloadPDFButton: React.FC<DownloadPDFButtonProps> = ({
         ltcOnsetAge,
         showGen,
         hypPerBen,
-        numberOfChildren,
+        numberOfBeneficiaries,
         totalFertilityRate,
         generationLength,
         fertilityWindowStart,

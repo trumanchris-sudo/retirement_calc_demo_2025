@@ -96,12 +96,18 @@ export type ConfidenceLevel = 'high' | 'medium' | 'low';
  * Assumption with reasoning for transparent display
  */
 export interface AssumptionWithReasoning {
-  field: string;                    // Field name (can be ExtractedData key or calculator field)
-  displayName: string;              // Human-readable field name
-  value: any;                       // The assumed value
-  reasoning: string;                // One-sentence explanation
-  confidence: ConfidenceLevel;      // How confident we are in this assumption
-  userProvided: boolean;            // True if explicitly stated, false if inferred
+  /** Field name (can be ExtractedData key or calculator field) */
+  field: string;
+  /** Human-readable field name */
+  displayName: string;
+  /** The assumed value - type varies by field (number for amounts, string for selections, etc.) */
+  value: string | number | boolean | null;
+  /** One-sentence explanation */
+  reasoning: string;
+  /** How confident we are in this assumption */
+  confidence: ConfidenceLevel;
+  /** True if explicitly stated, false if inferred */
+  userProvided: boolean;
 }
 
 // ==================== Conversation State Types ====================
@@ -173,7 +179,8 @@ export interface MessageDeltaEvent extends BaseStreamEvent {
 export interface DataUpdateEvent extends BaseStreamEvent {
   type: 'data_update';
   field: keyof ExtractedData;
-  value: any;
+  /** The extracted value - type varies by field */
+  value: ExtractedData[keyof ExtractedData];
 }
 
 /**
@@ -227,7 +234,7 @@ export type StreamEvent =
  */
 export interface StreamHandlerCallbacks {
   onMessageDelta?: (delta: string) => void;
-  onDataUpdate?: (field: keyof ExtractedData, value: any) => void;
+  onDataUpdate?: (field: keyof ExtractedData, value: ExtractedData[keyof ExtractedData]) => void;
   onAssumptionAdded?: (assumption: AssumptionWithReasoning) => void;
   onPhaseTransition?: (newPhase: ConversationPhase) => void;
   onComplete?: (data: ExtractedData, assumptions: AssumptionWithReasoning[]) => void;
@@ -271,7 +278,8 @@ export interface AddAssumptionTool {
     properties: {
       field: { type: 'string' };
       displayName: { type: 'string' };
-      value: any;
+      /** Schema allows any JSON value for the assumption value */
+      value: { type: 'string' | 'number' | 'boolean' };
       reasoning: { type: 'string' };
       confidence: { type: 'string'; enum: ['high', 'medium', 'low'] };
     };

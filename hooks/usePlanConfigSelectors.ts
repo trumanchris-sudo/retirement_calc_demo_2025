@@ -26,11 +26,11 @@ export function usePersonalInfo() {
       marital: config.marital ?? 'single',
       age1: config.age1 ?? 35,
       age2: config.age2 ?? 33,
-      retAge: config.retAge ?? 65,
+      retirementAge: config.retirementAge ?? 65,
       numChildren: config.numChildren ?? 0,
       childrenAges: config.childrenAges ?? [],
     }),
-    [config.marital, config.age1, config.age2, config.retAge, config.numChildren, config.childrenAges]
+    [config.marital, config.age1, config.age2, config.retirementAge, config.numChildren, config.childrenAges]
   );
 
   const setters = useMemo(
@@ -38,7 +38,7 @@ export function usePersonalInfo() {
       setMarital: (value: 'single' | 'married') => updateConfig({ marital: value }, 'user-entered'),
       setAge1: (value: number) => updateConfig({ age1: value }, 'user-entered'),
       setAge2: (value: number) => updateConfig({ age2: value }, 'user-entered'),
-      setRetAge: (value: number) => updateConfig({ retAge: value }, 'user-entered'),
+      setRetirementAge: (value: number) => updateConfig({ retirementAge: value }, 'user-entered'),
     }),
     [updateConfig]
   );
@@ -56,10 +56,10 @@ export function useIncomeInfo() {
     () => ({
       employmentType1: config.employmentType1 ?? 'w2',
       employmentType2: config.employmentType2,
-      annualIncome1: config.annualIncome1 ?? 100000,
-      annualIncome2: config.annualIncome2 ?? 0,
+      primaryIncome: config.primaryIncome ?? 100000,
+      spouseIncome: config.spouseIncome ?? 0,
     }),
-    [config.employmentType1, config.employmentType2, config.annualIncome1, config.annualIncome2]
+    [config.employmentType1, config.employmentType2, config.primaryIncome, config.spouseIncome]
   );
 
   const setters = useMemo(
@@ -68,8 +68,8 @@ export function useIncomeInfo() {
         updateConfig({ employmentType1: value }, 'user-entered'),
       setEmploymentType2: (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other' | undefined) =>
         updateConfig({ employmentType2: value }, 'user-entered'),
-      setAnnualIncome1: (value: number) => updateConfig({ annualIncome1: value }, 'user-entered'),
-      setAnnualIncome2: (value: number) => updateConfig({ annualIncome2: value }, 'user-entered'),
+      setPrimaryIncome: (value: number) => updateConfig({ primaryIncome: value }, 'user-entered'),
+      setSpouseIncome: (value: number) => updateConfig({ spouseIncome: value }, 'user-entered'),
     }),
     [updateConfig]
   );
@@ -86,21 +86,21 @@ export function useAccountBalances() {
   const balances = useMemo(
     () => ({
       emergencyFund: config.emergencyFund ?? 20000,
-      sTax: config.sTax ?? 50000,
-      sPre: config.sPre ?? 150000,
-      sPost: config.sPost ?? 25000,
+      taxableBalance: config.taxableBalance ?? 50000,
+      pretaxBalance: config.pretaxBalance ?? 150000,
+      rothBalance: config.rothBalance ?? 25000,
       // Derived value - total balance
-      totalBalance: (config.sTax ?? 50000) + (config.sPre ?? 150000) + (config.sPost ?? 25000),
+      totalBalance: (config.taxableBalance ?? 50000) + (config.pretaxBalance ?? 150000) + (config.rothBalance ?? 25000),
     }),
-    [config.emergencyFund, config.sTax, config.sPre, config.sPost]
+    [config.emergencyFund, config.taxableBalance, config.pretaxBalance, config.rothBalance]
   );
 
   const setters = useMemo(
     () => ({
       setEmergencyFund: (value: number) => updateConfig({ emergencyFund: value }, 'user-entered'),
-      setSTax: (value: number) => updateConfig({ sTax: value }, 'user-entered'),
-      setSPre: (value: number) => updateConfig({ sPre: value }, 'user-entered'),
-      setSPost: (value: number) => updateConfig({ sPost: value }, 'user-entered'),
+      setTaxableBalance: (value: number) => updateConfig({ taxableBalance: value }, 'user-entered'),
+      setPretaxBalance: (value: number) => updateConfig({ pretaxBalance: value }, 'user-entered'),
+      setRothBalance: (value: number) => updateConfig({ rothBalance: value }, 'user-entered'),
     }),
     [updateConfig]
   );
@@ -177,18 +177,18 @@ export function useRateAssumptions() {
   const rates = useMemo(
     () => ({
       retRate: config.retRate ?? 9.8,
-      infRate: config.infRate ?? 2.6,
+      inflationRate: config.inflationRate ?? 2.6,
       stateRate: config.stateRate ?? 0,
       incContrib: config.incContrib ?? false,
       incRate: config.incRate ?? 4.5,
       wdRate: config.wdRate ?? 3.5,
       dividendYield: config.dividendYield ?? 2.0,
       // Derived: real return rate
-      realReturnRate: (config.retRate ?? 9.8) - (config.infRate ?? 2.6),
+      realReturnRate: (config.retRate ?? 9.8) - (config.inflationRate ?? 2.6),
     }),
     [
       config.retRate,
-      config.infRate,
+      config.inflationRate,
       config.stateRate,
       config.incContrib,
       config.incRate,
@@ -200,7 +200,7 @@ export function useRateAssumptions() {
   const setters = useMemo(
     () => ({
       setRetRate: (value: number) => updateConfig({ retRate: value }, 'user-entered'),
-      setInfRate: (value: number) => updateConfig({ infRate: value }, 'user-entered'),
+      setInflationRate: (value: number) => updateConfig({ inflationRate: value }, 'user-entered'),
       setStateRate: (value: number) => updateConfig({ stateRate: value }, 'user-entered'),
       setIncContrib: (value: boolean) => updateConfig({ incContrib: value }, 'user-entered'),
       setIncRate: (value: number) => updateConfig({ incRate: value }, 'user-entered'),
@@ -313,17 +313,17 @@ export function useSimulationSettings() {
 
   const simSettings = useMemo(
     () => ({
-      retMode: config.retMode ?? 'randomWalk',
+      returnMode: config.returnMode ?? 'randomWalk',
       seed: config.seed ?? 42,
-      walkSeries: config.walkSeries ?? 'trulyRandom',
+      randomWalkSeries: config.randomWalkSeries ?? 'trulyRandom',
       historicalYear: config.historicalYear ?? null,
       inflationShockRate: config.inflationShockRate ?? 0,
       inflationShockDuration: config.inflationShockDuration ?? 5,
     }),
     [
-      config.retMode,
+      config.returnMode,
       config.seed,
-      config.walkSeries,
+      config.randomWalkSeries,
       config.historicalYear,
       config.inflationShockRate,
       config.inflationShockDuration,
@@ -332,10 +332,10 @@ export function useSimulationSettings() {
 
   const setters = useMemo(
     () => ({
-      setRetMode: (value: 'fixed' | 'randomWalk') => updateConfig({ retMode: value }, 'user-entered'),
+      setReturnMode: (value: 'fixed' | 'randomWalk') => updateConfig({ returnMode: value }, 'user-entered'),
       setSeed: (value: number) => updateConfig({ seed: value }, 'user-entered'),
-      setWalkSeries: (value: 'nominal' | 'real' | 'trulyRandom') =>
-        updateConfig({ walkSeries: value }, 'user-entered'),
+      setRandomWalkSeries: (value: 'nominal' | 'real' | 'trulyRandom') =>
+        updateConfig({ randomWalkSeries: value }, 'user-entered'),
       setHistoricalYear: (value: number | null) =>
         updateConfig({ historicalYear: value ?? undefined }, 'user-entered'),
       setInflationShockRate: (value: number) => updateConfig({ inflationShockRate: value }, 'user-entered'),
@@ -401,7 +401,7 @@ export function useGenerationalWealthSettings() {
     () => ({
       showGen: config.showGen ?? false,
       hypPerBen: config.hypPerBen ?? 30000,
-      hypStartBens: config.hypStartBens ?? 2,
+      numberOfBeneficiaries: config.numberOfBeneficiaries ?? 2,
       additionalChildrenExpected: config.additionalChildrenExpected ?? 0,
       totalFertilityRate: config.totalFertilityRate ?? 2.1,
       generationLength: config.generationLength ?? 30,
@@ -415,7 +415,7 @@ export function useGenerationalWealthSettings() {
     [
       config.showGen,
       config.hypPerBen,
-      config.hypStartBens,
+      config.numberOfBeneficiaries,
       config.additionalChildrenExpected,
       config.totalFertilityRate,
       config.generationLength,
@@ -432,7 +432,7 @@ export function useGenerationalWealthSettings() {
     () => ({
       setShowGen: (value: boolean) => updateConfig({ showGen: value }, 'user-entered'),
       setHypPerBen: (value: number) => updateConfig({ hypPerBen: value }, 'user-entered'),
-      setHypStartBens: (value: number) => updateConfig({ hypStartBens: value }, 'user-entered'),
+      setNumberOfBeneficiaries: (value: number) => updateConfig({ numberOfBeneficiaries: value }, 'user-entered'),
       setAdditionalChildrenExpected: (value: number) =>
         updateConfig({ additionalChildrenExpected: value }, 'user-entered'),
       setTotalFertilityRate: (value: number) => updateConfig({ totalFertilityRate: value }, 'user-entered'),
@@ -466,8 +466,8 @@ export function useYearsToRetirement(): number {
   const { config } = usePlanConfig();
   return useMemo(() => {
     const younger = Math.min(config.age1 ?? 35, config.marital === 'married' ? (config.age2 ?? 35) : (config.age1 ?? 35));
-    return Math.max(0, (config.retAge ?? 65) - younger);
-  }, [config.age1, config.age2, config.retAge, config.marital]);
+    return Math.max(0, (config.retirementAge ?? 65) - younger);
+  }, [config.age1, config.age2, config.retirementAge, config.marital]);
 }
 
 /**
@@ -476,8 +476,8 @@ export function useYearsToRetirement(): number {
 export function useTotalPortfolioValue(): number {
   const { config } = usePlanConfig();
   return useMemo(
-    () => (config.sTax ?? 0) + (config.sPre ?? 0) + (config.sPost ?? 0),
-    [config.sTax, config.sPre, config.sPost]
+    () => (config.taxableBalance ?? 0) + (config.pretaxBalance ?? 0) + (config.rothBalance ?? 0),
+    [config.taxableBalance, config.pretaxBalance, config.rothBalance]
   );
 }
 

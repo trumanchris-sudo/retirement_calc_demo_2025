@@ -8,7 +8,7 @@ import type { BatchSummary } from "@/types/planner";
 
 interface SequenceRiskChartProps {
   batchSummary: BatchSummary | null;
-  retAge: number;
+  retirementAge: number;
   age1: number;
 }
 
@@ -21,7 +21,7 @@ interface FailureBucket {
   age1Range: string;
 }
 
-export const SequenceRiskChart = React.memo(function SequenceRiskChart({ batchSummary, retAge, age1 }: SequenceRiskChartProps) {
+export const SequenceRiskChart = React.memo(function SequenceRiskChart({ batchSummary, retirementAge, age1 }: SequenceRiskChartProps) {
   const analysis = useMemo(() => {
     if (!batchSummary || !batchSummary.allRuns) return null;
 
@@ -55,8 +55,8 @@ export const SequenceRiskChart = React.memo(function SequenceRiskChart({ batchSu
     // Calculate percentages and age ranges
     buckets.forEach(bucket => {
       bucket.percentage = (bucket.count / failedPaths.length) * 100;
-      const startAge = retAge + bucket.minYear;
-      const endAge = retAge + Math.min(bucket.maxYear, 30);
+      const startAge = retirementAge + bucket.minYear;
+      const endAge = retirementAge + Math.min(bucket.maxYear, 30);
       bucket.age1Range = bucket.maxYear >= 999 ? `${startAge}+` : `${startAge}-${endAge}`;
     });
 
@@ -73,7 +73,7 @@ export const SequenceRiskChart = React.memo(function SequenceRiskChart({ batchSu
       buckets: buckets.filter(b => b.count > 0),
       criticalWindow,
     };
-  }, [batchSummary, retAge, age1]);
+  }, [batchSummary, retirementAge, age1]);
 
   if (!analysis || analysis.totalFailures === 0) {
     return (

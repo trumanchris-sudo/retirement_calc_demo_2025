@@ -154,7 +154,8 @@ export const DataSummaryPanel = React.memo(function DataSummaryPanel({ extracted
 
 DataSummaryPanel.displayName = 'DataSummaryPanel';
 
-function formatDataValue(value: any): string {
+/** Format data values for display */
+function formatDataValue(value: string | number | boolean | null | undefined | number[]): string {
   if (value === undefined || value === null) return 'Not set';
 
   if (typeof value === 'number') {

@@ -296,7 +296,7 @@ export function useSavedScenarios() {
 
   // Save scenario
   const saveScenario = useCallback(
-    (inputs: Record<string, any>, results: Partial<CalculationResult>) => {
+    (inputs: Record<string, unknown>, results: Partial<CalculationResult>) => {
       if (!scenarioName.trim()) return;
 
       const scenario: SavedScenario = {

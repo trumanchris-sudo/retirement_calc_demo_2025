@@ -19,10 +19,10 @@ function isPlanConfigComplete(config: Partial<CalculatorInputs>): boolean {
   const required = [
     config.marital,
     config.age1,
-    config.retAge,
-    config.annualIncome1,
+    config.retirementAge,
+    config.primaryIncome,
     // At least one balance field should be present
-    config.sTax !== undefined || config.sPre !== undefined || config.sPost !== undefined,
+    config.taxableBalance !== undefined || config.pretaxBalance !== undefined || config.rothBalance !== undefined,
   ]
 
   const isComplete = required.every((field) => field !== undefined && field !== null)
@@ -31,9 +31,9 @@ function isPlanConfigComplete(config: Partial<CalculatorInputs>): boolean {
     console.log('[useOnboarding] PlanConfig incomplete, showing wizard:', {
       marital: config.marital,
       age1: config.age1,
-      retAge: config.retAge,
-      annualIncome1: config.annualIncome1,
-      hasBalances: config.sTax !== undefined || config.sPre !== undefined || config.sPost !== undefined,
+      retirementAge: config.retirementAge,
+      primaryIncome: config.primaryIncome,
+      hasBalances: config.taxableBalance !== undefined || config.pretaxBalance !== undefined || config.rothBalance !== undefined,
     })
   }
 

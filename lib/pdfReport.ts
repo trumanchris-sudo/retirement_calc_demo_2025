@@ -28,12 +28,12 @@ export interface PDFReportInputs {
   marital: FilingStatus;
   age1: number;
   age2: number;
-  retAge: number;
+  retirementAge: number;
 
   // Starting Balances
-  sTax: number;
-  sPre: number;
-  sPost: number;
+  taxableBalance: number;
+  pretaxBalance: number;
+  rothBalance: number;
 
   // Person 1 Contributions
   cTax1: number;
@@ -49,15 +49,15 @@ export interface PDFReportInputs {
 
   // Rates
   retRate: number;
-  infRate: number;
+  inflationRate: number;
   stateRate: number;
   wdRate: number;
   incContrib: boolean;
   incRate: number;
 
   // Simulation Settings
-  retMode: ReturnMode;
-  walkSeries: WalkSeries;
+  returnMode: ReturnMode;
+  randomWalkSeries: WalkSeries;
 
   // Social Security
   includeSS: boolean;
@@ -82,7 +82,7 @@ export interface PDFReportInputs {
   // Legacy Planning
   showGen: boolean;
   hypPerBen: number;
-  numberOfChildren: number;
+  numberOfBeneficiaries: number;
   totalFertilityRate: number;
   generationLength: number;
   fertilityWindowStart: number;
@@ -301,8 +301,8 @@ function addExecutiveSummary(doc: jsPDF, data: PDFReportData, reportDate: string
 
   // Retirement Projection
   y = addSubsection(doc, 'Retirement Projection', y);
-  y = addKeyValue(doc, 'Retirement Age', String(inputs.retAge), y, 0, false);
-  y = addKeyValue(doc, 'Planning Horizon', `To age 95 (${95 - inputs.retAge} years)`, y, 0, true);
+  y = addKeyValue(doc, 'Retirement Age', String(inputs.retirementAge), y, 0, false);
+  y = addKeyValue(doc, 'Planning Horizon', `To age 95 (${95 - inputs.retirementAge} years)`, y, 0, true);
   y = addKeyValue(doc, 'Probability of Success', fmtPctRaw(successRate), y, 0, false);
   y = addKeyValue(doc, 'End-of-Life Wealth', fmtFull(results.eolReal) + ' (2026 dollars)', y, 0, true);
   y += 5;
@@ -349,7 +349,7 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
   // Section 1: Personal Information
   y = addSubsection(doc, 'CLIENT PROFILE', y);
   y = addKeyValue(doc, 'Current Age', String(inputs.age1), y, 0, false);
-  y = addKeyValue(doc, 'Retirement Age', String(inputs.retAge), y, 0, true);
+  y = addKeyValue(doc, 'Retirement Age', String(inputs.retirementAge), y, 0, true);
   y = addKeyValue(doc, 'Life Expectancy', '95', y, 0, false);
   y = addKeyValue(doc, 'Filing Status', inputs.marital === 'single' ? 'Single' : 'Married', y, 0, true);
   y += 5;
@@ -364,7 +364,7 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
   if (inputs.showGen) {
     y = checkPageBreak(doc, y, 40, reportDate, pageNum);
     y = addSubsection(doc, 'FAMILY STRUCTURE', y);
-    y = addKeyValue(doc, 'Number of Children', String(inputs.numberOfChildren), y);
+    y = addKeyValue(doc, 'Number of Children', String(inputs.numberOfBeneficiaries), y);
     y = addKeyValue(doc, 'Fertility Rate', `${inputs.totalFertilityRate} children per person`, y);
     y = addKeyValue(doc, 'Generation Length', `${inputs.generationLength} years`, y);
     y = addKeyValue(doc, 'Fertility Window', `Ages ${inputs.fertilityWindowStart}-${inputs.fertilityWindowEnd}`, y);
@@ -374,10 +374,10 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
   // Section 2: Financial Assumptions
   y = checkPageBreak(doc, y, 50, reportDate, pageNum);
   y = addSubsection(doc, 'ACCOUNT BALANCES (as of ' + new Date().toLocaleDateString() + ')', y);
-  y = addKeyValue(doc, 'Pre-Tax (401k/Traditional IRA)', fmtFull(inputs.sPre), y, 0, false);
-  y = addKeyValue(doc, 'Taxable (Brokerage)', fmtFull(inputs.sTax), y, 0, true);
-  y = addKeyValue(doc, 'Post-Tax (Roth IRA)', fmtFull(inputs.sPost), y, 0, false);
-  y = addKeyValue(doc, 'Total Portfolio', fmtFull(inputs.sPre + inputs.sTax + inputs.sPost), y, 0, true);
+  y = addKeyValue(doc, 'Pre-Tax (401k/Traditional IRA)', fmtFull(inputs.pretaxBalance), y, 0, false);
+  y = addKeyValue(doc, 'Taxable (Brokerage)', fmtFull(inputs.taxableBalance), y, 0, true);
+  y = addKeyValue(doc, 'Post-Tax (Roth IRA)', fmtFull(inputs.rothBalance), y, 0, false);
+  y = addKeyValue(doc, 'Total Portfolio', fmtFull(inputs.pretaxBalance + inputs.taxableBalance + inputs.rothBalance), y, 0, true);
   y += 5;
 
   y = checkPageBreak(doc, y, 50, reportDate, pageNum);
@@ -419,9 +419,9 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
   y = addSubsection(doc, 'RETURN ASSUMPTIONS', y);
 
   // Determine model type based on simulation settings
-  const isMonteCarloMode = inputs.walkSeries === 'trulyRandom' || inputs.retMode === 'randomWalk';
-  const modelType = inputs.walkSeries === 'trulyRandom' ? 'Monte Carlo Bootstrap (Random Walk)' :
-                    inputs.retMode === 'randomWalk' ? 'Historical Bootstrap (Deterministic)' : 'Fixed Annual Return';
+  const isMonteCarloMode = inputs.randomWalkSeries === 'trulyRandom' || inputs.returnMode === 'randomWalk';
+  const modelType = inputs.randomWalkSeries === 'trulyRandom' ? 'Monte Carlo Bootstrap (Random Walk)' :
+                    inputs.returnMode === 'randomWalk' ? 'Historical Bootstrap (Deterministic)' : 'Fixed Annual Return';
 
   y = addKeyValue(doc, 'Model Type', modelType, y);
 
@@ -430,13 +430,13 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
     y = addKeyValue(doc, 'Historical Data Source', 'S&P 500 Total Returns (1928-2024)', y);
     y = addKeyValue(doc, 'Simulation Paths', '1,000 independent paths', y);
     y = addKeyValue(doc, 'Historical Mean Return', '~9.8% nominal (varies by sequence)', y);
-    y = addKeyValue(doc, 'Inflation Assumption', fmtPctRaw(inputs.infRate), y);
+    y = addKeyValue(doc, 'Inflation Assumption', fmtPctRaw(inputs.inflationRate), y);
     y = addKeyValue(doc, 'Historical Real Return', '~7.2% (inflation-adjusted)', y);
   } else {
     // Fixed return mode - show the specific rate
     y = addKeyValue(doc, 'Annual Fixed Return', fmtPctRaw(inputs.retRate), y);
-    y = addKeyValue(doc, 'Inflation Assumption', fmtPctRaw(inputs.infRate), y);
-    y = addKeyValue(doc, 'Real Return (Net of Inflation)', fmtPctRaw(inputs.retRate - inputs.infRate), y);
+    y = addKeyValue(doc, 'Inflation Assumption', fmtPctRaw(inputs.inflationRate), y);
+    y = addKeyValue(doc, 'Real Return (Net of Inflation)', fmtPctRaw(inputs.retRate - inputs.inflationRate), y);
   }
   y += 5;
 
@@ -447,7 +447,7 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
   y = addSubsection(doc, 'RETIREMENT WITHDRAWAL STRATEGY', y);
   y = addKeyValue(doc, 'Initial Withdrawal Rate', fmtPctRaw(inputs.wdRate), y);
   y = addKeyValue(doc, 'Withdrawal Method', 'Proportional across accounts', y);
-  y = addKeyValue(doc, 'Inflation Adjustment', 'Annual (' + fmtPctRaw(inputs.infRate) + ')', y);
+  y = addKeyValue(doc, 'Inflation Adjustment', 'Annual (' + fmtPctRaw(inputs.inflationRate) + ')', y);
   y = addKeyValue(doc, 'Social Security', inputs.includeSS ? 'Included' : 'Not Included', y);
 
   if (inputs.includeSS) {
@@ -506,12 +506,12 @@ function addPlanningAssumptions(doc: jsPDF, data: PDFReportData, reportDate: str
     y = addKeyValue(doc, 'Minimum Distribution Age', '25', y);
     y = addKeyValue(doc, 'Maximum Lifespan', '95', y);
     y = addKeyValue(doc, 'Fertility Window', `Ages ${inputs.fertilityWindowStart}-${inputs.fertilityWindowEnd}`, y);
-    y = addKeyValue(doc, 'Real Return (Post-Death)', fmtPctRaw(inputs.retRate - inputs.infRate), y);
+    y = addKeyValue(doc, 'Real Return (Post-Death)', fmtPctRaw(inputs.retRate - inputs.inflationRate), y);
 
     const popGrowth = ((inputs.totalFertilityRate - 2) / 2) * 100;
     y = addKeyValue(doc, 'Population Growth Rate', fmtPctRaw(popGrowth, 1), y);
 
-    const perpetualThreshold = (inputs.retRate - inputs.infRate) - popGrowth;
+    const perpetualThreshold = (inputs.retRate - inputs.inflationRate) - popGrowth;
     y = addKeyValue(doc, 'Perpetual Threshold', fmtPctRaw(perpetualThreshold, 1) + ' distribution rate', y);
   }
 }
@@ -541,7 +541,7 @@ function addResultsAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string)
   if (y === 30) pageNum++;
 
   y = addSubsection(doc, 'RETIREMENT SUSTAINABILITY', y);
-  y = addKeyValue(doc, 'Planning Horizon', `Age ${inputs.retAge}-95 (${95 - inputs.retAge} years)`, y, 0, false);
+  y = addKeyValue(doc, 'Planning Horizon', `Age ${inputs.retirementAge}-95 (${95 - inputs.retirementAge} years)`, y, 0, false);
   y = addKeyValue(doc, 'Median End-of-Life Wealth (Nominal)', fmtFull(results.eol), y, 0, true);
   y = addKeyValue(doc, 'Median End-of-Life Wealth (Real)', fmtFull(results.eolReal), y, 0, false);
 
@@ -634,7 +634,7 @@ function addResultsAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string)
     y += 5;
 
     y = addSubsection(doc, 'Perpetual Viability Analysis', y);
-    const realReturn = inputs.retRate - inputs.infRate;
+    const realReturn = inputs.retRate - inputs.inflationRate;
     const popGrowth = ((inputs.totalFertilityRate - 2) / 2) * 100;
     const sustainableRate = realReturn - popGrowth;
     const actualRate = (results.genPayout.perBenReal * results.genPayout.startBeneficiaries / results.eolReal) * 100;
@@ -690,7 +690,7 @@ function addRiskFactorsAndMethodology(doc: jsPDF, data: PDFReportData, reportDat
 
   if (inputs.includeMedicare) {
     y = addSubsection(doc, 'Healthcare Cost Inflation', y);
-    y = addWrappedText(doc, `Medical costs historically inflate faster than general CPI (${fmtPctRaw(inputs.medicalInflation)} vs ${fmtPctRaw(inputs.infRate)}). Actual costs vary significantly by health status and geographic location.`, y, 10);
+    y = addWrappedText(doc, `Medical costs historically inflate faster than general CPI (${fmtPctRaw(inputs.medicalInflation)} vs ${fmtPctRaw(inputs.inflationRate)}). Actual costs vary significantly by health status and geographic location.`, y, 10);
     y += 5;
   }
 
@@ -701,7 +701,7 @@ function addRiskFactorsAndMethodology(doc: jsPDF, data: PDFReportData, reportDat
 
     y = addSubsection(doc, 'Legacy Planning Assumptions', y);
     y = addWrappedText(doc, 'Generational wealth projections assume:', y, 10);
-    y = addBulletPoint(doc, `Constant real returns (${fmtPctRaw(inputs.retRate - inputs.infRate)}) over millennia`, y, 5);
+    y = addBulletPoint(doc, `Constant real returns (${fmtPctRaw(inputs.retRate - inputs.inflationRate)}) over millennia`, y, 5);
     y = addBulletPoint(doc, 'Stable fertility patterns and family structure', y, 5);
     y = addBulletPoint(doc, 'No external income for beneficiaries', y, 5);
     y = addBulletPoint(doc, 'Legal structures (dynasty trusts) remain available', y, 5);
@@ -727,7 +727,7 @@ function addRiskFactorsAndMethodology(doc: jsPDF, data: PDFReportData, reportDat
   y = addSectionTitle(doc, 'CALCULATION METHODOLOGY', y);
 
   y = addSubsection(doc, 'Accumulation Phase', y);
-  y = addWrappedText(doc, 'Portfolio growth modeled using ' + (inputs.walkSeries === 'trulyRandom' ? 'Monte Carlo bootstrap sampling from 97 years of S&P 500 total return data (1928-2024)' : 'deterministic return assumptions') + '. Annual contributions assumed mid-year with half-year growth adjustment.', y, 10);
+  y = addWrappedText(doc, 'Portfolio growth modeled using ' + (inputs.randomWalkSeries === 'trulyRandom' ? 'Monte Carlo bootstrap sampling from 97 years of S&P 500 total return data (1928-2024)' : 'deterministic return assumptions') + '. Annual contributions assumed mid-year with half-year growth adjustment.', y, 10);
   y += 5;
 
   y = addSubsection(doc, 'Account-Specific Treatment', y);
@@ -743,7 +743,7 @@ function addRiskFactorsAndMethodology(doc: jsPDF, data: PDFReportData, reportDat
   y = addBulletPoint(doc, 'Tax-free (Roth qualified distributions)', y, 5);
   y += 5;
 
-  if (inputs.walkSeries === 'trulyRandom' || inputs.retMode === 'randomWalk') {
+  if (inputs.randomWalkSeries === 'trulyRandom' || inputs.returnMode === 'randomWalk') {
     y = checkPageBreak(doc, y, 40, reportDate, pageNum);
     if (y === 30) pageNum++;
 
@@ -768,7 +768,7 @@ function addRiskFactorsAndMethodology(doc: jsPDF, data: PDFReportData, reportDat
     y += 5;
 
     y = addSubsection(doc, 'Perpetual Threshold', y);
-    const realReturn = inputs.retRate - inputs.infRate;
+    const realReturn = inputs.retRate - inputs.inflationRate;
     const popGrowth = ((inputs.totalFertilityRate - 2) / 2) * 100;
     const perpetualThreshold = realReturn - popGrowth;
     y = addWrappedText(doc, 'Maximum sustainable distribution rate calculated as:', y, 10);

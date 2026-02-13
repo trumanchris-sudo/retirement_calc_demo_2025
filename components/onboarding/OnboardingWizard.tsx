@@ -8,10 +8,13 @@ import { usePlanConfig } from '@/lib/plan-config-context';
 import type { ExtractedData, AssumptionWithReasoning } from '@/types/ai-onboarding';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
+import type { CalculatorInputs } from '@/types/calculator';
+
 interface OnboardingWizardProps {
   isOpen: boolean;
   onClose: () => void;
-  onComplete: (calculatorData: any) => Promise<void>;
+  /** Callback when onboarding completes with calculator inputs */
+  onComplete: (calculatorData: Partial<CalculatorInputs>) => Promise<void>;
 }
 
 export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWizardProps) {

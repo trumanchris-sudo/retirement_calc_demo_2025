@@ -86,7 +86,7 @@ export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
   const [phase, setPhase] = useState<ConversationPhase>('greeting');
   const [error, setError] = useState<string | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0); // Track which pre-scripted question we're on
-  const [userOverrides, setUserOverrides] = useState<Record<string, any>>({}); // Track user edits to assumptions
+  const [userOverrides, setUserOverrides] = useState<Record<string, string | number | boolean | null>>({}); // Track user edits to assumptions
   const [isUpdating, setIsUpdating] = useState(false); // Track if we're re-running API with overrides
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -201,7 +201,7 @@ ${getNextQuestion(0, {})}`;
         setPhase(state.currentPhase);
         setQuestionIndex(state.questionIndex || 0);
         // Restore user overrides if present (for new sessions)
-        const stateWithOverrides = state as AIOnboardingState & { userOverrides?: Record<string, unknown> };
+        const stateWithOverrides = state as AIOnboardingState & { userOverrides?: Record<string, string | number | boolean | null> };
         if (stateWithOverrides.userOverrides) {
           setUserOverrides(stateWithOverrides.userOverrides);
         }
@@ -221,7 +221,7 @@ ${getNextQuestion(0, {})}`;
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    const state: AIOnboardingState & { userOverrides?: Record<string, any> } = {
+    const state: AIOnboardingState & { userOverrides?: Record<string, string | number | boolean | null> } = {
       conversationHistory: messages,
       extractedData,
       assumptions,
@@ -565,7 +565,7 @@ ${getNextQuestion(0, {})}`;
   };
 
   // Handle user clicking "Update Assumptions" after editing values
-  const handleUpdateAssumptions = async (overrides: Record<string, any>) => {
+  const handleUpdateAssumptions = async (overrides: Record<string, string | number | boolean | null>): Promise<void> => {
     if (isUpdating) return;
 
     setIsUpdating(true);

@@ -31,7 +31,8 @@ interface UpdateExtractedDataInput extends Partial<ExtractedData> {
 interface AddAssumptionInput {
   field: string;
   displayName: string;
-  value: unknown;
+  /** The assumed value - type varies by field (number for amounts, string for selections, etc.) */
+  value: string | number | boolean | null;
   reasoning: string;
   confidence: ConfidenceLevel;
 }
@@ -382,7 +383,7 @@ export async function POST(request: NextRequest) {
                       sendEvent({
                         type: 'data_update',
                         field: validKey,
-                        value,
+                        value: value as ExtractedData[keyof ExtractedData],
                       });
                     }
                   }

@@ -11,10 +11,10 @@ describe('Retirement Engine', () => {
     marital: 'single',
     age1: 45,
     age2: 45,
-    retAge: 65,
-    sTax: 50000,
-    sPre: 100000,
-    sPost: 50000,
+    retirementAge: 65,
+    taxableBalance: 50000,
+    pretaxBalance: 100000,
+    rothBalance: 50000,
     cTax1: 10000,
     cPre1: 5000,
     cPost1: 5000,
@@ -24,13 +24,13 @@ describe('Retirement Engine', () => {
     cPost2: 0,
     cMatch2: 0,
     retRate: 7.0,
-    infRate: 2.5,
+    inflationRate: 2.5,
     stateRate: 5.0,
     incContrib: false,
     incRate: 2.0,
     wdRate: 4.0,
-    retMode: 'fixed',
-    walkSeries: 'nominal',
+    returnMode: 'fixed',
+    randomWalkSeries: 'nominal',
     includeSS: false,
     ssIncome: 0,
     ssClaimAge: 67,
@@ -52,7 +52,7 @@ describe('Retirement Engine', () => {
 
     it('should throw error when retirement age <= current age', () => {
       const inputs = createDefaultInputs();
-      inputs.retAge = 40; // Less than age1 (45)
+      inputs.retirementAge = 40; // Less than age1 (45)
 
       expect(() => runSingleSimulation(inputs, 12345)).toThrow(
         'Retirement age must be greater than current age'
@@ -61,7 +61,7 @@ describe('Retirement Engine', () => {
 
     it('should return array of balances with correct length', () => {
       const inputs = createDefaultInputs();
-      const yrsToRet = inputs.retAge - inputs.age1; // 20 years
+      const yrsToRet = inputs.retirementAge - inputs.age1; // 20 years
       const result = runSingleSimulation(inputs, 12345);
 
       // Should have accumulation years + drawdown years
@@ -81,7 +81,7 @@ describe('Retirement Engine', () => {
 
     it('should produce different results with different seeds', () => {
       const inputs = createDefaultInputs();
-      inputs.retMode = 'randomWalk'; // Use random mode to see seed effect
+      inputs.returnMode = 'randomWalk'; // Use random mode to see seed effect
 
       const result1 = runSingleSimulation(inputs, 12345);
       const result2 = runSingleSimulation(inputs, 67890);
@@ -98,10 +98,10 @@ describe('Retirement Engine', () => {
       const result = runSingleSimulation(inputs, 12345);
 
       // Initial balance
-      const initialBalance = inputs.sTax + inputs.sPre + inputs.sPost;
+      const initialBalance = inputs.taxableBalance + inputs.pretaxBalance + inputs.rothBalance;
 
       // Balance at retirement (index = yrsToRet)
-      const yrsToRet = inputs.retAge - inputs.age1;
+      const yrsToRet = inputs.retirementAge - inputs.age1;
       const retirementBalance = result.balancesReal[yrsToRet];
 
       // With contributions and returns, should be significantly higher
@@ -110,9 +110,9 @@ describe('Retirement Engine', () => {
 
     it('should handle zero starting balances with contributions', () => {
       const inputs = createDefaultInputs();
-      inputs.sTax = 0;
-      inputs.sPre = 0;
-      inputs.sPost = 0;
+      inputs.taxableBalance = 0;
+      inputs.pretaxBalance = 0;
+      inputs.rothBalance = 0;
       // But has contributions
       inputs.cTax1 = 20000;
       inputs.cPre1 = 10000;
@@ -120,7 +120,7 @@ describe('Retirement Engine', () => {
       const result = runSingleSimulation(inputs, 12345);
 
       // Should accumulate wealth from contributions
-      const yrsToRet = inputs.retAge - inputs.age1;
+      const yrsToRet = inputs.retirementAge - inputs.age1;
       expect(result.balancesReal[yrsToRet]).toBeGreaterThan(0);
     });
 
@@ -134,7 +134,7 @@ describe('Retirement Engine', () => {
       const resultWithInc = runSingleSimulation(inputs, 12345);
 
       // With escalating contributions, should have more wealth
-      const yrsToRet = inputs.retAge - inputs.age1;
+      const yrsToRet = inputs.retirementAge - inputs.age1;
       expect(resultWithInc.balancesReal[yrsToRet]).toBeGreaterThan(
         resultNoInc.balancesReal[yrsToRet]
       );
@@ -157,7 +157,7 @@ describe('Retirement Engine', () => {
       expect(result.balancesReal.length).toBeGreaterThan(0);
 
       // With two incomes contributing, should have substantial wealth
-      const yrsToRet = inputs.retAge - Math.min(inputs.age1, inputs.age2);
+      const yrsToRet = inputs.retirementAge - Math.min(inputs.age1, inputs.age2);
       expect(result.balancesReal[yrsToRet]).toBeGreaterThan(200000);
     });
 
@@ -175,7 +175,7 @@ describe('Retirement Engine', () => {
       const resultMarried = runSingleSimulation(inputsMarried, 12345);
 
       // Married couple with dual income should accumulate more
-      const yrsToRet = inputsSingle.retAge - inputsSingle.age1;
+      const yrsToRet = inputsSingle.retirementAge - inputsSingle.age1;
       expect(resultMarried.balancesReal[yrsToRet]).toBeGreaterThan(
         resultSingle.balancesReal[yrsToRet]
       );
@@ -249,7 +249,7 @@ describe('Retirement Engine', () => {
       inputs.wdRate = 5.0; // High withdrawal rate
 
       const result = runSingleSimulation(inputs, 12345);
-      const yrsToRet = inputs.retAge - inputs.age1;
+      const yrsToRet = inputs.retirementAge - inputs.age1;
 
       // Balance should decrease after retirement
       const retirementBalance = result.balancesReal[yrsToRet];
@@ -273,9 +273,9 @@ describe('Retirement Engine', () => {
     it('should mark as ruined when money runs out', () => {
       const inputs = createDefaultInputs();
       // Start with very little money
-      inputs.sTax = 10000;
-      inputs.sPre = 5000;
-      inputs.sPost = 5000;
+      inputs.taxableBalance = 10000;
+      inputs.pretaxBalance = 5000;
+      inputs.rothBalance = 5000;
       // No contributions
       inputs.cTax1 = 0;
       inputs.cPre1 = 0;
@@ -303,7 +303,7 @@ describe('Retirement Engine', () => {
       expect(result.y1AfterTaxReal).toBeGreaterThan(0);
 
       // Should be approximately 4% of retirement balance (real terms)
-      const yrsToRet = inputs.retAge - inputs.age1;
+      const yrsToRet = inputs.retirementAge - inputs.age1;
       const retirementBalance = result.balancesReal[yrsToRet];
       const expectedWithdrawal = retirementBalance * 0.04;
 
@@ -316,7 +316,7 @@ describe('Retirement Engine', () => {
   describe('runSingleSimulation - Return Modes', () => {
     it('should handle fixed return mode', () => {
       const inputs = createDefaultInputs();
-      inputs.retMode = 'fixed';
+      inputs.returnMode = 'fixed';
       inputs.retRate = 7.0;
 
       const result = runSingleSimulation(inputs, 12345);
@@ -326,7 +326,7 @@ describe('Retirement Engine', () => {
 
     it('should handle random return mode', () => {
       const inputs = createDefaultInputs();
-      inputs.retMode = 'randomWalk';
+      inputs.returnMode = 'randomWalk';
 
       const result = runSingleSimulation(inputs, 12345);
       expect(result.balancesReal).toBeInstanceOf(Array);
@@ -335,7 +335,7 @@ describe('Retirement Engine', () => {
 
     it('should handle historical return mode', () => {
       const inputs = createDefaultInputs();
-      inputs.retMode = 'randomWalk';
+      inputs.returnMode = 'randomWalk';
       inputs.historicalYear = 2008; // Bear market year
 
       const result = runSingleSimulation(inputs, 12345);
@@ -348,7 +348,7 @@ describe('Retirement Engine', () => {
   describe('runSingleSimulation - Inflation Scenarios', () => {
     it('should handle standard inflation', () => {
       const inputs = createDefaultInputs();
-      inputs.infRate = 3.0; // 3% inflation
+      inputs.inflationRate = 3.0; // 3% inflation
 
       const result = runSingleSimulation(inputs, 12345);
 
@@ -359,7 +359,7 @@ describe('Retirement Engine', () => {
 
     it('should handle inflation shock scenario', () => {
       const inputs = createDefaultInputs();
-      inputs.infRate = 2.5; // Base inflation
+      inputs.inflationRate = 2.5; // Base inflation
       inputs.inflationShockRate = 8.0; // High inflation shock
       inputs.inflationShockDuration = 3; // 3 years
 
@@ -372,10 +372,10 @@ describe('Retirement Engine', () => {
 
     it('should show lower real wealth with higher inflation', () => {
       const inputs = createDefaultInputs();
-      inputs.infRate = 2.0;
+      inputs.inflationRate = 2.0;
       const resultLowInf = runSingleSimulation(inputs, 12345);
 
-      inputs.infRate = 6.0; // High inflation
+      inputs.inflationRate = 6.0; // High inflation
       const resultHighInf = runSingleSimulation(inputs, 12345);
 
       // Higher inflation reduces real (inflation-adjusted) wealth
@@ -387,27 +387,27 @@ describe('Retirement Engine', () => {
     it('should handle very young person (long accumulation period)', () => {
       const inputs = createDefaultInputs();
       inputs.age1 = 25;
-      inputs.retAge = 65; // 40 years to retirement
+      inputs.retirementAge = 65; // 40 years to retirement
 
       const result = runSingleSimulation(inputs, 12345);
 
       // Long time horizon should allow substantial growth
-      const yrsToRet = inputs.retAge - inputs.age1;
+      const yrsToRet = inputs.retirementAge - inputs.age1;
       expect(result.balancesReal[yrsToRet]).toBeGreaterThan(500000);
     });
 
     it('should handle person close to retirement', () => {
       const inputs = createDefaultInputs();
       inputs.age1 = 63;
-      inputs.retAge = 65; // Only 2 years to retirement
-      inputs.sTax = 500000; // Already has substantial savings
-      inputs.sPre = 300000;
-      inputs.sPost = 200000;
+      inputs.retirementAge = 65; // Only 2 years to retirement
+      inputs.taxableBalance = 500000; // Already has substantial savings
+      inputs.pretaxBalance = 300000;
+      inputs.rothBalance = 200000;
 
       const result = runSingleSimulation(inputs, 12345);
 
       // Should handle short accumulation period
-      const yrsToRet = inputs.retAge - inputs.age1;
+      const yrsToRet = inputs.retirementAge - inputs.age1;
       expect(result.balancesReal.length).toBeGreaterThan(yrsToRet);
       expect(result.eolReal).toBeGreaterThan(0);
     });
@@ -419,9 +419,9 @@ describe('Retirement Engine', () => {
       inputs.cPost1 = 0;
       inputs.cMatch1 = 0;
       // But has starting balances
-      inputs.sTax = 500000;
-      inputs.sPre = 500000;
-      inputs.sPost = 250000;
+      inputs.taxableBalance = 500000;
+      inputs.pretaxBalance = 500000;
+      inputs.rothBalance = 250000;
 
       const result = runSingleSimulation(inputs, 12345);
 
@@ -438,7 +438,7 @@ describe('Retirement Engine', () => {
       const result = runSingleSimulation(inputs, 12345);
 
       // Should handle realistic max contributions
-      const yrsToRet = inputs.retAge - inputs.age1;
+      const yrsToRet = inputs.retirementAge - inputs.age1;
       expect(result.balancesReal[yrsToRet]).toBeGreaterThan(1000000);
     });
   });
@@ -447,9 +447,9 @@ describe('Retirement Engine', () => {
     it('should prefer Roth withdrawals (tax-free) in drawdown', () => {
       const inputs = createDefaultInputs();
       // Heavy Roth balance
-      inputs.sPost = 800000;
-      inputs.sPre = 100000;
-      inputs.sTax = 100000;
+      inputs.rothBalance = 800000;
+      inputs.pretaxBalance = 100000;
+      inputs.taxableBalance = 100000;
 
       const result = runSingleSimulation(inputs, 12345);
 
@@ -460,11 +460,11 @@ describe('Retirement Engine', () => {
     it('should handle RMDs from pre-tax accounts', () => {
       const inputs = createDefaultInputs();
       inputs.age1 = 65;
-      inputs.retAge = 66; // Retire at 66, close to RMD age (73)
+      inputs.retirementAge = 66; // Retire at 66, close to RMD age (73)
       // Heavy pre-tax balance
-      inputs.sPre = 2000000;
-      inputs.sPost = 100000;
-      inputs.sTax = 100000;
+      inputs.pretaxBalance = 2000000;
+      inputs.rothBalance = 100000;
+      inputs.taxableBalance = 100000;
 
       const result = runSingleSimulation(inputs, 12345);
 

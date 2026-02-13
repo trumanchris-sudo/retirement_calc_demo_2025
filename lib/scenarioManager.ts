@@ -184,28 +184,47 @@ export function importScenarios(jsonString: string): {
  * Get scenario comparison data
  * Useful for side-by-side comparison of key metrics
  */
+/** Type for account balance comparison data */
+interface AccountBalances {
+  taxable: number;
+  traditional: number;
+  roth: number;
+}
+
+/** Type for comparison data structure */
+interface ScenarioComparisonData {
+  name: string[];
+  age1: number[];
+  retirementAge: number[];
+  primaryIncome: number[];
+  currentBalances: AccountBalances[];
+  annualContributions: AccountBalances[];
+  returnRate: number[];
+  withdrawalRate: number[];
+}
+
 export function compareScenarios(scenarioIds: string[]): {
   scenarios: SavedScenario[];
-  comparison: Record<string, any[]>;
+  comparison: ScenarioComparisonData;
 } {
   const scenarios = scenarioIds
     .map(id => loadScenario(id))
     .filter((s): s is SavedScenario => s !== null);
 
   if (scenarios.length === 0) {
-    return { scenarios: [], comparison: {} };
+    return { scenarios: [], comparison: { name: [], age1: [], retirementAge: [], primaryIncome: [], currentBalances: [], annualContributions: [], returnRate: [], withdrawalRate: [] } };
   }
 
   // Extract key metrics for comparison
-  const comparison: Record<string, any[]> = {
+  const comparison: ScenarioComparisonData = {
     name: scenarios.map(s => s.name),
     age1: scenarios.map(s => s.config.age1),
-    retAge: scenarios.map(s => s.config.retAge),
-    annualIncome1: scenarios.map(s => s.config.annualIncome1),
+    retirementAge: scenarios.map(s => s.config.retirementAge),
+    primaryIncome: scenarios.map(s => s.config.primaryIncome),
     currentBalances: scenarios.map(s => ({
-      taxable: s.config.sTax || 0,
-      traditional: s.config.sPre || 0,
-      roth: s.config.sPost || 0,
+      taxable: s.config.taxableBalance || 0,
+      traditional: s.config.pretaxBalance || 0,
+      roth: s.config.rothBalance || 0,
     })),
     annualContributions: scenarios.map(s => ({
       taxable: s.config.cTax1 || 0,

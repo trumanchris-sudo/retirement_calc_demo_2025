@@ -35,10 +35,10 @@ export function processOnboardingClientSide(
   const addAssumption = (
     field: string,
     displayName: string,
-    value: any,
+    value: string | number | boolean | null,
     reasoning: string,
     confidence: 'high' | 'medium' | 'low' = 'medium'
-  ) => {
+  ): void => {
     assumptions.push({
       field,
       displayName,
@@ -300,12 +300,12 @@ export function processOnboardingClientSide(
     age: extractedData.age || mappedResult.age1,
     maritalStatus: extractedData.maritalStatus || mappedResult.marital,
     spouseAge: extractedData.spouseAge || mappedResult.age2,
-    retirementAge: extractedData.retirementAge || mappedResult.retAge,
-    annualIncome1: extractedData.annualIncome1 || mappedResult.annualIncome1,
-    annualIncome2: extractedData.annualIncome2 || mappedResult.annualIncome2,
-    currentTaxable: extractedData.currentTaxable || mappedResult.sTax,
-    currentTraditional: extractedData.currentTraditional || mappedResult.sPre,
-    currentRoth: extractedData.currentRoth || mappedResult.sPost,
+    retirementAge: extractedData.retirementAge || mappedResult.retirementAge,
+    annualIncome1: extractedData.annualIncome1 || mappedResult.primaryIncome,
+    annualIncome2: extractedData.annualIncome2 || mappedResult.spouseIncome,
+    currentTaxable: extractedData.currentTaxable || mappedResult.taxableBalance,
+    currentTraditional: extractedData.currentTraditional || mappedResult.pretaxBalance,
+    currentRoth: extractedData.currentRoth || mappedResult.rothBalance,
     emergencyFund: extractedData.emergencyFund || mappedResult.emergencyFund,
   };
 

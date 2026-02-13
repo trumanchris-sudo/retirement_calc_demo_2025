@@ -134,17 +134,17 @@ export function SSOTTab() {
 
             {/* Retirement Age */}
             <div className="space-y-2">
-              <Label htmlFor="ssot-retAge" className="flex items-center gap-2">
+              <Label htmlFor="ssot-retirementAge" className="flex items-center gap-2">
                 Target Retirement Age
-                <FieldBadge field="retAge" />
+                <FieldBadge field="retirementAge" />
               </Label>
               <Input
-                id="ssot-retAge"
+                id="ssot-retirementAge"
                 type="number"
                 min="50"
                 max="80"
-                value={config.retAge ?? 65}
-                onChange={(e) => updateField('retAge', parseInt(e.target.value) || 65)}
+                value={config.retirementAge ?? 65}
+                onChange={(e) => updateField('retirementAge', parseInt(e.target.value) || 65)}
               />
             </div>
 
@@ -200,17 +200,17 @@ export function SSOTTab() {
 
             {/* Annual Income 1 */}
             <div className="space-y-2">
-              <Label htmlFor="ssot-annualIncome1" className="flex items-center gap-2">
+              <Label htmlFor="ssot-primaryIncome" className="flex items-center gap-2">
                 Your Annual Income
-                <FieldBadge field="annualIncome1" />
+                <FieldBadge field="primaryIncome" />
               </Label>
               <Input
-                id="ssot-annualIncome1"
+                id="ssot-primaryIncome"
                 type="number"
                 min="0"
                 step="1000"
-                value={config.annualIncome1 ?? 100000}
-                onChange={(e) => updateField('annualIncome1', parseInt(e.target.value) || 100000)}
+                value={config.primaryIncome ?? 100000}
+                onChange={(e) => updateField('primaryIncome', parseInt(e.target.value) || 100000)}
               />
             </div>
 
@@ -240,17 +240,17 @@ export function SSOTTab() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="ssot-annualIncome2" className="flex items-center gap-2">
+                  <Label htmlFor="ssot-spouseIncome" className="flex items-center gap-2">
                     Spouse Annual Income
-                    <FieldBadge field="annualIncome2" />
+                    <FieldBadge field="spouseIncome" />
                   </Label>
                   <Input
-                    id="ssot-annualIncome2"
+                    id="ssot-spouseIncome"
                     type="number"
                     min="0"
                     step="1000"
-                    value={config.annualIncome2 ?? 0}
-                    onChange={(e) => updateField('annualIncome2', parseInt(e.target.value) || 0)}
+                    value={config.spouseIncome ?? 0}
+                    onChange={(e) => updateField('spouseIncome', parseInt(e.target.value) || 0)}
                   />
                 </div>
               </>
@@ -283,47 +283,47 @@ export function SSOTTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ssot-sTax" className="flex items-center gap-2">
+              <Label htmlFor="ssot-taxableBalance" className="flex items-center gap-2">
                 Taxable Brokerage
-                <FieldBadge field="sTax" />
+                <FieldBadge field="taxableBalance" />
               </Label>
               <Input
-                id="ssot-sTax"
+                id="ssot-taxableBalance"
                 type="number"
                 min="0"
                 step="1000"
-                value={config.sTax ?? 0}
-                onChange={(e) => updateField('sTax', parseInt(e.target.value) || 0)}
+                value={config.taxableBalance ?? 0}
+                onChange={(e) => updateField('taxableBalance', parseInt(e.target.value) || 0)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ssot-sPre" className="flex items-center gap-2">
+              <Label htmlFor="ssot-pretaxBalance" className="flex items-center gap-2">
                 Traditional 401k/IRA
-                <FieldBadge field="sPre" />
+                <FieldBadge field="pretaxBalance" />
               </Label>
               <Input
-                id="ssot-sPre"
+                id="ssot-pretaxBalance"
                 type="number"
                 min="0"
                 step="1000"
-                value={config.sPre ?? 0}
-                onChange={(e) => updateField('sPre', parseInt(e.target.value) || 0)}
+                value={config.pretaxBalance ?? 0}
+                onChange={(e) => updateField('pretaxBalance', parseInt(e.target.value) || 0)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ssot-sPost" className="flex items-center gap-2">
+              <Label htmlFor="ssot-rothBalance" className="flex items-center gap-2">
                 Roth Accounts
-                <FieldBadge field="sPost" />
+                <FieldBadge field="rothBalance" />
               </Label>
               <Input
-                id="ssot-sPost"
+                id="ssot-rothBalance"
                 type="number"
                 min="0"
                 step="1000"
-                value={config.sPost ?? 0}
-                onChange={(e) => updateField('sPost', parseInt(e.target.value) || 0)}
+                value={config.rothBalance ?? 0}
+                onChange={(e) => updateField('rothBalance', parseInt(e.target.value) || 0)}
               />
             </div>
           </div>
@@ -499,18 +499,18 @@ export function SSOTTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ssot-infRate" className="flex items-center gap-2">
+              <Label htmlFor="ssot-inflationRate" className="flex items-center gap-2">
                 Inflation Rate (%)
-                <FieldBadge field="infRate" />
+                <FieldBadge field="inflationRate" />
               </Label>
               <Input
-                id="ssot-infRate"
+                id="ssot-inflationRate"
                 type="number"
                 min="0"
                 max="10"
                 step="0.1"
-                value={config.infRate ?? 2.6}
-                onChange={(e) => updateField('infRate', parseFloat(e.target.value) || 2.6)}
+                value={config.inflationRate ?? 2.6}
+                onChange={(e) => updateField('inflationRate', parseFloat(e.target.value) || 2.6)}
               />
             </div>
 

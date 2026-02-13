@@ -190,10 +190,10 @@ export function validateReturnRate(value: number): ValidationResult {
 export function validateCalculatorInputs(inputs: {
   age1: number;
   age2?: number;
-  retAge: number;
-  sTax: number;
-  sPre: number;
-  sPost: number;
+  retirementAge: number;
+  taxableBalance: number;
+  pretaxBalance: number;
+  rothBalance: number;
   cTax1: number;
   cPre1: number;
   cPost1: number;
@@ -204,7 +204,7 @@ export function validateCalculatorInputs(inputs: {
   cMatch2?: number;
   wdRate: number;
   retRate: number;
-  infRate: number;
+  inflationRate: number;
   stateRate: number;
   marital: string;
 }): ValidationResult {
@@ -212,7 +212,7 @@ export function validateCalculatorInputs(inputs: {
   let result = validateAge(inputs.age1, "Your age");
   if (!result.isValid) return result;
 
-  result = validateRetirementAge(inputs.retAge, inputs.age1);
+  result = validateRetirementAge(inputs.retirementAge, inputs.age1);
   if (!result.isValid) return result;
 
   if (inputs.marital === 'married' && inputs.age2 !== undefined) {
@@ -221,17 +221,17 @@ export function validateCalculatorInputs(inputs: {
   }
 
   // Validate starting balances
-  result = validateBalance(inputs.sTax, "Taxable balance");
+  result = validateBalance(inputs.taxableBalance, "Taxable balance");
   if (!result.isValid) return result;
 
-  result = validateBalance(inputs.sPre, "Pre-tax balance");
+  result = validateBalance(inputs.pretaxBalance, "Pre-tax balance");
   if (!result.isValid) return result;
 
-  result = validateBalance(inputs.sPost, "Roth balance");
+  result = validateBalance(inputs.rothBalance, "Roth balance");
   if (!result.isValid) return result;
 
   // Check if user has any starting balance or contributions
-  const totalBalance = inputs.sTax + inputs.sPre + inputs.sPost;
+  const totalBalance = inputs.taxableBalance + inputs.pretaxBalance + inputs.rothBalance;
   const totalContributions = inputs.cTax1 + inputs.cPre1 + inputs.cPost1 + inputs.cMatch1
     + (inputs.cTax2 || 0) + (inputs.cPre2 || 0) + (inputs.cPost2 || 0) + (inputs.cMatch2 || 0);
 
@@ -281,7 +281,7 @@ export function validateCalculatorInputs(inputs: {
   result = validateReturnRate(inputs.retRate);
   if (!result.isValid) return result;
 
-  result = validateInflationRate(inputs.infRate);
+  result = validateInflationRate(inputs.inflationRate);
   if (!result.isValid) return result;
 
   result = validatePercentage(inputs.stateRate, "State tax rate");

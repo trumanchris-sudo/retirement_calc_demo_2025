@@ -39,9 +39,9 @@ export function OnboardingWizardPage({ onComplete, onSkip }: OnboardingWizardPag
 
         // Log SSOT after update - especially critical fields that have been buggy
         console.log('[OnboardingWizardPage] ✅ SSOT Updated:', {
-          retirementAge: calculatorInputs.retAge,
-          annualIncome1: calculatorInputs.annualIncome1,
-          annualIncome2: calculatorInputs.annualIncome2,
+          retirementAge: calculatorInputs.retirementAge,
+          primaryIncome: calculatorInputs.primaryIncome,
+          spouseIncome: calculatorInputs.spouseIncome,
           emergencyFund: calculatorInputs.emergencyFund,
           // Critical fields per user request:
           monthlyMortgageRent: calculatorInputs.monthlyMortgageRent,

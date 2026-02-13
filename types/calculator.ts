@@ -76,7 +76,7 @@ export interface CalculatorInputs {
   marital: FilingStatus;
   age1: number;
   age2: number;
-  retAge: number;
+  retirementAge: number;
 
   // Family & Children (for generational wealth calculations)
   numChildren: number;
@@ -86,8 +86,8 @@ export interface CalculatorInputs {
   // Employment & Income
   employmentType1: EmploymentType;
   employmentType2?: EmploymentType;
-  annualIncome1: number;
-  annualIncome2?: number;
+  primaryIncome: number;
+  spouseIncome?: number;
 
   // Income Calculator Details (for paycheck projection)
   monthlyMortgageRent?: number;
@@ -107,9 +107,9 @@ export interface CalculatorInputs {
 
   // Starting Balances
   emergencyFund: number;  // Separate emergency fund (yields inflation rate only)
-  sTax: number;           // Starting taxable brokerage balance
-  sPre: number;           // Starting pre-tax (401k/IRA) balance
-  sPost: number;          // Starting Roth balance
+  taxableBalance: number;           // Starting taxable brokerage balance
+  pretaxBalance: number;           // Starting pre-tax (401k/IRA) balance
+  rothBalance: number;          // Starting Roth balance
 
   // Person 1 Contributions
   cTax1: number;    // Annual taxable contributions
@@ -125,15 +125,15 @@ export interface CalculatorInputs {
 
   // Rates
   retRate: number;      // Expected return rate
-  infRate: number;      // Inflation rate
+  inflationRate: number;      // Inflation rate
   stateRate: number;    // State tax rate
   wdRate: number;       // Withdrawal rate in retirement
   incContrib: boolean;  // Enable annual contribution increase
   incRate: number;      // Income/contribution increase rate
 
   // Simulation Settings
-  retMode: ReturnMode;
-  walkSeries: WalkSeries;
+  returnMode: ReturnMode;
+  randomWalkSeries: WalkSeries;
   seed: number;
   dividendYield: number; // Annual dividend yield percentage for taxable accounts
 
@@ -181,7 +181,7 @@ export interface CalculatorInputs {
   // Generational Wealth
   showGen: boolean;
   hypPerBen: number;
-  hypStartBens: number;
+  numberOfBeneficiaries: number;
   totalFertilityRate: number;
   generationLength: number;
   hypDeathAge: number;
@@ -442,16 +442,16 @@ export interface InputFormProps {
   setAge1: (value: number) => void;
   age2: number;
   setAge2: (value: number) => void;
-  retAge: number;
-  setRetAge: (value: number) => void;
+  retirementAge: number;
+  setRetirementAge: (value: number) => void;
 
   // Starting Balances
-  sTax: number;
-  setSTax: (value: number) => void;
-  sPre: number;
-  setSPre: (value: number) => void;
-  sPost: number;
-  setSPost: (value: number) => void;
+  taxableBalance: number;
+  setTaxableBalance: (value: number) => void;
+  pretaxBalance: number;
+  setPretaxBalance: (value: number) => void;
+  rothBalance: number;
+  setRothBalance: (value: number) => void;
 
   // Person 1 Contributions
   cTax1: number;
@@ -476,8 +476,8 @@ export interface InputFormProps {
   // Rates
   retRate: number;
   setRetRate: (value: number) => void;
-  infRate: number;
-  setInfRate: (value: number) => void;
+  inflationRate: number;
+  setInflationRate: (value: number) => void;
   stateRate: number;
   setStateRate: (value: number) => void;
   incContrib: boolean;
@@ -488,10 +488,10 @@ export interface InputFormProps {
   setWdRate: (value: number) => void;
 
   // Simulation Settings
-  retMode: ReturnMode;
-  setRetMode: (value: ReturnMode) => void;
-  walkSeries: WalkSeries;
-  setWalkSeries: (value: WalkSeries) => void;
+  returnMode: ReturnMode;
+  setReturnMode: (value: ReturnMode) => void;
+  randomWalkSeries: WalkSeries;
+  setRandomWalkSeries: (value: WalkSeries) => void;
   seed: number;
   setSeed: (value: number) => void;
 
@@ -520,8 +520,8 @@ export interface InputFormProps {
   setShowGen: (value: boolean) => void;
   hypPerBen: number;
   setHypPerBen: (value: number) => void;
-  hypStartBens: number;
-  setHypStartBens: (value: number) => void;
+  numberOfBeneficiaries: number;
+  setNumberOfBeneficiaries: (value: number) => void;
   totalFertilityRate: number;
   setTotalFertilityRate: (value: number) => void;
   generationLength: number;
@@ -542,7 +542,8 @@ export interface InputFormProps {
   isLoading: boolean;
   err: string | null;
   simProgress: { completed: number; total: number } | null;
-  tabGroupRef: React.RefObject<any>;
+  /** Reference to the tab group component for programmatic scrolling */
+  tabGroupRef: React.RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -582,9 +583,9 @@ export interface ResultsDisplayProps {
   marital: FilingStatus;
   age1: number;
   age2: number;
-  retAge: number;
+  retirementAge: number;
   wdRate: number;
-  walkSeries: WalkSeries;
+  randomWalkSeries: WalkSeries;
   includeSS: boolean;
   showGen: boolean;
 

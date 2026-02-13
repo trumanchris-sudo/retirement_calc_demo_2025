@@ -10,14 +10,18 @@
 import React from 'react';
 import { usePlanConfig } from '@/lib/plan-config-context';
 
+/** Type for API assumption data */
+interface ApiAssumption {
+  field: string;
+  value: string | number | boolean | null;
+  reasoning: string;
+  confidence: string;
+}
+
 interface SSOTDebugPanelProps {
-  wizardData?: Record<string, any>; // Data explicitly provided by user in wizard
-  apiAssumptions?: Array<{
-    field: string;
-    value: any;
-    reasoning: string;
-    confidence: string;
-  }>;
+  /** Data explicitly provided by user in wizard */
+  wizardData?: Record<string, string | number | boolean | null | undefined>;
+  apiAssumptions?: ApiAssumption[];
 }
 
 export default function SSOTDebugPanel({ wizardData, apiAssumptions }: SSOTDebugPanelProps) {
@@ -65,7 +69,7 @@ export default function SSOTDebugPanel({ wizardData, apiAssumptions }: SSOTDebug
     return 'missing';
   };
 
-  const formatValue = (value: any): string => {
+  const formatValue = (value: string | number | boolean | null | undefined): string => {
     if (value === undefined || value === null) return '—';
     if (typeof value === 'number') return value.toLocaleString();
     if (typeof value === 'boolean') return value ? 'Yes' : 'No';
@@ -170,7 +174,7 @@ export default function SSOTDebugPanel({ wizardData, apiAssumptions }: SSOTDebug
                         {getSourceBadge(source)}
                       </div>
                       <div className="text-lg font-mono text-slate-100">
-                        {formatValue(value)}
+                        {formatValue(typeof value === 'object' ? JSON.stringify(value) : value)}
                       </div>
                       {assumption && (
                         <div className="text-xs text-slate-400 italic mt-1">

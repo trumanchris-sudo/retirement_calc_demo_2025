@@ -11,10 +11,10 @@ export type PlanState = {
   marital: FilingStatus;
   age1: number;
   age2: number;
-  retAge: number;
-  sTax: number;
-  sPre: number;
-  sPost: number;
+  retirementAge: number;
+  taxableBalance: number;
+  pretaxBalance: number;
+  rothBalance: number;
   cTax1: number;
   cPre1: number;
   cPost1: number;
@@ -24,7 +24,7 @@ export type PlanState = {
   cPost2: number;
   cMatch2: number;
   retRate: number;
-  infRate: number;
+  inflationRate: number;
   stateRate: number;
   incContrib: boolean;
   incRate: number;
@@ -36,27 +36,31 @@ export type PlanState = {
   ssClaimAge2: number;
   showGen: boolean;
   hypPerBen: number;
-  hypStartBens: number;
+  numberOfBeneficiaries: number;
   totalFertilityRate: number;
   generationLength: number;
   hypDeathAge: number;
   hypBenAgesStr: string;
   fertilityWindowStart: number;
   fertilityWindowEnd: number;
-  retMode: ReturnMode;
+  returnMode: ReturnMode;
   seed: number;
-  walkSeries: WalkSeries;
+  randomWalkSeries: WalkSeries;
   isDarkMode: boolean;
   showP10: boolean;
   showP90: boolean;
   userQuestion: string;
 };
 
-// Action type for the reducer
+/**
+ * Action type for the reducer.
+ * Uses discriminated unions for type-safe field updates.
+ */
 export type PlanAction = {
   type: "UPDATE_FIELD";
   field: keyof PlanState;
-  value: any;
+  /** The value type depends on the field being updated. Use type guards when consuming. */
+  value: PlanState[keyof PlanState];
 };
 
 // Cohort for generational wealth simulation
@@ -70,10 +74,10 @@ export type Inputs = {
   marital: FilingStatus;
   age1: number;
   age2: number;
-  retAge: number;
-  sTax: number;
-  sPre: number;
-  sPost: number;
+  retirementAge: number;
+  taxableBalance: number;
+  pretaxBalance: number;
+  rothBalance: number;
   cTax1: number;
   cPre1: number;
   cPost1: number;
@@ -83,13 +87,13 @@ export type Inputs = {
   cPost2: number;
   cMatch2: number;
   retRate: number;
-  infRate: number;
+  inflationRate: number;
   stateRate: number;
   incContrib: boolean;
   incRate: number;
   wdRate: number;
-  retMode: ReturnMode;
-  walkSeries: WalkSeries;
+  returnMode: ReturnMode;
+  randomWalkSeries: WalkSeries;
   includeSS: boolean;
   ssIncome: number;
   ssClaimAge: number;

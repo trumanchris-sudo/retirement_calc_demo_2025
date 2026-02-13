@@ -6,6 +6,14 @@ import { TRANSITIONS } from "@/lib/designTokens";
 
 export type MainTabId = 'all' | 'configure' | 'ssot' | 'results' | 'stress' | 'legacy' | 'budget' | 'optimize' | 'math' | 'checkUs';
 
+/** All valid main tab IDs for runtime validation */
+const VALID_MAIN_TAB_IDS: readonly MainTabId[] = ['all', 'configure', 'ssot', 'results', 'stress', 'legacy', 'budget', 'optimize', 'math', 'checkUs'] as const;
+
+/** Type guard to check if a string is a valid MainTabId */
+export function isMainTabId(value: string): value is MainTabId {
+  return VALID_MAIN_TAB_IDS.includes(value as MainTabId);
+}
+
 export interface TabNavigationProps {
   activeTab: MainTabId;
   onTabChange: (tab: MainTabId) => void;
