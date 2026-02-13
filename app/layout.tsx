@@ -102,11 +102,11 @@ export default function RootLayout({
         <ErrorBoundary>
           <Providers>
             {children}
+            <InstallPrompt />
+            <OfflineUI />
           </Providers>
         </ErrorBoundary>
         <LiveRegion />
-        <InstallPrompt />
-        <OfflineUI />
         <Analytics />
         <SpeedInsights />
       </body>
