@@ -19,6 +19,47 @@ interface AIReviewPanelProps {
 
 /** Collect a snapshot of the current page state for QA analysis */
 function collectPageState() {
+  try {
+  return collectPageStateInner();
+  } catch (err) {
+    console.error('[QA Review] Error collecting page state:', err);
+    return {
+      url: window.location.href,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      activeTab: 'unknown',
+      visibleSections: [] as string[],
+      emptyContainers: [] as string[],
+      consoleErrors: [`collectPageState crashed: ${err instanceof Error ? err.message : String(err)}`],
+      consoleWarnings: [] as string[],
+      missingImages: [] as string[],
+      brokenLinks: [] as string[],
+      accessibilityIssues: [] as string[],
+      overflowingElements: [] as string[],
+      hiddenButShouldShow: [] as string[],
+      interactiveElements: [] as { tag: string; text: string; disabled: boolean; ariaLabel: string | null }[],
+      colorContrastIssues: [] as string[],
+      computedStyles: [] as string[],
+      dataDisplayIssues: [] as string[],
+      darkMode: false,
+      onboardingVisible: false,
+      chartsRendered: [] as string[],
+      chartsMissing: [] as string[],
+      formValidationErrors: [] as string[],
+      componentTree: '',
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+function collectPageStateInner() {
+  function getClassName(el: Element): string {
+    const cn = el.className;
+    if (typeof cn === 'string') return cn;
+    if (cn && typeof cn === 'object' && 'baseVal' in cn) return (cn as SVGAnimatedString).baseVal;
+    return '';
+  }
+
   const visibleSections: string[] = [];
   const emptyContainers: string[] = [];
   const consoleErrors: string[] = [];
@@ -37,7 +78,7 @@ function collectPageState() {
   // Detect visible sections by looking for common landmark/section elements
   document.querySelectorAll("section, [role='tabpanel'], [data-testid], main, header, footer, [class*='tab-content']").forEach((el) => {
     const rect = el.getBoundingClientRect();
-    const id = el.id || el.getAttribute("data-testid") || el.getAttribute("aria-label") || el.className.split(" ").slice(0, 3).join(".");
+    const id = el.id || el.getAttribute("data-testid") || el.getAttribute("aria-label") || getClassName(el).split(" ").slice(0, 3).join(".");
     if (rect.height > 0) {
       visibleSections.push(`${el.tagName.toLowerCase()}#${id} (${Math.round(rect.width)}x${Math.round(rect.height)})`);
     }
@@ -47,7 +88,7 @@ function collectPageState() {
   document.querySelectorAll("div, section").forEach((el) => {
     const rect = el.getBoundingClientRect();
     if (rect.height > 50 && rect.width > 100 && el.children.length === 0 && !el.textContent?.trim()) {
-      const id = el.id || el.className.split(" ").slice(0, 3).join(".");
+      const id = el.id || getClassName(el).split(" ").slice(0, 3).join(".");
       emptyContainers.push(`${el.tagName.toLowerCase()}.${id} (${Math.round(rect.width)}x${Math.round(rect.height)})`);
     }
   });
@@ -75,7 +116,7 @@ function collectPageState() {
     const hasLabel = ariaLabel || text || el.getAttribute("title");
 
     if (!hasLabel) {
-      accessibilityIssues.push(`${tag} with no accessible label (class: ${el.className.split(" ").slice(0, 2).join(".")})`);
+      accessibilityIssues.push(`${tag} with no accessible label (class: ${getClassName(el).split(" ").slice(0, 2).join(".")})`);
     }
 
     // Collect interactive elements
@@ -104,7 +145,7 @@ function collectPageState() {
   document.querySelectorAll("*").forEach((el) => {
     const htmlEl = el as HTMLElement;
     if (htmlEl.scrollWidth > htmlEl.clientWidth + 5 && htmlEl.clientWidth > 0) {
-      const id = htmlEl.id || htmlEl.className.split(" ").slice(0, 2).join(".");
+      const id = htmlEl.id || getClassName(htmlEl).split(" ").slice(0, 2).join(".");
       if (htmlEl.tagName !== "HTML" && htmlEl.tagName !== "BODY") {
         overflowingElements.push(`${htmlEl.tagName.toLowerCase()}.${id} overflows horizontally (scrollW=${htmlEl.scrollWidth} > clientW=${htmlEl.clientWidth})`);
       }
@@ -115,7 +156,7 @@ function collectPageState() {
   document.querySelectorAll("canvas").forEach((canvas) => {
     const rect = canvas.getBoundingClientRect();
     const parent = canvas.closest("[class*='chart'], [class*='Chart'], [data-testid]");
-    const label = parent?.getAttribute("aria-label") || parent?.className.split(" ").slice(0, 2).join(".") || "unnamed-canvas";
+    const label = parent?.getAttribute("aria-label") || (parent ? getClassName(parent) : '').split(" ").slice(0, 2).join(".") || "unnamed-canvas";
     if (rect.height > 10 && rect.width > 10) {
       chartsRendered.push(`canvas: ${label} (${Math.round(rect.width)}x${Math.round(rect.height)})`);
     } else {
@@ -127,7 +168,7 @@ function collectPageState() {
   document.querySelectorAll(".recharts-wrapper, .recharts-responsive-container, svg.recharts-surface").forEach((el) => {
     const rect = el.getBoundingClientRect();
     const parent = el.closest("[class*='chart'], [class*='Chart'], [data-testid], section");
-    const label = parent?.getAttribute("aria-label") || parent?.id || el.className.split(" ").slice(0, 2).join(".");
+    const label = parent?.getAttribute("aria-label") || parent?.id || getClassName(el).split(" ").slice(0, 2).join(".");
     if (rect.height > 10 && rect.width > 10) {
       chartsRendered.push(`recharts: ${label} (${Math.round(rect.width)}x${Math.round(rect.height)})`);
     } else {
@@ -154,7 +195,7 @@ function collectPageState() {
   document.querySelectorAll("[class*='amount'], [class*='value'], [class*='balance'], [class*='result']").forEach((el) => {
     const text = el.textContent?.trim() || "";
     if (text.includes("$NaN") || text.includes("$undefined")) {
-      dataDisplayIssues.push(`Invalid financial value "${text}" in ${el.className.split(" ").slice(0, 2).join(".")}`);
+      dataDisplayIssues.push(`Invalid financial value "${text}" in ${getClassName(el).split(" ").slice(0, 2).join(".")}`);
     }
   });
 

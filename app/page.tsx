@@ -1087,11 +1087,11 @@ export default function App() {
   const cTax1 = planConfig.cTax1 ?? DEFAULTS.cTax1;
   const cPre1 = planConfig.cPre1 ?? DEFAULTS.cPre1;
   const cPost1 = planConfig.cPost1 ?? DEFAULTS.cPost1;
-  const cMatch1 = planConfig.cMatch1 ?? DEFAULTS.cMatch1;
+  const cMatch1 = Math.max(0, planConfig.cMatch1 ?? DEFAULTS.cMatch1);
   const cTax2 = planConfig.cTax2 ?? DEFAULTS.cTax2;
   const cPre2 = planConfig.cPre2 ?? DEFAULTS.cPre2;
   const cPost2 = planConfig.cPost2 ?? DEFAULTS.cPost2;
-  const cMatch2 = planConfig.cMatch2 ?? DEFAULTS.cMatch2;
+  const cMatch2 = Math.max(0, planConfig.cMatch2 ?? DEFAULTS.cMatch2);
 
   // Return and Withdrawal Assumptions
   const retRate = planConfig.retRate ?? DEFAULTS.retRate;
@@ -2694,7 +2694,16 @@ export default function App() {
                 let generation = 0;
 
                 // Recursively create younger generations until we find one within fertility window
-                while (currentAge > fertilityWindowEnd) {
+                // Safety guard: limit iterations to prevent infinite loop if generationLength <= 0
+                const maxGenerations = 20;
+                while (currentAge > fertilityWindowEnd && generation < maxGenerations) {
+                  // Guard against non-positive generationLength (would cause infinite loop)
+                  if (generationLength <= 0) {
+                    console.warn('[BACKFILL] generationLength <= 0, breaking to prevent infinite loop');
+                    currentAge = 0; // Force exit by setting age within window
+                    break;
+                  }
+
                   // Calculate implied child age
                   const childAge = currentAge - generationLength;
 
@@ -3663,6 +3672,29 @@ export default function App() {
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8">
+
+        {/* Global error banner - visible on ALL tabs */}
+        {err && (
+          <Card className="border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30">
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-red-800 dark:text-red-200">Calculation Error</p>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">{err}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => setErr(null)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {res && (
           <>

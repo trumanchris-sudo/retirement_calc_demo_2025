@@ -290,6 +290,19 @@ export function LegacyTab({
             </Button>
           </div>
 
+          {/* Status message when calculation ran but no legacy results */}
+          {res && !res.genPayout && showGen && (
+            <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-center">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                Legacy calculation did not produce results.
+              </p>
+              <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                This usually means the projected end-of-life estate is too small to fund generational distributions.
+                Try increasing your savings rate or reducing the per-beneficiary payout amount, then recalculate.
+              </p>
+            </div>
+          )}
+
           {res?.genPayout && (
             <>
               <Separator className="my-6" />

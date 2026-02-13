@@ -436,9 +436,12 @@ export function mapAIDataToCalculator(
       // Split combined match proportionally by income
       const totalIncome = primaryIncome + spouseIncome;
       const person2Ratio = totalIncome > 0 ? spouseIncome / totalIncome : 0.5;
-      cMatch2 = Math.min(extractedData.contributionMatch * person2Ratio, IRS_LIMITS_2026['401k'] - cPre2);
+      // Use 401kTotal limit (employee + employer combined) to cap match, not employee-only 401k limit
+      // This is correct because employer match is an employer contribution that must fit within
+      // the total annual addition limit ($72k for 2026), not the employee elective deferral limit ($24.5k)
+      cMatch2 = Math.max(0, Math.min(extractedData.contributionMatch * person2Ratio, IRS_LIMITS_2026['401kTotal'] - cPre2));
       // Also adjust cMatch1 to be the remainder
-      cMatch1 = Math.min(extractedData.contributionMatch * (1 - person2Ratio), IRS_LIMITS_2026['401k'] - cPre1);
+      cMatch1 = Math.max(0, Math.min(extractedData.contributionMatch * (1 - person2Ratio), IRS_LIMITS_2026['401kTotal'] - cPre1));
     } else {
       // No employer match assumed - user must provide this in the wizard
       cMatch2 = 0;
