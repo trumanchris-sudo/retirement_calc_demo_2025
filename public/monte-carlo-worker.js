@@ -625,7 +625,7 @@
   }
 
   // lib/calculations/shared/withdrawalTax.ts
-  function computeWithdrawalTaxes(gross, status, taxableBal, pretaxBal, rothBal, taxableBasis, statePct, minPretaxDraw = 0, baseOrdinaryIncome = 0) {
+  function computeWithdrawalTaxes(gross, status, taxableBal, pretaxBal, rothBal, taxableBasis, statePct, minPretaxDraw = 0, baseOrdinaryIncome = 0, preserveRoth = true) {
     const safeTaxableBal = Number.isFinite(taxableBal) ? Math.max(0, taxableBal) : 0;
     const safePretaxBal = Number.isFinite(pretaxBal) ? Math.max(0, pretaxBal) : 0;
     const safeRothBal = Number.isFinite(rothBal) ? Math.max(0, rothBal) : 0;
@@ -642,14 +642,29 @@
     let drawT = 0;
     let drawR = 0;
     if (remainingNeed > 0) {
-      const availableBal = safeTaxableBal + (safePretaxBal - drawP) + safeRothBal;
-      if (availableBal > 0) {
-        const shareT = safeTaxableBal / availableBal;
-        const shareP = (safePretaxBal - drawP) / availableBal;
-        const shareR = safeRothBal / availableBal;
-        drawT = remainingNeed * shareT;
-        drawP += remainingNeed * shareP;
-        drawR = remainingNeed * shareR;
+      if (preserveRoth) {
+        let stillNeeded = remainingNeed;
+        drawT = Math.min(stillNeeded, safeTaxableBal);
+        stillNeeded -= drawT;
+        if (stillNeeded > 0) {
+          const availablePretax = safePretaxBal - drawP;
+          const additionalPretax = Math.min(stillNeeded, availablePretax);
+          drawP += additionalPretax;
+          stillNeeded -= additionalPretax;
+        }
+        if (stillNeeded > 0) {
+          drawR = Math.min(stillNeeded, safeRothBal);
+        }
+      } else {
+        const availableBal = safeTaxableBal + (safePretaxBal - drawP) + safeRothBal;
+        if (availableBal > 0) {
+          const shareT = safeTaxableBal / availableBal;
+          const shareP = (safePretaxBal - drawP) / availableBal;
+          const shareR = safeRothBal / availableBal;
+          drawT = remainingNeed * shareT;
+          drawP += remainingNeed * shareP;
+          drawR = remainingNeed * shareR;
+        }
       }
     } else if (remainingNeed < 0) {
     }

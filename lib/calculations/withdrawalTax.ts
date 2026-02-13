@@ -31,8 +31,7 @@ export interface WithdrawalResult {
 }
 
 /**
- * Calculate taxes on a retirement withdrawal using pro-rata distribution
- * across taxable, pre-tax (401k/IRA), and Roth accounts
+ * Calculate taxes on a retirement withdrawal
  *
  * @param gross - Gross withdrawal amount needed
  * @param status - Filing status (single or married)
@@ -43,6 +42,7 @@ export interface WithdrawalResult {
  * @param statePct - State tax rate percentage (e.g., 5 for 5%)
  * @param minPretaxDraw - Optional minimum required pre-tax withdrawal (RMD)
  * @param baseOrdinaryIncome - Optional base ordinary income (e.g., Social Security) that fills lower tax brackets
+ * @param preserveRoth - If true, avoid Roth withdrawals until other accounts are depleted (for inheritance planning)
  * @returns Detailed tax breakdown and withdrawal amounts by account
  */
 export function computeWithdrawalTaxes(
@@ -54,7 +54,8 @@ export function computeWithdrawalTaxes(
   taxableBasis: number,
   statePct: number,
   minPretaxDraw: number = 0,
-  baseOrdinaryIncome: number = 0
+  baseOrdinaryIncome: number = 0,
+  preserveRoth: boolean = true  // Default to preserving Roth for inheritance
 ): WithdrawalResult {
   // Guard against NaN/undefined inputs - coerce to 0 for safety
   const safeTaxableBal = Number.isFinite(taxableBal) ? Math.max(0, taxableBal) : 0;
@@ -77,18 +78,42 @@ export function computeWithdrawalTaxes(
   let drawT = 0;
   let drawR = 0;
 
-  // If there's a remaining need after RMD, distribute it pro-rata
+  // If there's a remaining need after RMD, distribute based on strategy
   if (remainingNeed > 0) {
-    const availableBal = safeTaxableBal + (safePretaxBal - drawP) + safeRothBal;
+    if (preserveRoth) {
+      // ROTH-LAST STRATEGY: Preserve Roth for inheritance
+      // Priority: 1) Taxable, 2) Pre-tax, 3) Roth (only if needed)
+      let stillNeeded = remainingNeed;
 
-    if (availableBal > 0) {
-      const shareT = safeTaxableBal / availableBal;
-      const shareP = (safePretaxBal - drawP) / availableBal;
-      const shareR = safeRothBal / availableBal;
+      // 1. Draw from taxable first
+      drawT = Math.min(stillNeeded, safeTaxableBal);
+      stillNeeded -= drawT;
 
-      drawT = remainingNeed * shareT;
-      drawP += remainingNeed * shareP;
-      drawR = remainingNeed * shareR;
+      // 2. Draw from pre-tax (beyond RMD)
+      if (stillNeeded > 0) {
+        const availablePretax = safePretaxBal - drawP;
+        const additionalPretax = Math.min(stillNeeded, availablePretax);
+        drawP += additionalPretax;
+        stillNeeded -= additionalPretax;
+      }
+
+      // 3. Only draw from Roth as last resort
+      if (stillNeeded > 0) {
+        drawR = Math.min(stillNeeded, safeRothBal);
+      }
+    } else {
+      // PRO-RATA STRATEGY: Traditional proportional distribution
+      const availableBal = safeTaxableBal + (safePretaxBal - drawP) + safeRothBal;
+
+      if (availableBal > 0) {
+        const shareT = safeTaxableBal / availableBal;
+        const shareP = (safePretaxBal - drawP) / availableBal;
+        const shareR = safeRothBal / availableBal;
+
+        drawT = remainingNeed * shareT;
+        drawP += remainingNeed * shareP;
+        drawR = remainingNeed * shareR;
+      }
     }
   } else if (remainingNeed < 0) {
     // RMD exceeds gross need - excess will be reinvested in taxable

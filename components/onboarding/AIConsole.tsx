@@ -29,36 +29,43 @@ interface AIConsoleProps {
  */
 const ADMIN_PRESETS: Record<string, ExtractedData> = {
   admin1: {
-    age: 45,
-    spouseAge: 43,
+    // Personal Info
+    age: 35,
+    spouseAge: 34,
     maritalStatus: 'married',
     state: 'WA',
-    employmentType1: 'w2',
-    employmentType2: 'w2',
-    primaryIncome: 250000,
-    spouseIncome: 150000,
-    currentTraditional: 500000,
-    currentRoth: 200000,
-    currentTaxable: 300000,
-    emergencyFund: 50000,
-    contributionTraditional: 46000,
-    contributionRoth: 14000,
-    contributionTaxable: 30000,
-    contributionMatch: 20000,
+    employmentType1: 'k1',  // K-1 partner
+    employmentType2: 'w2',  // W-2 employee
+    // Income
+    primaryIncome: 750000,  // $550k base + $200k bonus
+    spouseIncome: 145000,   // $145k base, no bonus
+    // Current Balances
+    currentTraditional: 400000,  // Combined traditional 401ks
+    currentRoth: 128000,         // $78k Roth IRAs + $50k Roth 401ks
+    currentTaxable: 74000,       // Brokerage account
+    emergencyFund: 80000,
+    // Annual Contributions (both max retirement accounts)
+    contributionTraditional: 94500,  // $23.5k each 401k + $47.5k K-1 defined contribution
+    contributionRoth: 14000,         // Max backdoor Roth for both ($7k each)
+    contributionTaxable: 100000,     // Additional brokerage savings
+    contributionMatch: 15000,        // Estimated employer match
     retirementAge: 60,
-    // Housing & Expenses
-    monthlyMortgageRent: 4500,
+    // Housing
+    monthlyMortgageRent: 5859,
     monthlyUtilities: 400,
-    monthlyInsurancePropertyTax: 800,
-    monthlyHealthcareP1: 600,
-    monthlyHealthcareP2: 600,
-    monthlyOtherExpenses: 2000,
-    // Additional expense categories for 2026 income calculators
-    monthlyHouseholdExpenses: 1500,
-    monthlyDiscretionary: 2500,
-    monthlyChildcare: 0,
-    annualLifeInsuranceP1: 2000, // ~$2M coverage at ~$1/$1000
-    annualLifeInsuranceP2: 1200, // ~$1.5M coverage
+    // Insurance (property $26k + home $8.5k + car $3.8k + flood $2.2k = $40.5k/yr = $3,375/mo)
+    monthlyInsurancePropertyTax: 3375,
+    // Healthcare ($2k/month combined)
+    monthlyHealthcareP1: 1000,
+    monthlyHealthcareP2: 1000,
+    // Other expenses
+    monthlyOtherExpenses: 3500,  // State taxes ~$3,500/month
+    monthlyHouseholdExpenses: 3500,
+    monthlyDiscretionary: 6000,  // $3k each
+    monthlyChildcare: 1500,
+    // Life insurance
+    annualLifeInsuranceP1: 3000,
+    annualLifeInsuranceP2: 2000,
   },
 };
 
