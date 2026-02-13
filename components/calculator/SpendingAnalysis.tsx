@@ -718,7 +718,7 @@ export default function SpendingAnalysis({
                         paddingAngle={2}
                         dataKey="value"
                         label={({ name, percent }) =>
-                          `${name}: ${percent.toFixed(0)}%`
+                          `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
                         }
                         labelLine={true}
                       >

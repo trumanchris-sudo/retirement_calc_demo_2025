@@ -64,9 +64,9 @@ export default function SelfEmployed2026Page() {
   // STATE MANAGEMENT
   // ============================================================================
 
-  // Income Section
-  const [grossCompensation, setGrossCompensation] = useState(750000);
-  const [guaranteedPayments, setGuaranteedPayments] = useState(550000);
+  // Income Section — seeded from PlanConfig; hardcoded defaults removed
+  const [grossCompensation, setGrossCompensation] = useState(planConfig.primaryIncome || 0);
+  const [guaranteedPayments, setGuaranteedPayments] = useState(planConfig.primaryIncome || 0);
   const [payFrequency, setPayFrequency] = useState<PayFrequency>("semimonthly");
 
   // Distributive Share Schedule
@@ -75,22 +75,24 @@ export default function SelfEmployed2026Page() {
   const [statePTETAlreadyPaid, setStatePTETAlreadyPaid] = useState(false);
   const [federalEstimatesAlreadyPaid, setFederalEstimatesAlreadyPaid] = useState(false);
 
-  // Filing Status & Spouse
-  const [filingStatus, setFilingStatus] = useState<SEFilingStatus>("mfj");
-  const [spouseW2Income, setSpouseW2Income] = useState(145000);
+  // Filing Status & Spouse — seeded from PlanConfig
+  const [filingStatus, setFilingStatus] = useState<SEFilingStatus>(
+    planConfig.marital === 'married' ? 'mfj' : 'single'
+  );
+  const [spouseW2Income, setSpouseW2Income] = useState(planConfig.spouseIncome || 0);
   const [spouseWithholding, setSpouseWithholding] = useState(1577);
   const [spousePayFrequency, setSpousePayFrequency] = useState<PayFrequency>("biweekly");
 
-  // Retirement & Benefits
-  const [age, setAge] = useState(42);
+  // Retirement & Benefits — seeded from PlanConfig
+  const [age, setAge] = useState(planConfig.age1 || 35);
   const [traditional401k, setTraditional401k] = useState(24500);
   const [roth401k, setRoth401k] = useState(0);
   const [definedBenefitPlan, setDefinedBenefitPlan] = useState(26500);
   const [sepIRA, setSepIRA] = useState(0);
   const [solo401kEmployer, setSolo401kEmployer] = useState(0);
 
-  // Spouse Retirement
-  const [spouseAge, setSpouseAge] = useState(40);
+  // Spouse Retirement — seeded from PlanConfig
+  const [spouseAge, setSpouseAge] = useState(planConfig.age2 || 30);
   const [spouseTraditional401k, setSpouseTraditional401k] = useState(0);
   const [spouseRoth401k, setSpouseRoth401k] = useState(0);
 
@@ -102,8 +104,8 @@ export default function SelfEmployed2026Page() {
   const [dependentCareFSA, setDependentCareFSA] = useState(5000);
   const [healthFSA, setHealthFSA] = useState(0);
 
-  // State Taxes
-  const [stateRate, setStateRate] = useState(4.5);
+  // State Taxes — seeded from PlanConfig
+  const [stateRate, setStateRate] = useState(planConfig.stateRate || 4.5);
   const [withholdingMethod, setWithholdingMethod] = useState<'partnership_withholds' | 'quarterly_estimates'>('partnership_withholds');
 
   // Fixed Expenses
@@ -260,7 +262,7 @@ export default function SelfEmployed2026Page() {
       setHealthInsurancePremium(totalMonthlyHealthcare * 12);
     }
 
-    const currentAge = planConfig.age1 || 42;
+    const currentAge = planConfig.age1 || 35;
     const isFamilyCoverage = planConfig.marital === 'married';
     const hsaBaseLimit = isFamilyCoverage ? HSA_LIMITS_2026.FAMILY : HSA_LIMITS_2026.SELF_ONLY;
     const hsaCatchUp = currentAge >= 55 ? HSA_LIMITS_2026.CATCHUP_55_PLUS : 0;
@@ -331,10 +333,10 @@ export default function SelfEmployed2026Page() {
   const handleClearAIData = useCallback(() => {
     setIsFromAIOnboarding(false);
     setShowAIBanner(false);
-    setFilingStatus('mfj');
-    setGrossCompensation(750000);
-    setGuaranteedPayments(550000);
-    setSpouseW2Income(145000);
+    setFilingStatus('single');
+    setGrossCompensation(0);
+    setGuaranteedPayments(0);
+    setSpouseW2Income(0);
   }, []);
 
   const handleApplyToMainPlan = useCallback(() => {

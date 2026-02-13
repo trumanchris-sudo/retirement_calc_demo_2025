@@ -606,8 +606,8 @@ export function RadarChart({
                     : "bg-muted/30"
                 )}
                 style={{
-                  ringColor: scenario.color
-                }}
+                  '--tw-ring-color': scenario.color
+                } as React.CSSProperties}
                 onMouseEnter={() => setHoveredScenario(scenario.id)}
                 onMouseLeave={() => setHoveredScenario(null)}
                 onClick={() => setSelectedScenario(

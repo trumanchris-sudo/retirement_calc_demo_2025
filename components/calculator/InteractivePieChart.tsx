@@ -262,7 +262,6 @@ export const InteractivePieChart = React.memo(function InteractivePieChart({
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [drillDownPath, setDrillDownPath] = useState<PieSegment[]>([]);
-  const [isAnimating, setIsAnimating] = useState(true);
   const [hoveredLegendIndex, setHoveredLegendIndex] = useState<number | null>(null);
 
   // Get current data based on drill-down path
@@ -290,17 +289,8 @@ export const InteractivePieChart = React.memo(function InteractivePieChart({
     [palette]
   );
 
-  // Animation complete handler
+  // Reset state on drill-down
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsAnimating(false);
-    }, animationDuration);
-    return () => clearTimeout(timer);
-  }, [animationDuration, drillDownPath]);
-
-  // Reset animation on drill-down
-  useEffect(() => {
-    setIsAnimating(true);
     setActiveIndex(null);
     setSelectedIndex(null);
   }, [drillDownPath]);

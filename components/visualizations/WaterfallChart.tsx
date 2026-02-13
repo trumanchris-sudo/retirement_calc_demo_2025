@@ -399,9 +399,10 @@ export const WaterfallChart = React.memo(function WaterfallChart({
   }, [processedData]);
 
   // Custom bar shape renderer
-  const renderBar = (props: CustomBarProps) => (
+  // Reason: recharts v2 Bar shape prop types are overly restrictive but accept render functions at runtime
+  const renderBar = (props: unknown) => (
     <CustomBar
-      {...props}
+      {...(props as CustomBarProps)}
       animated={animated}
       animationDelay={animationDuration}
       isAnimationComplete={isAnimationComplete}

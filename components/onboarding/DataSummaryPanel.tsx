@@ -4,7 +4,7 @@ import React from 'react';
 import type { ExtractedData, AssumptionWithReasoning } from '@/types/ai-onboarding';
 import { FIELD_DISPLAY_NAMES } from '@/types/ai-onboarding';
 import { Badge } from '@/components/ui/badge';
-import { Check, X } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 interface DataSummaryPanelProps {
   extractedData: ExtractedData;
@@ -28,17 +28,17 @@ export const DataSummaryPanel = React.memo(function DataSummaryPanel({ extracted
   ).length;
 
   return (
-    <div className="h-full w-full bg-slate-950/80 backdrop-blur overflow-y-auto">
-      <div className="p-4 sm:p-6 border-b border-slate-800">
-        <h3 className="text-lg font-semibold text-slate-100 mb-2">Data Summary</h3>
+    <div className="h-full w-full bg-muted/50 overflow-y-auto">
+      <div className="p-4 sm:p-6 border-b">
+        <h3 className="text-lg font-semibold text-foreground mb-2">Data Summary</h3>
         <div className="flex items-center gap-4 text-sm">
           <div>
-            <span className="text-slate-400">Extracted:</span>
-            <span className="ml-2 font-semibold text-blue-300">{extractedCount} fields</span>
+            <span className="text-muted-foreground">Extracted:</span>
+            <span className="ml-2 font-semibold text-blue-600">{extractedCount} fields</span>
           </div>
           <div>
-            <span className="text-slate-400">Required:</span>
-            <span className="ml-2 font-semibold text-green-300">
+            <span className="text-muted-foreground">Required:</span>
+            <span className="ml-2 font-semibold text-green-600">
               {completedRequired}/{requiredFields.length}
             </span>
           </div>
@@ -48,11 +48,11 @@ export const DataSummaryPanel = React.memo(function DataSummaryPanel({ extracted
       {/* Extracted Data */}
       <div className="p-4 sm:p-6 space-y-4">
         <div>
-          <h4 className="text-sm font-semibold text-slate-300 mb-3 uppercase tracking-wider">
+          <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
             Collected Information
           </h4>
           {extractedCount === 0 ? (
-            <p className="text-sm text-slate-500 italic">No data collected yet</p>
+            <p className="text-sm text-muted-foreground italic">No data collected yet</p>
           ) : (
             <div className="space-y-2">
               {(Object.keys(extractedData) as Array<keyof ExtractedData>)
@@ -64,22 +64,22 @@ export const DataSummaryPanel = React.memo(function DataSummaryPanel({ extracted
                   return (
                     <div
                       key={key}
-                      className="bg-slate-900/50 border border-slate-800 rounded-lg p-3"
+                      className="bg-card border rounded-lg p-3"
                     >
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-muted-foreground">
                           {FIELD_DISPLAY_NAMES[key]}
                         </span>
                         {isRequired && (
                           <Badge
                             variant="outline"
-                            className="bg-green-950/50 text-green-400 border-green-800 text-xs"
+                            className="bg-green-50 text-green-700 border-green-200 text-xs"
                           >
                             <Check className="w-3 h-3" />
                           </Badge>
                         )}
                       </div>
-                      <div className="text-sm font-medium text-slate-100">
+                      <div className="text-sm font-medium text-foreground">
                         {formatDataValue(value)}
                       </div>
                     </div>
@@ -92,36 +92,36 @@ export const DataSummaryPanel = React.memo(function DataSummaryPanel({ extracted
         {/* Assumptions */}
         {assumptions.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold text-slate-300 mb-3 uppercase tracking-wider">
+            <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
               Assumptions Made
             </h4>
             <div className="space-y-2">
               {assumptions.map((assumption, index) => (
                 <div
                   key={`${assumption.field}-${index}`}
-                  className="bg-slate-900/50 border border-slate-800 rounded-lg p-3"
+                  className="bg-card border rounded-lg p-3"
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-muted-foreground">
                       {assumption.displayName}
                     </span>
                     <Badge
                       variant="outline"
                       className={
                         assumption.confidence === 'high'
-                          ? 'bg-green-950/50 text-green-400 border-green-800'
+                          ? 'bg-green-50 text-green-700 border-green-200'
                           : assumption.confidence === 'medium'
-                          ? 'bg-yellow-950/50 text-yellow-400 border-yellow-800'
-                          : 'bg-red-950/50 text-red-400 border-red-800'
+                          ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                          : 'bg-red-50 text-red-700 border-red-200'
                       }
                     >
                       {assumption.confidence}
                     </Badge>
                   </div>
-                  <div className="text-sm font-medium text-blue-300 mb-1">
+                  <div className="text-sm font-medium text-blue-600 mb-1">
                     {formatDataValue(assumption.value)}
                   </div>
-                  <p className="text-xs text-slate-500 italic line-clamp-2">
+                  <p className="text-xs text-muted-foreground italic line-clamp-2">
                     {assumption.reasoning}
                   </p>
                 </div>
@@ -131,16 +131,16 @@ export const DataSummaryPanel = React.memo(function DataSummaryPanel({ extracted
         )}
 
         {/* Progress Indicator */}
-        <div className="pt-4 border-t border-slate-800">
+        <div className="pt-4 border-t">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-400">Completion</span>
-            <span className="text-xs font-semibold text-slate-300">
+            <span className="text-xs text-muted-foreground">Completion</span>
+            <span className="text-xs font-semibold text-foreground">
               {Math.round((completedRequired / requiredFields.length) * 100)}%
             </span>
           </div>
-          <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+              className="h-full bg-primary transition-all duration-500"
               style={{
                 width: `${(completedRequired / requiredFields.length) * 100}%`,
               }}

@@ -96,10 +96,10 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
     >
       {/* Header */}
       <div>
-        <h3 className="text-xl font-semibold text-slate-50 mb-2">
+        <h3 className="text-xl font-semibold text-foreground mb-2">
           Review & edit assumptions
         </h3>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-muted-foreground">
           The most impactful assumptions are shown below. Other planning assumptions (inflation, returns, tax rates) use standard defaults.
         </p>
       </div>
@@ -107,7 +107,7 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
       {/* Sections with grid layout */}
       {sections.map((section) => (
         <div key={section.title} className="space-y-3">
-          <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">
+          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
             {section.title}
           </h4>
 
@@ -125,20 +125,20 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
                   className={cn(
                     'space-y-2 p-3 rounded-lg border transition-colors',
                     isEdited
-                      ? 'bg-blue-950/30 border-blue-700/50'
-                      : 'bg-slate-800/50 border-slate-700/50'
+                      ? 'bg-blue-50 border-blue-200'
+                      : 'bg-card border'
                   )}
                 >
                   {/* Label with badges */}
                   <div className="flex items-center justify-between gap-2">
-                    <label className="text-sm font-medium text-slate-200">
+                    <label className="text-sm font-medium text-foreground">
                       {assumption.displayName}
                     </label>
                     <div className="flex items-center gap-1.5">
                       {assumption.userProvided && !isEdited && (
                         <Badge
                           variant="outline"
-                          className="h-5 px-1.5 text-[10px] bg-green-950/50 text-green-300 border-green-800/50"
+                          className="h-5 px-1.5 text-[10px] bg-green-50 text-green-700 border-green-200"
                         >
                           <Check className="w-2.5 h-2.5 mr-0.5" aria-hidden="true" />
                           Confirmed
@@ -147,7 +147,7 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
                       {isEdited && (
                         <Badge
                           variant="outline"
-                          className="h-5 px-1.5 text-[10px] bg-blue-950/50 text-blue-300 border-blue-700/50"
+                          className="h-5 px-1.5 text-[10px] bg-blue-50 text-blue-700 border-blue-200"
                         >
                           <Edit2 className="w-2.5 h-2.5 mr-0.5" aria-hidden="true" />
                           Edited
@@ -157,9 +157,9 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
                         variant="outline"
                         className={cn(
                           'h-5 px-1.5 text-[10px] flex items-center gap-0.5',
-                          assumption.confidence === 'high' && 'bg-slate-700/50 text-slate-400 border-slate-600/50',
-                          assumption.confidence === 'medium' && 'bg-yellow-950/30 text-yellow-400 border-yellow-800/30',
-                          assumption.confidence === 'low' && 'bg-red-950/30 text-red-400 border-red-800/30'
+                          assumption.confidence === 'high' && 'bg-muted text-muted-foreground border',
+                          assumption.confidence === 'medium' && 'bg-yellow-50 text-yellow-700 border-yellow-200',
+                          assumption.confidence === 'low' && 'bg-red-50 text-red-700 border-red-200'
                         )}
                         aria-label={`Confidence: ${assumption.confidence}`}
                       >
@@ -181,7 +181,7 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
                   />
 
                   {/* Helper text (reasoning) */}
-                  <p className="text-xs text-slate-400 italic">
+                  <p className="text-xs text-muted-foreground italic">
                     {assumption.reasoning}
                   </p>
                 </div>
@@ -193,8 +193,8 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
 
       {/* Update Assumptions button - show when user has made edits */}
       {hasEdits && onUpdateAssumptions && (
-        <div className="bg-blue-950/30 border border-blue-700/50 rounded-lg p-4">
-          <p className="text-sm text-blue-200 mb-3">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-800 mb-3">
             You've made {Object.keys(userEdits).length} change{Object.keys(userEdits).length !== 1 ? 's' : ''}.
             Click below to recalculate assumptions with your updated values.
           </p>
@@ -262,6 +262,8 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
   // Safely convert value to string for select elements
   const stringValue = value == null ? '' : String(value);
 
+  const selectClassName = "w-full px-3 py-2 bg-background border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-colors";
+
   // Handle string/select fields (maritalStatus, state, employmentType, etc.)
   if (field === 'maritalStatus') {
     return (
@@ -270,7 +272,7 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
         onChange={(e) => onChange(e.target.value)}
         onFocus={onFocus}
         onBlur={onBlur}
-        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+        className={selectClassName}
       >
         <option value="single">Single</option>
         <option value="married">Married</option>
@@ -285,7 +287,7 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
         onChange={(e) => onChange(e.target.value)}
         onFocus={onFocus}
         onBlur={onBlur}
-        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+        className={selectClassName}
       >
         <option value="w2">W-2 Employee</option>
         <option value="self-employed">Self-Employed</option>
@@ -303,7 +305,7 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
         onChange={(e) => onChange(e.target.value === 'yes')}
         onFocus={onFocus}
         onBlur={onBlur}
-        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+        className={selectClassName}
       >
         <option value="yes">Yes</option>
         <option value="no">No</option>
@@ -367,7 +369,7 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
         }}
         onFocus={onFocus}
         onBlur={onBlur}
-        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+        className="w-full"
       />
     );
   }
@@ -381,7 +383,7 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
       onChange={(e) => onChange(e.target.value)}
       onFocus={onFocus}
       onBlur={onBlur}
-      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+      className="w-full"
     />
   );
 }

@@ -171,7 +171,7 @@ export const SankeyDiagram: React.FC<SankeyDiagramProps> = ({
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredFlow, setHoveredFlow] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
   const [tooltipData, setTooltipData] = useState<{
     x: number;
     y: number;

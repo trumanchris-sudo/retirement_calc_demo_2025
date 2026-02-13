@@ -116,6 +116,7 @@ import { SSOTTab } from "@/components/calculator/SSOTTab";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
+import { createDefaultPlanConfig } from "@/types/plan-config";
 import { OnboardingSelector } from "@/components/onboarding/OnboardingSelector";
 import { AIReviewPanel } from "@/components/AIReviewPanel";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -1015,6 +1016,11 @@ export default function App() {
   const { setImplied } = useBudget();
   const { config: planConfig, updateConfig: updatePlanConfig, isDirty: configIsDirty } = usePlanConfig();
 
+  // Canonical defaults — used as ?? fallbacks to ensure page.tsx never diverges
+  // from createDefaultPlanConfig(). This eliminates the bug where hardcoded fallback
+  // values (e.g., cTax2 ?? 8000) differed from the actual defaults (cTax2: 0).
+  const DEFAULTS = useMemo(() => createDefaultPlanConfig(), []);
+
   // Onboarding wizard state - validate both flag AND config data
   const {
     shouldShowWizard,
@@ -1040,49 +1046,50 @@ export default function App() {
   }, [isAIDocMode]);
 
   // Read core fields directly from PlanConfig (single source of truth)
-  // Using ?? (nullish coalescing) instead of || to preserve legitimate 0 values
-  const marital = planConfig.marital ?? 'single';
-  const age1 = planConfig.age1 ?? 35;
-  const age2 = planConfig.age2 ?? 33;
-  const retirementAge = planConfig.retirementAge ?? 65;
+  // Fallbacks use DEFAULTS from createDefaultPlanConfig() to guarantee consistency.
+  // Using ?? (nullish coalescing) instead of || to preserve legitimate 0 values.
+  const marital = planConfig.marital ?? DEFAULTS.marital;
+  const age1 = planConfig.age1 ?? DEFAULTS.age1;
+  const age2 = planConfig.age2 ?? DEFAULTS.age2;
+  const retirementAge = planConfig.retirementAge ?? DEFAULTS.retirementAge;
 
   // Employment & Income
-  const employmentType1 = planConfig.employmentType1 ?? 'w2';
+  const employmentType1 = planConfig.employmentType1 ?? DEFAULTS.employmentType1;
   const employmentType2 = planConfig.employmentType2;
-  const primaryIncome = planConfig.primaryIncome ?? 100000;
-  const spouseIncome = planConfig.spouseIncome ?? 0;
+  const primaryIncome = planConfig.primaryIncome ?? DEFAULTS.primaryIncome;
+  const spouseIncome = planConfig.spouseIncome ?? DEFAULTS.spouseIncome;
 
   // Current Account Balances
-  const emergencyFund = planConfig.emergencyFund ?? 20000;
-  const taxableBalance = planConfig.taxableBalance ?? 50000;
-  const pretaxBalance = planConfig.pretaxBalance ?? 150000;
-  const rothBalance = planConfig.rothBalance ?? 25000;
+  const emergencyFund = planConfig.emergencyFund ?? DEFAULTS.emergencyFund;
+  const taxableBalance = planConfig.taxableBalance ?? DEFAULTS.taxableBalance;
+  const pretaxBalance = planConfig.pretaxBalance ?? DEFAULTS.pretaxBalance;
+  const rothBalance = planConfig.rothBalance ?? DEFAULTS.rothBalance;
 
   // Annual Contributions
-  const cTax1 = planConfig.cTax1 ?? 12000;
-  const cPre1 = planConfig.cPre1 ?? 23000;
-  const cPost1 = planConfig.cPost1 ?? 7000;
-  const cMatch1 = planConfig.cMatch1 ?? 0;
-  const cTax2 = planConfig.cTax2 ?? 8000;
-  const cPre2 = planConfig.cPre2 ?? 23000;
-  const cPost2 = planConfig.cPost2 ?? 7000;
-  const cMatch2 = planConfig.cMatch2 ?? 0;
+  const cTax1 = planConfig.cTax1 ?? DEFAULTS.cTax1;
+  const cPre1 = planConfig.cPre1 ?? DEFAULTS.cPre1;
+  const cPost1 = planConfig.cPost1 ?? DEFAULTS.cPost1;
+  const cMatch1 = planConfig.cMatch1 ?? DEFAULTS.cMatch1;
+  const cTax2 = planConfig.cTax2 ?? DEFAULTS.cTax2;
+  const cPre2 = planConfig.cPre2 ?? DEFAULTS.cPre2;
+  const cPost2 = planConfig.cPost2 ?? DEFAULTS.cPost2;
+  const cMatch2 = planConfig.cMatch2 ?? DEFAULTS.cMatch2;
 
   // Return and Withdrawal Assumptions
-  const retRate = planConfig.retRate ?? 9.8;
-  const inflationRate = planConfig.inflationRate ?? 2.6;
-  const stateRate = planConfig.stateRate ?? 0;
-  const incContrib = planConfig.incContrib ?? false;
-  const incRate = planConfig.incRate ?? 4.5;
-  const wdRate = planConfig.wdRate ?? 3.5;
-  const dividendYield = planConfig.dividendYield ?? 2.0;
+  const retRate = planConfig.retRate ?? DEFAULTS.retRate;
+  const inflationRate = planConfig.inflationRate ?? DEFAULTS.inflationRate;
+  const stateRate = planConfig.stateRate ?? DEFAULTS.stateRate;
+  const incContrib = planConfig.incContrib ?? DEFAULTS.incContrib;
+  const incRate = planConfig.incRate ?? DEFAULTS.incRate;
+  const wdRate = planConfig.wdRate ?? DEFAULTS.wdRate;
+  const dividendYield = planConfig.dividendYield ?? DEFAULTS.dividendYield;
 
   // Social Security Benefits
-  const includeSS = planConfig.includeSS ?? true;
-  const ssIncome = planConfig.ssIncome ?? 75000;
-  const ssClaimAge = planConfig.ssClaimAge ?? 67;
-  const ssIncome2 = planConfig.ssIncome2 ?? 75000;
-  const ssClaimAge2 = planConfig.ssClaimAge2 ?? 67;
+  const includeSS = planConfig.includeSS ?? DEFAULTS.includeSS;
+  const ssIncome = planConfig.ssIncome ?? DEFAULTS.ssIncome;
+  const ssClaimAge = planConfig.ssClaimAge ?? DEFAULTS.ssClaimAge;
+  const ssIncome2 = planConfig.ssIncome2 ?? DEFAULTS.ssIncome2;
+  const ssClaimAge2 = planConfig.ssClaimAge2 ?? DEFAULTS.ssClaimAge2;
 
   // Family & Children - read from context (synced with wizard)
   const numChildren = planConfig.numChildren ?? 0;
@@ -1097,7 +1104,7 @@ export default function App() {
   // This eliminates the useEffect cascade that was syncing bondStartAge with age1
   const setAge1 = (value: number) => {
     const currentBondStartAge = planConfig.bondStartAge;
-    const currentAge1 = planConfig.age1 ?? 35;
+    const currentAge1 = planConfig.age1 ?? DEFAULTS.age1;
     // If bondStartAge was tracking age1 (not user-overridden), keep it in sync atomically
     const bondStartAgeFollowsAge = currentBondStartAge === undefined || currentBondStartAge === currentAge1;
     const updates: Partial<typeof planConfig> = { age1: value };
@@ -1467,6 +1474,7 @@ export default function App() {
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [inputsModified, setInputsModified] = useState(false);
   const [isFromWizard, setIsFromWizard] = useState(false); // Track if calculation triggered from wizard completion
+  const [calcPending, setCalcPending] = useState(false); // Deferred calc trigger — replaces setTimeout race condition
 
   // Callback for URL tab sync - wrapped in useCallback to prevent unnecessary re-renders
   const handleURLTabChange = useCallback((tab: MainTabId) => {
@@ -3009,6 +3017,22 @@ export default function App() {
     runRothOptimizer, enableRothConversions, targetConversionBracket, bondGlidePath,
   ]);
 
+  // AUTO-CALCULATE AFTER WIZARD COMPLETION
+  // When onboarding sets pendingCalcFromWizard=true, this effect fires on the NEXT
+  // render cycle — after React has flushed the planConfig updates and the derived
+  // local constants (age1, retirementAge, etc.) reflect the new values.
+  // This replaces the unreliable setTimeout(100) that could race against React's
+  // render cycle on slow devices.
+  const [pendingCalcFromWizard, setPendingCalcFromWizard] = useState(false);
+
+  useEffect(() => {
+    if (pendingCalcFromWizard) {
+      console.log('[ONBOARDING] planConfig propagated, triggering calc() via useEffect');
+      setPendingCalcFromWizard(false);
+      calc();
+    }
+  }, [pendingCalcFromWizard, calc]);
+
   // Calculate sensitivity analysis using ACTUAL simulations (not approximations)
   const calculateSensitivity = useCallback(() => {
     if (!res) return null;
@@ -3327,13 +3351,22 @@ export default function App() {
     }, 'user-entered');
   }, [updatePlanConfig]);
 
+  // Deferred calculation trigger — runs calc() AFTER React flushes planConfig updates.
+  // Replaces the fragile setTimeout(100) hack that raced against React rendering.
+  useEffect(() => {
+    if (calcPending) {
+      calc();
+      setCalcPending(false);
+    }
+  }, [calcPending, calc]);
+
   // TRUE SIDE EFFECT: Auto-run calculations when entering AI Doc Mode
   // This triggers an async calculation side effect when the secret mode is activated.
   // IMPORTANT: This hook must be before the early return to avoid hooks violation.
   useEffect(() => {
     if (isAIDocMode && !res) {
       console.log('[AI Doc Mode] Auto-running calculations...');
-      setTimeout(() => calc(), 100);
+      setCalcPending(true);
     }
   }, [isAIDocMode]);
 
@@ -3341,8 +3374,8 @@ export default function App() {
   // This prevents hydration mismatch since localStorage is only available client-side
   if (shouldShowWizard === null) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white/60 text-sm">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground text-sm">Loading...</div>
       </div>
     );
   }
@@ -3364,20 +3397,11 @@ export default function App() {
           // 2. Auto-navigate to Results tab after calculation
           setIsFromWizard(true);
 
-          // CRITICAL: Wait for React to update planConfig and re-render
-          // The onboarding updates planConfig in QuickStart or AIConsole,
-          // but calc() needs to wait for the component to re-render with new values
-          // before reading age1, age2, retirementAge, etc. from planConfig
-          console.log('[ONBOARDING] Waiting for planConfig to propagate...');
-          await new Promise(resolve => setTimeout(resolve, 100));
-
-          // Auto-run calculation
-          // The calc() function will:
-          // 1. Play WORK→DIE→RETIRE animation (because isFromWizard=true)
-          // 2. Run calculation in background
-          // 3. Navigate to Results tab and scroll to top
-          console.log('[ONBOARDING] Triggering calc() with updated planConfig values');
-          calc();
+          // CRITICAL: Defer calc() via state flag so it runs AFTER React flushes
+          // the planConfig update. The useEffect watching calcPending will fire
+          // once the component re-renders with the new planConfig values.
+          console.log('[ONBOARDING] Setting calcPending — calc() will fire after React flush');
+          setCalcPending(true);
         }}
         onSkip={() => {
           markOnboardingComplete();

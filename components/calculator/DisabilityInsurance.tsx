@@ -44,7 +44,7 @@ import {
 } from '@/components/ui/accordion'
 import { TYPOGRAPHY, METRIC_COLORS, STATUS } from '@/lib/designTokens'
 import { fmt, fmtFull } from '@/lib/utils'
-import { loadSharedIncomeData, type SharedIncomeData } from '@/lib/sharedIncomeData'
+import { usePlanConfig } from '@/lib/plan-config-context'
 
 // ==================== Types ====================
 
@@ -415,18 +415,11 @@ export function DisabilityInsurance({
   initialRetirementAge = 65,
   compact = false,
 }: DisabilityInsuranceProps) {
-  // Load shared income data
-  const [sharedData, setSharedData] = useState<SharedIncomeData | null>(null)
+  // Read income data from PlanConfig (single source of truth)
+  const { config: planConfig } = usePlanConfig()
 
-  useEffect(() => {
-    const data = loadSharedIncomeData()
-    if (data) {
-      setSharedData(data)
-    }
-  }, [])
-
-  // Determine initial income from props or shared data
-  const defaultIncome = initialIncome ?? sharedData?.primaryIncome ?? 100000
+  // Determine initial income: PlanConfig > props > fallback
+  const defaultIncome = planConfig.primaryIncome || initialIncome || 100000
 
   // Form state
   const [inputs, setInputs] = useState<DisabilityInputs>({
@@ -449,15 +442,28 @@ export function DisabilityInsurance({
     retirementAge: initialRetirementAge,
   })
 
-  // Update income when shared data loads
+  // Update income when planConfig changes
   useEffect(() => {
-    if (sharedData && !initialIncome) {
+    if (planConfig.primaryIncome && planConfig.primaryIncome > 0 && !initialIncome) {
       setInputs(prev => ({
         ...prev,
-        annualIncome: sharedData.primaryIncome,
+        annualIncome: planConfig.primaryIncome ?? prev.annualIncome,
       }))
     }
-  }, [sharedData, initialIncome])
+    // Also sync age and retirement age from planConfig
+    if (planConfig.age1 && planConfig.age1 > 0) {
+      setInputs(prev => ({
+        ...prev,
+        age: planConfig.age1 ?? prev.age,
+      }))
+    }
+    if (planConfig.retirementAge && planConfig.retirementAge > 0) {
+      setInputs(prev => ({
+        ...prev,
+        retirementAge: planConfig.retirementAge ?? prev.retirementAge,
+      }))
+    }
+  }, [planConfig.primaryIncome, planConfig.age1, planConfig.retirementAge, initialIncome])
 
   // Update handler
   const updateInput = useCallback(

@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Label } from "@/components/ui/label";
 import { clampNum, toNumber, cn } from "@/lib/utils";
-import { TRANSITIONS, FORMS, STATUS } from "@/lib/designTokens";
 import type { FieldValidationResult } from "@/lib/fieldValidation";
 
 /**

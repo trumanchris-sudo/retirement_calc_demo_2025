@@ -120,7 +120,7 @@ export function OnboardingWizardPage({ onComplete, onSkip }: OnboardingWizardPag
   // Push wizard top down when keyboard appears to keep it centered in visible viewport
   return (
     <div
-      className="h-[100dvh] flex flex-col bg-black text-white transition-all duration-200 ease-out"
+      className="h-[100dvh] flex flex-col bg-background text-foreground transition-all duration-200 ease-out"
       style={{
         paddingTop: keyboardOffset > 0 ? `${keyboardOffset}px` : '0'
       }}

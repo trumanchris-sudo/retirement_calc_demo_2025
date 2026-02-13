@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { usePlanConfig } from '@/lib/plan-config-context';
 import { mapAIDataToCalculator } from '@/lib/aiOnboardingMapper';
 import { saveSharedIncomeData } from '@/lib/sharedIncomeData';
 import type { ExtractedData } from '@/types/ai-onboarding';
+import { cn } from '@/lib/utils';
 import { ChevronRight, ChevronDown, Sparkles, TrendingUp, Users, PiggyBank, Target, ArrowRight } from 'lucide-react';
 
 interface QuickStartProps {
@@ -19,9 +20,7 @@ interface QuickStartProps {
 /**
  * Smart defaults based on the 3 quick inputs
  */
-function deriveDefaults(age: number, income: number, savings: number) {
-  // Assume married if income > $150k (higher earners more likely married)
-  const isMarried = income > 150000;
+function deriveDefaults(age: number, income: number, savings: number, isMarried: boolean) {
 
   // Assume 10% savings rate
   const savingsRate = 0.10;
@@ -176,10 +175,11 @@ function formatFullCurrency(value: number): string {
 export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
   const { updateConfig } = usePlanConfig();
 
-  // The 3 questions
+  // The 3 questions + filing status
   const [age, setAge] = useState<string>('');
   const [income, setIncome] = useState<string>('');
   const [savings, setSavings] = useState<string>('');
+  const [maritalStatus, setMaritalStatus] = useState<'single' | 'married'>('single');
 
   // UI state
   const [showResults, setShowResults] = useState(false);
@@ -198,7 +198,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
   const projection = useMemo(() => {
     if (!isValid) return null;
 
-    const defaults = deriveDefaults(parsedAge, parsedIncome, parsedSavings);
+    const defaults = deriveDefaults(parsedAge, parsedIncome, parsedSavings, maritalStatus === 'married');
 
     const futureValue = calculateFutureValue(
       parsedSavings,
@@ -230,7 +230,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
       additionalValue,
       improvedFutureValue,
     };
-  }, [isValid, parsedAge, parsedIncome, parsedSavings]);
+  }, [isValid, parsedAge, parsedIncome, parsedSavings, maritalStatus]);
 
   // Handle calculate button
   const handleCalculate = useCallback(() => {
@@ -252,10 +252,10 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
     // Build extracted data for the mapper
     const extractedData: ExtractedData = {
       age: parsedAge,
-      maritalStatus: projection.isMarried ? 'married' : 'single',
-      spouseAge: projection.isMarried ? parsedAge : undefined,
+      maritalStatus,
+      spouseAge: maritalStatus === 'married' ? parsedAge : undefined,
       primaryIncome: parsedIncome,
-      spouseIncome: projection.isMarried ? 0 : undefined, // Can be refined later
+      spouseIncome: maritalStatus === 'married' ? 0 : undefined, // Can be refined later
       currentTraditional: projection.pretaxBalance,
       currentRoth: projection.rothBalance,
       currentTaxable: projection.taxableBalance,
@@ -275,17 +275,16 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
 
     console.log('[QuickStart] Mapped inputs:', calculatorInputs);
 
-    // Update PlanConfig
-    updateConfig(calculatorInputs, 'ai-suggested');
-
-    // Save assumptions
+    // Update PlanConfig (single batched call to avoid split-second inconsistency)
+    const configUpdate = { ...calculatorInputs };
     if (generatedAssumptions && generatedAssumptions.length > 0) {
-      updateConfig({ assumptions: generatedAssumptions }, 'ai-suggested');
+      (configUpdate as Record<string, unknown>).assumptions = generatedAssumptions;
     }
+    updateConfig(configUpdate, 'ai-suggested');
 
     // Save for income calculators (legacy)
     saveSharedIncomeData({
-      maritalStatus: projection.isMarried ? 'married' : 'single',
+      maritalStatus,
       employmentType1: 'w2',
       primaryIncome: parsedIncome,
       source: 'quick-start',
@@ -293,7 +292,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
     });
 
     onComplete();
-  }, [projection, parsedAge, parsedIncome, parsedSavings, updateConfig, onComplete]);
+  }, [projection, parsedAge, parsedIncome, parsedSavings, maritalStatus, updateConfig, onComplete]);
 
   // Format input as currency on blur
   const formatInputAsCurrency = (value: string, setValue: (v: string) => void) => {
@@ -304,31 +303,31 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 text-blue-300 text-sm mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm mb-4">
             <Sparkles className="w-4 h-4" />
             <span>30-second estimate</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold mb-3">
             See Your Retirement Future
           </h1>
-          <p className="text-slate-400 text-lg">
+          <p className="text-muted-foreground text-lg">
             Just 3 quick questions. Instant results.
           </p>
         </div>
 
         {/* Main Form Card */}
-        <Card className="bg-slate-800/50 border-slate-700 backdrop-blur">
+        <Card className="bg-card border">
           <CardContent className="p-6 sm:p-8">
             {!showResults ? (
               <div className="space-y-6">
                 {/* Question 1: Age */}
                 <div className="space-y-2">
-                  <Label htmlFor="age" className="text-base font-medium text-slate-200 flex items-center gap-2">
-                    <Users className="w-4 h-4 text-blue-400" />
+                  <Label htmlFor="age" className="text-base font-medium text-foreground flex items-center gap-2">
+                    <Users className="w-4 h-4 text-blue-600" />
                     How old are you?
                   </Label>
                   <Input
@@ -338,20 +337,56 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                     placeholder="35"
                     value={age}
                     onChange={(e) => setAge(e.target.value)}
-                    className="bg-slate-900/50 border-slate-600 text-white text-lg h-14 placeholder:text-slate-500"
+                    className="bg-background border text-foreground text-lg h-14 placeholder:text-muted-foreground"
                     min={18}
                     max={90}
                   />
                 </div>
 
+                {/* Filing Status */}
+                <div className="space-y-2">
+                  <Label className="text-base font-medium text-foreground flex items-center gap-2">
+                    <Users className="w-4 h-4 text-blue-600" />
+                    Filing Status
+                  </Label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMaritalStatus('single')}
+                      aria-pressed={maritalStatus === 'single'}
+                      className={cn(
+                        'flex-1 h-14 rounded-lg border text-base font-medium transition-colors',
+                        maritalStatus === 'single'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background text-foreground border hover:bg-muted'
+                      )}
+                    >
+                      Single
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMaritalStatus('married')}
+                      aria-pressed={maritalStatus === 'married'}
+                      className={cn(
+                        'flex-1 h-14 rounded-lg border text-base font-medium transition-colors',
+                        maritalStatus === 'married'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background text-foreground border hover:bg-muted'
+                      )}
+                    >
+                      Married
+                    </button>
+                  </div>
+                </div>
+
                 {/* Question 2: Income */}
                 <div className="space-y-2">
-                  <Label htmlFor="income" className="text-base font-medium text-slate-200 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-green-400" />
+                  <Label htmlFor="income" className="text-base font-medium text-foreground flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-green-600" />
                     What&apos;s your household income?
                   </Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-lg">$</span>
                     <Input
                       id="income"
                       type="text"
@@ -360,19 +395,19 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                       value={income}
                       onChange={(e) => setIncome(e.target.value.replace(/[^0-9,]/g, ''))}
                       onBlur={() => formatInputAsCurrency(income, setIncome)}
-                      className="bg-slate-900/50 border-slate-600 text-white text-lg h-14 pl-8 placeholder:text-slate-500"
+                      className="bg-background border text-foreground text-lg h-14 pl-8 placeholder:text-muted-foreground"
                     />
                   </div>
                 </div>
 
                 {/* Question 3: Savings */}
                 <div className="space-y-2">
-                  <Label htmlFor="savings" className="text-base font-medium text-slate-200 flex items-center gap-2">
-                    <PiggyBank className="w-4 h-4 text-amber-400" />
+                  <Label htmlFor="savings" className="text-base font-medium text-foreground flex items-center gap-2">
+                    <PiggyBank className="w-4 h-4 text-amber-600" />
                     How much have you saved for retirement?
                   </Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-lg">$</span>
                     <Input
                       id="savings"
                       type="text"
@@ -381,10 +416,10 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                       value={savings}
                       onChange={(e) => setSavings(e.target.value.replace(/[^0-9,]/g, ''))}
                       onBlur={() => formatInputAsCurrency(savings, setSavings)}
-                      className="bg-slate-900/50 border-slate-600 text-white text-lg h-14 pl-8 placeholder:text-slate-500"
+                      className="bg-background border text-foreground text-lg h-14 pl-8 placeholder:text-muted-foreground"
                     />
                   </div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Include 401(k), IRA, and other retirement accounts
                   </p>
                 </div>
@@ -397,7 +432,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                 >
                   {isAnimating ? (
                     <span className="flex items-center gap-2">
-                      <span className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                      <span className="animate-spin rounded-full h-5 w-5 border-2 border-primary-foreground border-t-transparent" />
                       Calculating...
                     </span>
                   ) : (
@@ -412,7 +447,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                 <div className="text-center pt-2">
                   <button
                     onClick={onSwitchToGuided}
-                    className="text-sm text-slate-400 hover:text-slate-300 underline underline-offset-2"
+                    className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
                   >
                     Prefer a guided setup? Use AI Wizard
                   </button>
@@ -423,21 +458,21 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
               <div className="space-y-6 animate-fadeIn">
                 {/* Main Projection */}
                 <div className="text-center py-4">
-                  <p className="text-slate-400 text-sm mb-2">
+                  <p className="text-muted-foreground text-sm mb-2">
                     At age 65, you&apos;re on track to have
                   </p>
-                  <p className="text-5xl sm:text-6xl font-bold text-white mb-2">
+                  <p className="text-5xl sm:text-6xl font-bold text-foreground mb-2">
                     {formatCurrency(projection.futureValue)}
                   </p>
-                  <p className="text-slate-400">
-                    That&apos;s <span className="text-green-400 font-semibold">{formatCurrency(projection.monthlyIncome)}/month</span> in retirement
+                  <p className="text-muted-foreground">
+                    That&apos;s <span className="text-green-600 font-semibold">{formatCurrency(projection.monthlyIncome)}/month</span> in retirement
                   </p>
                 </div>
 
                 {/* Readiness Gauge */}
-                <div className="bg-slate-900/50 rounded-xl p-4">
+                <div className="bg-muted rounded-xl p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm text-slate-400">Retirement Readiness</span>
+                    <span className="text-sm text-muted-foreground">Retirement Readiness</span>
                     <span className={`text-sm font-medium ${projection.readiness.color}`}>
                       {projection.readiness.status === 'behind' ? 'Behind' :
                        projection.readiness.status === 'on-track' ? 'On Track' : 'Ahead'}
@@ -445,7 +480,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                   </div>
 
                   {/* Visual Gauge */}
-                  <div className="relative h-3 bg-slate-700 rounded-full overflow-hidden">
+                  <div className="relative h-3 bg-muted-foreground/20 rounded-full overflow-hidden">
                     <div
                       className={`absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ${
                         projection.readiness.status === 'ahead' ? 'bg-green-500' :
@@ -460,12 +495,12 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                       }}
                     />
                     <div className="absolute inset-0 flex justify-between px-1 items-center">
-                      <span className="text-[10px] text-slate-500">Behind</span>
-                      <span className="text-[10px] text-slate-500">On Track</span>
-                      <span className="text-[10px] text-slate-500">Ahead</span>
+                      <span className="text-[10px] text-muted-foreground">Behind</span>
+                      <span className="text-[10px] text-muted-foreground">On Track</span>
+                      <span className="text-[10px] text-muted-foreground">Ahead</span>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-400 mt-3 text-center">
+                  <p className="text-sm text-muted-foreground mt-3 text-center">
                     {projection.readiness.message}
                   </p>
                 </div>
@@ -474,71 +509,71 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                 <div className="space-y-3">
                   <button
                     onClick={() => setShowRefinement(!showRefinement)}
-                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-emerald-900/30 to-emerald-800/20 border border-emerald-700/50 rounded-xl hover:border-emerald-600/50 transition-colors"
+                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl hover:border-emerald-300 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-emerald-400" />
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-emerald-700" />
                       </div>
                       <div className="text-left">
-                        <p className="font-medium text-white">Want to add {formatCurrency(projection.additionalValue)} more?</p>
-                        <p className="text-sm text-slate-400">See how small changes make a big difference</p>
+                        <p className="font-medium text-foreground">Want to add {formatCurrency(projection.additionalValue)} more?</p>
+                        <p className="text-sm text-muted-foreground">See how small changes make a big difference</p>
                       </div>
                     </div>
-                    <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${showRefinement ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${showRefinement ? 'rotate-180' : ''}`} />
                   </button>
 
                   <button
                     onClick={handleContinue}
-                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-900/30 to-purple-800/20 border border-purple-700/50 rounded-xl hover:border-purple-600/50 transition-colors"
+                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-xl hover:border-purple-300 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                        <Target className="w-5 h-5 text-purple-400" />
+                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                        <Target className="w-5 h-5 text-purple-700" />
                       </div>
                       <div className="text-left">
-                        <p className="font-medium text-white">See what your kids could inherit</p>
-                        <p className="text-sm text-slate-400">Explore generational wealth planning</p>
+                        <p className="font-medium text-foreground">See what your kids could inherit</p>
+                        <p className="text-sm text-muted-foreground">Explore generational wealth planning</p>
                       </div>
                     </div>
-                    <ArrowRight className="w-5 h-5 text-slate-400" />
+                    <ArrowRight className="w-5 h-5 text-muted-foreground" />
                   </button>
                 </div>
 
                 {/* Refinement Section (Progressive Disclosure) */}
                 {showRefinement && (
-                  <div className="space-y-4 pt-4 border-t border-slate-700 animate-fadeIn">
-                    <h3 className="text-lg font-semibold text-white">Refine Your Estimate</h3>
+                  <div className="space-y-4 pt-4 border-t border animate-fadeIn">
+                    <h3 className="text-lg font-semibold text-foreground">Refine Your Estimate</h3>
 
                     <div className="grid gap-4">
                       {/* Savings Rate Slider */}
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span className="text-slate-400">Savings Rate</span>
-                          <span className="text-white font-medium">{(projection.savingsRate * 100).toFixed(0)}%</span>
+                          <span className="text-muted-foreground">Savings Rate</span>
+                          <span className="text-foreground font-medium">{(projection.savingsRate * 100).toFixed(0)}%</span>
                         </div>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                           Currently saving {formatFullCurrency(projection.annualContributions)}/year
                         </p>
                       </div>
 
                       {/* Quick Facts */}
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-slate-900/50 rounded-lg p-3">
-                          <p className="text-xs text-slate-500 mb-1">Assumed retirement age</p>
-                          <p className="text-lg font-semibold text-white">{projection.retirementAge}</p>
+                        <div className="bg-muted rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Assumed retirement age</p>
+                          <p className="text-lg font-semibold text-foreground">{projection.retirementAge}</p>
                         </div>
-                        <div className="bg-slate-900/50 rounded-lg p-3">
-                          <p className="text-xs text-slate-500 mb-1">Years to retirement</p>
-                          <p className="text-lg font-semibold text-white">{projection.yearsToRetirement}</p>
+                        <div className="bg-muted rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Years to retirement</p>
+                          <p className="text-lg font-semibold text-foreground">{projection.yearsToRetirement}</p>
                         </div>
-                        <div className="bg-slate-900/50 rounded-lg p-3">
-                          <p className="text-xs text-slate-500 mb-1">Assumed employer match</p>
-                          <p className="text-lg font-semibold text-white">{formatCurrency(projection.employerMatch)}/yr</p>
+                        <div className="bg-muted rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Assumed employer match</p>
+                          <p className="text-lg font-semibold text-foreground">{formatCurrency(projection.employerMatch)}/yr</p>
                         </div>
-                        <div className="bg-slate-900/50 rounded-lg p-3">
-                          <p className="text-xs text-slate-500 mb-1">Expected return</p>
-                          <p className="text-lg font-semibold text-white">{(projection.expectedReturn * 100).toFixed(1)}%</p>
+                        <div className="bg-muted rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Expected return</p>
+                          <p className="text-lg font-semibold text-foreground">{(projection.expectedReturn * 100).toFixed(1)}%</p>
                         </div>
                       </div>
                     </div>
@@ -560,7 +595,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                 <div className="text-center">
                   <button
                     onClick={() => setShowResults(false)}
-                    className="text-sm text-slate-400 hover:text-slate-300 underline underline-offset-2"
+                    className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
                   >
                     Edit my inputs
                   </button>
@@ -572,7 +607,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
 
         {/* Assumptions Note */}
         {showResults && (
-          <p className="text-center text-xs text-slate-500 mt-4 px-4">
+          <p className="text-center text-xs text-muted-foreground mt-4 px-4">
             Estimate based on 10% savings rate, 3% employer match, age-based returns, and 4% withdrawal rule.
             Results are projections and not guaranteed.
           </p>

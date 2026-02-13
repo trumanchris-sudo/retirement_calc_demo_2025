@@ -261,6 +261,9 @@ export const BondTent = React.memo(function BondTent({
       const allocationShift = targetBondPct - prevTargetBondPct;
       const dollarShift = projectedPortfolio * Math.abs(allocationShift / 100);
 
+      const targetBondValue = projectedPortfolio * (targetBondPct / 100);
+      const targetStockValue = projectedPortfolio * (targetStockPct / 100);
+
       actions.push({
         year,
         age,

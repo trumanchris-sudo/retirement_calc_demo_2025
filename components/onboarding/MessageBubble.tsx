@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 import type { ConversationMessage } from '@/types/ai-onboarding';
 
 interface MessageBubbleProps {
@@ -39,26 +40,23 @@ export function MessageBubble({ message, isLatest = false }: MessageBubbleProps)
 
   return (
     <div
-      className="font-mono text-sm sm:text-base leading-relaxed"
+      className={cn(
+        'text-sm sm:text-base leading-relaxed rounded-lg px-4 py-3 max-w-[85%]',
+        isUser
+          ? 'bg-primary/10 text-foreground self-end ml-auto'
+          : 'bg-muted text-foreground self-start'
+      )}
       role="article"
       aria-label={isUser ? 'Your message' : 'AI assistant message'}
     >
-      <div className="mb-1">
-        <span className={isUser ? 'text-green-400' : 'text-blue-400'}>
-          {isUser ? '> ' : '$ '}
-        </span>
-        <span className={isUser ? 'text-green-300' : 'text-blue-300'}>
-          {isUser ? 'you' : 'wizard'}
-        </span>
-      </div>
-      <div className={isUser ? 'text-gray-200 pl-4' : 'text-gray-300 pl-4'}>
-        {displayedText.split('\n').map((line, i) => (
-          <div key={i}>
-            {line || '\u00A0'}
-          </div>
-        ))}
-        {isStreaming && <span className="inline-block w-2 h-4 bg-green-400 animate-pulse ml-0.5">│</span>}
-      </div>
+      {displayedText.split('\n').map((line, i) => (
+        <div key={i}>
+          {line || '\u00A0'}
+        </div>
+      ))}
+      {isStreaming && (
+        <span className="inline-block w-1.5 h-4 bg-primary/60 animate-pulse ml-0.5 rounded-sm" />
+      )}
     </div>
   );
 }

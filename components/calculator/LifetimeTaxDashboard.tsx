@@ -20,7 +20,6 @@ import {
   Info,
 } from "lucide-react";
 import {
-  LineChart,
   Line,
   XAxis,
   YAxis,
@@ -32,15 +31,9 @@ import {
   Area,
   BarChart,
   Bar,
-  Cell,
   ReferenceLine,
   ComposedChart,
 } from "recharts";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
 import {
   TAX_BRACKETS,
   RMD_START_AGE,

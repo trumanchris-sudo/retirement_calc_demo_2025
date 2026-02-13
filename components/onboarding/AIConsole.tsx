@@ -13,13 +13,13 @@ import type {
 import { MessageBubble } from './MessageBubble';
 import { AssumptionsReview } from './AssumptionsReview';
 import { ConsoleInput } from './ConsoleInput';
-import { DataSummaryPanel } from './DataSummaryPanel';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 
 interface AIConsoleProps {
   onComplete: (data: ExtractedData, assumptions: AssumptionWithReasoning[]) => void;
   onSkip: () => void;
+  onBack?: () => void;
 }
 
 /**
@@ -34,7 +34,7 @@ const ADMIN_PRESETS: Record<string, ExtractedData> = {
     spouseAge: 34,
     maritalStatus: 'married',
     state: 'WA',
-    employmentType1: 'k1',  // K-1 partner
+    employmentType1: 'self-employed',  // K-1 partner (functionally self-employed for calculator purposes)
     employmentType2: 'w2',  // W-2 employee
     // Income
     primaryIncome: 750000,  // $550k base + $200k bonus
@@ -82,7 +82,7 @@ const STORAGE_KEY = 'ai_onboarding_state';
  */
 const USE_API_FOR_ASSUMPTIONS = false;
 
-export function AIConsole({ onComplete, onSkip }: AIConsoleProps) {
+export function AIConsole({ onComplete, onSkip, onBack }: AIConsoleProps) {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [input, setInput] = useState('');
@@ -678,31 +678,42 @@ ${getNextQuestion(0, {})}`;
   const showAssumptionsReview = phase === 'assumptions-review' || phase === 'refinement';
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden bg-black">
-      {/* Header - Terminal Style */}
-      <header className="shrink-0 flex items-center justify-between px-3 py-2 sm:px-6 sm:py-3 border-b border-gray-800 bg-black">
-        <div className="font-mono">
-          <h2 className="text-sm sm:text-base text-green-400">
-            <span className="text-gray-500">$ </span>
-            retirement-wizard <span className="text-gray-600">--interactive</span>
-          </h2>
-          <p className="text-xs text-gray-500 mt-0.5 ml-2">
-            {phase === 'greeting' && '[initializing...]'}
-            {phase === 'data-collection' && '[collecting data...]'}
-            {phase === 'assumptions-review' && '[review mode]'}
-            {phase === 'refinement' && '[refining...]'}
-            {phase === 'complete' && '[complete ✓]'}
-          </p>
+    <div className="flex flex-col flex-1 overflow-hidden bg-background">
+      {/* Header */}
+      <header className="shrink-0 flex items-center justify-between px-3 py-2 sm:px-6 sm:py-3 border-b">
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+              className="h-8 w-8"
+              aria-label="Go back to mode selection"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
+          <div>
+            <h2 className="text-sm sm:text-base font-semibold text-foreground">
+              Guided Setup
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {phase === 'greeting' && 'Getting started...'}
+              {phase === 'data-collection' && 'Collecting your information'}
+              {phase === 'assumptions-review' && 'Review your plan'}
+              {phase === 'refinement' && 'Refining...'}
+              {phase === 'complete' && 'Complete'}
+            </p>
+          </div>
         </div>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={handleSkip}
-          className="font-mono text-gray-400 hover:text-gray-200 hover:bg-gray-900 text-xs min-h-[32px] px-3"
+          className="text-xs min-h-[32px] px-3"
           aria-label="Skip AI onboarding and proceed to manual data entry"
         >
-          <span className="hidden sm:inline">^C exit</span>
-          <span className="sm:hidden">exit</span>
+          Skip
         </Button>
       </header>
 
@@ -711,7 +722,7 @@ ${getNextQuestion(0, {})}`;
         {/* Messages Area - scroll container */}
         <main
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto flex flex-col bg-black"
+          className="flex-1 overflow-y-auto flex flex-col bg-background"
           role="log"
           aria-live="polite"
           aria-label="Conversation messages"
@@ -723,18 +734,18 @@ ${getNextQuestion(0, {})}`;
               role="alert"
               aria-live="assertive"
               aria-atomic="true"
-              className="sticky top-0 z-10 bg-red-950 border-2 border-red-600 rounded-lg p-4 sm:p-6 shadow-xl"
+              className="sticky top-0 z-10 bg-red-50 border-2 border-red-300 rounded-lg p-4 sm:p-6 shadow-xl"
             >
               <div className="flex items-start gap-3">
                 <div
-                  className="flex-shrink-0 w-10 h-10 rounded-full bg-red-600 flex items-center justify-center"
+                  className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center"
                   aria-hidden="true"
                 >
-                  <span className="text-white text-xl font-bold">!</span>
+                  <AlertCircle className="w-5 h-5 text-red-600" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-lg text-red-100">Connection Error</p>
-                  <p className="text-sm sm:text-base mt-2 text-red-100">{error}</p>
+                  <p className="font-bold text-lg text-red-800">Connection Error</p>
+                  <p className="text-sm sm:text-base mt-2 text-red-700">{error}</p>
                   <div className="flex gap-2 mt-4">
                     <Button
                       size="sm"
@@ -751,7 +762,7 @@ ${getNextQuestion(0, {})}`;
                       size="sm"
                       variant="outline"
                       onClick={() => setError(null)}
-                      className="text-red-200 border-red-600 hover:bg-red-900 min-h-[44px] px-4"
+                      className="text-red-700 border-red-300 hover:bg-red-100 min-h-[44px] px-4"
                       aria-label="Dismiss error message"
                     >
                       Dismiss
@@ -793,7 +804,7 @@ ${getNextQuestion(0, {})}`;
                     handleComplete(extractedData, assumptions);
                   }}
                   disabled={isUpdating}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white min-h-[48px] px-6"
+                  className="min-h-[48px] px-6"
                   aria-label="Confirm and complete onboarding"
                 >
                   Looks Good - Continue
@@ -807,7 +818,7 @@ ${getNextQuestion(0, {})}`;
         </main>
 
         {/* Input Area - Sticky to bottom of scroll container */}
-        <footer className="sticky bottom-0 border-t border-gray-800 bg-black px-3 sm:px-4 py-3 pb-[env(safe-area-inset-bottom)]">
+        <footer className="sticky bottom-0 border-t bg-background px-3 sm:px-4 py-3 pb-[env(safe-area-inset-bottom)]">
           <ConsoleInput
             ref={inputRef}
             value={input}
@@ -827,7 +838,7 @@ ${getNextQuestion(0, {})}`;
             }
           />
           {isProcessing && (
-            <div className="flex items-center gap-2 mt-2 text-sm text-slate-300" role="status" aria-live="polite">
+            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground" role="status" aria-live="polite">
               <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
               <span>Analyzing your responses and generating smart assumptions...</span>
             </div>

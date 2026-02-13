@@ -8,6 +8,27 @@ This document tracks the implementation of a unified PlanConfig system to serve 
 
 ---
 
+## Recent Updates (Feb 2026)
+
+### Wizard UX Refinement - Terminal to shadcn/ui
+- Restyled **OnboardingSelector** (landing page) from dark gradient to clean Card-based light theme
+- Restyled **AIConsole** header from terminal (`$ retirement-wizard --interactive`, `^C exit`) to clean shadcn/ui (`Guided Setup`, `Skip` button, back arrow)
+- Restyled **MessageBubble** from terminal prefix (`> you`, `$ wizard`, green/blue monospace) to speech-bubble style (`bg-muted` for assistant, `bg-primary/10` for user)
+- Restyled **ConsoleInput** from terminal (`bg-black`, `font-mono`, green send button) to standard Input/Button styling
+- Restyled **AssumptionsReview** from dark theme (`bg-slate-800`, `text-slate-*`) to light theme (`bg-card`, `text-foreground`, `bg-blue-50` for edits)
+- Restyled **DataSummaryPanel** from dark theme (`bg-slate-950`, dark cards) to light theme (`bg-muted/50`, `bg-card`)
+
+### CI/CD Pipeline Fixed
+- Replaced all `pnpm` references with `npm` (project uses npm, not pnpm)
+- Removed `pnpm/action-setup` step from all jobs
+- Updated Node.js version from 18 to 20 LTS (Next.js 15 requirement)
+
+### CLAUDE.md Constitutional Directives
+- Created `CLAUDE.md` at project root with quality gates for all Claude Code agents
+- Covers: TypeScript strict mode, accessibility, shadcn/ui patterns, npm usage, testing conventions
+
+---
+
 ## ✅ COMPLETED
 
 ### 1. Unified PlanConfig Type System (P0.1 - Partial)
