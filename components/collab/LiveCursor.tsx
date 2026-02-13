@@ -55,15 +55,23 @@ export function CollaborationProvider({
   children,
   enabled = true,
 }: CollaborationProviderProps) {
-  const [sessionId] = useState(() => getOrCreateSessionId());
+  // Use safe defaults to avoid hydration mismatch - browser APIs accessed in useEffect
+  const [sessionId, setSessionId] = useState<string>('');
   const [collaborators, setCollaborators] = useState<CollaboratorPresence[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [myName, setMyNameState] = useState(() => getUserName());
+  const [myName, setMyNameState] = useState<string>('You');
   const managerRef = useRef<CollaborationManager | null>(null);
+
+  // Initialize session ID and user name from browser APIs after mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setSessionId(getOrCreateSessionId());
+    setMyNameState(getUserName());
+  }, []);
 
   // Initialize collaboration manager
   useEffect(() => {
-    if (!enabled || typeof window === 'undefined') return;
+    if (!enabled || typeof window === 'undefined' || !sessionId) return;
 
     const manager = createCollaborationManager(sessionId);
     managerRef.current = manager;

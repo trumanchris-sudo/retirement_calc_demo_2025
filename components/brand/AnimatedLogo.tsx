@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useId } from "react";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
@@ -116,10 +116,11 @@ export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
     }
   }, [state]);
 
-  // Unique gradient IDs per instance
-  const gradientId = useRef(`logo-gradient-${Math.random().toString(36).substr(2, 9)}`);
-  const glowId = useRef(`logo-glow-${Math.random().toString(36).substr(2, 9)}`);
-  const shimmerMaskId = useRef(`logo-shimmer-${Math.random().toString(36).substr(2, 9)}`);
+  // Unique gradient IDs per instance - useId ensures consistent IDs between server and client
+  const uniqueId = useId();
+  const gradientId = `logo-gradient${uniqueId}`;
+  const glowId = `logo-glow${uniqueId}`;
+  const shimmerMaskId = `logo-shimmer${uniqueId}`;
 
   return (
     <div
@@ -173,7 +174,7 @@ export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
           <defs>
             {/* Primary gradient */}
             <linearGradient
-              id={gradientId.current}
+              id={gradientId}
               x1="0%"
               y1="0%"
               x2="100%"
@@ -203,7 +204,7 @@ export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
 
             {/* Glow filter */}
             <filter
-              id={glowId.current}
+              id={glowId}
               x="-20%"
               y="-20%"
               width="140%"
@@ -217,7 +218,7 @@ export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
             </filter>
 
             {/* Shimmer mask for loading state */}
-            <linearGradient id={shimmerMaskId.current} x1="0%" y1="0%" x2="100%" y2="0%">
+            <linearGradient id={shimmerMaskId} x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="white" stopOpacity="0">
                 {!prefersReducedMotion && (
                   <animate
@@ -258,8 +259,8 @@ export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
             width="92"
             height="92"
             rx="20"
-            fill={`url(#${gradientId.current})`}
-            filter={state === "hover" && !prefersReducedMotion ? `url(#${glowId.current})` : undefined}
+            fill={`url(#${gradientId})`}
+            filter={state === "hover" && !prefersReducedMotion ? `url(#${glowId})` : undefined}
             className="transition-all duration-300"
           />
 
@@ -300,7 +301,7 @@ export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
               width="92"
               height="92"
               rx="20"
-              fill={`url(#${shimmerMaskId.current})`}
+              fill={`url(#${shimmerMaskId})`}
               style={{ mixBlendMode: "overlay" }}
             />
           )}

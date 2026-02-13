@@ -69,9 +69,17 @@ interface OfflineState {
 
 /**
  * Hook for comprehensive offline state
+ *
+ * HYDRATION-SAFE: Initial state always assumes online (matching server snapshot)
+ * and updates in useEffect after hydration completes.
  */
 export function useOffline(): OfflineState {
   const isOnline = useOnlineStatus();
+
+  // Track if we've completed initial hydration
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  // HYDRATION-SAFE: Always start with online state to match server
   const [state, setState] = useState<OfflineState>({
     isOffline: false,
     isReconnecting: false,
@@ -80,8 +88,26 @@ export function useOffline(): OfflineState {
     totalOfflineTime: 0,
   });
 
+  // Mark hydration complete and sync initial offline state after first client render
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    setHasHydrated(true);
+
+    // After hydration, immediately sync with actual online status
+    // This handles the case where client is offline on initial load
+    const actuallyOffline = !navigator.onLine;
+    if (actuallyOffline) {
+      setState((prev) => ({
+        ...prev,
+        isOffline: true,
+        wasOffline: true,
+        offlineSince: Date.now(),
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
+    // Skip updates until hydration is complete to prevent mismatch
+    if (!hasHydrated) return;
 
     setState((prev) => {
       const isOffline = !isOnline;
@@ -112,7 +138,7 @@ export function useOffline(): OfflineState {
 
       return prev;
     });
-  }, [isOnline]);
+  }, [isOnline, hasHydrated]);
 
   // Clear reconnecting state after a delay
   useEffect(() => {

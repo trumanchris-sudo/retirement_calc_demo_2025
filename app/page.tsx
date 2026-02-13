@@ -990,6 +990,24 @@ const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data, compar
 ScenarioComparisonChart.displayName = 'ScenarioComparisonChart';
 
 /** ===============================
+ * URL Tab Sync Component
+ * Handles useSearchParams which requires Suspense boundary in Next.js 15
+ * ================================ */
+
+function URLTabSync({ onTabChange }: { onTabChange: (tab: MainTabId) => void }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && isMainTabId(tab)) {
+      onTabChange(tab);
+    }
+  }, [searchParams, onTabChange]);
+
+  return null; // This component only syncs state, no UI
+}
+
+/** ===============================
  * App
  * ================================ */
 
@@ -1450,17 +1468,10 @@ export default function App() {
   const [inputsModified, setInputsModified] = useState(false);
   const [isFromWizard, setIsFromWizard] = useState(false); // Track if calculation triggered from wizard completion
 
-  // Handle tab switching via URL query params
-  const searchParams = useSearchParams();
-  // TRUE SIDE EFFECT: URL/Router state synchronization
-  // This useEffect reads from the browser URL and cannot be derived since
-  // searchParams comes from Next.js router which operates outside React state.
-  useEffect(() => {
-    const tab = searchParams.get('tab');
-    if (tab && isMainTabId(tab)) {
-      setActiveMainTab(tab);
-    }
-  }, [searchParams]);
+  // Callback for URL tab sync - wrapped in useCallback to prevent unnecessary re-renders
+  const handleURLTabChange = useCallback((tab: MainTabId) => {
+    setActiveMainTab(tab);
+  }, []);
 
   // Callback for tracking input changes
   const handleInputChange = useCallback(() => {
@@ -3378,6 +3389,11 @@ export default function App() {
   // Brand loader DISABLED - was interfering with wizard → calculator transition
   return (
     <div className={isAIDocMode ? 'ai-doc-mode-active' : ''}>
+      {/* URL Tab Sync - wrapped in Suspense for Next.js 15 compatibility */}
+      <Suspense fallback={null}>
+        <URLTabSync onTabChange={handleURLTabChange} />
+      </Suspense>
+
       {/* AI Documentation Mode Header */}
       {isAIDocMode && (
         <>
@@ -5136,14 +5152,16 @@ export default function App() {
                     <CardDescription>Compare baseline, bear market, and inflation shock scenarios</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="chart-block">
-                      <ScenarioComparisonChart
-                        data={comparisonData.baseline.data}
-                        comparisonData={comparisonData}
-                        isDarkMode={isDarkMode}
-                        fmt={fmt}
-                      />
-                    </div>
+                    <Suspense fallback={<ChartLoadingFallback height="h-[400px]" />}>
+                      <div className="chart-block">
+                        <ScenarioComparisonChart
+                          data={comparisonData.baseline.data}
+                          comparisonData={comparisonData}
+                          isDarkMode={isDarkMode}
+                          fmt={fmt}
+                        />
+                      </div>
+                    </Suspense>
                   </CardContent>
                 </Card>
               </AnimatedSection>

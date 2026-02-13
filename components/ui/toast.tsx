@@ -242,11 +242,20 @@ interface ToastProgressProps {
 const ToastProgress = React.forwardRef<HTMLDivElement, ToastProgressProps>(
   ({ duration, paused, variant, onComplete }, ref) => {
     const [progress, setProgress] = React.useState(100)
-    const startTimeRef = React.useRef<number>(Date.now())
+    // Initialize refs with safe defaults to avoid hydration mismatch
+    const startTimeRef = React.useRef<number>(0)
     const remainingRef = React.useRef<number>(duration)
+    const isInitializedRef = React.useRef(false)
 
     React.useEffect(() => {
       if (duration <= 0) return
+
+      // Initialize timing on first mount
+      if (!isInitializedRef.current) {
+        startTimeRef.current = Date.now()
+        remainingRef.current = duration
+        isInitializedRef.current = true
+      }
 
       let animationFrame: number
 

@@ -55,14 +55,11 @@ export function useLocalStorage<T>(
     }
   }, [key]);
 
-  // Write to localStorage when value changes (skip the hydration read)
-  const isWriteSkipped = useRef(true);
+  // Write to localStorage when value changes (skip until after hydration)
   useEffect(() => {
-    // Skip the first update (which is the hydration read)
-    if (isWriteSkipped.current) {
-      isWriteSkipped.current = false;
-      return;
-    }
+    // Don't write until we've hydrated from localStorage
+    // This prevents overwriting stored values with initialValue on first render
+    if (!hasHydrated.current) return;
 
     try {
       window.localStorage.setItem(key, JSON.stringify(storedValue));
@@ -116,12 +113,10 @@ export function useSessionStorage<T>(
     }
   }, [key]);
 
-  const isWriteSkipped = useRef(true);
+  // Write to sessionStorage when value changes (skip until after hydration)
   useEffect(() => {
-    if (isWriteSkipped.current) {
-      isWriteSkipped.current = false;
-      return;
-    }
+    // Don't write until we've hydrated from sessionStorage
+    if (!hasHydrated.current) return;
 
     try {
       window.sessionStorage.setItem(key, JSON.stringify(storedValue));

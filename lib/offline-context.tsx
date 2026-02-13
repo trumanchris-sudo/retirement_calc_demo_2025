@@ -122,13 +122,35 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
 }
 
 /**
+ * Default context value for SSR / when outside provider
+ * Returns safe defaults that won't cause errors during server rendering
+ */
+const defaultContextValue: OfflineContextValue = {
+  isOffline: false,
+  isReconnecting: false,
+  wasOffline: false,
+  queueLength: 0,
+  isSyncing: false,
+  swReady: false,
+  updateAvailable: false,
+  skipWaiting: () => {},
+  isInitialized: false,
+  initError: null,
+  cacheScenario: async () => {},
+  getCacheStatus: async () => null,
+};
+
+/**
  * Hook to use offline context
+ * Returns safe defaults during SSR or when outside provider to prevent hydration errors
  */
 export function useOfflineContext(): OfflineContextValue {
   const context = useContext(OfflineContext);
 
+  // Return default values if context is not available (SSR or outside provider)
+  // This prevents "must be used within Provider" errors during SSR
   if (!context) {
-    throw new Error('useOfflineContext must be used within an OfflineProvider');
+    return defaultContextValue;
   }
 
   return context;

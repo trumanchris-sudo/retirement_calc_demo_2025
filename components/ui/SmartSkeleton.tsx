@@ -163,18 +163,23 @@ export const ChartSkeleton: React.FC<ChartSkeletonProps> = ({
   title,
   className,
 }) => {
-  // Generate dynamic bar heights for histogram/bar chart
+  // Generate deterministic bar heights for histogram/bar chart
+  // Using fixed pattern to avoid hydration mismatch while still looking organic
   const barHeights = React.useMemo(() => {
     const count = type === "histogram" ? 12 : 8;
-    return Array.from({ length: count }, () => 20 + Math.random() * 60);
+    // Deterministic heights based on index to avoid server/client mismatch
+    const baseHeights = [45, 72, 38, 65, 55, 78, 42, 58, 68, 35, 62, 48];
+    return Array.from({ length: count }, (_, i) => baseHeights[i % baseHeights.length]);
   }, [type]);
 
-  // Generate wavy path for line/area charts
+  // Generate deterministic wavy path for line/area charts
   const wavyPath = React.useMemo(() => {
     const points = 8;
+    // Deterministic variation values to avoid hydration mismatch
+    const variations = [7, 12, 3, 9, 5, 11, 8, 4];
     const pathPoints = Array.from({ length: points }, (_, i) => ({
       x: (i / (points - 1)) * 100,
-      y: 30 + Math.sin(i * 0.8) * 25 + Math.random() * 15,
+      y: 30 + Math.sin(i * 0.8) * 25 + variations[i],
     }));
     return pathPoints
       .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
@@ -326,22 +331,26 @@ export const ChartSkeleton: React.FC<ChartSkeletonProps> = ({
       {/* Legend */}
       {showLegend && (
         <div className="px-6 pb-6 flex items-center justify-center gap-6">
-          {[...Array(legendItems)].map((_, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <ShimmerBase
-                className="h-3 w-3"
-                rounded="full"
-                variant="brand"
-                style={{ animationDelay: `${i * 100}ms` }}
-              />
-              <ShimmerBase
-                className="h-3"
-                style={{ width: 40 + Math.random() * 30 }}
-                rounded="sm"
-                variant="subtle"
-              />
-            </div>
-          ))}
+          {[...Array(legendItems)].map((_, i) => {
+            // Deterministic widths to avoid hydration mismatch
+            const legendWidths = [52, 64, 48, 58, 55];
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <ShimmerBase
+                  className="h-3 w-3"
+                  rounded="full"
+                  variant="brand"
+                  style={{ animationDelay: `${i * 100}ms` }}
+                />
+                <ShimmerBase
+                  className="h-3"
+                  style={{ width: legendWidths[i % legendWidths.length] }}
+                  rounded="sm"
+                  variant="subtle"
+                />
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
