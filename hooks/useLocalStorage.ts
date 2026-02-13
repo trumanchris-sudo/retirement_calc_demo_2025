@@ -20,6 +20,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 /**
  * SSR-safe localStorage hook
  *
+ * IMPORTANT: This hook is hydration-safe. It always starts with initialValue
+ * during the first render (both server and client), then reads from localStorage
+ * after hydration completes. This prevents hydration mismatches.
+ *
  * @param key - localStorage key
  * @param initialValue - Default value if nothing in storage
  * @returns [value, setValue] tuple like useState
@@ -28,32 +32,35 @@ export function useLocalStorage<T>(
   key: string,
   initialValue: T
 ): [T, (value: T | ((prev: T) => T)) => void] {
-  // Use lazy initialization to avoid reading localStorage on every render
-  // and to handle SSR where window is undefined
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return initialValue;
-    }
+  // ALWAYS start with initialValue to prevent hydration mismatch
+  // The localStorage read happens in useEffect after hydration
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
+
+  // Track if we've hydrated from localStorage
+  const hasHydrated = useRef(false);
+
+  // Read from localStorage AFTER hydration (in useEffect)
+  useEffect(() => {
+    if (hasHydrated.current) return;
+    hasHydrated.current = true;
+
     try {
       const item = window.localStorage.getItem(key);
-      return item ? (JSON.parse(item) as T) : initialValue;
+      if (item) {
+        const parsed = JSON.parse(item) as T;
+        setStoredValue(parsed);
+      }
     } catch (error) {
       console.error(`[useLocalStorage] Error reading ${key}:`, error);
-      return initialValue;
     }
-  });
+  }, [key]);
 
-  // Track if this is the initial mount to avoid writing the initial value back
-  const isInitialMount = useRef(true);
-
-  // Write to localStorage when value changes (skip initial mount)
+  // Write to localStorage when value changes (skip the hydration read)
+  const isWriteSkipped = useRef(true);
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-
-    if (typeof window === 'undefined') {
+    // Skip the first update (which is the hydration read)
+    if (isWriteSkipped.current) {
+      isWriteSkipped.current = false;
       return;
     }
 
@@ -81,33 +88,38 @@ export function useLocalStorage<T>(
  * Same pattern as useLocalStorage but for sessionStorage.
  * Useful for temporary state that should persist across page navigations
  * but not across browser sessions.
+ *
+ * IMPORTANT: Hydration-safe - always starts with initialValue.
  */
 export function useSessionStorage<T>(
   key: string,
   initialValue: T
 ): [T, (value: T | ((prev: T) => T)) => void] {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return initialValue;
-    }
+  // ALWAYS start with initialValue to prevent hydration mismatch
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
+
+  const hasHydrated = useRef(false);
+
+  // Read from sessionStorage AFTER hydration
+  useEffect(() => {
+    if (hasHydrated.current) return;
+    hasHydrated.current = true;
+
     try {
       const item = window.sessionStorage.getItem(key);
-      return item ? (JSON.parse(item) as T) : initialValue;
+      if (item) {
+        const parsed = JSON.parse(item) as T;
+        setStoredValue(parsed);
+      }
     } catch (error) {
       console.error(`[useSessionStorage] Error reading ${key}:`, error);
-      return initialValue;
     }
-  });
+  }, [key]);
 
-  const isInitialMount = useRef(true);
-
+  const isWriteSkipped = useRef(true);
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-
-    if (typeof window === 'undefined') {
+    if (isWriteSkipped.current) {
+      isWriteSkipped.current = false;
       return;
     }
 
@@ -134,6 +146,8 @@ export function useSessionStorage<T>(
  *
  * Use this when you want more control over when writes happen,
  * e.g., for expensive serialization or when batching updates.
+ *
+ * IMPORTANT: Hydration-safe - always starts with initialValue.
  */
 export function useLocalStorageManual<T>(
   key: string,
@@ -144,21 +158,35 @@ export function useLocalStorageManual<T>(
   save: () => void;
   clear: () => void;
 } {
-  const [value, setValue] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return initialValue;
-    }
+  // ALWAYS start with initialValue to prevent hydration mismatch
+  const [value, setValueState] = useState<T>(initialValue);
+
+  const hasHydrated = useRef(false);
+
+  // Read from localStorage AFTER hydration
+  useEffect(() => {
+    if (hasHydrated.current) return;
+    hasHydrated.current = true;
+
     try {
       const item = window.localStorage.getItem(key);
-      return item ? (JSON.parse(item) as T) : initialValue;
+      if (item) {
+        const parsed = JSON.parse(item) as T;
+        setValueState(parsed);
+      }
     } catch (error) {
       console.error(`[useLocalStorageManual] Error reading ${key}:`, error);
-      return initialValue;
     }
-  });
+  }, [key]);
+
+  const setValue = useCallback((newValue: T | ((prev: T) => T)) => {
+    setValueState((prev) => {
+      const nextValue = newValue instanceof Function ? newValue(prev) : newValue;
+      return nextValue;
+    });
+  }, []);
 
   const save = useCallback(() => {
-    if (typeof window === 'undefined') return;
     try {
       window.localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
@@ -167,10 +195,9 @@ export function useLocalStorageManual<T>(
   }, [key, value]);
 
   const clear = useCallback(() => {
-    if (typeof window === 'undefined') return;
     try {
       window.localStorage.removeItem(key);
-      setValue(initialValue);
+      setValueState(initialValue);
     } catch (error) {
       console.error(`[useLocalStorageManual] Error clearing ${key}:`, error);
     }
