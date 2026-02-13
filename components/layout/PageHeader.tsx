@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Moon, Sun, FileText, Share2, Sliders, DollarSign, Briefcase, Bot } from "lucide-react";
+import { Moon, Sun, FileText, Download, Sliders, DollarSign, Briefcase, Bot, Volume2, VolumeX } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import CubeStaticMini from "@/components/CubeStaticMini";
 import { useTheme } from "@/lib/theme-context";
+import { useSoundPreferences } from "@/lib/sounds";
 
 interface PageHeaderProps {
   showActions?: boolean;
@@ -45,6 +46,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 }) => {
   // Use theme context - the props are deprecated but kept for compatibility
   const { resolvedTheme, toggleTheme } = useTheme();
+  const { enabled: soundEnabled, toggle: toggleSound } = useSoundPreferences();
   const isDarkMode = resolvedTheme === 'dark';
   const onToggleDarkMode = toggleTheme;
   const [contributionDelta, setContributionDelta] = useState(0);
@@ -164,6 +166,21 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               <Sun className="w-5 h-5" />
             ) : (
               <Moon className="w-5 h-5" />
+            )}
+          </Button>
+
+          {/* Sound Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSound}
+            aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
+            className="no-print flex-shrink-0"
+          >
+            {soundEnabled ? (
+              <Volume2 className="w-4 h-4" />
+            ) : (
+              <VolumeX className="w-4 h-4" />
             )}
           </Button>
 
@@ -313,9 +330,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                 size="icon"
                 onClick={onShare}
                 className="md:hidden no-print"
-                aria-label="Share"
+                aria-label="Export plan data"
               >
-                <Share2 className="w-4 h-4" />
+                <Download className="w-4 h-4" />
               </Button>
               <Button
                 variant="ghost"
@@ -323,8 +340,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                 onClick={onShare}
                 className="hidden md:inline-flex no-print"
               >
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
+                <Download className="w-4 h-4 mr-2" />
+                Export
               </Button>
             </>
           )}

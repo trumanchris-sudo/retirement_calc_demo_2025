@@ -1638,7 +1638,7 @@ body {
   }
 
   /* AI Snapshot on first page */
-  .hidden.print\\:block {
+  .hidden.print\:block {
     display: block !important;
   }
 
@@ -1893,7 +1893,7 @@ body {
   }
 
   /* Show all card content in print */
-  .hidden:not(.print\\:block) {
+  .hidden:not(.print\:block) {
     display: revert !important;
   }
 

@@ -75,6 +75,7 @@ import { BrandLoader } from "@/components/BrandLoader";
 import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
 import { Input, Spinner, Tip, TrendingUpIcon } from "@/components/calculator/InputHelpers";
 import { TabNavigation, type MainTabId, isMainTabId } from "@/components/calculator/TabNavigation";
+import { useBondGlidePathDerived, useBeneficiaryAgesDerived, useIsMarried, useTotalBalance } from "@/hooks/useCalculatorDerivedState";
 import { TabPanel } from "@/components/calculator/TabPanel";
 import { LastCalculatedBadge } from "@/components/calculator/LastCalculatedBadge";
 import { RecalculateButton } from "@/components/calculator/RecalculateButton";
@@ -94,6 +95,8 @@ import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calcul
 import { CheckUsTab } from "@/components/calculator/CheckUsTab";
 import OptimizationTab from "@/components/calculator/OptimizationTab";
 import { PrintReport } from "@/components/calculator/PrintReport";
+import { ExportModal } from "@/components/export/ExportModal";
+import { soundPresets } from "@/lib/sounds";
 // Extracted tab components for cleaner organization
 import {
   ConfigureTab,
@@ -1373,52 +1376,10 @@ export default function App() {
   const legacyCardRefLegacy = useRef<HTMLDivElement>(null!);
 
   // Build bond glide path configuration object
-  const bondGlidePath: BondGlidePath | null = useMemo(() => {
-    if (allocationStrategy === 'aggressive') {
-      // 100% stocks, no bonds
-      return null;
-    }
-
-    return {
-      strategy: allocationStrategy,
-      startAge: bondStartAge,
-      endAge: bondEndAge,
-      startPct: bondStartPct,
-      endPct: bondEndPct,
-      shape: glidePathShape,
-    };
-  }, [allocationStrategy, bondStartAge, bondEndAge, bondStartPct, bondEndPct, glidePathShape]);
+  const bondGlidePath = useBondGlidePathDerived(planConfig);
 
   // Auto-calculate beneficiary ages based on user's age and family structure
-  const hypBenAgesStr = useMemo(() => {
-    const olderAge = Math.max(age1, age2);
-    const yearsUntilDeath = hypDeathAge - olderAge;
-
-    // Parse current children ages from comma-separated string
-    const currentAges = childrenCurrentAges
-      .split(',')
-      .map(s => parseInt(s.trim()))
-      .filter(n => !isNaN(n) && n >= 0);
-
-    // Calculate current children at time of death
-    const currentChildrenAtDeath = currentAges.map(age => age + yearsUntilDeath);
-
-    // Calculate additional children (assume 2-year birth intervals)
-    const additionalChildrenAtDeath: number[] = [];
-    for (let i = 0; i < additionalChildrenExpected; i++) {
-      const birthYear = (i + 1) * 2; // Born in 2, 4, 6 years, etc.
-      const ageAtDeath = yearsUntilDeath - birthYear;
-      if (ageAtDeath > 0 && ageAtDeath < hypDeathAge) {
-        additionalChildrenAtDeath.push(ageAtDeath);
-      }
-    }
-
-    // Combine all children ages at death
-    const allChildrenAges = [...currentChildrenAtDeath, ...additionalChildrenAtDeath]
-      .filter(age => age > 0 && age < hypDeathAge);
-
-    return allChildrenAges.length > 0 ? allChildrenAges.join(', ') : '';
-  }, [childrenCurrentAges, additionalChildrenExpected, hypDeathAge, age1, age2]);
+  const hypBenAgesStr = useBeneficiaryAgesDerived(planConfig, childrenCurrentAges, additionalChildrenExpected);
 
   const [aiInsight, setAiInsight] = useState<string>("");
   const [isLoadingAi, setIsLoadingAi] = useState<boolean>(false);
@@ -1562,8 +1523,8 @@ export default function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const isMar = useMemo(() => marital === "married", [marital]);
-  const total = useMemo(() => taxableBalance + pretaxBalance + rothBalance, [taxableBalance, pretaxBalance, rothBalance]);
+  const isMar = useIsMarried(planConfig);
+  const total = useTotalBalance(planConfig);
 
   // Memoize formatters to avoid recreating on every render
   const formatters = useMemo(() => ({
@@ -2318,7 +2279,10 @@ export default function App() {
     }
   }, [resultsViewMode]);
 
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+
   const calc = useCallback(async (optionsOrEvent?: { forceShowGen?: boolean } | React.MouseEvent) => {
+    soundPresets.button();
     console.log('[CALC] Starting calculation...');
     // Allow forcing showGen to true for Legacy tab calculations
     // Check if it's an options object (has forceShowGen) or a mouse event (has target)
@@ -2986,6 +2950,7 @@ export default function App() {
           runRothOptimizer(newRes);
         }
 
+        soundPresets.formSuccess();
         console.log('[CALC] Calculation complete');
 
       // Track calculation for tab interface
@@ -3586,20 +3551,7 @@ export default function App() {
           };
           await generatePDFReport(reportData);
         }}
-        onShare={() => {
-          if (!res) return;
-          const shareData = {
-            title: 'Tax-Aware Retirement Plan',
-            text: `Retirement projection: ${fmt(res.finReal)} by age ${retirementAge}, ${fmt(res.wdReal)}/yr after-tax income`,
-            url: window.location.href
-          };
-          if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-            navigator.share(shareData);
-          } else {
-            navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
-            alert('Plan summary copied to clipboard!');
-          }
-        }}
+        onShare={() => setExportModalOpen(true)}
         onAdjust={(deltas: AdjustmentDeltas) => {
           // Apply deltas to current inputs and recalculate
           let hasChanges = false;
@@ -3634,6 +3586,21 @@ export default function App() {
             });
           }
         }}
+      />
+
+      <ExportModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        inputs={{
+          marital, age1, age2, retirementAge,
+          taxableBalance, pretaxBalance, rothBalance,
+          cTax1, cPre1, cPost1, cMatch1,
+          cTax2, cPre2, cPost2, cMatch2,
+          retRate, inflationRate, stateRate, wdRate,
+          incContrib, incRate,
+        }}
+        results={res}
+        userName="Client"
       />
 
       {/* Tab Navigation */}

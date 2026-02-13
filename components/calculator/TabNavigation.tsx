@@ -3,6 +3,7 @@
 import React, { useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { TRANSITIONS } from "@/lib/designTokens";
+import { soundPresets } from "@/lib/sounds";
 import { ScreenReaderOnly } from "@/components/a11y/ScreenReaderOnly";
 
 export type MainTabId = 'all' | 'configure' | 'ssot' | 'results' | 'stress' | 'legacy' | 'budget' | 'optimize' | 'tools' | 'math' | 'checkUs';
@@ -148,6 +149,7 @@ export function TabNavigation({
       const tabElement = tabRefs.current.get(newTab.id);
       if (tabElement) {
         tabElement.focus();
+        soundPresets.transition();
         onTabChange(newTab.id);
       }
     }
@@ -205,7 +207,7 @@ export function TabNavigation({
               aria-controls={`tabpanel-${tab.id}`}
               aria-disabled={isDisabled}
               tabIndex={isActive ? 0 : -1}
-              onClick={() => !isDisabled && onTabChange(tab.id)}
+              onClick={() => { if (!isDisabled) { soundPresets.transition(); onTabChange(tab.id); } }}
               onKeyDown={(e) => !isDisabled && handleKeyDown(e, tab.id)}
               disabled={isDisabled}
               className={cn(

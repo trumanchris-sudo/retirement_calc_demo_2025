@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronUp, ChevronDown, ChevronRight } from 'lucide-react';
+import { soundPresets } from '@/lib/sounds';
 
 export interface NumericInputProps {
   value: number;
@@ -201,6 +202,7 @@ export function NumericInput({
   const updateValue = useCallback((newValue: number, animate = true) => {
     const clamped = clampValue(newValue);
     if (clamped !== value) {
+      soundPresets.moneyChange();
       if (animate) {
         animateValueChange(clamped);
       }
@@ -390,6 +392,7 @@ export function NumericInput({
       const currentVal = currentValueRef.current;
       const currentStep = getSmartStep(currentVal);
       const newValue = clampValue(currentVal + currentStep * Math.round(holdSpeedRef.current) * (direction === 'up' ? 1 : -1));
+      soundPresets.numberTick();
       onChange(newValue);
     }, 100);
   }, [disabled, value, getSmartStep, updateValue, onChange, clampValue]);

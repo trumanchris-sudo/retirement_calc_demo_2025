@@ -4,6 +4,7 @@ import React, { useState, useId, useMemo } from "react";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
+import { soundPresets } from "@/lib/sounds";
 
 interface SliderInputProps {
   label: string;
@@ -164,6 +165,7 @@ export const SliderInput: React.FC<SliderInputProps> = ({
           value={[value]}
           onValueChange={(vals) => {
             if (vals[0] !== value) {
+              soundPresets.numberTick();
               onChange(vals[0]);
               onInputChange?.();
             }

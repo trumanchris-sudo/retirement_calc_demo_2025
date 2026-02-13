@@ -15,11 +15,9 @@
  * - Cleaner code (declarative over imperative)
  */
 
-import { useMemo, useCallback } from 'react';
+import { useMemo } from 'react';
 import type { PlanConfig } from '@/types/plan-config';
-import type { CalculationResult, ChartDataPoint, BondGlidePath } from '@/types/calculator';
-import { getNetWorthBracket } from '@/lib/constants';
-import { fmt } from '@/lib/utils';
+import type { BondGlidePath } from '@/types/calculator';
 
 /**
  * Derived state for children/beneficiary configuration
@@ -186,74 +184,6 @@ export function useBeneficiaryAgesDerived(
 }
 
 /**
- * Derived state for formatted calculation results
- *
- * Consolidates the formatting logic that was spread across multiple useMemo calls.
- */
-export function useFormattedResults(result: CalculationResult | null) {
-  return useMemo(() => {
-    if (!result) return null;
-
-    return {
-      finNom: fmt(result.finNom),
-      finReal: fmt(result.finReal),
-      wd: fmt(result.wd),
-      wdAfter: fmt(result.wdAfter),
-      wdReal: fmt(result.wdReal),
-      eol: fmt(result.eol),
-      eolReal: fmt(result.eolReal),
-      estateTax: fmt(result.estateTax),
-      netEstate: fmt(result.netEstate),
-      totalRMDs: fmt(result.totalRMDs),
-      tax: {
-        fedOrd: fmt(result.tax.fedOrd),
-        fedCap: fmt(result.tax.fedCap),
-        niit: fmt(result.tax.niit),
-        state: fmt(result.tax.state),
-        tot: fmt(result.tax.tot),
-      },
-    };
-  }, [result]);
-}
-
-/**
- * Derived state for chart data split by phase
- */
-export function useChartDataSplit(result: CalculationResult | null) {
-  return useMemo(() => {
-    if (!result?.data || result.data.length === 0) return null;
-
-    return {
-      accumulation: result.data.slice(0, result.yrsToRet + 1),
-      drawdown: result.data.slice(result.yrsToRet),
-      full: result.data,
-    };
-  }, [result?.data, result?.yrsToRet]);
-}
-
-/**
- * Derived state for net worth comparison
- */
-export function useNetWorthComparison(
-  result: CalculationResult | null,
-  age1: number
-) {
-  return useMemo(() => {
-    if (!result || !age1) return null;
-
-    const bracket = getNetWorthBracket(age1);
-    const multiple = result.finReal / bracket.median;
-
-    return {
-      bracket,
-      percentile: result.finReal > bracket.median ? 'above' : 'below',
-      multiple: multiple.toFixed(1),
-      difference: fmt(Math.abs(result.finReal - bracket.median)),
-    };
-  }, [result?.finReal, age1]);
-}
-
-/**
  * Derived state for marital status check
  */
 export function useIsMarried(planConfig: PlanConfig): boolean {
@@ -278,10 +208,7 @@ export function useTotalBalance(planConfig: PlanConfig): number {
  *
  * Use this in page.tsx to replace scattered useMemo/useEffect patterns
  */
-export function useCalculatorDerivedState(
-  planConfig: PlanConfig,
-  result: CalculationResult | null
-) {
+export function useCalculatorDerivedState(planConfig: PlanConfig) {
   const childrenState = useChildrenDerivedState(planConfig);
   const bondGlidePath = useBondGlidePathDerived(planConfig);
   const beneficiaryAges = useBeneficiaryAgesDerived(
@@ -289,35 +216,16 @@ export function useCalculatorDerivedState(
     childrenState.childrenCurrentAges,
     planConfig.additionalChildrenExpected ?? 0
   );
-  const formattedResults = useFormattedResults(result);
-  const chartData = useChartDataSplit(result);
-  const netWorthComparison = useNetWorthComparison(result, planConfig.age1 ?? 35);
   const isMarried = useIsMarried(planConfig);
   const totalBalance = useTotalBalance(planConfig);
 
   return {
-    // Children/beneficiary derived state
     childrenCurrentAges: childrenState.childrenCurrentAges,
     numberOfChildren: childrenState.numberOfChildren,
     numberOfBeneficiaries: childrenState.numberOfBeneficiaries,
     hasExplicitChildrenData: childrenState.hasExplicitChildrenData,
-
-    // Bond allocation
     bondGlidePath,
-
-    // Beneficiary ages at death
     hypBenAgesStr: beneficiaryAges,
-
-    // Formatted results
-    formattedResults,
-
-    // Chart data
-    chartData,
-
-    // Net worth comparison
-    netWorthComparison,
-
-    // Common derived values
     isMarried,
     totalBalance,
   };
