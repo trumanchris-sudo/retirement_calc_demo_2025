@@ -241,13 +241,14 @@ export function mapAIDataToCalculator(
     // Use user-provided traditional contribution
     // For K-1/self-employed: use total 401k limit (includes profit-sharing/employer contributions)
     // For W-2: use employee-only 401k limit
-    const isP1SelfEmployed = employmentType1 === 'k1' || employmentType1 === 'self-employed';
+    // K-1 income is mapped to 'self-employed' in this app
+    const isP1SelfEmployed = employmentType1 === 'self-employed';
     const p1Limit = isP1SelfEmployed ? IRS_LIMITS_2026['401kTotal'] : IRS_LIMITS_2026['401k'];
 
     if (marital === 'married') {
       // Smart allocation: distribute proportionally based on each person's limit capacity
-      // This ensures K-1/self-employed can use their higher profit-sharing limits
-      const isP2SelfEmployed = employmentType2 === 'k1' || employmentType2 === 'self-employed';
+      // This ensures self-employed (including K-1) can use their higher profit-sharing limits
+      const isP2SelfEmployed = employmentType2 === 'self-employed';
       const p2Limit = isP2SelfEmployed ? IRS_LIMITS_2026['401kTotal'] : IRS_LIMITS_2026['401k'];
       const totalLimit = p1Limit + p2Limit;
       const totalContrib = extractedData.contributionTraditional;
@@ -338,8 +339,9 @@ export function mapAIDataToCalculator(
     // NEW: If user provided combined contributions, split them proportionally by limit
     if (extractedData.contributionTraditional !== undefined) {
       // Use proportional allocation matching the logic used for cPre1
-      const isP1SelfEmployed = employmentType1 === 'k1' || employmentType1 === 'self-employed';
-      const isP2SelfEmployed = employmentType2 === 'k1' || employmentType2 === 'self-employed';
+      // K-1 income is mapped to 'self-employed' in this app
+      const isP1SelfEmployed = employmentType1 === 'self-employed';
+      const isP2SelfEmployed = employmentType2 === 'self-employed';
       const p1Limit = isP1SelfEmployed ? IRS_LIMITS_2026['401kTotal'] : IRS_LIMITS_2026['401k'];
       const p2Limit = isP2SelfEmployed ? IRS_LIMITS_2026['401kTotal'] : IRS_LIMITS_2026['401k'];
       const totalLimit = p1Limit + p2Limit;

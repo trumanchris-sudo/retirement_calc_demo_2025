@@ -117,6 +117,10 @@ export function encodeShareableData(data: ShareableData): string {
       // Round to 1 decimal place to save space
       return Math.round(value * 10) / 10;
     }
+    if (typeof value === 'boolean') {
+      // Boolean fields (like isMarried) are handled above, but guard for safety
+      return value ? 1 : 0;
+    }
     return value ?? 0;
   });
 

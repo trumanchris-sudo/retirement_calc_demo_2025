@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
-import { offlineQueue, initOfflineQueue, type QueueItem } from '@/lib/offline-queue';
+import { offlineQueue, initOfflineQueue, type QueueItemInput } from '@/lib/offline-queue';
 import { initScenarioCache } from '@/lib/scenario-cache';
 
 /**
@@ -165,7 +165,7 @@ interface OfflineQueueState {
   /** Last sync timestamp */
   lastSyncTime: number | null;
   /** Add item to queue */
-  addToQueue: (item: Omit<QueueItem, 'id' | 'retries' | 'status'>) => Promise<string>;
+  addToQueue: (item: QueueItemInput) => Promise<string>;
   /** Process queue manually */
   processQueue: () => Promise<void>;
   /** Clear the queue */
@@ -222,7 +222,7 @@ export function useOfflineQueue(): OfflineQueueState {
   }, []);
 
   const addToQueue = useCallback(
-    async (item: Omit<QueueItem, 'id' | 'retries' | 'status'>): Promise<string> => {
+    async (item: QueueItemInput): Promise<string> => {
       if (!initialized) await initOfflineQueue();
       return offlineQueue.addItem(item);
     },

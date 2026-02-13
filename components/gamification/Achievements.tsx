@@ -417,26 +417,13 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
     lg: "w-10 h-10",
   };
 
-  const Wrapper = animated && typeof window !== "undefined" ? MotionDiv : "div";
-  const wrapperProps = animated
-    ? {
-        initial: { scale: 0.9, opacity: 0 },
-        animate: { scale: 1, opacity: 1 },
-        whileHover: isUnlocked ? { scale: 1.05 } : undefined,
-        whileTap: isUnlocked ? { scale: 0.95 } : undefined,
-        transition: { type: "spring", stiffness: 400, damping: 25 },
-      }
-    : {};
+  const sharedClassName = cn(
+    "relative flex flex-col items-center gap-2 cursor-pointer group",
+    !isUnlocked && "opacity-60"
+  );
 
-  return (
-    <Wrapper
-      {...wrapperProps}
-      className={cn(
-        "relative flex flex-col items-center gap-2 cursor-pointer group",
-        !isUnlocked && "opacity-60"
-      )}
-      onClick={onClick}
-    >
+  const children = (
+    <>
       {/* Badge circle */}
       <div
         className={cn(
@@ -498,7 +485,29 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
           </p>
         </div>
       )}
-    </Wrapper>
+    </>
+  );
+
+  if (animated && typeof window !== "undefined") {
+    return (
+      <MotionDiv
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        whileHover={isUnlocked ? { scale: 1.05 } : undefined}
+        whileTap={isUnlocked ? { scale: 0.95 } : undefined}
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        className={sharedClassName}
+        onClick={onClick}
+      >
+        {children}
+      </MotionDiv>
+    );
+  }
+
+  return (
+    <div className={sharedClassName} onClick={onClick}>
+      {children}
+    </div>
   );
 };
 

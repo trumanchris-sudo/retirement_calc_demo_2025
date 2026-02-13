@@ -302,7 +302,7 @@ export async function POST(request: NextRequest) {
       console.log(`✓ Pass generated successfully: ${requestData.serialNumber}`);
 
       // 9. Send response
-      return new NextResponse(pkpassBuffer, {
+      return new NextResponse(new Uint8Array(pkpassBuffer), {
         headers: {
           "Content-Type": "application/vnd.apple.pkpass",
           "Content-Disposition": `attachment; filename=LegacyCard-${requestData.serialNumber}.pkpass`,

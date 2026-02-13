@@ -139,7 +139,6 @@ export const GestureWrapper = forwardRef<HTMLDivElement, GestureWrapperProps>(
     // Combine refs
     const setRefs = useCallback(
       (element: HTMLDivElement | null) => {
-        // @ts-expect-error - ref is mutable
         containerRef.current = element;
         gestureRef(element);
       },

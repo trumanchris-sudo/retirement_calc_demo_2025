@@ -16,6 +16,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
+import type { SimulationInputs } from '@/lib/calculations/retirementEngine';
 import {
   Briefcase,
   Coffee,

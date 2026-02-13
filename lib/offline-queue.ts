@@ -47,6 +47,10 @@ export interface QueuedAction {
 
 export type QueueItem = QueuedCalculation | QueuedScenarioSave | QueuedAction;
 
+// Distributive Omit that works correctly with union types
+type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
+export type QueueItemInput = DistributiveOmit<QueueItem, 'id' | 'retries' | 'status'>;
+
 // Constants
 const DB_NAME = 'retirement-calc-offline';
 const DB_VERSION = 1;
@@ -103,7 +107,7 @@ class OfflineQueueManager {
   /**
    * Add item to queue
    */
-  async addItem(item: Omit<QueueItem, 'id' | 'retries' | 'status'>): Promise<string> {
+  async addItem(item: QueueItemInput): Promise<string> {
     await this.init();
 
     const queueItem: QueueItem = {

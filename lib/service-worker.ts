@@ -14,7 +14,7 @@
 
 declare const self: ServiceWorkerGlobalScope;
 
-// SyncEvent type for background sync API
+// SyncEvent type for background sync API (not in standard TS lib types)
 interface SyncEvent extends ExtendableEvent {
   readonly tag: string;
 }
@@ -484,12 +484,14 @@ async function getCacheStatus(): Promise<{
   };
 }
 
-// Sync event for background sync (when supported)
-self.addEventListener('sync', (event: SyncEvent) => {
+// Sync event for background sync (when supported).
+// The Background Sync API 'sync' event isn't in standard TS lib types,
+// so we use the generic string overload with a properly typed handler.
+self.addEventListener('sync', ((event: SyncEvent) => {
   if (event.tag === 'sync-calculations') {
     event.waitUntil(syncQueuedCalculations());
   }
-});
+}) as EventListener);
 
 /**
  * Sync queued calculations when back online

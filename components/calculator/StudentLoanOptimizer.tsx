@@ -86,7 +86,17 @@ interface RefinanceAnalysis {
 const FEDERAL_POVERTY_LINE_2024 = 15060; // Single person
 const POVERTY_LINE_FAMILY_INCREMENT = 5380;
 
-const IDR_PLANS = {
+interface IDRPlan {
+  name: string;
+  discretionaryPercent: number;
+  forgivenessYears: number;
+  newBorrowerPercent?: number;
+  newBorrowerYears?: number;
+  undergrad?: number;
+  undergradThreshold?: number;
+}
+
+const IDR_PLANS: Record<string, IDRPlan> = {
   IBR: { name: "Income-Based Repayment (IBR)", discretionaryPercent: 0.15, forgivenessYears: 25, newBorrowerPercent: 0.10, newBorrowerYears: 20 },
   PAYE: { name: "Pay As You Earn (PAYE)", discretionaryPercent: 0.10, forgivenessYears: 20 },
   SAVE: { name: "SAVE Plan", discretionaryPercent: 0.10, forgivenessYears: 20, undergrad: 0.05, undergradThreshold: 12000 },
@@ -446,7 +456,7 @@ export default function StudentLoanOptimizer() {
         let monthlyPayment: number;
         let forgivenessYears = plan.forgivenessYears;
 
-        if (key === "SAVE" && federalBalance <= plan.undergradThreshold!) {
+        if (key === "SAVE" && plan.undergradThreshold && federalBalance <= plan.undergradThreshold) {
           // SAVE has 5% for undergrad loans
           monthlyPayment = (discretionaryIncome * (plan.undergrad || 0.10)) / 12;
         } else {

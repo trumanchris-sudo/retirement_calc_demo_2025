@@ -773,7 +773,7 @@
   // lib/calculations/worker/monte-carlo-worker.ts
   function runSingleSimulation(params, seed) {
     const {
-      marital: marital2,
+      marital,
       age1,
       age2,
       retirementAge,
@@ -824,7 +824,7 @@
       employmentType1 = "w2",
       employmentType2 = "w2"
     } = params;
-    const isMar = marital2 === "married";
+    const isMar = marital === "married";
     const younger = Math.min(age1, isMar ? age2 : age1);
     const older = Math.max(age1, isMar ? age2 : age1);
     if (retirementAge <= younger) {
@@ -881,7 +881,7 @@
         bPost *= g;
         if (bTax > 0 && dividendYield > 0) {
           const yieldIncome = bTax * (dividendYield / 100);
-          const yieldTax = calcLTCGTax(yieldIncome, marital2, 0);
+          const yieldTax = calcLTCGTax(yieldIncome, marital, 0);
           bTax -= yieldTax;
         }
       }
@@ -979,7 +979,7 @@
     const wdGrossY1 = finNom * (wdRate / 100);
     const y1 = computeWithdrawalTaxes(
       wdGrossY1,
-      marital2,
+      marital,
       bTax,
       bPre,
       bPost,
@@ -1008,7 +1008,7 @@
       retBalEmergency *= infl_factor;
       if (retBalTax > 0 && dividendYield > 0) {
         const yieldIncome = retBalTax * (dividendYield / 100);
-        const yieldTax = calcLTCGTax(yieldIncome, marital2, 0);
+        const yieldTax = calcLTCGTax(yieldIncome, marital, 0);
         retBalTax -= yieldTax;
       }
       const currentAge = age1 + yrsToRet + y;
@@ -1037,7 +1037,7 @@
         }
       }
       if (enableRothConversions && currentAge < RMD_START_AGE && retBalPre > 0 && retBalTax > 0) {
-        const brackets = TAX_BRACKETS[marital2];
+        const brackets = TAX_BRACKETS[marital];
         const targetBracket = brackets.rates.find((b) => b.rate === targetConversionBracket);
         if (targetBracket) {
           const currentOrdinaryIncome = ssAnnualBenefit;
@@ -1045,11 +1045,11 @@
           const headroom = Math.max(0, bracketThreshold - currentOrdinaryIncome);
           if (headroom > 0) {
             const maxConversion = Math.min(headroom, retBalPre);
-            const conversionTax = calcOrdinaryTax(currentOrdinaryIncome + maxConversion, marital2) - calcOrdinaryTax(currentOrdinaryIncome, marital2);
+            const conversionTax = calcOrdinaryTax(currentOrdinaryIncome + maxConversion, marital) - calcOrdinaryTax(currentOrdinaryIncome, marital);
             const affordableConversion = conversionTax > 0 ? Math.min(maxConversion, retBalTax / conversionTax * maxConversion) : maxConversion;
             if (affordableConversion > 0) {
               const actualConversion = Math.min(affordableConversion, retBalPre);
-              const actualTax = calcOrdinaryTax(currentOrdinaryIncome + actualConversion, marital2) - calcOrdinaryTax(currentOrdinaryIncome, marital2);
+              const actualTax = calcOrdinaryTax(currentOrdinaryIncome + actualConversion, marital) - calcOrdinaryTax(currentOrdinaryIncome, marital);
               retBalPre -= actualConversion;
               retBalRoth += actualConversion;
               retBalTax -= actualTax;
@@ -1064,7 +1064,7 @@
         const medInflationFactor = Math.pow(1 + medicalInflation / 100, y);
         healthcareCosts += medicarePremium * 12 * medInflationFactor;
         const estimatedMAGI = currWdGross + ssAnnualBenefit + requiredRMD;
-        const isMarried = marital2 === "married";
+        const isMarried = marital === "married";
         const monthlyIrmaaSurcharge = getIRMAASurcharge(estimatedMAGI, isMarried);
         healthcareCosts += monthlyIrmaaSurcharge * 12 * medInflationFactor;
       }
@@ -1100,7 +1100,7 @@
       }
       const taxes = computeWithdrawalTaxes(
         actualWithdrawal,
-        marital2,
+        marital,
         retBalTax,
         retBalPre,
         retBalRoth,
@@ -1114,7 +1114,7 @@
       retBalRoth -= taxes.draw.r;
       currBasis = taxes.newBasis;
       if (rmdExcess > 0) {
-        const excessTax = calcOrdinaryTax(rmdExcess, marital2);
+        const excessTax = calcOrdinaryTax(rmdExcess, marital);
         const excessAfterTax = rmdExcess - excessTax;
         retBalTax += excessAfterTax;
         currBasis += excessAfterTax;
@@ -1292,7 +1292,7 @@
     const safeThreshold = perpetualThreshold * 0.95;
     return distributionRate < safeThreshold;
   }
-  function simulateRealPerBeneficiaryPayout(eolNominal, yearsFrom2025, nominalRet, inflPct, perBenReal, startBens, totalFertilityRate, generationLength, deathAge, minDistAge, capYears, initialBenAges, fertilityWindowStart, fertilityWindowEnd) {
+  function simulateRealPerBeneficiaryPayout(eolNominal, yearsFrom2025, nominalRet, inflPct, perBenReal, startBens, totalFertilityRate, generationLength, deathAge, minDistAge, capYears, initialBenAges, fertilityWindowStart, fertilityWindowEnd, marital = "single") {
     let fundReal = eolNominal / Math.pow(1 + inflPct / 100, yearsFrom2025);
     const r = realReturn(nominalRet, inflPct);
     const fertilityWindowYears = fertilityWindowEnd - fertilityWindowStart;
@@ -1415,7 +1415,8 @@
           capYears = 1e4,
           initialBenAges = [0],
           fertilityWindowStart = 25,
-          fertilityWindowEnd = 35
+          fertilityWindowEnd = 35,
+          marital = "single"
         } = params;
         const result = simulateRealPerBeneficiaryPayout(
           eolNominal,
@@ -1431,7 +1432,8 @@
           capYears,
           initialBenAges,
           fertilityWindowStart,
-          fertilityWindowEnd
+          fertilityWindowEnd,
+          marital
         );
         self.postMessage({
           type: "legacy-complete",
@@ -1511,7 +1513,7 @@
         const {
           retirementAge: retAge,
           pretaxBalance,
-          marital: marital2,
+          marital,
           ssIncome = 0,
           annualWithdrawal = 0,
           targetBracket = 0.24,
@@ -1538,7 +1540,7 @@
           });
           return;
         }
-        const status = marital2 === "married" ? "married" : "single";
+        const status = marital === "married" ? "married" : "single";
         const brackets = TAX_BRACKETS[status];
         const deduction = brackets.deduction;
         let targetBracketLimit = 0;
@@ -1549,7 +1551,7 @@
           }
         }
         if (targetBracketLimit === 0) {
-          targetBracketLimit = marital2 === "married" ? 394600 : 197300;
+          targetBracketLimit = marital === "married" ? 394600 : 197300;
         }
         let baselinePretax = pretaxBalance;
         let baselineLifetimeTax = 0;

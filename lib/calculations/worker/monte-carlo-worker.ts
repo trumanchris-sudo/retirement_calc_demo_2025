@@ -789,7 +789,8 @@ function simulateRealPerBeneficiaryPayout(
   capYears: number,
   initialBenAges: number[],
   fertilityWindowStart: number,
-  fertilityWindowEnd: number
+  fertilityWindowEnd: number,
+  marital: FilingStatus = 'single'
 ): { years: number; fundLeftReal: number; lastLivingCount: number; generationData: GenerationDataPoint[] } {
   let fundReal = eolNominal / Math.pow(1 + inflPct / 100, yearsFrom2025);
   const r = realReturn(nominalRet, inflPct);
@@ -945,7 +946,8 @@ self.onmessage = function(e: MessageEvent) {
         capYears = 10000,
         initialBenAges = [0],
         fertilityWindowStart = 25,
-        fertilityWindowEnd = 35
+        fertilityWindowEnd = 35,
+        marital = 'single',
       } = params;
 
       const result = simulateRealPerBeneficiaryPayout(
@@ -962,7 +964,8 @@ self.onmessage = function(e: MessageEvent) {
         capYears,
         initialBenAges,
         fertilityWindowStart,
-        fertilityWindowEnd
+        fertilityWindowEnd,
+        marital
       );
 
       self.postMessage({

@@ -30,20 +30,26 @@ import {
 } from "lucide-react";
 
 // Dynamic import for framer-motion to avoid SSR issues
+// Type-safe dynamic imports: next/dynamic loses framer-motion prop types,
+// so we import the types and cast the dynamic components appropriately.
+type MotionDivComponent = typeof import("framer-motion").motion.div;
+type MotionPathComponent = typeof import("framer-motion").motion.path;
+type MotionCircleComponent = typeof import("framer-motion").motion.circle;
+
 const MotionDiv = dynamic(
   () => import("framer-motion").then((m) => m.motion.div),
   { ssr: false }
-);
+) as unknown as MotionDivComponent;
 
 const MotionPath = dynamic(
   () => import("framer-motion").then((m) => m.motion.path),
   { ssr: false }
-);
+) as unknown as MotionPathComponent;
 
 const MotionCircle = dynamic(
   () => import("framer-motion").then((m) => m.motion.circle),
   { ssr: false }
-);
+) as unknown as MotionCircleComponent;
 
 // ============================================================================
 // Types & Interfaces
@@ -655,7 +661,7 @@ export const AnimatedTypography: React.FC<AnimatedTypographyProps> = ({
           initial: { scale: 0, opacity: 0 },
           animate: { scale: 1, opacity: 1 },
           transition: {
-            type: "spring",
+            type: "spring" as const,
             stiffness: 500,
             damping: 15,
             delay: letterDelay,
@@ -680,7 +686,7 @@ export const AnimatedTypography: React.FC<AnimatedTypographyProps> = ({
           initial: { y: 50, opacity: 0 },
           animate: { y: 0, opacity: 1 },
           transition: {
-            type: "spring",
+            type: "spring" as const,
             stiffness: 400,
             damping: 20,
             delay: letterDelay,
@@ -792,7 +798,7 @@ export const ShareAchievementButtons: React.FC<ShareAchievementButtonsProps> = (
   return (
     <div className={cn("flex flex-wrap items-center justify-center gap-2", className)}>
       {/* Native share (mobile) */}
-      {typeof navigator !== "undefined" && navigator.share && (
+      {typeof navigator !== "undefined" && "share" in navigator && (
         <Button
           variant="default"
           size="sm"

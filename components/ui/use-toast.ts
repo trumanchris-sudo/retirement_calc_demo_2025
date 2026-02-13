@@ -46,6 +46,8 @@ export type ToasterToast = {
   position?: ToastPosition
   /** Open state */
   open?: boolean
+  /** Callback when open state changes (used for auto-dismiss) */
+  onOpenChange?: (open: boolean) => void
   /** Callback when dismissed */
   onDismiss?: () => void
   /** Callback when an action is clicked */

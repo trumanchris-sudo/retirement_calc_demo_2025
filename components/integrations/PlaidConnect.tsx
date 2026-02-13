@@ -1103,8 +1103,7 @@ export function PlaidConnect({
 
 export default PlaidConnect;
 
-// Re-export types for consumers
-export type { PlaidAccount, PlaidInstitution, ImportedBalances, PlaidConnectProps };
+// Types are exported at their definitions above
 
 // Export mock data for testing
 export { MOCK_ACCOUNTS, MOCK_INSTITUTIONS };

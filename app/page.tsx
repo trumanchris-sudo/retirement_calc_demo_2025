@@ -112,6 +112,23 @@ const RothConversionOptimizer = dynamic(
     loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded" />,
   }
 );
+// Lazy load Planning Tools - only needed in tools tab
+const StudentLoanOptimizer = dynamic(
+  () => import("@/components/calculator/StudentLoanOptimizer"),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
+);
+const AnnuityAnalyzer = dynamic(
+  () => import("@/components/calculator/AnnuityAnalyzer"),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
+);
+const SemiRetirement = dynamic(
+  () => import("@/components/calculator/SemiRetirement"),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
+);
+const PlaidConnect = dynamic(
+  () => import("@/components/integrations/PlaidConnect"),
+  { ssr: false, loading: () => <div className="h-32 animate-pulse bg-muted rounded" /> }
+);
 import { SSOTTab } from "@/components/calculator/SSOTTab";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
@@ -1927,6 +1944,7 @@ export default function App() {
     initialBenAges?: number[];
     fertilityWindowStart?: number;
     fertilityWindowEnd?: number;
+    marital?: string;
   }): Promise<{ years: number; fundLeftReal: number; lastLivingCount: number; generationData?: any[] }> => {
     return new Promise((resolve, reject) => {
       if (!workerRef.current) {
@@ -2750,7 +2768,8 @@ export default function App() {
             capYears: 10000,  // Optimized simulation with early-exit and chunking
             initialBenAges: finalBenAges,
             fertilityWindowStart,
-            fertilityWindowEnd
+            fertilityWindowEnd,
+            marital
           });
 
           const simP50 = await runLegacyViaWorker({
@@ -2767,7 +2786,8 @@ export default function App() {
             capYears: 10000,  // Optimized simulation with early-exit and chunking
             initialBenAges: finalBenAges,
             fertilityWindowStart,
-            fertilityWindowEnd
+            fertilityWindowEnd,
+            marital
           });
 
           const simP75 = await runLegacyViaWorker({
@@ -2784,7 +2804,8 @@ export default function App() {
             capYears: 10000,  // Optimized simulation with early-exit and chunking
             initialBenAges: finalBenAges,
             fertilityWindowStart,
-            fertilityWindowEnd
+            fertilityWindowEnd,
+            marital
           });
 
           console.log('[CALC] Generational simulations completed - P25:', simP25, 'P50:', simP50, 'P75:', simP75);
@@ -5568,6 +5589,64 @@ export default function App() {
             />
           )}
         </AnimatedSection>
+        </TabPanel>
+
+        {/* Planning Tools Tab */}
+        <TabPanel id="tools" activeTab={activeMainTab}>
+          <AnimatedSection animation="fade-in" delay={100}>
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">Planning Tools</h2>
+                <p className="text-muted-foreground">Specialized calculators for student loans, annuity analysis, and semi-retirement planning.</p>
+              </div>
+
+              {/* Student Loan Optimizer */}
+              <StudentLoanOptimizer />
+
+              {/* Annuity Analyzer */}
+              <AnnuityAnalyzer
+                initialAge={age1}
+                initialPortfolio={taxableBalance + pretaxBalance + rothBalance}
+                expectedSSBenefit={ssIncome}
+              />
+
+              {/* Semi-Retirement Planner */}
+              <SemiRetirement
+                age={age1}
+                spouseAge={isMar ? age2 : undefined}
+                retirementAge={retirementAge}
+                marital={marital}
+                taxableBalance={taxableBalance}
+                pretaxBalance={pretaxBalance}
+                rothBalance={rothBalance}
+                cTax1={cTax1}
+                cPre1={cPre1}
+                cPost1={cPost1}
+                cMatch1={cMatch1}
+                cTax2={isMar ? cTax2 : undefined}
+                cPre2={isMar ? cPre2 : undefined}
+                cPost2={isMar ? cPost2 : undefined}
+                cMatch2={isMar ? cMatch2 : undefined}
+                retRate={retRate}
+                inflationRate={inflationRate}
+                wdRate={wdRate}
+                stateRate={stateRate}
+                includeSS={includeSS}
+                ssIncome={ssIncome}
+                ssClaimAge={ssClaimAge}
+                ssIncome2={isMar ? ssIncome2 : undefined}
+                ssClaimAge2={isMar ? ssClaimAge2 : undefined}
+              />
+
+              {/* Plaid Bank Connection */}
+              <PlaidConnect
+                demoMode
+                onImport={(balances) => {
+                  setTaxableBalance(balances.totalInvestments + balances.totalCash);
+                }}
+              />
+            </div>
+          </AnimatedSection>
         </TabPanel>
 
         {/* Math Tab */}

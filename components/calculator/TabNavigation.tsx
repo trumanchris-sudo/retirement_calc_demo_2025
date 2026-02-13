@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils";
 import { TRANSITIONS } from "@/lib/designTokens";
 import { ScreenReaderOnly } from "@/components/a11y/ScreenReaderOnly";
 
-export type MainTabId = 'all' | 'configure' | 'ssot' | 'results' | 'stress' | 'legacy' | 'budget' | 'optimize' | 'math' | 'checkUs';
+export type MainTabId = 'all' | 'configure' | 'ssot' | 'results' | 'stress' | 'legacy' | 'budget' | 'optimize' | 'tools' | 'math' | 'checkUs';
 
 /** All valid main tab IDs for runtime validation */
-const VALID_MAIN_TAB_IDS: readonly MainTabId[] = ['all', 'configure', 'ssot', 'results', 'stress', 'legacy', 'budget', 'optimize', 'math', 'checkUs'] as const;
+const VALID_MAIN_TAB_IDS: readonly MainTabId[] = ['all', 'configure', 'ssot', 'results', 'stress', 'legacy', 'budget', 'optimize', 'tools', 'math', 'checkUs'] as const;
 
 /** Type guard to check if a string is a valid MainTabId */
 export function isMainTabId(value: string): value is MainTabId {
@@ -68,6 +68,11 @@ const TabIcons: Record<MainTabId, React.FC<{ className?: string }>> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
     </svg>
   ),
+  tools: ({ className }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+    </svg>
+  ),
   checkUs: ({ className }) => (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -90,6 +95,7 @@ const tabs: Array<{ id: MainTabId; label: string; shortLabel?: string; descripti
   // Budget tab hidden per user request (contains Retirement Timeline & Implied Budget)
   // { id: 'budget', label: 'Budget', description: 'Timeline and budget insights' },
   { id: 'optimize', label: 'Optimize', description: 'Find your freedom date' },
+  { id: 'tools', label: 'Planning Tools', shortLabel: 'Tools', description: 'Student loans, annuities, semi-retirement' },
   { id: 'checkUs', label: 'Check Us', shortLabel: 'Check', description: 'Verify our calculations' },
   { id: 'math', label: 'Math', description: 'Understanding the calculations' },
 ];

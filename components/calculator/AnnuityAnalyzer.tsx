@@ -319,6 +319,7 @@ function formatCurrencyFull(amount: number): string {
 // ==================== Sub-Components ====================
 
 const AnnuityTypeCard: React.FC<{
+  type: string;
   name: string;
   description: string;
   verdict: string;
