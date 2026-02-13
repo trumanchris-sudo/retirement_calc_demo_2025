@@ -651,7 +651,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
 
   const balancesReal: number[] = [];
   const balancesNominal: number[] = [];
-  let c = {
+  const c = {
     p: { tax: cTax1, pre: cPre1, post: cPost1, match: cMatch1 },
     s: { tax: cTax2, pre: cPre2, post: cPost2, match: cMatch2 },
   };
@@ -712,7 +712,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     // Child expenses reduce savings available (subtracted from taxable account)
     if (childrenAges.length > 0 || numChildren > 0) {
       // Build effective children ages array
-      let effectiveChildrenAges = [...childrenAges];
+      const effectiveChildrenAges = [...childrenAges];
 
       // If numChildren specified but no ages, assume evenly spaced starting at age 5
       if (effectiveChildrenAges.length === 0 && numChildren > 0) {
@@ -1007,7 +1007,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     // Calculate child expenses during retirement (if children still dependent)
     let childExpensesDuringRetirement = 0;
     if (childrenAges.length > 0 || numChildren > 0) {
-      let effectiveChildrenAges = [...childrenAges];
+      const effectiveChildrenAges = [...childrenAges];
       if (effectiveChildrenAges.length === 0 && numChildren > 0) {
         for (let i = 0; i < numChildren; i++) {
           effectiveChildrenAges.push(5 + i * 3);
@@ -1022,7 +1022,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     }
 
     // Total spending need = base withdrawal + healthcare costs + child expenses - Social Security
-    let netSpendingNeed = Math.max(0, currWdGross + healthcareCost + childExpensesDuringRetirement - ssAnnualBenefit);
+    const netSpendingNeed = Math.max(0, currWdGross + healthcareCost + childExpensesDuringRetirement - ssAnnualBenefit);
     let actualWithdrawal = netSpendingNeed;
     let rmdExcess = 0;
 

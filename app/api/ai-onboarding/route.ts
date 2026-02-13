@@ -312,8 +312,8 @@ export async function POST(request: NextRequest) {
 
           let currentText = '';
           let currentPhase = phase;
-          let updatedData = { ...extractedData };
-          let updatedAssumptions = [...assumptions];
+          const updatedData = { ...extractedData };
+          const updatedAssumptions = [...assumptions];
 
           // Process the stream
           for await (const event of response) {

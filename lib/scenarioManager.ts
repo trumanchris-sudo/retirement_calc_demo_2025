@@ -151,7 +151,6 @@ export function importScenarios(jsonString: string): {
       };
     }
 
-    const existingScenarios = getAllScenarios();
     const errors: string[] = [];
     let imported = 0;
 

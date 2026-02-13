@@ -74,7 +74,7 @@ export function computeWithdrawalTaxes(
 
   // RMD Logic: Force drawP to be at least minPretaxDraw before pro-rata distribution
   let drawP = Math.min(safeMinPretaxDraw, safePretaxBal); // Can't withdraw more than available
-  let remainingNeed = safeGross - drawP;
+  const remainingNeed = safeGross - drawP;
 
   let drawT = 0;
   let drawR = 0;
@@ -102,10 +102,10 @@ export function computeWithdrawalTaxes(
   const fixShortfall = (want: number, have: number) => Math.min(want, have);
 
   const usedT = fixShortfall(drawT, safeTaxableBal);
-  let shortT = drawT - usedT;
+  const shortT = drawT - usedT;
 
   const usedP = fixShortfall(drawP + shortT, safePretaxBal);
-  let shortP = drawP + shortT - usedP;
+  const shortP = drawP + shortT - usedP;
 
   const usedR = fixShortfall(drawR + shortP, safeRothBal);
 

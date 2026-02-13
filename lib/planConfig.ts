@@ -4,9 +4,6 @@
  */
 
 import { z } from 'zod';
-import type { FilingStatus } from './calculations/taxCalculations';
-import type { ReturnMode, WalkSeries } from '@/types/planner';
-import type { BondGlidePath } from '@/types/calculator';
 
 // ==================== Validation Constants ====================
 

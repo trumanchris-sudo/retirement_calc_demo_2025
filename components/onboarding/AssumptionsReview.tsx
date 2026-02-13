@@ -349,7 +349,7 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
         value={isEditing ? displayValue : (isValidNumber ? `${prefix}${displayValue}${suffix}` : '')}
         placeholder={placeholder}
         onChange={(e) => {
-          let rawValue = e.target.value.replace(/[$,%]/g, '').replace(/,/g, '');
+          const rawValue = e.target.value.replace(/[$,%]/g, '').replace(/,/g, '');
           const parsed = parseFloat(rawValue);
 
           // Only update if we have a valid number

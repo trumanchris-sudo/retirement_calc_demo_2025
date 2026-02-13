@@ -9,7 +9,7 @@ import autoTable from 'jspdf-autotable';
 import type { CalculationResult } from '@/types/calculator';
 import type { FilingStatus } from './calculations/taxCalculations';
 import type { ReturnMode, WalkSeries } from '@/types/planner';
-import { fmt, fmtFull, fmtPctRaw } from '@/lib/utils';
+import { fmtFull, fmtPctRaw } from '@/lib/utils';
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -112,8 +112,9 @@ const COLORS = {
   border: '#cccccc',       // Light gray
 };
 
-// Typography
-const FONTS = {
+// Typography (reserved for future use)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _FONTS = {
   heading: { family: 'times', style: 'bold' },
   body: { family: 'helvetica', style: 'normal' },
   mono: { family: 'courier', style: 'normal' },
@@ -331,7 +332,7 @@ function addExecutiveSummary(doc: jsPDF, data: PDFReportData, reportDate: string
     y = addBulletPoint(doc, 'Estate structure supports multi-generational wealth transfer under current tax law assumptions', y);
   }
 
-  y = addBulletPoint(doc, `Effective tax rate of ${fmtPctRaw((results.tax.tot / (results.yrsToSim * results.wd)) * 100)} demonstrates tax-efficient withdrawal strategy`, y);
+  addBulletPoint(doc, `Effective tax rate of ${fmtPctRaw((results.tax.tot / (results.yrsToSim * results.wd)) * 100)} demonstrates tax-efficient withdrawal strategy`, y);
 }
 
 // ==================== Planning Assumptions ====================
@@ -582,7 +583,6 @@ function addResultsAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string)
   y = addSubsection(doc, 'TAX EFFICIENCY BY ACCOUNT TYPE', y);
 
   // Calculate percentages for each account type
-  const totalWithdrawals = results.yrsToSim * results.wd;
   const rothPct = (results.eolAccounts.roth / results.eol) * 100;
   const pretaxPct = (results.eolAccounts.pretax / results.eol) * 100;
   const taxablePct = (results.eolAccounts.taxable / results.eol) * 100;

@@ -41,7 +41,8 @@ export function wizardDataToAppState(wizardData: OnboardingWizardData): AppState
   const marital: FilingStatus = basics.maritalStatus === 'married' ? 'married' : 'single'
 
   // Calculate contributions for person 1
-  let cTax1 = 0, cPre1 = 0, cPost1 = 0, cMatch1 = 0
+  let cTax1 = 0, cPre1 = 0, cPost1 = 0
+  const cMatch1 = 0
 
   if (savings.savingsMode === 'max401k') {
     cPre1 = IRS_LIMITS_2026['401k']
@@ -63,7 +64,8 @@ export function wizardDataToAppState(wizardData: OnboardingWizardData): AppState
   }
 
   // Calculate contributions for person 2 (if married)
-  let cTax2 = 0, cPre2 = 0, cPost2 = 0, cMatch2 = 0
+  let cTax2 = 0, cPre2 = 0, cPost2 = 0
+  const cMatch2 = 0
 
   if (basics.maritalStatus === 'married' && savings.spouseIncome) {
     const spouseMode = savings.spouseSavingsMode || 'typical'

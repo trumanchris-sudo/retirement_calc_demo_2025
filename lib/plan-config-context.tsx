@@ -23,7 +23,7 @@ import {
   useRef,
   type ReactNode,
 } from 'react';
-import type { PlanConfig, FieldMetadata } from '@/types/plan-config';
+import type { PlanConfig } from '@/types/plan-config';
 import {
   createDefaultPlanConfig,
   mergeConfigUpdates,

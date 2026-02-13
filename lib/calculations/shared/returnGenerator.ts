@@ -9,8 +9,8 @@ import { SP500_YOY_NOMINAL, BOND_NOMINAL_AVG, type BondGlidePath } from "./const
 import { mulberry32 } from "./utils";
 import { calculateBondAllocation, calculateBlendedReturn, calculateBondReturn } from "./bondAllocation";
 
-export type ReturnMode = "fixed" | "walk";
-export type WalkSeries = "nominal" | "real";
+export type ReturnMode = "fixed" | "randomWalk";
+export type WalkSeries = "nominal" | "real" | "trulyRandom";
 
 export interface ReturnGeneratorOptions {
   mode: ReturnMode;

@@ -350,7 +350,6 @@ function generateSummary(data: ExtractedData, assumptions: AssumptionWithReasoni
     summary += `your $${totalIncome.toLocaleString()} income allows for meaningful retirement contributions. `;
   }
 
-  const userProvidedCount = assumptions.filter(a => a.userProvided).length;
   const assumedCount = assumptions.filter(a => !a.userProvided).length;
 
   if (assumedCount > 0) {

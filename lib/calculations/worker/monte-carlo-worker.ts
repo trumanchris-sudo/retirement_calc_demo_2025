@@ -12,8 +12,6 @@ import {
   LIFE_EXP,
   RMD_START_AGE,
   TAX_BRACKETS,
-  SP500_YOY_NOMINAL,
-  BOND_NOMINAL_AVG,
   // Types
   type FilingStatus,
   type BondGlidePath,
@@ -33,10 +31,6 @@ import {
   calcPIA,
   calcSocialSecurity,
   calculateEffectiveSS,
-  // Bond allocation
-  calculateBondAllocation,
-  calculateBlendedReturn,
-  calculateBondReturn,
   // Expenses
   calculateChildExpenses,
   calculatePreMedicareHealthcareCosts,
@@ -262,7 +256,7 @@ function runSingleSimulation(params: SimulationParams, seed: number): Simulation
 
     // Calculate child-related expenses during accumulation phase
     if (childrenAges.length > 0 || numChildren > 0) {
-      let effectiveChildrenAges = [...childrenAges];
+      const effectiveChildrenAges = [...childrenAges];
 
       if (effectiveChildrenAges.length === 0 && numChildren > 0) {
         for (let i = 0; i < numChildren; i++) {
@@ -481,7 +475,7 @@ function runSingleSimulation(params: SimulationParams, seed: number): Simulation
     // Calculate child expenses during retirement
     let childExpensesDuringRetirement = 0;
     if (childrenAges.length > 0 || numChildren > 0) {
-      let effectiveChildrenAges = [...childrenAges];
+      const effectiveChildrenAges = [...childrenAges];
       if (effectiveChildrenAges.length === 0 && numChildren > 0) {
         for (let i = 0; i < numChildren; i++) {
           effectiveChildrenAges.push(5 + i * 3);
@@ -494,7 +488,7 @@ function runSingleSimulation(params: SimulationParams, seed: number): Simulation
       );
     }
 
-    let netSpendingNeed = Math.max(0, currWdGross + healthcareCosts + childExpensesDuringRetirement - ssAnnualBenefit);
+    const netSpendingNeed = Math.max(0, currWdGross + healthcareCosts + childExpensesDuringRetirement - ssAnnualBenefit);
     let actualWithdrawal = netSpendingNeed;
     let rmdExcess = 0;
 

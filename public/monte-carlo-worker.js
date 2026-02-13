@@ -638,7 +638,7 @@
     if (totalBal <= 0 || safeGross <= 0)
       return { tax: 0, ordinary: 0, capgain: 0, niit: 0, state: 0, draw: { t: 0, p: 0, r: 0 }, newBasis: safeTaxableBasis };
     let drawP = Math.min(safeMinPretaxDraw, safePretaxBal);
-    let remainingNeed = safeGross - drawP;
+    const remainingNeed = safeGross - drawP;
     let drawT = 0;
     let drawR = 0;
     if (remainingNeed > 0) {
@@ -655,9 +655,9 @@
     }
     const fixShortfall = (want, have) => Math.min(want, have);
     const usedT = fixShortfall(drawT, safeTaxableBal);
-    let shortT = drawT - usedT;
+    const shortT = drawT - usedT;
     const usedP = fixShortfall(drawP + shortT, safePretaxBal);
-    let shortP = drawP + shortT - usedP;
+    const shortP = drawP + shortT - usedP;
     const usedR = fixShortfall(drawR + shortP, safeRothBal);
     drawT = usedT;
     drawP = usedP;
@@ -890,7 +890,7 @@
         basisTax += c.s.tax;
       }
       if (childrenAges.length > 0 || numChildren > 0) {
-        let effectiveChildrenAges = [...childrenAges];
+        const effectiveChildrenAges = [...childrenAges];
         if (effectiveChildrenAges.length === 0 && numChildren > 0) {
           for (let i = 0; i < numChildren; i++) {
             effectiveChildrenAges.push(5 + i * 3);
@@ -1062,7 +1062,7 @@
       }
       let childExpensesDuringRetirement = 0;
       if (childrenAges.length > 0 || numChildren > 0) {
-        let effectiveChildrenAges = [...childrenAges];
+        const effectiveChildrenAges = [...childrenAges];
         if (effectiveChildrenAges.length === 0 && numChildren > 0) {
           for (let i = 0; i < numChildren; i++) {
             effectiveChildrenAges.push(5 + i * 3);
@@ -1074,7 +1074,7 @@
           Math.pow(infl_factor, yrsToRet + y)
         );
       }
-      let netSpendingNeed = Math.max(0, currWdGross + healthcareCosts + childExpensesDuringRetirement - ssAnnualBenefit);
+      const netSpendingNeed = Math.max(0, currWdGross + healthcareCosts + childExpensesDuringRetirement - ssAnnualBenefit);
       let actualWithdrawal = netSpendingNeed;
       let rmdExcess = 0;
       if (requiredRMD > 0) {

@@ -5168,7 +5168,7 @@ export default function App() {
                 isDarkMode={isDarkMode}
                 batchSummary={batchSummary}
                 guardrailsResult={guardrailsResult}
-                retAge={retirementAge}
+                retirementAge={retirementAge}
                 age1={age1}
               />
             </TabPanel>
@@ -5330,7 +5330,7 @@ export default function App() {
             res={res}
             legacyResult={legacyResult}
             legacyCardRef={legacyCardRefLegacy as React.RefObject<HTMLDivElement>}
-            genRef={genRef}
+            genRef={genRef as React.RefObject<HTMLDivElement>}
             updatePlanConfig={(updates, source) => updatePlanConfig(updates, source as 'user-entered' | 'default')}
             onInputChange={handleInputChange}
           />
