@@ -132,6 +132,52 @@ const PlaidConnect = dynamic(
   () => import("@/components/integrations/PlaidConnect"),
   { ssr: false, loading: () => <div className="h-32 animate-pulse bg-muted rounded" /> }
 );
+// Section wrappers for orphaned features
+const OptimizeToolsSection = dynamic(
+  () => import("@/components/calculator/tabs/OptimizeToolsSection"),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
+);
+const StressToolsSection = dynamic(
+  () => import("@/components/calculator/tabs/StressToolsSection"),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
+);
+const LegacyToolsSection = dynamic(
+  () => import("@/components/calculator/tabs/LegacyToolsSection"),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
+);
+const PlanningToolsExpanded = dynamic(
+  () => import("@/components/calculator/tabs/PlanningToolsExpanded"),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
+);
+const ResultsVisualizationsSection = dynamic(
+  () => import("@/components/calculator/tabs/ResultsVisualizationsSection"),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
+);
+const EducationSection = dynamic(
+  () => import("@/components/calculator/tabs/EducationSection"),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
+);
+const GamificationSection = dynamic(
+  () => import("@/components/calculator/tabs/GamificationSection"),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
+);
+// Page-level features
+const MarketTicker = dynamic(
+  () => import("@/components/market/MarketTicker").then(mod => ({ default: mod.MarketTicker })),
+  { ssr: false, loading: () => <div className="h-8 animate-pulse bg-muted rounded" /> }
+);
+const VersionHistory = dynamic(
+  () => import("@/components/history/VersionHistory"),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
+);
+const ScenarioManager = dynamic(
+  () => import("@/components/calculator/ScenarioManager").then(mod => ({ default: mod.ScenarioManager })),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
+);
+const AnalyticsDashboard = dynamic(
+  () => import("@/components/calculator/AnalyticsDashboard").then(mod => ({ default: mod.AnalyticsDashboard })),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
+);
 import { SSOTTab } from "@/components/calculator/SSOTTab";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
@@ -3587,6 +3633,7 @@ export default function App() {
           }
         }}
       />
+      <MarketTicker className="no-print" />
 
       <ExportModal
         open={exportModalOpen}
@@ -5220,6 +5267,12 @@ export default function App() {
             <div className="flex justify-center mt-6">
               <RecalculateButton onClick={calc} isCalculating={isLoadingAi} />
             </div>
+            <div className="mt-8">
+              <ScenarioManager />
+            </div>
+            <div className="mt-8">
+              <StressToolsSection />
+            </div>
             </TabPanel>
 
             {/* Tabbed Chart Container - Using ResultsTab component */}
@@ -5240,6 +5293,12 @@ export default function App() {
                 age1={age1}
                 calculatorInputs={planConfig}
               />
+              <div className="mt-8">
+                <ResultsVisualizationsSection />
+              </div>
+              <div className="mt-8">
+                <GamificationSection />
+              </div>
             </TabPanel>
           </div>
           </AnimatedSection>
@@ -5360,6 +5419,24 @@ export default function App() {
         <AnimatedSection animation="fade-in" delay={100}>
           <SSOTTab />
         </AnimatedSection>
+        <div className="mt-8">
+          <VersionHistory
+            currentPlan={planConfig}
+            onRestore={(version) => {
+              if (version.data) {
+                updatePlanConfig(version.data as unknown as Record<string, unknown>, 'user-entered');
+              }
+            }}
+          />
+        </div>
+        <div className="mt-8">
+          <AnalyticsDashboard
+            currentSuccessRate={res?.probRuin !== undefined ? (1 - res.probRuin) * 100 : undefined}
+            currentEndOfLifeWealth={res?.eolReal}
+            retirementAge={retirementAge}
+            withdrawalRate={wdRate}
+          />
+        </div>
         </TabPanel>
         )}
 
@@ -5403,6 +5480,9 @@ export default function App() {
             updatePlanConfig={(updates, source) => updatePlanConfig(updates, source as 'user-entered' | 'default')}
             onInputChange={handleInputChange}
           />
+          <div className="mt-8">
+            <LegacyToolsSection />
+          </div>
         </TabPanel>
         )}
         {/* Budget Tab - HIDDEN per user request (contains Retirement Timeline & Implied Budget) */}
@@ -5593,6 +5673,20 @@ export default function App() {
             />
           )}
         </AnimatedSection>
+        <OptimizeToolsSection
+          age={age1}
+          spouseAge={isMar ? age2 : undefined}
+          maritalStatus={marital}
+          retirementAge={retirementAge}
+          taxableBalance={taxableBalance}
+          pretaxBalance={pretaxBalance}
+          rothBalance={rothBalance}
+          primaryIncome={planConfig.primaryIncome ?? 100000}
+          ssIncome={ssIncome}
+          filingStatus={marital}
+          isMarried={isMar}
+          portfolioValue={taxableBalance + pretaxBalance + rothBalance}
+        />
         </TabPanel>
 
         {/* Planning Tools Tab */}
@@ -5651,6 +5745,9 @@ export default function App() {
               />
             </div>
           </AnimatedSection>
+          <div className="mt-8">
+            <PlanningToolsExpanded />
+          </div>
         </TabPanel>
 
         {/* Math Tab */}
@@ -5663,6 +5760,9 @@ export default function App() {
             irmaaThresholdSingle={irmaaThresholdSingle}
             irmaaThresholdMarried={irmaaThresholdMarried}
           />
+          <div className="mt-8">
+            <EducationSection />
+          </div>
         </TabPanel>
 
         {/* Check Us Tab - Transparency & Calculation Verification */}
