@@ -19,7 +19,20 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 shadow-[0_1px_2px_0_rgba(0,0,0,0.05),0_2px_4px_-1px_rgba(0,0,0,0.08),inset_0_1px_0_0_rgba(255,255,255,0.1)] hover:shadow-[0_2px_4px_0_rgba(0,0,0,0.06),0_4px_6px_-1px_rgba(0,0,0,0.1),inset_0_1px_0_0_rgba(255,255,255,0.15)] hover:-translate-y-[1px] transition-all duration-200 dark:shadow-[0_1px_2px_0_rgba(0,0,0,0.3),0_2px_4px_-1px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.05)] dark:hover:shadow-[0_2px_4px_0_rgba(0,0,0,0.35),0_4px_6px_-1px_rgba(0,0,0,0.45),inset_0_1px_0_0_rgba(255,255,255,0.08)]",
+      // Base styles - mobile-friendly height (44px on mobile, 40px on desktop)
+      "flex h-11 sm:h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2",
+      // Text - 16px on mobile to prevent iOS zoom
+      "text-base sm:text-sm",
+      // Focus and interaction
+      "ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+      // Disabled state
+      "disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      // Shadow effects
+      "shadow-[0_1px_2px_0_rgba(0,0,0,0.05),0_2px_4px_-1px_rgba(0,0,0,0.08),inset_0_1px_0_0_rgba(255,255,255,0.1)]",
+      "hover:shadow-[0_2px_4px_0_rgba(0,0,0,0.06),0_4px_6px_-1px_rgba(0,0,0,0.1),inset_0_1px_0_0_rgba(255,255,255,0.15)]",
+      "hover:-translate-y-[1px] transition-all duration-200",
+      "dark:shadow-[0_1px_2px_0_rgba(0,0,0,0.3),0_2px_4px_-1px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.05)]",
+      "dark:hover:shadow-[0_2px_4px_0_rgba(0,0,0,0.35),0_4px_6px_-1px_rgba(0,0,0,0.45),inset_0_1px_0_0_rgba(255,255,255,0.08)]",
       className
     )}
     {...props}
@@ -118,7 +131,21 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground focus:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),0_1px_2px_0_rgba(0,0,0,0.05)] dark:focus:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.2)] transition-all duration-150 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      // Base styles - mobile-friendly touch targets (min 44px height)
+      "relative flex w-full cursor-default select-none items-center rounded-sm",
+      // Padding - larger on mobile for touch
+      "py-3 sm:py-1.5 pl-8 pr-2",
+      // Text size - 16px on mobile to prevent iOS zoom
+      "text-base sm:text-sm",
+      // Focus and interaction
+      "outline-none focus:bg-accent focus:text-accent-foreground",
+      "focus:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),0_1px_2px_0_rgba(0,0,0,0.05)]",
+      "dark:focus:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.2)]",
+      "transition-all duration-150",
+      // Mobile: active state instead of hover
+      "active:bg-accent/80",
+      // Disabled state
+      "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     {...props}

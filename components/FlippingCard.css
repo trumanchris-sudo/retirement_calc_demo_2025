@@ -1,64 +1,233 @@
-/* --- 1. The 3D Scene & Animation --- */
+/* ============================================
+   Premium 3D Flipping Card Styles
+   Features:
+   - Smooth 3D perspective transforms
+   - Dynamic shadows that change during flip
+   - Reflection/shine effect on hover
+   - Multiple flip directions (horizontal, vertical)
+   - Touch-optimized interactions
+   ============================================ */
 
-/* The outer container, which sets the 3D perspective */
-.flip-card-scene {
-  width: 100%;
-  /* Removed min-height - let the content determine the height */
-  perspective: 1000px; /* This creates the 3D effect */
-  cursor: pointer;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+/* --- CSS Custom Properties --- */
+:root {
+  --flip-duration: 600ms;
+  --flip-easing: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --flip-perspective: 1200px;
+  --card-border-radius: 16px;
+  --tilt-transition: transform 0.15s ease-out;
 }
 
-/* The inner container that holds both faces and does the actual flip */
+/* --- 1. The 3D Scene Container --- */
+.flip-card-scene {
+  width: 100%;
+  perspective: var(--flip-perspective);
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transform-style: preserve-3d;
+  transition: var(--tilt-transition);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y pinch-zoom;
+}
+
+.flip-card-scene.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.flip-card-scene.is-flipping {
+  pointer-events: none;
+}
+
+/* --- 2. The Card Container --- */
 .flip-card {
   position: relative;
   width: 100%;
   min-height: 280px;
-  transition: transform 0.4s ease-in-out, height 0.4s ease-in-out;
   transform-style: preserve-3d;
+  transition:
+    transform var(--flip-duration, 600ms) var(--flip-easing),
+    height 0.4s ease-in-out;
 }
 
-/* Add the 'is-flipped' class (via JS) to rotate the card */
-.flip-card.is-flipped {
+/* Horizontal flip (default) */
+.flip-card.flip-horizontal.is-flipped {
   transform: rotateY(180deg);
 }
 
-/* Both front and back faces */
+/* Vertical flip */
+.flip-card.flip-vertical.is-flipped {
+  transform: rotateX(180deg);
+}
+
+/* --- 3. Card Faces --- */
 .flip-card-face {
   position: absolute;
   width: 100%;
   min-height: 280px;
-  -webkit-backface-visibility: hidden; /* Safari */
-  backface-visibility: hidden; /* Hides the back of the card when it's facing away */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
 
-  /* Card Styling - works with light and dark mode */
-  background-color: hsl(var(--card));
+  /* Card Styling */
+  background: linear-gradient(
+    135deg,
+    hsl(var(--card)) 0%,
+    hsl(var(--card)) 100%
+  );
   color: hsl(var(--card-foreground));
-  border-radius: 12px;
-  padding: 24px;
+  border-radius: var(--card-border-radius);
   border: 1px solid hsl(var(--border));
-  /* Enhanced 3D shadow layers for depth */
+  overflow: hidden;
+
+  /* Premium multi-layer shadow for depth */
   box-shadow:
-    0 1px 2px 0 rgba(0, 0, 0, 0.05),
-    0 4px 6px -1px rgba(0, 0, 0, 0.08),
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 20px 25px -5px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-  transition: box-shadow 0.3s ease;
+    /* Ambient shadow */
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    /* Key shadow */
+    0 8px 16px rgba(0, 0, 0, 0.04),
+    /* Depth shadow */
+    0 16px 32px rgba(0, 0, 0, 0.06),
+    /* Contact shadow */
+    0 32px 64px rgba(0, 0, 0, 0.08),
+    /* Inner highlight (top) */
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    /* Inner shadow (bottom) */
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+
+  transition:
+    box-shadow var(--flip-duration, 600ms) var(--flip-easing),
+    transform 0.1s ease-out;
 }
 
-/* The front face (initial state) */
+.flip-card-content {
+  padding: 24px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Card edge effect for 3D depth */
+.flip-card-edge {
+  position: absolute;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.15) 0%,
+    rgba(0, 0, 0, 0.05) 50%,
+    rgba(0, 0, 0, 0.15) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Horizontal flip edge */
+.flip-card-face.flip-horizontal .flip-card-edge {
+  width: 4px;
+  height: 100%;
+  top: 0;
+  right: -2px;
+  transform: translateZ(-2px);
+}
+
+/* Vertical flip edge */
+.flip-card-face.flip-vertical .flip-card-edge {
+  width: 100%;
+  height: 4px;
+  bottom: -2px;
+  left: 0;
+  transform: translateZ(-2px);
+}
+
+/* Front face - default position */
 .flip-card-front {
-  /* No transform needed */
+  z-index: 2;
 }
 
-/* The back face (hidden by default) */
-.flip-card-back {
-  transform: rotateY(180deg); /* Pre-rotates the back face */
+/* Back face - pre-rotated */
+.flip-card-back.flip-horizontal {
+  transform: rotateY(180deg);
 }
 
-/* --- 2. Content Styling --- */
+.flip-card-back.flip-vertical {
+  transform: rotateX(180deg);
+}
 
+/* --- 4. Shine/Reflection Overlay --- */
+.flip-card-shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: var(--card-border-radius);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 10;
+  transition: opacity 0.3s ease;
+  mix-blend-mode: overlay;
+}
+
+/* --- 5. Dynamic Shadows During Flip --- */
+
+/* Shadow intensifies when card lifts during flip */
+.flip-card-scene.is-flipping .flip-card-face {
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.03),
+    0 16px 32px rgba(0, 0, 0, 0.06),
+    0 32px 64px rgba(0, 0, 0, 0.09),
+    0 48px 96px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Midpoint of flip - maximum shadow */
+@keyframes flipShadow {
+  0%, 100% {
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.02),
+      0 8px 16px rgba(0, 0, 0, 0.04),
+      0 16px 32px rgba(0, 0, 0, 0.06),
+      0 32px 64px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  }
+  50% {
+    box-shadow:
+      0 8px 16px rgba(0, 0, 0, 0.05),
+      0 24px 48px rgba(0, 0, 0, 0.08),
+      0 48px 96px rgba(0, 0, 0, 0.12),
+      0 64px 128px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+  }
+}
+
+.flip-card.is-flipped .flip-card-face,
+.flip-card-scene.is-flipping .flip-card-face {
+  animation: flipShadow var(--flip-duration, 600ms) var(--flip-easing);
+}
+
+/* --- 6. Hover Effects --- */
+.flip-card-scene:hover .flip-card-face {
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.03),
+    0 12px 24px rgba(0, 0, 0, 0.05),
+    0 24px 48px rgba(0, 0, 0, 0.08),
+    0 40px 80px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+}
+
+/* Focus state for accessibility */
+.flip-card-scene:focus-visible {
+  outline: none;
+}
+
+.flip-card-scene:focus-visible .flip-card-face {
+  outline: 2px solid hsl(var(--primary, 210 100% 50%));
+  outline-offset: 4px;
+}
+
+/* --- 7. Content Styling --- */
 .flip-card-header {
   display: flex;
   justify-content: space-between;
@@ -75,11 +244,12 @@
 
 .flip-card-icon {
   opacity: 0.5;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .flip-card-scene:hover .flip-card-icon {
   opacity: 1;
+  transform: scale(1.1);
 }
 
 .flip-card-body-main {
@@ -140,40 +310,56 @@
   color: hsl(var(--foreground));
 }
 
-/* Hover effect - enhanced shadows only (no transform to avoid conflicts with 3D flip) */
-.flip-card-scene:hover .flip-card-face {
-  box-shadow:
-    0 2px 4px 0 rgba(0, 0, 0, 0.06),
-    0 6px 10px -1px rgba(0, 0, 0, 0.1),
-    0 15px 20px -3px rgba(0, 0, 0, 0.12),
-    0 25px 35px -5px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
-}
-
-/* Dark mode specific adjustments */
+/* --- 8. Dark Mode --- */
 .dark .flip-card-face {
-  /* Enhanced dark mode shadows with more depth */
+  background: linear-gradient(
+    135deg,
+    hsl(var(--card)) 0%,
+    hsl(var(--card)) 100%
+  );
   box-shadow:
-    0 1px 2px 0 rgba(0, 0, 0, 0.3),
-    0 4px 6px -1px rgba(0, 0, 0, 0.4),
-    0 10px 15px -3px rgba(0, 0, 0, 0.5),
-    0 20px 25px -5px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
-    inset 0 -1px 0 0 rgba(0, 0, 0, 0.2);
+    0 2px 4px rgba(0, 0, 0, 0.15),
+    0 8px 16px rgba(0, 0, 0, 0.2),
+    0 16px 32px rgba(0, 0, 0, 0.25),
+    0 32px 64px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
-/* Dark mode hover effect */
 .dark .flip-card-scene:hover .flip-card-face {
   box-shadow:
-    0 2px 4px 0 rgba(0, 0, 0, 0.35),
-    0 6px 10px -1px rgba(0, 0, 0, 0.45),
-    0 15px 20px -3px rgba(0, 0, 0, 0.55),
-    0 25px 35px -5px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 0 rgba(0, 0, 0, 0.25);
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    0 12px 24px rgba(0, 0, 0, 0.25),
+    0 24px 48px rgba(0, 0, 0, 0.3),
+    0 40px 80px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25);
 }
 
-/* Mobile styles - reduce card size by 50% */
+.dark .flip-card-scene.is-flipping .flip-card-face {
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.25),
+    0 24px 48px rgba(0, 0, 0, 0.3),
+    0 48px 96px rgba(0, 0, 0, 0.35),
+    0 64px 128px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+}
+
+.dark .flip-card-shine {
+  mix-blend-mode: soft-light;
+}
+
+.dark .flip-card-edge {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.3) 0%,
+    rgba(0, 0, 0, 0.15) 50%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+}
+
+/* --- 9. Mobile Styles --- */
 @media (max-width: 640px) {
   .flip-card {
     min-height: 140px;
@@ -181,6 +367,9 @@
 
   .flip-card-face {
     min-height: 140px;
+  }
+
+  .flip-card-content {
     padding: 16px;
   }
 
@@ -201,9 +390,62 @@
   .flip-card-list li {
     padding: 6px 0;
   }
+
+  /* Reduce perspective for mobile */
+  .flip-card-scene {
+    perspective: 800px;
+  }
+
+  /* Faster flip for mobile */
+  :root {
+    --flip-duration: 500ms;
+  }
 }
 
-/* Print styles - disable 3D transforms and show front face only */
+/* Touch feedback for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .flip-card-scene:active .flip-card-face {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+
+  /* Hide shine effect on touch devices (handled by JS) */
+  .flip-card-shine {
+    display: none;
+  }
+}
+
+/* --- 10. Reduced Motion --- */
+@media (prefers-reduced-motion: reduce) {
+  .flip-card {
+    transition: none;
+  }
+
+  .flip-card-face {
+    transition: none;
+    animation: none !important;
+  }
+
+  .flip-card-scene {
+    transition: none;
+  }
+
+  .flip-card.is-flipped .flip-card-face,
+  .flip-card-scene.is-flipping .flip-card-face {
+    animation: none;
+  }
+
+  /* Instant flip for reduced motion */
+  .flip-card.flip-horizontal.is-flipped {
+    transform: rotateY(180deg);
+  }
+
+  .flip-card.flip-vertical.is-flipped {
+    transform: rotateX(180deg);
+  }
+}
+
+/* --- 11. Print Styles --- */
 @media print {
   .flip-card-scene {
     perspective: none !important;
@@ -222,15 +464,34 @@
   .flip-card-face {
     backface-visibility: visible !important;
     -webkit-backface-visibility: visible !important;
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
   }
 
   .flip-card-back {
     transform: none !important;
-    display: none !important; /* Hide back face when printing */
+    display: none !important;
   }
 
   .flip-card-front {
     position: relative !important;
     transform: none !important;
+  }
+
+  .flip-card-shine,
+  .flip-card-edge {
+    display: none !important;
+  }
+}
+
+/* --- 12. High Contrast Mode --- */
+@media (prefers-contrast: high) {
+  .flip-card-face {
+    border-width: 2px;
+    box-shadow: none;
+  }
+
+  .flip-card-scene:focus-visible .flip-card-face {
+    outline-width: 3px;
   }
 }

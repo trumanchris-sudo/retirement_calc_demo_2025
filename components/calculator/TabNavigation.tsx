@@ -1,8 +1,9 @@
 "use client"
 
-import React from "react";
+import React, { useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { TRANSITIONS } from "@/lib/designTokens";
+import { ScreenReaderOnly } from "@/components/a11y/ScreenReaderOnly";
 
 export type MainTabId = 'all' | 'configure' | 'ssot' | 'results' | 'stress' | 'legacy' | 'budget' | 'optimize' | 'math' | 'checkUs';
 
@@ -100,11 +101,78 @@ export function TabNavigation({
   showIcons = true,
   compact = false,
 }: TabNavigationProps) {
+  const tabRefs = useRef<Map<MainTabId, HTMLButtonElement>>(new Map());
+
+  // Get enabled tabs for keyboard navigation
+  const enabledTabs = tabs.filter(tab => {
+    if (!hasResults) {
+      return tab.id === 'all' || tab.id === 'configure' || tab.id === 'ssot';
+    }
+    return true;
+  });
+
+  // Keyboard navigation handler for arrow keys
+  const handleKeyDown = useCallback((e: React.KeyboardEvent, currentTabId: MainTabId) => {
+    const currentIndex = enabledTabs.findIndex(t => t.id === currentTabId);
+    let newIndex: number | null = null;
+
+    switch (e.key) {
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        e.preventDefault();
+        newIndex = currentIndex > 0 ? currentIndex - 1 : enabledTabs.length - 1;
+        break;
+      case 'ArrowRight':
+      case 'ArrowDown':
+        e.preventDefault();
+        newIndex = currentIndex < enabledTabs.length - 1 ? currentIndex + 1 : 0;
+        break;
+      case 'Home':
+        e.preventDefault();
+        newIndex = 0;
+        break;
+      case 'End':
+        e.preventDefault();
+        newIndex = enabledTabs.length - 1;
+        break;
+    }
+
+    if (newIndex !== null) {
+      const newTab = enabledTabs[newIndex];
+      const tabElement = tabRefs.current.get(newTab.id);
+      if (tabElement) {
+        tabElement.focus();
+        onTabChange(newTab.id);
+      }
+    }
+  }, [enabledTabs, onTabChange]);
+
   return (
-    <div className="border-b border-gray-200 dark:border-gray-700">
+    <div className="relative border-b border-gray-200 dark:border-gray-700">
+      {/* Mobile scroll hint - left fade */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white dark:from-gray-900 to-transparent pointer-events-none z-10 sm:hidden"
+        aria-hidden="true"
+      />
+      {/* Screen reader description */}
+      <ScreenReaderOnly id="tab-nav-instructions">
+        Use arrow keys to navigate between tabs. Press Enter or Space to select a tab.
+      </ScreenReaderOnly>
       <nav
-        className="flex space-x-1 overflow-x-auto scrollbar-hide pb-px -mb-px"
-        aria-label="Main navigation tabs"
+        role="tablist"
+        aria-label="Calculator sections"
+        aria-describedby="tab-nav-instructions"
+        className={cn(
+          "flex space-x-1 overflow-x-auto pb-px -mb-px",
+          // Mobile: show scrollbar, add padding for fade overlays
+          "px-2 sm:px-0",
+          // Smooth scrolling and snap
+          "scroll-smooth snap-x snap-mandatory",
+          // Mobile scrollbar styling
+          "scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent",
+          // Touch-friendly: momentum scrolling
+          "-webkit-overflow-scrolling-touch"
+        )}
       >
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -122,12 +190,28 @@ export function TabNavigation({
           return (
             <button
               key={tab.id}
+              ref={(el) => {
+                if (el) tabRefs.current.set(tab.id, el);
+              }}
+              role="tab"
+              id={`tab-${tab.id}`}
+              aria-selected={isActive}
+              aria-controls={`tabpanel-${tab.id}`}
+              aria-disabled={isDisabled}
+              tabIndex={isActive ? 0 : -1}
               onClick={() => !isDisabled && onTabChange(tab.id)}
+              onKeyDown={(e) => !isDisabled && handleKeyDown(e, tab.id)}
               disabled={isDisabled}
               className={cn(
+                // Base styles with mobile-friendly touch targets (min 44px height)
                 "group relative flex items-center gap-2 py-3 px-4 text-sm font-medium whitespace-nowrap",
+                "min-h-[44px] min-w-[44px]", // WCAG 2.5.5 touch target
                 "transition-all duration-200 rounded-t-lg",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                // Snap alignment for mobile scrolling
+                "snap-start",
+                // Prevent text selection on mobile double-tap
+                "select-none",
                 isActive && [
                   "text-blue-600 dark:text-blue-400",
                   "bg-blue-50/50 dark:bg-blue-900/20",
@@ -136,14 +220,18 @@ export function TabNavigation({
                   "text-gray-600 dark:text-gray-400",
                   "hover:text-gray-900 dark:hover:text-gray-200",
                   "hover:bg-gray-100 dark:hover:bg-gray-800",
+                  // Mobile: use active state instead of hover
+                  "active:bg-gray-100 dark:active:bg-gray-800",
                 ],
                 isDisabled && [
                   "text-gray-400 dark:text-gray-600",
                   "cursor-not-allowed opacity-60",
                 ],
-                compact && "px-3"
+                // Mobile: slightly smaller padding
+                "px-3 sm:px-4",
+                compact && "px-2 sm:px-3"
               )}
-              aria-current={isActive ? "page" : undefined}
+              aria-label={isDisabled ? `${tab.label} (locked - calculate your plan first)` : `${tab.label}: ${tab.description}`}
               title={isDisabled ? "Calculate your plan first to unlock this tab" : tab.description}
             >
               {/* Icon */}
@@ -199,8 +287,11 @@ export function TabNavigation({
         })}
       </nav>
 
-      {/* Mobile scroll hint gradient */}
-      <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-gray-900 pointer-events-none sm:hidden" />
+      {/* Mobile scroll hint - right fade */}
+      <div
+        className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white dark:from-gray-900 to-transparent pointer-events-none z-10 sm:hidden"
+        aria-hidden="true"
+      />
     </div>
   );
 }

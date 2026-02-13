@@ -66,3 +66,26 @@ export { useKeyboardInset } from './useKeyboardInset';
 
 // Onboarding
 export { useOnboarding } from './useOnboarding';
+
+// Keyboard shortcuts
+export {
+  useKeyboardShortcuts,
+  useKeyboardShortcutsHandler,
+  useShortcutRegistry,
+  parseKeyCombo,
+  matchesKeyCombo,
+  formatKeyCombo,
+  getAllShortcuts,
+  getShortcutsByCategory,
+  type KeyCombo,
+  type KeyboardShortcut,
+  type ShortcutCategory,
+  type ShortcutCustomization,
+} from './useKeyboardShortcuts';
+
+// Local and session storage
+export {
+  useLocalStorage,
+  useSessionStorage,
+  useLocalStorageManual,
+} from './useLocalStorage';

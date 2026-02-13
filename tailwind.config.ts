@@ -83,11 +83,48 @@ const config: Config = {
   				to: {
   					height: '0'
   				}
+  			},
+  			'smart-shimmer': {
+  				'0%': {
+  					transform: 'translateX(-100%)'
+  				},
+  				'100%': {
+  					transform: 'translateX(200%)'
+  				}
+  			},
+  			'smart-shimmer-slow': {
+  				'0%': {
+  					transform: 'translateX(-100%)'
+  				},
+  				'100%': {
+  					transform: 'translateX(200%)'
+  				}
+  			},
+  			'skeleton-pulse': {
+  				'0%, 100%': {
+  					opacity: '1'
+  				},
+  				'50%': {
+  					opacity: '0.5'
+  				}
+  			},
+  			'skeleton-wave': {
+  				'0%': {
+  					backgroundPosition: '-200% 0'
+  				},
+  				'100%': {
+  					backgroundPosition: '200% 0'
+  				}
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'smart-shimmer': 'smart-shimmer 2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+  			'smart-shimmer-slow': 'smart-shimmer-slow 3s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+  			'smart-shimmer-fast': 'smart-shimmer 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+  			'skeleton-pulse': 'skeleton-pulse 2s ease-in-out infinite',
+  			'skeleton-wave': 'skeleton-wave 2s ease-in-out infinite'
   		}
   	}
   },

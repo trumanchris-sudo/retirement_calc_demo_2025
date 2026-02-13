@@ -18,7 +18,7 @@ export interface SharedIncomeData {
   spouseIncome?: number;
 
   // Metadata
-  source: 'ai-onboarding' | 'manual';
+  source: 'ai-onboarding' | 'quick-start' | 'manual';
   timestamp: number;
 }
 

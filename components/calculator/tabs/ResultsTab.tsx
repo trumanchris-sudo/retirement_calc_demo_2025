@@ -7,9 +7,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
 import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexibilityChart";
+import { RothComparison } from "@/components/calculator/RothComparison";
 import { WealthAccumulationChart } from "@/components/calculator/charts";
 import { RMD_START_AGE } from "@/lib/constants";
-import type { CalculationResult } from "@/types/calculator";
+import type { CalculationResult, CalculatorInputs } from "@/types/calculator";
 import type { WalkSeries, BatchSummary, GuardrailsResult } from "@/types/planner";
 import { fmt } from "@/lib/utils";
 
@@ -53,6 +54,9 @@ export interface ResultsTabProps {
   // Age info for sequence risk chart
   retirementAge: number;
   age1: number;
+
+  // Calculator inputs for Roth comparison
+  calculatorInputs?: CalculatorInputs;
 }
 
 export function ResultsTab({
@@ -68,7 +72,8 @@ export function ResultsTab({
   batchSummary,
   guardrailsResult,
   retirementAge,
-  age1
+  age1,
+  calculatorInputs
 }: ResultsTabProps) {
   return (
     <>
@@ -88,31 +93,33 @@ export function ResultsTab({
 
                 <TabsContent value="accumulation" className="space-y-4">
                   {walkSeries === 'trulyRandom' && (
-                    <div className="flex gap-6 items-center print-hide">
-                      <div className="flex items-center space-x-2">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 items-start sm:items-center print-hide">
+                      <div className="flex items-center space-x-2 min-h-[44px]">
                         <Checkbox
                           id="show-p10"
                           checked={showP10}
                           onCheckedChange={(checked) => setShowP10(checked as boolean)}
+                          className="h-5 w-5"
                         />
                         <label
                           htmlFor="show-p10"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer select-none"
                         >
-                          Show 10th Percentile (Nominal)
+                          Show 10th Percentile
                         </label>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 min-h-[44px]">
                         <Checkbox
                           id="show-p90"
                           checked={showP90}
                           onCheckedChange={(checked) => setShowP90(checked as boolean)}
+                          className="h-5 w-5"
                         />
                         <label
                           htmlFor="show-p90"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer select-none"
                         >
-                          Show 90th Percentile (Nominal)
+                          Show 90th Percentile
                         </label>
                       </div>
                     </div>
@@ -214,6 +221,16 @@ export function ResultsTab({
         <AnimatedSection animation="fade-in" delay={600}>
           <SpendingFlexibilityChart
             guardrailsResult={guardrailsResult}
+          />
+        </AnimatedSection>
+      )}
+
+      {/* Roth-First Strategy Comparison */}
+      {calculatorInputs && (
+        <AnimatedSection animation="slide-up" delay={700}>
+          <RothComparison
+            inputs={calculatorInputs}
+            isDarkMode={isDarkMode}
           />
         </AnimatedSection>
       )}

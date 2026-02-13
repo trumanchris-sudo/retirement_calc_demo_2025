@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import CubeStaticMini from "@/components/CubeStaticMini";
+import { useTheme } from "@/lib/theme-context";
 
 interface PageHeaderProps {
   showActions?: boolean;
+  /** @deprecated Use theme context instead */
   isDarkMode?: boolean;
-  onToggleDarkMode: () => void;
+  /** @deprecated Use theme context instead */
+  onToggleDarkMode?: () => void;
   onDownloadPDF?: () => void;
   onPrint?: () => void;
   onShare?: () => void;
@@ -29,8 +32,8 @@ export interface AdjustmentDeltas {
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
   showActions = false,
-  isDarkMode = false,
-  onToggleDarkMode,
+  isDarkMode: _isDarkMode,
+  onToggleDarkMode: _onToggleDarkMode,
   onDownloadPDF,
   onPrint,
   onShare,
@@ -40,6 +43,10 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   hasUnsavedChanges = false,
   isSaving = false,
 }) => {
+  // Use theme context - the props are deprecated but kept for compatibility
+  const { resolvedTheme, toggleTheme } = useTheme();
+  const isDarkMode = resolvedTheme === 'dark';
+  const onToggleDarkMode = toggleTheme;
   const [contributionDelta, setContributionDelta] = useState(0);
   const [withdrawalRateDelta, setWithdrawalRateDelta] = useState(0);
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);

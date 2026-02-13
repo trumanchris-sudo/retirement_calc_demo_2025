@@ -3,6 +3,31 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
+// Re-export enhanced skeletons from SmartSkeleton
+export {
+  ShimmerBase,
+  ChartSkeleton,
+  TableSkeleton,
+  CardSkeleton,
+  FormSkeleton,
+  TimelineSkeleton,
+  StatsGridSkeleton,
+  PageSkeleton,
+  // Types
+  type ShimmerBaseProps,
+  type ChartSkeletonProps,
+  type TableSkeletonProps,
+  type CardSkeletonProps,
+  type FormSkeletonProps,
+  type TimelineSkeletonProps,
+  type StatsGridSkeletonProps,
+  type PageSkeletonProps,
+} from "./SmartSkeleton";
+
+// ============================================================================
+// LEGACY SKELETON COMPONENTS (kept for backward compatibility)
+// ============================================================================
+
 interface SkeletonCardProps {
   variant?: "stat" | "chart" | "text" | "table" | "form" | "metric" | "timeline";
   count?: number;
@@ -49,7 +74,7 @@ const MetricSkeleton: React.FC<{ shimmer?: boolean }> = ({ shimmer }) => (
   </div>
 );
 
-const ChartSkeleton: React.FC<{ shimmer?: boolean }> = ({ shimmer }) => (
+const LegacyChartSkeleton: React.FC<{ shimmer?: boolean }> = ({ shimmer }) => (
   <div className="rounded-xl border bg-card p-6 space-y-4 shadow-sm">
     <div className="flex items-center justify-between">
       <div className="space-y-2">
@@ -95,7 +120,7 @@ const TextSkeleton: React.FC<{ shimmer?: boolean }> = ({ shimmer }) => (
   </div>
 );
 
-const TableSkeleton: React.FC<{ shimmer?: boolean }> = ({ shimmer }) => (
+const LegacyTableSkeleton: React.FC<{ shimmer?: boolean }> = ({ shimmer }) => (
   <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
     {/* Table header */}
     <div className="flex gap-4 p-4 border-b bg-muted/50">
@@ -116,7 +141,7 @@ const TableSkeleton: React.FC<{ shimmer?: boolean }> = ({ shimmer }) => (
   </div>
 );
 
-const FormSkeleton: React.FC<{ shimmer?: boolean }> = ({ shimmer }) => (
+const LegacyFormSkeleton: React.FC<{ shimmer?: boolean }> = ({ shimmer }) => (
   <div className="rounded-xl border bg-card p-6 space-y-6 shadow-sm">
     <SkeletonBase className="h-6 w-32" shimmer={shimmer} />
     {/* Form fields */}
@@ -131,7 +156,7 @@ const FormSkeleton: React.FC<{ shimmer?: boolean }> = ({ shimmer }) => (
   </div>
 );
 
-const TimelineSkeleton: React.FC<{ shimmer?: boolean }> = ({ shimmer }) => (
+const LegacyTimelineSkeleton: React.FC<{ shimmer?: boolean }> = ({ shimmer }) => (
   <div className="space-y-4">
     {[...Array(4)].map((_, i) => (
       <div key={i} className="flex gap-4">
@@ -154,16 +179,22 @@ const skeletonComponents: Record<
   React.FC<{ shimmer?: boolean }>
 > = {
   stat: StatCardSkeleton,
-  chart: ChartSkeleton,
+  chart: LegacyChartSkeleton,
   text: TextSkeleton,
-  table: TableSkeleton,
-  form: FormSkeleton,
+  table: LegacyTableSkeleton,
+  form: LegacyFormSkeleton,
   metric: MetricSkeleton,
-  timeline: TimelineSkeleton,
+  timeline: LegacyTimelineSkeleton,
 };
 
 /**
  * SkeletonCard - Loading placeholder for various content types
+ *
+ * @deprecated Use the new SmartSkeleton components instead:
+ * - ChartSkeleton for charts
+ * - TableSkeleton for tables
+ * - CardSkeleton for cards
+ * - FormSkeleton for forms
  *
  * Provides visual feedback during async operations with multiple variants
  * to match the content being loaded.

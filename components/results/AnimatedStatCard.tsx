@@ -5,6 +5,7 @@ import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import { Sparkline, SparklineProps } from "@/components/ui/Sparkline";
 
 interface AnimatedStatCardProps {
   label: string;
@@ -16,6 +17,10 @@ interface AnimatedStatCardProps {
   delay?: number; // Stagger animations
   onClick?: () => void; // For flip interaction
   className?: string;
+  /** Optional sparkline data for trend visualization */
+  sparklineData?: SparklineProps["data"];
+  /** Sparkline configuration */
+  sparklineProps?: Partial<Omit<SparklineProps, "data">>;
 }
 
 const formatters = {
@@ -41,7 +46,9 @@ export const AnimatedStatCard: React.FC<AnimatedStatCardProps> = React.memo(({
   icon: Icon,
   delay = 0,
   onClick,
-  className
+  className,
+  sparklineData,
+  sparklineProps
 }) => {
   const formatter = formatters[format];
 
@@ -93,6 +100,20 @@ export const AnimatedStatCard: React.FC<AnimatedStatCardProps> = React.memo(({
             >
               <span>{change > 0 ? "↑" : "↓"}</span>
               <span>{Math.abs(change).toFixed(1)}%</span>
+            </div>
+          )}
+
+          {sparklineData && sparklineData.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+              <Sparkline
+                data={sparklineData}
+                width={180}
+                height={32}
+                variant="area"
+                colorMode="auto"
+                showTooltip={true}
+                {...sparklineProps}
+              />
             </div>
           )}
         </div>

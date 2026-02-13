@@ -6,12 +6,19 @@ const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
-    <table
-      ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
-      {...props}
+  <div className="relative w-full">
+    {/* Mobile scroll hint - right fade */}
+    <div
+      className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none z-10 sm:hidden"
+      aria-hidden="true"
     />
+    <div className="overflow-x-auto -webkit-overflow-scrolling-touch scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+      <table
+        ref={ref}
+        className={cn("w-full caption-bottom text-sm", className)}
+        {...props}
+      />
+    </div>
   </div>
 ))
 Table.displayName = "Table"
@@ -73,7 +80,10 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
+      // Base styles
       "h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
+      // Mobile: Smaller padding, prevent text wrap
+      "px-2 sm:px-4 whitespace-nowrap",
       className
     )}
     {...props}
@@ -87,7 +97,13 @@ const TableCell = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <td
     ref={ref}
-    className={cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className)}
+    className={cn(
+      // Base styles
+      "p-4 align-middle [&:has([role=checkbox])]:pr-0",
+      // Mobile: Smaller padding
+      "p-2 sm:p-4",
+      className
+    )}
     {...props}
   />
 ))

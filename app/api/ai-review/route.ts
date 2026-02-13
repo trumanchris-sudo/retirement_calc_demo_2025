@@ -26,16 +26,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { config, results } = body || {};
+    const { config, results, copilotMode, userQuestion, context, conversationHistory } = body || {};
 
-    if (!config || !results) {
+    // Copilot mode allows questions without results (for general advice)
+    if (!copilotMode && (!config || !results)) {
       return new Response(
         JSON.stringify({ error: 'Missing config or results data.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    const prompt = buildReviewPrompt(config, results);
+    // Build the appropriate prompt based on mode
+    const prompt = copilotMode
+      ? buildCopilotPrompt(userQuestion, context, conversationHistory, config, results)
+      : buildReviewPrompt(config, results);
 
     // Stream the response for a better UX
     const encoder = new TextEncoder();
@@ -44,8 +48,8 @@ export async function POST(request: NextRequest) {
         try {
           const response = await anthropic.messages.create({
             model: 'claude-sonnet-4-20250514',
-            max_tokens: 1500,
-            temperature: 0.3,
+            max_tokens: copilotMode ? 1000 : 1500,
+            temperature: copilotMode ? 0.5 : 0.3,
             stream: true,
             messages: [{ role: 'user', content: prompt }],
           });
@@ -149,4 +153,65 @@ Please provide your review in these sections:
 3. WITHDRAWAL STRATEGY — Is the withdrawal rate appropriate given the portfolio and timeline?
 4. RISK ASSESSMENT — Portfolio survival, Monte Carlo failure rate, sequence-of-returns risk
 5. QUICK WINS — 2-3 highest-impact changes they could make right now`;
+}
+
+/**
+ * Build a prompt for the Financial Copilot conversational interface
+ */
+function buildCopilotPrompt(
+  userQuestion: string,
+  context: string,
+  conversationHistory: string,
+  config: Record<string, unknown> | undefined,
+  results: Record<string, unknown> | undefined
+): string {
+  // Format results if available
+  let resultsContext = '';
+  if (results) {
+    const r = results;
+    const eolAccounts = r.eolAccounts as { taxable: number; pretax: number; roth: number } | undefined;
+    const ruinPct = r.probRuin !== undefined ? (Number(r.probRuin) * 100).toFixed(1) : 'N/A';
+
+    resultsContext = `
+CALCULATION RESULTS:
+- Balance at Retirement (Nominal): $${Number(r.finNom || 0).toLocaleString()}
+- Balance at Retirement (Real): $${Number(r.finReal || 0).toLocaleString()}
+- Year 1 Gross Withdrawal: $${Number(r.wd || 0).toLocaleString()}
+- Year 1 After-Tax Income: $${Number(r.wdAfter || 0).toLocaleString()}
+- Portfolio Survival: ${r.survYrs || 0}/${r.yrsToSim || 30} years
+- End-of-Life Wealth (Real): $${Number(r.eolReal || 0).toLocaleString()}
+- Monte Carlo Failure Rate: ${ruinPct}%
+- Total Lifetime Tax: $${Number((r.tax as { tot: number })?.tot || 0).toLocaleString()}
+- Net Estate: $${Number(r.netEstate || 0).toLocaleString()}
+${eolAccounts ? `- Final Account Breakdown: Taxable $${eolAccounts.taxable.toLocaleString()}, Pre-tax $${eolAccounts.pretax.toLocaleString()}, Roth $${eolAccounts.roth.toLocaleString()}` : ''}`;
+  }
+
+  return `You are an expert AI Financial Advisor embedded in a retirement planning calculator. You have full access to the user's financial data and calculation results.
+
+PERSONALITY & TONE:
+- Be warm, approachable, and encouraging like a trusted advisor
+- Use conversational language, not formal financial jargon
+- Be specific and reference actual numbers from their data
+- Provide actionable advice, not just observations
+- If they're doing well, celebrate it! If there are concerns, be direct but supportive
+- Keep responses focused and under 300 words unless they ask for detail
+- Use bullet points and formatting for clarity when appropriate
+
+${context || 'No financial context available.'}
+${resultsContext}
+
+${conversationHistory ? `RECENT CONVERSATION:\n${conversationHistory}\n` : ''}
+
+USER'S QUESTION: ${userQuestion}
+
+RESPONSE GUIDELINES:
+1. Answer their specific question directly first
+2. Reference specific numbers from their data to personalize the response
+3. If relevant, suggest 1-2 actionable next steps they could take
+4. If their question reveals a misunderstanding, gently correct it
+5. If you suggest changes to their plan, explain the potential impact
+6. Don't include generic disclaimers about seeking professional advice unless truly warranted
+7. If results are not available, you can still give general guidance based on their configuration
+
+Respond naturally as their personal financial advisor:`;
 }

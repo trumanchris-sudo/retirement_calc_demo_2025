@@ -116,7 +116,7 @@ import { SSOTTab } from "@/components/calculator/SSOTTab";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
-import { OnboardingWizardPage } from "@/components/onboarding/OnboardingWizardPage";
+import { OnboardingSelector } from "@/components/onboarding/OnboardingSelector";
 import { AIReviewPanel } from "@/components/AIReviewPanel";
 import { useOnboarding } from "@/hooks/useOnboarding";
 
@@ -3336,27 +3336,28 @@ export default function App() {
     );
   }
 
-  // Show wizard IMMEDIATELY if user hasn't completed onboarding (no brand loader)
+  // Show onboarding IMMEDIATELY if user hasn't completed it (no brand loader)
+  // OnboardingSelector lets users choose between Quick Start (30 sec) or Guided AI Wizard (2-3 min)
   if (shouldShowWizard) {
     return (
-      <OnboardingWizardPage
+      <OnboardingSelector
         onComplete={async () => {
-          console.log('[WIZARD] Wizard completed, triggering auto-calculation...');
+          console.log('[ONBOARDING] Onboarding completed, triggering auto-calculation...');
           markOnboardingComplete();
 
-          // Give user a moment to see "Looks Good" before transitioning
+          // Give user a moment to see results before transitioning
           await new Promise(resolve => setTimeout(resolve, 300));
 
-          // Mark that we're coming from wizard to trigger:
+          // Mark that we're coming from onboarding to trigger:
           // 1. WORK→DIE→RETIRE animation
           // 2. Auto-navigate to Results tab after calculation
           setIsFromWizard(true);
 
           // CRITICAL: Wait for React to update planConfig and re-render
-          // The wizard updates planConfig in OnboardingWizardPage.handleComplete,
+          // The onboarding updates planConfig in QuickStart or AIConsole,
           // but calc() needs to wait for the component to re-render with new values
           // before reading age1, age2, retirementAge, etc. from planConfig
-          console.log('[WIZARD] Waiting for planConfig to propagate...');
+          console.log('[ONBOARDING] Waiting for planConfig to propagate...');
           await new Promise(resolve => setTimeout(resolve, 100));
 
           // Auto-run calculation
@@ -3364,7 +3365,7 @@ export default function App() {
           // 1. Play WORK→DIE→RETIRE animation (because isFromWizard=true)
           // 2. Run calculation in background
           // 3. Navigate to Results tab and scroll to top
-          console.log('[WIZARD] Triggering calc() with updated planConfig values');
+          console.log('[ONBOARDING] Triggering calc() with updated planConfig values');
           calc();
         }}
         onSkip={() => {
@@ -5170,6 +5171,7 @@ export default function App() {
                 guardrailsResult={guardrailsResult}
                 retirementAge={retirementAge}
                 age1={age1}
+                calculatorInputs={planConfig}
               />
             </TabPanel>
           </div>

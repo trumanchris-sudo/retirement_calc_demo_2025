@@ -9,6 +9,39 @@
 import type { CalculatorInputs } from './calculator';
 
 /**
+ * Family member configuration for generational wealth visualization
+ */
+export interface FamilyMember {
+  /** Display name for the family member */
+  name: string;
+  /** Birth year (for age calculations) */
+  birthYear?: number;
+  /** Relationship to primary user */
+  relationship: 'self' | 'spouse' | 'child' | 'grandchild';
+}
+
+/**
+ * Family configuration for emotional dynasty timeline
+ */
+export interface FamilyConfig {
+  /** Primary user's name */
+  userName: string;
+  /** Spouse's name (if married) */
+  spouseName?: string;
+  /** Children's names */
+  childrenNames: string[];
+  /** Grandchildren's names (can be placeholders) */
+  grandchildrenNames: string[];
+  /** Custom milestone messages */
+  customMilestones?: {
+    collegeFund?: string;
+    housePaidOff?: string;
+    financialIndependence?: string;
+    generationalWealth?: string;
+  };
+}
+
+/**
  * Source of field updates for tracking
  */
 export type UpdateSource = 'user-entered' | 'ai-suggested' | 'default' | 'imported';
@@ -61,6 +94,9 @@ export interface PlanConfig extends CalculatorInputs {
     reasoning: string;
     confidence: 'high' | 'medium' | 'low';
   }>;
+
+  /** Family configuration for emotional dynasty timeline */
+  familyConfig: FamilyConfig;
 }
 
 /**
@@ -184,6 +220,15 @@ export function createDefaultPlanConfig(): PlanConfig {
     fieldMetadata: {},
     missingFields: [],
     assumptions: [],
+
+    // Family Configuration for Dynasty Timeline
+    familyConfig: {
+      userName: 'You',
+      spouseName: undefined,
+      childrenNames: [],
+      grandchildrenNames: [],
+      customMilestones: undefined,
+    },
   };
 }
 

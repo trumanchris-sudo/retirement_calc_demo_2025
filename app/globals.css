@@ -2,10 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fix iOS Safari white background behind keyboard */
+/* =============================================
+ * GLASSMORPHISM DESIGN SYSTEM
+ * Premium frosted glass effects for financial UI
+ * ============================================= */
+
+:root {
+  /* Glass effect variables */
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-bg-hover: rgba(255, 255, 255, 0.15);
+  --glass-bg-solid: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-border-hover: rgba(255, 255, 255, 0.3);
+  --glass-shadow: rgba(0, 0, 0, 0.1);
+  --glass-shadow-colored: rgba(59, 130, 246, 0.15);
+
+  /* Glass blur intensities */
+  --glass-blur-sm: 8px;
+  --glass-blur-md: 12px;
+  --glass-blur-lg: 16px;
+  --glass-blur-xl: 24px;
+
+  /* Glow effects */
+  --glass-glow-subtle: 0 0 20px rgba(59, 130, 246, 0.1);
+  --glass-glow-medium: 0 0 40px rgba(59, 130, 246, 0.15);
+  --glass-glow-strong: 0 0 60px rgba(59, 130, 246, 0.2);
+
+  /* Premium color accents for glass cards */
+  --glass-accent-emerald: rgba(16, 185, 129, 0.2);
+  --glass-accent-blue: rgba(59, 130, 246, 0.2);
+  --glass-accent-amber: rgba(245, 158, 11, 0.2);
+  --glass-accent-rose: rgba(244, 63, 94, 0.2);
+  --glass-accent-purple: rgba(139, 92, 246, 0.2);
+
+  /* Gradient overlay colors */
+  --glass-gradient-start: rgba(255, 255, 255, 0.15);
+  --glass-gradient-end: rgba(255, 255, 255, 0.05);
+}
+
+.dark {
+  --glass-bg: rgba(15, 23, 42, 0.6);
+  --glass-bg-hover: rgba(15, 23, 42, 0.7);
+  --glass-bg-solid: rgba(15, 23, 42, 0.9);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-border-hover: rgba(255, 255, 255, 0.2);
+  --glass-shadow: rgba(0, 0, 0, 0.3);
+  --glass-shadow-colored: rgba(59, 130, 246, 0.25);
+
+  --glass-glow-subtle: 0 0 20px rgba(59, 130, 246, 0.15);
+  --glass-glow-medium: 0 0 40px rgba(59, 130, 246, 0.2);
+  --glass-glow-strong: 0 0 60px rgba(59, 130, 246, 0.3);
+
+  --glass-gradient-start: rgba(255, 255, 255, 0.1);
+  --glass-gradient-end: rgba(255, 255, 255, 0.02);
+}
+
+/* Fix iOS Safari background behind keyboard - respects theme */
 html,
 body {
-  background-color: #000000;
+  background-color: hsl(var(--background));
   overscroll-behavior-y: none; /* Prevents "bouncing" past limits */
 }
 
@@ -28,6 +83,80 @@ html {
     text-wrap: balance;
   }
 
+  /* =============================================
+   * MOBILE-FIRST RESPONSIVE UTILITIES
+   * ============================================= */
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Thin scrollbar for mobile-friendly horizontal scroll */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(156 163 175 / 0.5);
+    border-radius: 2px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Touch-friendly momentum scrolling */
+  .-webkit-overflow-scrolling-touch {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Safe area padding for notched devices */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Mobile card stacking with horizontal scroll */
+  .mobile-card-scroll {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.5rem 0;
+  }
+  .mobile-card-scroll > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    width: 85vw;
+    max-width: 320px;
+  }
+  @media (min-width: 640px) {
+    .mobile-card-scroll {
+      overflow-x: visible;
+      flex-wrap: wrap;
+    }
+    .mobile-card-scroll > * {
+      width: auto;
+      flex-shrink: 1;
+    }
+  }
+
   /* Custom animations */
   .animate-gradient {
     background-size: 200% auto;
@@ -43,6 +172,262 @@ html {
       transparent 100%
     );
     background-size: 200% 100%;
+  }
+
+  /* =============================================
+   * GLASSMORPHISM UTILITY CLASSES
+   * Premium frosted glass effects
+   * ============================================= */
+
+  /* Glass glow effects */
+  .glass-glow-subtle {
+    box-shadow: var(--glass-glow-subtle);
+  }
+  .glass-glow-medium {
+    box-shadow: var(--glass-glow-medium);
+  }
+  .glass-glow-strong {
+    box-shadow: var(--glass-glow-strong);
+  }
+
+  /* Glass gradient overlays */
+  .glass-gradient-top {
+    background-image: linear-gradient(
+      to bottom,
+      var(--glass-gradient-start),
+      var(--glass-gradient-end)
+    );
+  }
+  .glass-gradient-bottom {
+    background-image: linear-gradient(
+      to top,
+      var(--glass-gradient-start),
+      var(--glass-gradient-end)
+    );
+  }
+  .glass-gradient-left {
+    background-image: linear-gradient(
+      to right,
+      var(--glass-gradient-start),
+      var(--glass-gradient-end)
+    );
+  }
+  .glass-gradient-right {
+    background-image: linear-gradient(
+      to left,
+      var(--glass-gradient-start),
+      var(--glass-gradient-end)
+    );
+  }
+  .glass-gradient-radial {
+    background-image: radial-gradient(
+      ellipse at 50% 0%,
+      var(--glass-gradient-start),
+      var(--glass-gradient-end)
+    );
+  }
+
+  /* Glass noise texture overlay */
+  .glass-noise::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0.03;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+
+  /* Glass inner glow */
+  .glass-inner-glow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at 50% 0%,
+      rgba(255, 255, 255, 0.15) 0%,
+      transparent 50%
+    );
+  }
+
+  /* Animated border effect */
+  .glass-animated-border {
+    position: relative;
+  }
+  .glass-animated-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.3),
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.3)
+    );
+    background-size: 200% 200%;
+    animation: glass-border-shimmer 3s ease infinite;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Glass shimmer effect */
+  .glass-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .glass-shimmer-overlay {
+    background: linear-gradient(
+      120deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 70%
+    );
+    background-size: 200% 100%;
+    animation: glass-shimmer 3s ease-in-out infinite;
+  }
+
+  /* Premium card base styles */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur-md));
+    -webkit-backdrop-filter: blur(var(--glass-blur-md));
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      0 8px 32px var(--glass-shadow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    box-shadow:
+      0 12px 40px var(--glass-shadow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  /* Glass panel for larger sections */
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur-xl));
+    -webkit-backdrop-filter: blur(var(--glass-blur-xl));
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 25px 50px -12px var(--glass-shadow);
+    border-radius: 1.5rem;
+  }
+
+  /* Frosted glass effect (stronger blur) */
+  .glass-frosted {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(var(--glass-blur-xl));
+    -webkit-backdrop-filter: blur(var(--glass-blur-xl));
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  .dark .glass-frosted {
+    background: rgba(15, 23, 42, 0.4);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Colored glass accent variants */
+  .glass-emerald {
+    background: linear-gradient(135deg, var(--glass-accent-emerald), transparent);
+    border-color: rgba(16, 185, 129, 0.3);
+    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.1);
+  }
+  .glass-blue {
+    background: linear-gradient(135deg, var(--glass-accent-blue), transparent);
+    border-color: rgba(59, 130, 246, 0.3);
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.1);
+  }
+  .glass-amber {
+    background: linear-gradient(135deg, var(--glass-accent-amber), transparent);
+    border-color: rgba(245, 158, 11, 0.3);
+    box-shadow: 0 8px 32px rgba(245, 158, 11, 0.1);
+  }
+  .glass-rose {
+    background: linear-gradient(135deg, var(--glass-accent-rose), transparent);
+    border-color: rgba(244, 63, 94, 0.3);
+    box-shadow: 0 8px 32px rgba(244, 63, 94, 0.1);
+  }
+  .glass-purple {
+    background: linear-gradient(135deg, var(--glass-accent-purple), transparent);
+    border-color: rgba(139, 92, 246, 0.3);
+    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1);
+  }
+
+  /* Glass divider */
+  .glass-divider {
+    border: none;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    margin: 1rem 0;
+  }
+
+  /* Premium text on glass */
+  .glass-text {
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  .glass-text-muted {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  /* Premium metric display */
+  .glass-metric {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Glassmorphism Keyframes */
+@keyframes glass-border-shimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes glass-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes glass-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes glass-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
   }
 }
 
@@ -166,6 +551,212 @@ html {
   animation: brand-handoff 0.3s cubic-bezier(0.4, 0, 0.6, 1) forwards;
 }
 
+/* =============================================
+ * PREMIUM TOAST ANIMATIONS
+ * Polished notification system with smooth UX
+ * ============================================= */
+
+/* Toast entrance animations by position */
+@keyframes toast-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-slide-in-top {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-slide-in-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Toast exit animations */
+@keyframes toast-slide-out-right {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes toast-slide-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+/* Toast swipe dismiss feedback */
+@keyframes toast-swipe-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Progress bar animation for auto-dismiss */
+@keyframes toast-progress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* Subtle bounce for attention-grabbing toasts */
+@keyframes toast-attention {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-2px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(2px);
+  }
+}
+
+/* Success checkmark animation */
+@keyframes toast-success-check {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Toast stack animation - subtle shrink for stacked toasts */
+@keyframes toast-stack-shrink {
+  from {
+    transform: scale(1) translateY(0);
+  }
+  to {
+    transform: scale(0.95) translateY(8px);
+  }
+}
+
+/* Animation classes */
+.animate-toast-in-right {
+  animation: toast-slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-toast-in-left {
+  animation: toast-slide-in-left 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-toast-in-top {
+  animation: toast-slide-in-top 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-toast-in-bottom {
+  animation: toast-slide-in-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-toast-out-right {
+  animation: toast-slide-out-right 0.2s ease-in forwards;
+}
+
+.animate-toast-out-left {
+  animation: toast-slide-out-left 0.2s ease-in forwards;
+}
+
+.animate-toast-attention {
+  animation: toast-attention 0.5s ease-in-out;
+}
+
+/* Toast progress bar smooth animation */
+.toast-progress-bar {
+  transition: width 100ms linear;
+}
+
+/* Toast action button hover states */
+.toast-action-btn {
+  transition: all 0.15s ease;
+}
+
+.toast-action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.toast-action-btn:active {
+  transform: translateY(0);
+}
+
+/* Mobile swipe hint animation */
+@keyframes toast-swipe-hint {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(10px);
+  }
+}
+
+@media (pointer: coarse) {
+  /* Touch device optimizations */
+  .toast-swipeable {
+    touch-action: pan-x;
+    user-select: none;
+  }
+
+  .toast-swipeable::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 24px;
+    background: currentColor;
+    opacity: 0.2;
+    border-radius: 2px;
+    animation: toast-swipe-hint 2s ease-in-out 2;
+    animation-delay: 1s;
+  }
+}
+
 /* Smooth transitions for layout shifts */
 .wealth-flow-block {
   transition: margin-top 0.4s ease-out, transform 0.4s ease-out;
@@ -200,12 +791,12 @@ html {
 }
 
 /* =============================================
- * ACCESSIBILITY IMPROVEMENTS
+ * ACCESSIBILITY IMPROVEMENTS (WCAG 2.1 AA)
  * ============================================= */
 
 /* Focus styles - visible focus rings for keyboard navigation */
 :focus-visible {
-  outline: 2px solid hsl(217.2 91.2% 59.8%);
+  outline: 3px solid hsl(217.2 91.2% 59.8%);
   outline-offset: 2px;
 }
 
@@ -218,10 +809,18 @@ html {
 button:focus-visible,
 a:focus-visible,
 [role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[role="option"]:focus-visible,
+[role="checkbox"]:focus-visible,
+[role="radio"]:focus-visible,
+[role="switch"]:focus-visible,
+[role="slider"]:focus-visible,
+[role="link"]:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid hsl(217.2 91.2% 59.8%);
+  outline: 3px solid hsl(217.2 91.2% 59.8%);
   outline-offset: 2px;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
 }
@@ -230,11 +829,32 @@ textarea:focus-visible {
 .dark button:focus-visible,
 .dark a:focus-visible,
 .dark [role="button"]:focus-visible,
+.dark [role="tab"]:focus-visible,
+.dark [role="menuitem"]:focus-visible,
+.dark [role="option"]:focus-visible,
+.dark [role="checkbox"]:focus-visible,
+.dark [role="radio"]:focus-visible,
+.dark [role="switch"]:focus-visible,
+.dark [role="slider"]:focus-visible,
+.dark [role="link"]:focus-visible,
 .dark input:focus-visible,
 .dark select:focus-visible,
 .dark textarea:focus-visible {
   outline-color: hsl(213.1 93.9% 67.8%);
-  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.3);
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.4);
+}
+
+/* Ensure focus is visible even inside containers */
+[tabindex]:focus-visible {
+  outline: 3px solid hsl(217.2 91.2% 59.8%);
+  outline-offset: 2px;
+}
+
+/* Focus within indicator for composite widgets */
+[role="tablist"]:focus-within,
+[role="menu"]:focus-within,
+[role="listbox"]:focus-within {
+  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 /* Screen reader only utility */
@@ -314,6 +934,214 @@ textarea:focus-visible {
 .dark ::selection {
   background-color: hsl(213.1 93.9% 67.8%);
   color: black;
+}
+
+/* =============================================
+ * KEYBOARD NAVIGATION ENHANCEMENTS
+ * ============================================= */
+
+/* Skip link styling - visible on focus */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 0.75rem 1.5rem;
+  background-color: hsl(217.2 91.2% 59.8%);
+  color: white;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* Focus trap indicator */
+[data-focus-trap="active"] {
+  position: relative;
+}
+
+[data-focus-trap="active"]::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border: 2px solid hsl(217.2 91.2% 59.8%);
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Keyboard-only visible elements */
+.keyboard-only {
+  opacity: 0;
+  pointer-events: none;
+}
+
+:focus-visible ~ .keyboard-only,
+:focus-within .keyboard-only {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* =============================================
+ * COLOR CONTRAST IMPROVEMENTS (WCAG AA 4.5:1)
+ * ============================================= */
+
+/* Ensure text on colored backgrounds meets contrast requirements */
+.text-on-primary {
+  color: white;
+}
+
+.text-on-secondary {
+  color: hsl(0 0% 9%);
+}
+
+/* Improved muted text contrast - meets 4.5:1 ratio */
+.text-muted-enhanced {
+  color: hsl(0 0% 35%);
+}
+
+.dark .text-muted-enhanced {
+  color: hsl(0 0% 70%);
+}
+
+/* Error state with sufficient contrast */
+.text-error {
+  color: hsl(0 84.2% 40%);
+}
+
+.dark .text-error {
+  color: hsl(0 84.2% 70%);
+}
+
+/* Success state with sufficient contrast */
+.text-success {
+  color: hsl(142.1 70.6% 30%);
+}
+
+.dark .text-success {
+  color: hsl(142.1 70.6% 60%);
+}
+
+/* Warning state with sufficient contrast */
+.text-warning {
+  color: hsl(45 100% 35%);
+}
+
+.dark .text-warning {
+  color: hsl(45 100% 65%);
+}
+
+/* =============================================
+ * SCREEN READER ANNOUNCEMENTS
+ * ============================================= */
+
+/* Live region styling */
+[aria-live] {
+  /* Ensure live regions don't affect layout when hidden */
+}
+
+[aria-live="polite"].sr-only,
+[aria-live="assertive"].sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Status message styling when visible */
+[role="status"]:not(.sr-only) {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  background-color: hsl(217.2 91.2% 95%);
+  color: hsl(217.2 91.2% 30%);
+  font-size: 0.875rem;
+}
+
+.dark [role="status"]:not(.sr-only) {
+  background-color: hsl(217.2 91.2% 15%);
+  color: hsl(217.2 91.2% 85%);
+}
+
+/* Alert styling when visible */
+[role="alert"]:not(.sr-only) {
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  background-color: hsl(0 84.2% 95%);
+  color: hsl(0 84.2% 30%);
+  font-weight: 500;
+  border-left: 4px solid hsl(0 84.2% 60.2%);
+}
+
+.dark [role="alert"]:not(.sr-only) {
+  background-color: hsl(0 84.2% 15%);
+  color: hsl(0 84.2% 85%);
+}
+
+/* =============================================
+ * ADDITIONAL ARIA STATE STYLING
+ * ============================================= */
+
+/* Disabled state */
+[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Busy/loading state */
+[aria-busy="true"] {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+/* Invalid form field */
+[aria-invalid="true"] {
+  border-color: hsl(0 84.2% 60.2%) !important;
+  box-shadow: 0 0 0 1px hsl(0 84.2% 60.2%);
+}
+
+[aria-invalid="true"]:focus-visible {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3);
+}
+
+/* Expanded state indicator */
+[aria-expanded="true"] > .expand-icon {
+  transform: rotate(180deg);
+}
+
+/* Selected state */
+[aria-selected="true"] {
+  background-color: hsl(217.2 91.2% 95%);
+}
+
+.dark [aria-selected="true"] {
+  background-color: hsl(217.2 91.2% 20%);
+}
+
+/* Current page indicator */
+[aria-current="page"] {
+  font-weight: 600;
+  position: relative;
+}
+
+[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: currentColor;
 }
 
 /* =============================================
@@ -425,31 +1253,45 @@ body {
 
 @layer base {
   :root {
+    /* Core colors - Light mode */
     --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+
+    /* Chart colors - Light mode (vibrant) */
+    --chart-1: 221 83% 53%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 262 83% 58%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 0 84% 60%;
+
+    /* Success/Warning/Info semantic colors */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
     --radius: 0.5rem;
+
+    /* Sidebar - Light mode */
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -459,39 +1301,53 @@ body {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Core colors - Dark mode (elegant, easy on eyes) */
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+    --card: 224 71% 4%;
+    --card-foreground: 213 31% 91%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 213 31% 91%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 222 47% 11%;
+    --secondary-foreground: 213 31% 91%;
+    --muted: 223 47% 11%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 216 34% 17%;
+    --accent-foreground: 213 31% 91%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 85% 97%;
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+    --ring: 224 76% 48%;
+
+    /* Chart colors - Dark mode (softer, easier on eyes) */
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 69% 58%;
+    --chart-3: 262 83% 68%;
+    --chart-4: 38 92% 60%;
+    --chart-5: 0 84% 65%;
+
+    /* Success/Warning/Info semantic colors - Dark mode */
+    --success: 142 69% 58%;
+    --success-foreground: 0 0% 0%;
+    --warning: 38 92% 60%;
+    --warning-foreground: 0 0% 0%;
+    --info: 199 89% 58%;
+    --info-foreground: 0 0% 0%;
+
+    /* Sidebar - Dark mode */
+    --sidebar-background: 224 71% 4%;
+    --sidebar-foreground: 213 31% 91%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 216 34% 17%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-border: 216 34% 17%;
+    --sidebar-ring: 224 76% 48%;
   }
 }
 
@@ -499,8 +1355,24 @@ body {
   * {
     @apply border-border;
   }
+
+  /* Smooth theme transitions */
+  html {
+    @apply transition-colors duration-200;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
   body {
     @apply bg-background text-foreground;
+    @apply transition-colors duration-200;
+  }
+
+  /* Prevent flash of unstyled content during theme load */
+  html:not(.light):not(.dark) {
+    visibility: hidden;
   }
 
   /* Dark mode improvements for better legibility */
@@ -1113,5 +1985,621 @@ body {
 @media screen {
   .print-only {
     display: none !important;
+  }
+}
+
+/* ==============================================
+ * ENHANCED PRINT STYLES - PROFESSIONAL REPORTS
+ * Header/Footer on each page, QR code, Date stamp
+ * ============================================== */
+
+/* Page setup for print */
+@page {
+  size: letter;
+  margin: 0.75in 0.5in 1in 0.5in;
+}
+
+@page :first {
+  margin-top: 0.5in;
+}
+
+@page :left {
+  margin-left: 0.75in;
+  margin-right: 0.5in;
+}
+
+@page :right {
+  margin-left: 0.5in;
+  margin-right: 0.75in;
+}
+
+@media print {
+  /* ============================================
+   * PRINT LAYOUT COMPONENT STYLES
+   * ============================================ */
+
+  /* Print Layout Container */
+  .print-layout {
+    width: 100% !important;
+    min-height: 100vh !important;
+    background: white !important;
+    color: #1a1a1a !important;
+  }
+
+  /* Print Header - Fixed at top of each page */
+  .print-header {
+    display: block !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: white !important;
+    border-bottom: 2px solid #1a5fb4 !important;
+    padding: 16px 24px 12px 24px !important;
+    z-index: 1000 !important;
+  }
+
+  .print-header-content {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    max-width: 100% !important;
+  }
+
+  .print-header-left {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  .print-header-right {
+    text-align: right !important;
+  }
+
+  .print-logo {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .print-logo-svg {
+    width: 32px !important;
+    height: 32px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .print-logo-svg polygon,
+  .print-logo-svg line {
+    stroke: #1a5fb4 !important;
+  }
+
+  .print-logo-svg polygon[fill] {
+    fill: #1a5fb4 !important;
+  }
+
+  .print-logo-text {
+    font-size: 13pt !important;
+    font-weight: 600 !important;
+    color: #1a5fb4 !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  .print-title {
+    font-size: 18pt !important;
+    font-weight: 700 !important;
+    color: #1a1a1a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.2 !important;
+  }
+
+  .print-prepared-for {
+    font-size: 10pt !important;
+    color: #4a5568 !important;
+    margin: 4px 0 0 0 !important;
+  }
+
+  .print-prepared-for strong {
+    color: #1a1a1a !important;
+    font-weight: 600 !important;
+  }
+
+  .print-metadata {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+    font-size: 9pt !important;
+  }
+
+  .print-date,
+  .print-report-id {
+    display: flex !important;
+    gap: 4px !important;
+    align-items: baseline !important;
+  }
+
+  .print-label {
+    color: #718096 !important;
+  }
+
+  .print-value {
+    color: #1a1a1a !important;
+    font-weight: 500 !important;
+  }
+
+  .print-time {
+    margin-left: 6px !important;
+    color: #718096 !important;
+  }
+
+  /* Print Content - Main body */
+  .print-content {
+    padding-top: 100px !important; /* Space for fixed header */
+    padding-bottom: 120px !important; /* Space for fixed footer */
+    min-height: calc(100vh - 220px) !important;
+  }
+
+  /* Print Footer - Fixed at bottom of each page */
+  .print-footer {
+    display: block !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: white !important;
+    border-top: 1px solid #e2e8f0 !important;
+    padding: 12px 24px 16px 24px !important;
+    z-index: 1000 !important;
+  }
+
+  .print-footer-content {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 24px !important;
+  }
+
+  .print-footer-left {
+    flex: 1 !important;
+    max-width: 70% !important;
+  }
+
+  .print-footer-right {
+    flex-shrink: 0 !important;
+  }
+
+  .print-disclaimer {
+    font-size: 7pt !important;
+    color: #64748b !important;
+    margin: 0 0 4px 0 !important;
+    line-height: 1.4 !important;
+  }
+
+  .print-copyright {
+    font-size: 7pt !important;
+    color: #94a3b8 !important;
+    margin: 0 !important;
+  }
+
+  /* QR Code Container */
+  .print-qr-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 4px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 4px !important;
+  }
+
+  .print-qr-code {
+    width: 60px !important;
+    height: 60px !important;
+  }
+
+  .print-qr-code svg {
+    width: 60px !important;
+    height: 60px !important;
+  }
+
+  .print-qr-label {
+    font-size: 6pt !important;
+    color: #64748b !important;
+    text-align: center !important;
+    line-height: 1.3 !important;
+    max-width: 80px !important;
+  }
+
+  /* Page Number */
+  .print-page-number {
+    text-align: center !important;
+    margin-top: 8px !important;
+    font-size: 8pt !important;
+    color: #94a3b8 !important;
+    border-top: 1px solid #e2e8f0 !important;
+    padding-top: 6px !important;
+  }
+
+  .print-current-page::after {
+    content: "Page " counter(page) " of " counter(pages);
+  }
+
+  /* Print Button - Hidden when printing */
+  .print-button-container {
+    display: none !important;
+  }
+
+  /* ============================================
+   * PRINT SECTION COMPONENTS
+   * ============================================ */
+
+  .print-section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 24px !important;
+    padding: 16px !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+  }
+
+  .print-page-break {
+    page-break-before: always !important;
+    break-before: page !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* ============================================
+   * PRINT CHART OPTIMIZATION
+   * ============================================ */
+
+  .print-chart-container {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin: 16px 0 !important;
+    padding: 12px !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 4px !important;
+  }
+
+  .print-chart-title {
+    font-size: 12pt !important;
+    font-weight: 600 !important;
+    color: #1a1a1a !important;
+    margin: 0 0 12px 0 !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+  }
+
+  .print-chart-content {
+    width: 100% !important;
+    max-height: 400px !important;
+    overflow: visible !important;
+  }
+
+  .print-chart-content svg,
+  .print-chart-content canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* ============================================
+   * PRINT TABLE STYLING
+   * ============================================ */
+
+  .print-table-container {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin: 16px 0 !important;
+  }
+
+  .print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9pt !important;
+    background: white !important;
+  }
+
+  .print-table-caption {
+    font-size: 11pt !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    margin-bottom: 8px !important;
+    color: #1a1a1a !important;
+    caption-side: top !important;
+  }
+
+  .print-table th {
+    background-color: #f1f5f9 !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    text-align: left !important;
+    padding: 10px 12px !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  .print-table td {
+    padding: 8px 12px !important;
+    border: 1px solid #e2e8f0 !important;
+    vertical-align: top !important;
+    color: #334155 !important;
+  }
+
+  .print-table tr:nth-child(even) td {
+    background-color: #f8fafc !important;
+  }
+
+  /* Repeat table header on each page */
+  .print-table thead {
+    display: table-header-group !important;
+  }
+
+  .print-table tfoot {
+    display: table-footer-group !important;
+  }
+
+  /* ============================================
+   * PRINT SUMMARY CARDS
+   * ============================================ */
+
+  .print-summary-card {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    padding: 16px 20px !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .print-summary-card--default {
+    border-left: 4px solid #64748b !important;
+  }
+
+  .print-summary-card--success {
+    border-left: 4px solid #22c55e !important;
+    background: linear-gradient(to right, #f0fdf4, #ffffff) !important;
+  }
+
+  .print-summary-card--warning {
+    border-left: 4px solid #f59e0b !important;
+    background: linear-gradient(to right, #fffbeb, #ffffff) !important;
+  }
+
+  .print-summary-card--danger {
+    border-left: 4px solid #ef4444 !important;
+    background: linear-gradient(to right, #fef2f2, #ffffff) !important;
+  }
+
+  .print-summary-card-title {
+    font-size: 9pt !important;
+    font-weight: 500 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    margin: 0 0 6px 0 !important;
+  }
+
+  .print-summary-card-value {
+    font-size: 20pt !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    line-height: 1.1 !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  .print-summary-card-subtitle {
+    font-size: 8pt !important;
+    color: #64748b !important;
+    margin: 6px 0 0 0 !important;
+  }
+
+  /* ============================================
+   * GLASSMORPHISM - FLATTEN FOR PRINT
+   * ============================================ */
+
+  .glass-card,
+  .glass-panel,
+  .glass-frosted,
+  [class*="glass-"] {
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+  }
+
+  .glass-emerald {
+    background: #f0fdf4 !important;
+    border-left: 4px solid #22c55e !important;
+  }
+
+  .glass-blue {
+    background: #eff6ff !important;
+    border-left: 4px solid #3b82f6 !important;
+  }
+
+  .glass-amber {
+    background: #fffbeb !important;
+    border-left: 4px solid #f59e0b !important;
+  }
+
+  .glass-rose {
+    background: #fef2f2 !important;
+    border-left: 4px solid #f43f5e !important;
+  }
+
+  .glass-purple {
+    background: #faf5ff !important;
+    border-left: 4px solid #8b5cf6 !important;
+  }
+
+  /* Glass text - ensure readability */
+  .glass-text,
+  .glass-text-muted,
+  .glass-metric {
+    color: #1a1a1a !important;
+    text-shadow: none !important;
+  }
+
+  /* ============================================
+   * ENHANCED COLOR PRESERVATION
+   * ============================================ */
+
+  /* Semantic colors for print */
+  .bg-success-print,
+  .print-success {
+    background-color: #dcfce7 !important;
+    border-color: #22c55e !important;
+  }
+
+  .bg-warning-print,
+  .print-warning {
+    background-color: #fef3c7 !important;
+    border-color: #f59e0b !important;
+  }
+
+  .bg-danger-print,
+  .print-danger {
+    background-color: #fee2e2 !important;
+    border-color: #ef4444 !important;
+  }
+
+  .bg-info-print,
+  .print-info {
+    background-color: #dbeafe !important;
+    border-color: #3b82f6 !important;
+  }
+
+  /* Colored text for print */
+  .text-success-print {
+    color: #166534 !important;
+  }
+
+  .text-warning-print {
+    color: #92400e !important;
+  }
+
+  .text-danger-print {
+    color: #991b1b !important;
+  }
+
+  .text-info-print {
+    color: #1e40af !important;
+  }
+}
+
+/* Screen-only styles for print components */
+@media screen {
+  /* Print button styling for screen */
+  .print-button-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 50;
+  }
+
+  .print-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+    transition: all 0.2s ease;
+  }
+
+  .print-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+  }
+
+  .print-button:active {
+    transform: translateY(0);
+  }
+
+  .print-button svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Hide print-only elements on screen */
+  .print-header,
+  .print-footer {
+    display: none;
+  }
+
+  /* Print section preview on screen */
+  .print-section {
+    margin-bottom: 16px;
+  }
+
+  /* Print chart preview */
+  .print-chart-container {
+    margin: 16px 0;
+  }
+
+  /* Print summary card preview */
+  .print-summary-card {
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+  }
+
+  .print-summary-card--success {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), transparent);
+    border-left: 4px solid #22c55e;
+  }
+
+  .print-summary-card--warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), transparent);
+    border-left: 4px solid #f59e0b;
+  }
+
+  .print-summary-card--danger {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), transparent);
+    border-left: 4px solid #ef4444;
+  }
+
+  /* Dark mode variants for print components on screen */
+  .dark .print-summary-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .dark .print-summary-card--success {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), transparent);
+  }
+
+  .dark .print-summary-card--warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), transparent);
+  }
+
+  .dark .print-summary-card--danger {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), transparent);
+  }
+
+  .dark .print-summary-card-title {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .dark .print-summary-card-value {
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  .dark .print-summary-card-subtitle {
+    color: rgba(255, 255, 255, 0.5);
   }
 }

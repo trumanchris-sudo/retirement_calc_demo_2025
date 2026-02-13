@@ -9,10 +9,13 @@ import type { BatchSummary } from '@/types/planner'
 import { fmt } from '@/lib/utils'
 import { InfoTooltip, TOOLTIP_CONTENT } from '@/components/ui/InfoTooltip'
 import { TYPOGRAPHY } from '@/lib/designTokens'
+import { Sparkline } from '@/components/ui/Sparkline'
 
 interface PlanSummaryCardProps {
   result: CalculationResult | null
   batchSummary: BatchSummary | null
+  /** Optional wealth trajectory data for sparkline visualization */
+  wealthTrajectory?: number[]
 }
 
 type PlanStatus = 'on-track' | 'reasonable' | 'vulnerable'
@@ -88,7 +91,7 @@ function determinePlanStatus(
   }
 }
 
-export function PlanSummaryCard({ result, batchSummary }: PlanSummaryCardProps) {
+export function PlanSummaryCard({ result, batchSummary, wealthTrajectory }: PlanSummaryCardProps) {
   const statusData = useMemo(
     () => determinePlanStatus(result, batchSummary),
     [result, batchSummary]
@@ -194,6 +197,30 @@ export function PlanSummaryCard({ result, batchSummary }: PlanSummaryCardProps) 
             </p>
           </div>
         </div>
+
+        {/* Wealth Trajectory Sparkline */}
+        {wealthTrajectory && wealthTrajectory.length > 2 && (
+          <div className="pt-4 border-t">
+            <div className="flex items-center justify-between mb-2">
+              <p className={`${TYPOGRAPHY.tableHeader} text-muted-foreground`}>
+                Wealth Trajectory
+              </p>
+              <span className={`${TYPOGRAPHY.tableCellCompact} text-muted-foreground`}>
+                Over time
+              </span>
+            </div>
+            <Sparkline
+              data={wealthTrajectory}
+              width={260}
+              height={40}
+              variant="area"
+              colorMode="auto"
+              showTooltip={true}
+              formatValue={(v) => fmt(v)}
+              strokeWidth={2}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   )
