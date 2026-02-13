@@ -56,6 +56,8 @@ import {
   Tooltip,
   ReferenceLine,
 } from "recharts"
+// Reason: recharts v3 PieLabelRenderProps does not include custom data fields
+import type { PieLabel } from "recharts"
 
 // ==================== Types ====================
 
@@ -799,7 +801,8 @@ export function LegacyDashboard({
                       outerRadius={100}
                       paddingAngle={2}
                       dataKey="value"
-                      label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
+                      // Reason: recharts v3 PieLabelRenderProps does not include custom data fields
+                      label={(({ name, percentage }: { name: string; percentage: number }) => `${name}: ${percentage.toFixed(1)}%`) as unknown as PieLabel}
                     >
                       {pieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.fill} />

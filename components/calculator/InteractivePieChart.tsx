@@ -604,6 +604,7 @@ export const InteractivePieChart = React.memo(function InteractivePieChart({
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               {gradientDefs}
+              {/* Reason: recharts v3 removed activeIndex from Pie type definitions */}
               <Pie
                 data={chartData}
                 cx="50%"
@@ -612,7 +613,7 @@ export const InteractivePieChart = React.memo(function InteractivePieChart({
                 outerRadius={outerRadius}
                 paddingAngle={2}
                 dataKey="value"
-                activeIndex={activeIndex ?? undefined}
+                {...({ activeIndex: activeIndex ?? undefined } as Record<string, unknown>)}
                 activeShape={(props: unknown) =>
                   renderActiveShape({
                     ...(props as Omit<ActiveShapeProps, "formatValue" | "formatPercent" | "isDarkMode" | "isSelected">),

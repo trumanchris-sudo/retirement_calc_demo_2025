@@ -802,9 +802,12 @@ export const IncomeSourcesBreakdown = React.memo(function IncomeSourcesBreakdown
             <BarChart
               data={chartData}
               margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+              // Reason: recharts v3 type incompatibility
               onMouseMove={(state) => {
-                if (state?.activePayload?.[0]) {
-                  setHoveredYear(state.activePayload[0].payload.age);
+                const s = state as Record<string, unknown>;
+                const activePayload = s?.activePayload as Array<{ payload: { age: number } }> | undefined;
+                if (activePayload?.[0]) {
+                  setHoveredYear(activePayload[0].payload.age);
                 }
               }}
               onMouseLeave={() => setHoveredYear(null)}
