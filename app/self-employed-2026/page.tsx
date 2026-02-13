@@ -310,11 +310,11 @@ export default function SelfEmployed2026Page() {
           sharedData.source === 'ai-onboarding' &&
           (sharedData.employmentType1 === 'self-employed' || sharedData.employmentType1 === 'both')
         ) {
-          setGuaranteedPayments(sharedData.annualIncome1);
-          setGrossCompensation(Math.round(sharedData.annualIncome1 * 1.3));
+          setGuaranteedPayments(sharedData.primaryIncome);
+          setGrossCompensation(Math.round(sharedData.primaryIncome * 1.3));
 
-          if (sharedData.maritalStatus === 'married' && sharedData.annualIncome2) {
-            setSpouseW2Income(sharedData.annualIncome2);
+          if (sharedData.maritalStatus === 'married' && sharedData.spouseIncome) {
+            setSpouseW2Income(sharedData.spouseIncome);
           }
 
           setIsFromAIOnboarding(true);

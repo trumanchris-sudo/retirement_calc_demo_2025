@@ -57,7 +57,7 @@ type ToolInput = UpdateExtractedDataInput | AddAssumptionInput | TransitionPhase
 const EXTRACTED_DATA_KEYS_SET: Set<string> = new Set([
   'age', 'spouseAge', 'maritalStatus', 'state',
   'numChildren', 'childrenAges', 'additionalChildrenExpected',
-  'employmentType1', 'employmentType2', 'annualIncome1', 'annualIncome2', 'bonusInfo',
+  'employmentType1', 'employmentType2', 'primaryIncome', 'spouseIncome', 'bonusInfo',
   'emergencyFund', 'currentTaxable', 'currentTraditional', 'currentRoth',
   'savingsRateTaxable1', 'savingsRateTraditional1', 'savingsRateRoth1',
   'savingsRateTaxable2', 'savingsRateTraditional2', 'savingsRateRoth2',
@@ -195,8 +195,8 @@ export async function POST(request: NextRequest) {
                     enum: ['w2', 'self-employed', 'both', 'retired', 'other'],
                     description: 'Spouse employment type',
                   },
-                  annualIncome1: { type: 'number', description: 'User annual income in dollars' },
-                  annualIncome2: {
+                  primaryIncome: { type: 'number', description: 'User annual income in dollars' },
+                  spouseIncome: {
                     type: 'number',
                     description: 'Spouse annual income in dollars',
                   },

@@ -52,7 +52,7 @@ export function processOnboardingClientSide(
   // ===== MONTHLY EXPENSE ASSUMPTIONS =====
   // These come from the API prompt but aren't in aiOnboardingMapper yet
 
-  const totalIncome = (extractedData.annualIncome1 || 100000) + (extractedData.annualIncome2 || 0);
+  const totalIncome = (extractedData.primaryIncome || 100000) + (extractedData.spouseIncome || 0);
   const isMarried = extractedData.maritalStatus === 'married';
 
   // Housing: monthlyMortgageRent
@@ -232,7 +232,7 @@ export function processOnboardingClientSide(
   // Life Insurance: annualLifeInsuranceP1 and P2
   // Rule of thumb: 10x income for primary earners, less for secondary
   if (extractedData.annualLifeInsuranceP1 === undefined) {
-    const income1 = extractedData.annualIncome1 || 100000;
+    const income1 = extractedData.primaryIncome || 100000;
     // Calculate coverage needed (10x income) and estimate premium
     // Typical term life: ~$0.50-1.00 per $1000 coverage per year for healthy 35-45 year olds
     const coverage1 = income1 * 10;
@@ -250,7 +250,7 @@ export function processOnboardingClientSide(
   }
 
   if (isMarried && extractedData.annualLifeInsuranceP2 === undefined) {
-    const income2 = extractedData.annualIncome2 || 0;
+    const income2 = extractedData.spouseIncome || 0;
     if (income2 > 0) {
       // Spouse has income - estimate coverage similarly
       const coverage2 = income2 * 10;
@@ -288,7 +288,7 @@ export function processOnboardingClientSide(
 
   // Filter out calculator defaults from assumptions (they're not wizard assumptions)
   // These are standard calculator settings, not onboarding inferences
-  const calculatorDefaults = ['retRate', 'infRate', 'incRate', 'dividendYield', 'wdRate', 'includeSS', 'stateRate'];
+  const calculatorDefaults = ['retRate', 'inflationRate', 'incRate', 'dividendYield', 'wdRate', 'includeSS', 'stateRate'];
   const wizardAssumptions = mappedResult.generatedAssumptions.filter(
     a => !calculatorDefaults.includes(a.field)
   );
@@ -301,8 +301,8 @@ export function processOnboardingClientSide(
     maritalStatus: extractedData.maritalStatus || mappedResult.marital,
     spouseAge: extractedData.spouseAge || mappedResult.age2,
     retirementAge: extractedData.retirementAge || mappedResult.retirementAge,
-    annualIncome1: extractedData.annualIncome1 || mappedResult.primaryIncome,
-    annualIncome2: extractedData.annualIncome2 || mappedResult.spouseIncome,
+    primaryIncome: extractedData.primaryIncome || mappedResult.primaryIncome,
+    spouseIncome: extractedData.spouseIncome || mappedResult.spouseIncome,
     currentTaxable: extractedData.currentTaxable || mappedResult.taxableBalance,
     currentTraditional: extractedData.currentTraditional || mappedResult.pretaxBalance,
     currentRoth: extractedData.currentRoth || mappedResult.rothBalance,
@@ -333,12 +333,12 @@ export function processOnboardingClientSide(
  */
 function generateSummary(data: ExtractedData, assumptions: AssumptionWithReasoning[]): string {
   const age = data.age || 35;
-  const income = data.annualIncome1 || 100000;
+  const income = data.primaryIncome || 100000;
   const retAge = data.retirementAge || 65;
   const yearsToRetirement = retAge - age;
 
   const isMarried = data.maritalStatus === 'married';
-  const totalIncome = income + (data.annualIncome2 || 0);
+  const totalIncome = income + (data.spouseIncome || 0);
 
   let summary = `Great! I've set up your retirement plan${isMarried ? ' for you and your spouse' : ''}. `;
 

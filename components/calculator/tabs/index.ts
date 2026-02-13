@@ -22,5 +22,9 @@ export type { ScenariosTabProps } from "./ScenariosTab";
 export { ResultsTab } from "./ResultsTab";
 export type { ResultsTabProps } from "./ResultsTab";
 
+// Math/Methodology tab
+export { MathTab } from "./MathTab";
+export type { MathTabProps } from "./MathTab";
+
 // Re-export CheckUsTab from its original location
 export { CheckUsTab } from "../CheckUsTab";

@@ -113,14 +113,14 @@ INSTRUCTIONS:
 - Keep total response under 800 words
 
 PLAN CONFIGURATION:
-- Age: ${c.age1}, Retirement Age: ${c.retAge}
+- Age: ${c.age1}, Retirement Age: ${c.retirementAge}
 - Marital Status: ${c.marital}
-- Income (P1): $${Number(c.annualIncome1).toLocaleString()}${c.marital === 'married' ? `, Income (P2): $${Number(c.annualIncome2 || 0).toLocaleString()}` : ''}
-- Starting Balances: Taxable $${Number(c.sTax).toLocaleString()} | Pre-tax $${Number(c.sPre).toLocaleString()} | Roth $${Number(c.sPost).toLocaleString()}
+- Income (P1): $${Number(c.primaryIncome).toLocaleString()}${c.marital === 'married' ? `, Income (P2): $${Number(c.spouseIncome || 0).toLocaleString()}` : ''}
+- Starting Balances: Taxable $${Number(c.taxableBalance).toLocaleString()} | Pre-tax $${Number(c.pretaxBalance).toLocaleString()} | Roth $${Number(c.rothBalance).toLocaleString()}
 - Emergency Fund: $${Number(c.emergencyFund || 0).toLocaleString()}
 - Contributions (P1): Taxable $${Number(c.cTax1).toLocaleString()}/yr, Pre-tax $${Number(c.cPre1).toLocaleString()}/yr, Roth $${Number(c.cPost1).toLocaleString()}/yr, Match $${Number(c.cMatch1).toLocaleString()}/yr
 ${c.marital === 'married' ? `- Contributions (P2): Taxable $${Number(c.cTax2).toLocaleString()}/yr, Pre-tax $${Number(c.cPre2).toLocaleString()}/yr, Roth $${Number(c.cPost2).toLocaleString()}/yr, Match $${Number(c.cMatch2).toLocaleString()}/yr` : ''}
-- Return Rate: ${c.retRate}% | Inflation: ${c.infRate}% | State Tax: ${c.stateRate}%
+- Return Rate: ${c.retRate}% | Inflation: ${c.inflationRate}% | State Tax: ${c.stateRate}%
 - Return Model: ${c.retMode === 'fixed' ? `Fixed ${c.retRate}%` : 'Historical S&P 500 bootstrap'}
 - Withdrawal Rate: ${c.wdRate}%
 - Contribution Growth: ${c.incContrib ? `${c.incRate}%/yr` : 'Disabled'}

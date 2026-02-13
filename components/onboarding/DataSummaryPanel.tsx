@@ -19,7 +19,7 @@ export const DataSummaryPanel = React.memo(function DataSummaryPanel({ extracted
   const requiredFields: Array<keyof ExtractedData> = [
     'age',
     'maritalStatus',
-    'annualIncome1',
+    'primaryIncome',
     'retirementAge',
   ];
 

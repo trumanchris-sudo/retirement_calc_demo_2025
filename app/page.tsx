@@ -99,6 +99,7 @@ import {
   LegacyTab,
   ScenariosTab,
   ResultsTab,
+  MathTab,
 } from "@/components/calculator/tabs";
 import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
 import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexibilityChart";
@@ -3609,8 +3610,8 @@ export default function App() {
                     Tax-Aware Retirement Plan Report
                   </h1>
                   <p className="text-xs text-gray-700 mt-1">
-                    Generated on {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} •
-                    {scenarioName ? ` Scenario: ${scenarioName}` : ' Base Case Analysis'} •
+                    Generated on {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} -
+                    {scenarioName ? ` Scenario: ${scenarioName}` : ' Base Case Analysis'} -
                     {randomWalkSeries === 'trulyRandom' ? ' Monte Carlo Simulation (1,000 runs)' : ' Single Path Projection'}
                   </p>
                 </header>
@@ -6485,165 +6486,23 @@ export default function App() {
             </div>
             </TabPanel>
 
-            {/* Tabbed Chart Container */}
+            {/* Tabbed Chart Container - Using ResultsTab component */}
             <TabPanel id="results" activeTab={activeMainTab}>
-            <AnimatedSection animation="slide-up" delay={300}>
-              <div className="print-section print-block chart-container">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Portfolio Projections</CardTitle>
-                  <CardDescription>Visualize your wealth accumulation and tax planning</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Tabs value={activeChartTab} onValueChange={setActiveChartTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-6 print-hide tab-controls">
-                      <TabsTrigger value="accumulation">Accumulation</TabsTrigger>
-                      <TabsTrigger value="rmd">RMD Tax Bomb</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="accumulation" className="space-y-4">
-                      {randomWalkSeries === 'trulyRandom' && (
-                        <div className="flex gap-6 items-center print-hide">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="show-p10"
-                              checked={showP10}
-                              onCheckedChange={(checked) => setShowP10(checked as boolean)}
-                            />
-                            <label
-                              htmlFor="show-p10"
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                            >
-                              Show 10th Percentile (Nominal)
-                            </label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="show-p90"
-                              checked={showP90}
-                              onCheckedChange={(checked) => setShowP90(checked as boolean)}
-                            />
-                            <label
-                              htmlFor="show-p90"
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                            >
-                              Show 90th Percentile (Nominal)
-                            </label>
-                          </div>
-                        </div>
-                      )}
-                      {/* Default Wealth Accumulation Chart - Always show in Results tab */}
-                      {res?.data && res.data.length > 0 && (
-                        <div className="chart-block">
-                          <WealthAccumulationChart
-                            data={res.data}
-                            showP10={showP10}
-                            showP90={showP90}
-                            isDarkMode={isDarkMode}
-                            fmt={fmt}
-                          />
-                        </div>
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="rmd" className="space-y-4">
-                      {res.rmdData && res.rmdData.length > 0 ? (
-                        <>
-                          <Suspense fallback={<ChartLoadingFallback height="h-[400px]" />}>
-                          <div className="chart-block">
-                          <ResponsiveContainer width="100%" height={400}>
-                            <LineChart data={res.rmdData}>
-                              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                              <XAxis dataKey="age" />
-                              <YAxis tickFormatter={(v) => fmt(v as number)} />
-                              <RTooltip
-                                formatter={(v) => fmt(v as number)}
-                                contentStyle={{
-                                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                                  borderRadius: "8px",
-                                  border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-                                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                                  color: isDarkMode ? '#f3f4f6' : '#1f2937'
-                                }}
-                                labelStyle={{
-                                  color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                                  fontWeight: 'bold'
-                                }}
-                              />
-                              <Legend />
-                              <Line
-                                type="monotone"
-                                dataKey="spending"
-                                stroke="#10b981"
-                                strokeWidth={2}
-                                dot={false}
-                                name="Spending Need (after SS)"
-                              />
-                              <Line
-                                type="monotone"
-                                dataKey="rmd"
-                                stroke="#ef4444"
-                                strokeWidth={2}
-                                strokeDasharray="5 5"
-                                dot={false}
-                                name="Required RMD"
-                              />
-                            </LineChart>
-                          </ResponsiveContainer>
-                          </div>
-                          </Suspense>
-                          <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
-                            <p className="text-sm text-amber-800 dark:text-amber-200">
-                              <strong>Tax Planning Tip:</strong> When the red dashed line (RMD) crosses above the green line (Spending),
-                              you&apos;re forced to withdraw more than you need. This excess gets taxed and reinvested in taxable accounts.
-                              Consider Roth conversions before age {RMD_START_AGE} to reduce future RMDs.
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-center py-12 text-muted-foreground">
-                          <p className="text-sm">No RMD data available. RMDs begin at age {RMD_START_AGE} when you have pre-tax account balances.</p>
-                        </div>
-                      )}
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-              </div>
-            </AnimatedSection>
-
-            {/* Monte Carlo Visualizer - Temporarily disabled for performance */}
-            {/* <div ref={monteCarloRef} className="scroll-mt-4">
-              <AnimatedSection animation="fade-in" delay={400}>
-                <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
-                  <MonteCarloVisualizer
-                    isRunning={isLoadingAi}
-                    visible={randomWalkSeries === 'trulyRandom'}
-                  />
-                </Suspense>
-              </AnimatedSection>
-            </div> */}
-
-            {/* Sequence of Returns Risk Analysis */}
-            {batchSummary && (
-              <AnimatedSection animation="fade-in" delay={500}>
-                <SequenceRiskChart
-                  batchSummary={batchSummary}
-                  retirementAge={retirementAge}
-                  age1={age1}
-                />
-              </AnimatedSection>
-            )}
-
-            {/* Spending Flexibility Impact Analysis */}
-            {guardrailsResult && (
-              <AnimatedSection animation="fade-in" delay={600}>
-                <SpendingFlexibilityChart
-                  guardrailsResult={guardrailsResult}
-                />
-              </AnimatedSection>
-            )}
-
+              <ResultsTab
+                res={res}
+                walkSeries={randomWalkSeries}
+                activeChartTab={activeChartTab}
+                setActiveChartTab={setActiveChartTab}
+                showP10={showP10}
+                setShowP10={setShowP10}
+                showP90={showP90}
+                setShowP90={setShowP90}
+                isDarkMode={isDarkMode}
+                batchSummary={batchSummary}
+                guardrailsResult={guardrailsResult}
+                retAge={retirementAge}
+                age1={age1}
+              />
             </TabPanel>
           </div>
           </AnimatedSection>

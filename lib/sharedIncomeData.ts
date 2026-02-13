@@ -11,11 +11,11 @@ export interface SharedIncomeData {
 
   // Person 1
   employmentType1: 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
-  annualIncome1: number;
+  primaryIncome: number;
 
   // Person 2 (if married)
   employmentType2?: 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
-  annualIncome2?: number;
+  spouseIncome?: number;
 
   // Metadata
   source: 'ai-onboarding' | 'manual';

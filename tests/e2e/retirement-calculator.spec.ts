@@ -31,13 +31,13 @@ test.describe('Retirement Calculator - Critical User Flows', () => {
 
     // Fill in basic test data
     await page.fill('input[name="age1"], input[placeholder*="Current Age"]', '45');
-    await page.fill('input[name="retAge"], input[placeholder*="Retirement Age"]', '65');
+    await page.fill('input[name="retirementAge"], input[placeholder*="Retirement Age"]', '65');
     await page.fill('input[name="preRetSalary"], input[placeholder*="Pre-Retirement Salary"]', '100000');
 
     // Enter some savings
-    await page.fill('input[name="sTax"], input[placeholder*="Taxable"]', '50000');
-    await page.fill('input[name="sPre"], input[placeholder*="Pre-tax"]', '100000');
-    await page.fill('input[name="sPost"], input[placeholder*="Post-tax"]', '50000');
+    await page.fill('input[name="taxableBalance"], input[placeholder*="Taxable"]', '50000');
+    await page.fill('input[name="pretaxBalance"], input[placeholder*="Pre-tax"]', '100000');
+    await page.fill('input[name="rothBalance"], input[placeholder*="Post-tax"]', '50000');
 
     // Click Calculate button
     const calculateButton = page.getByRole('button', { name: /calculate/i });
@@ -190,13 +190,13 @@ test.describe('Retirement Calculator - Critical User Flows', () => {
     // Fill in data for both spouses
     await page.fill('input[name="age1"]', '45');
     await page.fill('input[name="age2"]', '43');
-    await page.fill('input[name="retAge"]', '65');
+    await page.fill('input[name="retirementAge"]', '65');
     await page.fill('input[name="preRetSalary"]', '100000');
 
     // Enter savings
-    await page.fill('input[name="sTax"]', '50000');
-    await page.fill('input[name="sPre"]', '100000');
-    await page.fill('input[name="sPost"]', '50000');
+    await page.fill('input[name="taxableBalance"]', '50000');
+    await page.fill('input[name="pretaxBalance"]', '100000');
+    await page.fill('input[name="rothBalance"]', '50000');
 
     // Ensure Social Security is enabled
     const ssCheckbox = page.getByLabel(/include social security/i);
@@ -257,9 +257,9 @@ test.describe('Retirement Calculator - Critical User Flows', () => {
  */
 async function fillBasicInputs(page: any) {
   await page.fill('input[name="age1"], input[placeholder*="Current Age"]', '45');
-  await page.fill('input[name="retAge"], input[placeholder*="Retirement Age"]', '65');
+  await page.fill('input[name="retirementAge"], input[placeholder*="Retirement Age"]', '65');
   await page.fill('input[name="preRetSalary"], input[placeholder*="Pre-Retirement Salary"]', '100000');
-  await page.fill('input[name="sTax"], input[placeholder*="Taxable"]', '50000');
-  await page.fill('input[name="sPre"], input[placeholder*="Pre-tax"]', '100000');
-  await page.fill('input[name="sPost"], input[placeholder*="Post-tax"]', '50000');
+  await page.fill('input[name="taxableBalance"], input[placeholder*="Taxable"]', '50000');
+  await page.fill('input[name="pretaxBalance"], input[placeholder*="Pre-tax"]', '100000');
+  await page.fill('input[name="rothBalance"], input[placeholder*="Post-tax"]', '50000');
 }

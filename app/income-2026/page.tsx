@@ -299,8 +299,8 @@ export default function Income2026Page() {
     if (!hasAISuggestedFields && hasRecentIncomeData()) {
       const sharedData = loadSharedIncomeData();
       if (sharedData && sharedData.source === 'ai-onboarding') {
-        if (!planConfig.primaryIncome) setP1BaseIncome(sharedData.annualIncome1);
-        if (!planConfig.spouseIncome && sharedData.annualIncome2) setP2BaseIncome(sharedData.annualIncome2);
+        if (!planConfig.primaryIncome) setP1BaseIncome(sharedData.primaryIncome);
+        if (!planConfig.spouseIncome && sharedData.spouseIncome) setP2BaseIncome(sharedData.spouseIncome);
         setIsFromAIOnboarding(true);
         setShowAIBanner(true);
       }

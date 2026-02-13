@@ -85,8 +85,8 @@ CRITICAL FIELDS (should be provided by user - USE THESE VALUES):
 - state: State abbreviation (from Q2) - affects tax calculations
 - employmentType1: "w2", "self-employed", "k1", or "other" (from Q3)
 - employmentType2: Same options (from Q3, if married)
-- annualIncome1: Annual income person 1 (from Q4)
-- annualIncome2: Annual income person 2 if married (from Q4)
+- primaryIncome: Annual income person 1 (from Q4)
+- spouseIncome: Annual income person 2 if married (from Q4)
 - retirementAge: Target retirement age (from Q6) - **NEVER override this**
 - currentTraditional: Traditional IRA/401k balance (from Q5)
 - currentRoth: Roth IRA/401k balance (from Q5)
@@ -148,8 +148,8 @@ Return JSON with this structure:
   "extractedData": {
     "age": number,
     "maritalStatus": "single" | "married",
-    "annualIncome1": number,
-    "annualIncome2": number (if married),
+    "primaryIncome": number,
+    "spouseIncome": number (if married),
     "employmentType1": "w2" | "self-employed" | "k1" | "other",
     "employmentType2": "w2" | "self-employed" | "k1" | "other" (if married),
     "currentTraditional": number,
@@ -193,7 +193,7 @@ Response: {
   "extractedData": {
     "age": 35,
     "maritalStatus": "single",
-    "annualIncome1": 100000,
+    "primaryIncome": 100000,
     "employmentType1": "w2",
     "currentTraditional": 50000,
     "currentRoth": 20000,
@@ -227,8 +227,8 @@ Response: {
   "extractedData": {
     "age": 40,
     "maritalStatus": "married",
-    "annualIncome1": 500000,
-    "annualIncome2": 400000,
+    "primaryIncome": 500000,
+    "spouseIncome": 400000,
     "employmentType1": "w2",
     "employmentType2": "w2",
     "retirementAge": 65,

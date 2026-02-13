@@ -66,8 +66,8 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
     taxableIncome: assumptions.filter(a =>
       a.field === 'cTax1' ||
       a.field === 'cTax2' ||
-      a.field === 'annualIncome1' ||
-      a.field === 'annualIncome2' ||
+      a.field === 'primaryIncome' ||
+      a.field === 'spouseIncome' ||
       a.field === 'age' ||
       a.field === 'spouseAge' ||
       a.field === 'retirementAge'

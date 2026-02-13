@@ -213,7 +213,7 @@ export function validateDataCompleteness(data: ExtractedData): {
   missingRequired: string[];
   missingOptional: string[];
 } {
-  const requiredFields = ['age', 'maritalStatus', 'annualIncome1', 'retirementAge'] as const;
+  const requiredFields = ['age', 'maritalStatus', 'primaryIncome', 'retirementAge'] as const;
   const optionalFields = [
     'spouseAge',
     'state',
@@ -222,7 +222,7 @@ export function validateDataCompleteness(data: ExtractedData): {
     'additionalChildrenExpected',
     'employmentType1',
     'employmentType2',
-    'annualIncome2',
+    'spouseIncome',
     'emergencyFund',
     'currentTaxable',
     'currentTraditional',

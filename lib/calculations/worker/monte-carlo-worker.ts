@@ -58,10 +58,10 @@ interface SimulationParams {
   marital: FilingStatus;
   age1: number;
   age2: number;
-  retAge: number;
-  sTax: number;
-  sPre: number;
-  sPost: number;
+  retirementAge: number;
+  taxableBalance: number;
+  pretaxBalance: number;
+  rothBalance: number;
   cTax1: number;
   cPre1: number;
   cPost1: number;
@@ -71,7 +71,7 @@ interface SimulationParams {
   cPost2: number;
   cMatch2: number;
   retRate: number;
-  infRate: number;
+  inflationRate: number;
   stateRate: number;
   incContrib: boolean;
   incRate: number;
@@ -104,8 +104,8 @@ interface SimulationParams {
   numChildren?: number;
   childrenAges?: number[];
   additionalChildrenExpected?: number;
-  annualIncome1?: number;
-  annualIncome2?: number;
+  primaryIncome?: number;
+  spouseIncome?: number;
   employmentType1?: EmploymentType;
   employmentType2?: EmploymentType;
   bondGlidePath?: BondGlidePath | null;
@@ -135,9 +135,9 @@ interface Cohort {
 
 function runSingleSimulation(params: SimulationParams, seed: number): SimulationResult {
   const {
-    marital, age1, age2, retAge, sTax, sPre, sPost,
+    marital, age1, age2, retirementAge, taxableBalance, pretaxBalance, rothBalance,
     cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-    retRate, infRate, stateRate, incContrib, incRate, wdRate,
+    retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
     retMode, walkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
     historicalYear,
     inflationShockRate,
@@ -157,8 +157,8 @@ function runSingleSimulation(params: SimulationParams, seed: number): Simulation
     numChildren = 0,
     childrenAges = [],
     additionalChildrenExpected = 0,
-    annualIncome1 = 0,
-    annualIncome2 = 0,
+    primaryIncome = 0,
+    spouseIncome = 0,
     employmentType1 = 'w2' as EmploymentType,
     employmentType2 = 'w2' as EmploymentType,
   } = params;
@@ -167,13 +167,13 @@ function runSingleSimulation(params: SimulationParams, seed: number): Simulation
   const younger = Math.min(age1, isMar ? age2 : age1);
   const older = Math.max(age1, isMar ? age2 : age1);
 
-  if (retAge <= younger) {
+  if (retirementAge <= younger) {
     throw new Error("Retirement age must be greater than current age");
   }
 
-  const yrsToRet = retAge - younger;
+  const yrsToRet = retirementAge - younger;
   const g_fixed = 1 + retRate / 100;
-  const infl = infRate / 100;
+  const infl = inflationRate / 100;
   const infl_factor = 1 + infl;
 
   const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
@@ -182,7 +182,7 @@ function runSingleSimulation(params: SimulationParams, seed: number): Simulation
     mode: retMode,
     years: yrsToRet + 1,
     nominalPct: retRate,
-    infPct: infRate,
+    infPct: inflationRate,
     walkSeries,
     seed: seed,
     startYear: historicalYear,
@@ -194,7 +194,7 @@ function runSingleSimulation(params: SimulationParams, seed: number): Simulation
     mode: retMode,
     years: yrsToSim,
     nominalPct: retRate,
-    infPct: infRate,
+    infPct: inflationRate,
     walkSeries,
     seed: seed + 1,
     startYear: historicalYear ? historicalYear + yrsToRet : undefined,
@@ -202,10 +202,10 @@ function runSingleSimulation(params: SimulationParams, seed: number): Simulation
     currentAge: older + yrsToRet,
   })();
 
-  let bTax = sTax;
-  let bPre = sPre;
-  let bPost = sPost;
-  let basisTax = sTax;
+  let bTax = taxableBalance;
+  let bPre = pretaxBalance;
+  let bPost = rothBalance;
+  let basisTax = taxableBalance;
   let bEmergency = emergencyFund;
 
   const totalYears = yrsToRet + yrsToSim + 1;
@@ -247,13 +247,13 @@ function runSingleSimulation(params: SimulationParams, seed: number): Simulation
 
     const addMidYear = (amt: number) => amt * (1 + (g - 1) * 0.5);
 
-    if (a1 < retAge) {
+    if (a1 < retirementAge) {
       bTax += addMidYear(c.p.tax);
       bPre += addMidYear(c.p.pre + c.p.match);
       bPost += addMidYear(c.p.post);
       basisTax += c.p.tax;
     }
-    if (isMar && a2 !== null && a2 < retAge) {
+    if (isMar && a2 !== null && a2 < retirementAge) {
       bTax += addMidYear(c.s.tax);
       bPre += addMidYear(c.s.pre + c.s.match);
       bPost += addMidYear(c.s.post);
@@ -286,29 +286,29 @@ function runSingleSimulation(params: SimulationParams, seed: number): Simulation
         Math.pow(infl_factor, y)
       );
 
-      if (childExpenses > 0 && a1 < retAge) {
+      if (childExpenses > 0 && a1 < retirementAge) {
         bTax = Math.max(0, bTax - childExpenses);
       }
     }
 
     // Calculate employment taxes during accumulation phase
-    if (a1 < retAge && annualIncome1 > 0) {
+    if (a1 < retirementAge && primaryIncome > 0) {
       if (employmentType1 === 'self-employed') {
-        const empTax1 = calculateEmploymentTaxes(annualIncome1 * Math.pow(1 + incRate / 100, y), employmentType1);
+        const empTax1 = calculateEmploymentTaxes(primaryIncome * Math.pow(1 + incRate / 100, y), employmentType1);
         const extraTax = empTax1 * 0.5;
         bTax = Math.max(0, bTax - extraTax);
       }
     }
-    if (isMar && a2 !== null && a2 < retAge && annualIncome2 > 0) {
+    if (isMar && a2 !== null && a2 < retirementAge && spouseIncome > 0) {
       if (employmentType2 === 'self-employed') {
-        const empTax2 = calculateEmploymentTaxes(annualIncome2 * Math.pow(1 + incRate / 100, y), employmentType2);
+        const empTax2 = calculateEmploymentTaxes(spouseIncome * Math.pow(1 + incRate / 100, y), employmentType2);
         const extraTax = empTax2 * 0.5;
         bTax = Math.max(0, bTax - extraTax);
       }
     }
 
     // Calculate pre-Medicare healthcare costs during accumulation phase
-    if (a1 < retAge) {
+    if (a1 < retirementAge) {
       let dependentChildCount = 0;
       if (childrenAges.length > 0) {
         dependentChildCount = childrenAges.filter(startAge => {
@@ -339,7 +339,7 @@ function runSingleSimulation(params: SimulationParams, seed: number): Simulation
     }
 
     const bal = bTax + bPre + bPost + bEmergency;
-    const yearInflation = getEffectiveInflation(y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
+    const yearInflation = getEffectiveInflation(y, yrsToRet, inflationRate, inflationShockRate, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
     balancesReal[balanceIndex] = bal / cumulativeInflation;
     balancesNominal[balanceIndex] = bal;
@@ -534,7 +534,7 @@ function runSingleSimulation(params: SimulationParams, seed: number): Simulation
     if (retBalRoth < 0) retBalRoth = 0;
 
     const totalNow = retBalTax + retBalPre + retBalRoth + retBalEmergency;
-    const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
+    const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, inflationRate, inflationShockRate, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
     balancesReal[balanceIndex] = totalNow / cumulativeInflation;
     balancesNominal[balanceIndex] = totalNow;
@@ -1048,7 +1048,7 @@ self.onmessage = function(e: MessageEvent) {
   } else if (type === 'roth-optimizer') {
     try {
       const {
-        retAge,
+        retirementAge: retAge,
         pretaxBalance,
         marital,
         ssIncome = 0,
@@ -1253,7 +1253,7 @@ self.onmessage = function(e: MessageEvent) {
       }
 
       // 2. Calculate splurge capacity
-      const liquidBalance = baseParams.sTax;
+      const liquidBalance = baseParams.taxableBalance;
       let maxSplurge = 0;
       let splurgeLow = 0;
       let splurgeHigh = Math.min(5000000, liquidBalance * 0.95);
@@ -1266,7 +1266,7 @@ self.onmessage = function(e: MessageEvent) {
 
           const testParams: SimulationParams = {
             ...baseParams,
-            sTax: Math.max(0, baseParams.sTax - mid),
+            taxableBalance: Math.max(0, baseParams.taxableBalance - mid),
           };
 
           if (testSuccess(testParams)) {
@@ -1282,12 +1282,12 @@ self.onmessage = function(e: MessageEvent) {
 
       // 3. Calculate freedom date
       const currentAge = Math.min(baseParams.age1, baseParams.age2 || baseParams.age1);
-      let earliestRetirementAge = baseParams.retAge;
+      let earliestRetirementAge = baseParams.retirementAge;
       let freedomIterations = 0;
 
       let minAge = currentAge + 1;
-      let maxAge = baseParams.retAge;
-      let bestAge = baseParams.retAge;
+      let maxAge = baseParams.retirementAge;
+      let bestAge = baseParams.retirementAge;
 
       while (minAge <= maxAge && freedomIterations < SAFETY_MAX_ITERATIONS) {
         freedomIterations++;
@@ -1295,7 +1295,7 @@ self.onmessage = function(e: MessageEvent) {
 
         const testParams: SimulationParams = {
           ...baseParams,
-          retAge: midAge,
+          retirementAge: midAge,
         };
 
         if (testSuccess(testParams)) {
@@ -1315,7 +1315,7 @@ self.onmessage = function(e: MessageEvent) {
           surplusMonthly: Math.max(0, surplusAnnual / 12),
           maxSplurge: Math.max(0, maxSplurge),
           earliestRetirementAge,
-          yearsEarlier: Math.max(0, baseParams.retAge - earliestRetirementAge),
+          yearsEarlier: Math.max(0, baseParams.retirementAge - earliestRetirementAge),
         },
       });
     } catch (error) {

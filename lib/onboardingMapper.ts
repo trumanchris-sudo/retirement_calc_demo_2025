@@ -15,7 +15,7 @@ export interface AppState {
   marital: FilingStatus
   age1: number
   age2: number
-  retAge: number
+  retirementAge: number
 
   // Contributions
   cTax1: number
@@ -95,7 +95,7 @@ export function wizardDataToAppState(wizardData: OnboardingWizardData): AppState
     marital,
     age1: basics.age,
     age2: basics.spouseAge || basics.age, // Default to same age if not specified
-    retAge: goals.retirementAge,
+    retirementAge: goals.retirementAge,
     cTax1,
     cPre1,
     cPost1,

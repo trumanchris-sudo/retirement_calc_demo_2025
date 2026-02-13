@@ -761,10 +761,10 @@
       marital,
       age1,
       age2,
-      retAge,
-      sTax,
-      sPre,
-      sPost,
+      retirementAge,
+      taxableBalance,
+      pretaxBalance,
+      rothBalance,
       cTax1,
       cPre1,
       cPost1,
@@ -774,7 +774,7 @@
       cPost2,
       cMatch2,
       retRate,
-      infRate,
+      inflationRate,
       stateRate,
       incContrib,
       incRate,
@@ -804,27 +804,27 @@
       numChildren = 0,
       childrenAges = [],
       additionalChildrenExpected = 0,
-      annualIncome1 = 0,
-      annualIncome2 = 0,
+      primaryIncome = 0,
+      spouseIncome = 0,
       employmentType1 = "w2",
       employmentType2 = "w2"
     } = params;
     const isMar = marital === "married";
     const younger = Math.min(age1, isMar ? age2 : age1);
     const older = Math.max(age1, isMar ? age2 : age1);
-    if (retAge <= younger) {
+    if (retirementAge <= younger) {
       throw new Error("Retirement age must be greater than current age");
     }
-    const yrsToRet = retAge - younger;
+    const yrsToRet = retirementAge - younger;
     const g_fixed = 1 + retRate / 100;
-    const infl = infRate / 100;
+    const infl = inflationRate / 100;
     const infl_factor = 1 + infl;
     const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
     const accGen = buildReturnGenerator({
       mode: retMode,
       years: yrsToRet + 1,
       nominalPct: retRate,
-      infPct: infRate,
+      infPct: inflationRate,
       walkSeries,
       seed,
       startYear: historicalYear,
@@ -835,17 +835,17 @@
       mode: retMode,
       years: yrsToSim,
       nominalPct: retRate,
-      infPct: infRate,
+      infPct: inflationRate,
       walkSeries,
       seed: seed + 1,
       startYear: historicalYear ? historicalYear + yrsToRet : void 0,
       bondGlidePath: params.bondGlidePath || null,
       currentAge: older + yrsToRet
     })();
-    let bTax = sTax;
-    let bPre = sPre;
-    let bPost = sPost;
-    let basisTax = sTax;
+    let bTax = taxableBalance;
+    let bPre = pretaxBalance;
+    let bPost = rothBalance;
+    let basisTax = taxableBalance;
     let bEmergency = emergencyFund;
     const totalYears = yrsToRet + yrsToSim + 1;
     const balancesReal = new Array(totalYears);
@@ -877,13 +877,13 @@
           Object.keys(c.s).forEach((k) => c.s[k] *= f);
       }
       const addMidYear = (amt) => amt * (1 + (g - 1) * 0.5);
-      if (a1 < retAge) {
+      if (a1 < retirementAge) {
         bTax += addMidYear(c.p.tax);
         bPre += addMidYear(c.p.pre + c.p.match);
         bPost += addMidYear(c.p.post);
         basisTax += c.p.tax;
       }
-      if (isMar && a2 !== null && a2 < retAge) {
+      if (isMar && a2 !== null && a2 < retirementAge) {
         bTax += addMidYear(c.s.tax);
         bPre += addMidYear(c.s.pre + c.s.match);
         bPost += addMidYear(c.s.post);
@@ -910,25 +910,25 @@
           y,
           Math.pow(infl_factor, y)
         );
-        if (childExpenses > 0 && a1 < retAge) {
+        if (childExpenses > 0 && a1 < retirementAge) {
           bTax = Math.max(0, bTax - childExpenses);
         }
       }
-      if (a1 < retAge && annualIncome1 > 0) {
+      if (a1 < retirementAge && primaryIncome > 0) {
         if (employmentType1 === "self-employed") {
-          const empTax1 = calculateEmploymentTaxes(annualIncome1 * Math.pow(1 + incRate / 100, y), employmentType1);
+          const empTax1 = calculateEmploymentTaxes(primaryIncome * Math.pow(1 + incRate / 100, y), employmentType1);
           const extraTax = empTax1 * 0.5;
           bTax = Math.max(0, bTax - extraTax);
         }
       }
-      if (isMar && a2 !== null && a2 < retAge && annualIncome2 > 0) {
+      if (isMar && a2 !== null && a2 < retirementAge && spouseIncome > 0) {
         if (employmentType2 === "self-employed") {
-          const empTax2 = calculateEmploymentTaxes(annualIncome2 * Math.pow(1 + incRate / 100, y), employmentType2);
+          const empTax2 = calculateEmploymentTaxes(spouseIncome * Math.pow(1 + incRate / 100, y), employmentType2);
           const extraTax = empTax2 * 0.5;
           bTax = Math.max(0, bTax - extraTax);
         }
       }
-      if (a1 < retAge) {
+      if (a1 < retirementAge) {
         let dependentChildCount = 0;
         if (childrenAges.length > 0) {
           dependentChildCount = childrenAges.filter((startAge) => {
@@ -953,7 +953,7 @@
         bEmergency *= infl_factor;
       }
       const bal = bTax + bPre + bPost + bEmergency;
-      const yearInflation = getEffectiveInflation(y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
+      const yearInflation = getEffectiveInflation(y, yrsToRet, inflationRate, inflationShockRate, inflationShockDuration);
       cumulativeInflation *= 1 + yearInflation / 100;
       balancesReal[balanceIndex] = bal / cumulativeInflation;
       balancesNominal[balanceIndex] = bal;
@@ -1108,7 +1108,7 @@
       if (retBalPre < 0) retBalPre = 0;
       if (retBalRoth < 0) retBalRoth = 0;
       const totalNow = retBalTax + retBalPre + retBalRoth + retBalEmergency;
-      const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, infRate, inflationShockRate, inflationShockDuration);
+      const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, inflationRate, inflationShockRate, inflationShockDuration);
       cumulativeInflation *= 1 + yearInflation / 100;
       balancesReal[balanceIndex] = totalNow / cumulativeInflation;
       balancesNominal[balanceIndex] = totalNow;
@@ -1491,7 +1491,7 @@
     } else if (type === "roth-optimizer") {
       try {
         const {
-          retAge,
+          retirementAge: retAge,
           pretaxBalance,
           marital,
           ssIncome = 0,
@@ -1657,7 +1657,7 @@
           }
           surplusAnnual = currentTotalContrib - minContrib;
         }
-        const liquidBalance = baseParams.sTax;
+        const liquidBalance = baseParams.taxableBalance;
         let maxSplurge = 0;
         let splurgeLow = 0;
         let splurgeHigh = Math.min(5e6, liquidBalance * 0.95);
@@ -1668,7 +1668,7 @@
             const mid = splurgeLow + (splurgeHigh - splurgeLow) / 2;
             const testParams = {
               ...baseParams,
-              sTax: Math.max(0, baseParams.sTax - mid)
+              taxableBalance: Math.max(0, baseParams.taxableBalance - mid)
             };
             if (testSuccess(testParams)) {
               maxSplurge = mid;
@@ -1680,17 +1680,17 @@
           }
         }
         const currentAge = Math.min(baseParams.age1, baseParams.age2 || baseParams.age1);
-        let earliestRetirementAge = baseParams.retAge;
+        let earliestRetirementAge = baseParams.retirementAge;
         let freedomIterations = 0;
         let minAge = currentAge + 1;
-        let maxAge = baseParams.retAge;
-        let bestAge = baseParams.retAge;
+        let maxAge = baseParams.retirementAge;
+        let bestAge = baseParams.retirementAge;
         while (minAge <= maxAge && freedomIterations < SAFETY_MAX_ITERATIONS) {
           freedomIterations++;
           const midAge = Math.floor((minAge + maxAge) / 2);
           const testParams = {
             ...baseParams,
-            retAge: midAge
+            retirementAge: midAge
           };
           if (testSuccess(testParams)) {
             bestAge = midAge;
@@ -1707,7 +1707,7 @@
             surplusMonthly: Math.max(0, surplusAnnual / 12),
             maxSplurge: Math.max(0, maxSplurge),
             earliestRetirementAge,
-            yearsEarlier: Math.max(0, baseParams.retAge - earliestRetirementAge)
+            yearsEarlier: Math.max(0, baseParams.retirementAge - earliestRetirementAge)
           }
         });
       } catch (error) {

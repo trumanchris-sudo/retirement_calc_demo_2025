@@ -61,9 +61,9 @@ export function OnboardingWizardPage({ onComplete, onSkip }: OnboardingWizardPag
           maritalStatus: extractedData.maritalStatus ?? 'single',
           state: extractedData.state,
           employmentType1: extractedData.employmentType1 ?? 'w2',
-          annualIncome1: extractedData.annualIncome1 ?? 100000,
+          primaryIncome: extractedData.primaryIncome ?? 100000,
           employmentType2: extractedData.employmentType2,
-          annualIncome2: extractedData.annualIncome2,
+          spouseIncome: extractedData.spouseIncome,
           source: 'ai-onboarding',
           timestamp: Date.now(),
         });

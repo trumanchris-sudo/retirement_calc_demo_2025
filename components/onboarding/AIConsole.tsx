@@ -35,8 +35,8 @@ const ADMIN_PRESETS: Record<string, ExtractedData> = {
     state: 'WA',
     employmentType1: 'w2',
     employmentType2: 'w2',
-    annualIncome1: 250000,
-    annualIncome2: 150000,
+    primaryIncome: 250000,
+    spouseIncome: 150000,
     currentTraditional: 500000,
     currentRoth: 200000,
     currentTaxable: 300000,
@@ -317,10 +317,10 @@ ${getNextQuestion(0, {})}`;
 
         // Extract income(s)
         if (numbers.length > 0) {
-          extracted.annualIncome1 = numbers[0];
+          extracted.primaryIncome = numbers[0];
         }
         if (numbers.length > 1 && isMarriedIncome) {
-          extracted.annualIncome2 = numbers[1];
+          extracted.spouseIncome = numbers[1];
         }
 
         // Detect bonus information - store for API to process

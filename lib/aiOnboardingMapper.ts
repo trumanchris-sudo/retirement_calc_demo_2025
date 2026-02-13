@@ -133,12 +133,12 @@ export function mapAIDataToCalculator(
     }
 
     // Validate total contributions vs income (warning only)
-    if (extractedData.annualIncome1 !== undefined) {
+    if (extractedData.primaryIncome !== undefined) {
       const totalContributions =
         (extractedData.contributionTraditional || 0) +
         (extractedData.contributionRoth || 0) +
         (extractedData.contributionTaxable || 0);
-      const totalIncome = extractedData.annualIncome1 + (extractedData.annualIncome2 || 0);
+      const totalIncome = extractedData.primaryIncome + (extractedData.spouseIncome || 0);
 
       if (totalContributions > totalIncome) {
         console.warn('[Mapper] Total contributions exceed income:', { totalContributions, totalIncome });
@@ -174,21 +174,21 @@ export function mapAIDataToCalculator(
   // === Employment & Income ===
   const employmentType1 = extractedData.employmentType1 ?? 'w2';
   const employmentType2 = extractedData.employmentType2;
-  const annualIncome1 = extractedData.annualIncome1 ?? 100000;
-  const annualIncome2 = extractedData.annualIncome2 ?? 0;
+  const primaryIncome = extractedData.primaryIncome ?? 100000;
+  const spouseIncome = extractedData.spouseIncome ?? 0;
 
-  if (!extractedData.annualIncome1) {
+  if (!extractedData.primaryIncome) {
     addAssumption(
-      'annualIncome1',
+      'primaryIncome',
       'Your Annual Income',
-      annualIncome1,
+      primaryIncome,
       'Using median household income as starting point',
       'low'
     );
   }
 
   // === Current Balances ===
-  const emergencyFund = extractedData.emergencyFund ?? Math.round(annualIncome1 * 0.25); // 3 months
+  const emergencyFund = extractedData.emergencyFund ?? Math.round(primaryIncome * 0.25); // 3 months
   const taxableBalance = extractedData.currentTaxable ?? 50000;
   const pretaxBalance = extractedData.currentTraditional ?? 150000;
   const rothBalance = extractedData.currentRoth ?? 25000;
@@ -251,13 +251,13 @@ export function mapAIDataToCalculator(
     cPre1 = extractedData.savingsRateTraditional1;
   } else {
     // Calculate default based on income
-    const defaultSavingsRate = calculateRecommendedSavingsRate(annualIncome1);
-    cPre1 = Math.min(IRS_LIMITS_2026['401k'], annualIncome1 * defaultSavingsRate * 0.6);
+    const defaultSavingsRate = calculateRecommendedSavingsRate(primaryIncome);
+    cPre1 = Math.min(IRS_LIMITS_2026['401k'], primaryIncome * defaultSavingsRate * 0.6);
     addAssumption(
       'cPre1',
       'Traditional 401k Contributions',
       cPre1,
-      `Recommended ${Math.round((cPre1 / annualIncome1) * 100)}% of income to traditional accounts`,
+      `Recommended ${Math.round((cPre1 / primaryIncome) * 100)}% of income to traditional accounts`,
       'medium'
     );
   }
@@ -276,8 +276,8 @@ export function mapAIDataToCalculator(
     cPost1 = extractedData.savingsRateRoth1;
   } else {
     // Calculate default based on income
-    const defaultSavingsRate = calculateRecommendedSavingsRate(annualIncome1);
-    cPost1 = Math.min(IRS_LIMITS_2026.ira, annualIncome1 * defaultSavingsRate * 0.3);
+    const defaultSavingsRate = calculateRecommendedSavingsRate(primaryIncome);
+    cPost1 = Math.min(IRS_LIMITS_2026.ira, primaryIncome * defaultSavingsRate * 0.3);
     addAssumption(
       'cPost1',
       'Roth Contributions',
@@ -295,8 +295,8 @@ export function mapAIDataToCalculator(
     cTax1 = extractedData.savingsRateTaxable1;
   } else {
     // Calculate default based on income
-    const defaultSavingsRate = calculateRecommendedSavingsRate(annualIncome1);
-    cTax1 = annualIncome1 * defaultSavingsRate * 0.1;
+    const defaultSavingsRate = calculateRecommendedSavingsRate(primaryIncome);
+    cTax1 = primaryIncome * defaultSavingsRate * 0.1;
     addAssumption(
       'cTax1',
       'Taxable Account Savings',
@@ -311,7 +311,7 @@ export function mapAIDataToCalculator(
     cMatch1 = extractedData.contributionMatch;
   } else {
     // Calculate default: assume 50% match up to 6% of salary
-    cMatch1 = Math.min(annualIncome1 * 0.06 * 0.5, IRS_LIMITS_2026['401k'] - cPre1);
+    cMatch1 = Math.min(primaryIncome * 0.06 * 0.5, IRS_LIMITS_2026['401k'] - cPre1);
     addAssumption(
       'cMatch1',
       'Employer Match',
@@ -327,7 +327,7 @@ export function mapAIDataToCalculator(
     cTax2 = 0,
     cMatch2 = 0;
 
-  if (marital === 'married' && annualIncome2 > 0) {
+  if (marital === 'married' && spouseIncome > 0) {
     // NEW: If user provided combined contributions, split them
     if (extractedData.contributionTraditional !== undefined) {
       // Split traditional contribution between person 1 and person 2
@@ -338,12 +338,12 @@ export function mapAIDataToCalculator(
       cPre2 = extractedData.savingsRateTraditional2;
     } else {
       // Calculate default based on income
-      const defaultSavingsRate2 = calculateRecommendedSavingsRate(annualIncome2);
+      const defaultSavingsRate2 = calculateRecommendedSavingsRate(spouseIncome);
       const person1IsMaxing401k = cPre1 >= IRS_LIMITS_2026['401k'] * 0.9;
 
       if (person1IsMaxing401k) {
         // If person 1 maxes 401k, assume person 2 does too
-        cPre2 = Math.min(IRS_LIMITS_2026['401k'], annualIncome2);
+        cPre2 = Math.min(IRS_LIMITS_2026['401k'], spouseIncome);
         addAssumption(
           'cPre2',
           'Spouse Traditional 401k',
@@ -352,12 +352,12 @@ export function mapAIDataToCalculator(
           'medium'
         );
       } else {
-        cPre2 = Math.min(IRS_LIMITS_2026['401k'], annualIncome2 * defaultSavingsRate2 * 0.6);
+        cPre2 = Math.min(IRS_LIMITS_2026['401k'], spouseIncome * defaultSavingsRate2 * 0.6);
         addAssumption(
           'cPre2',
           'Spouse Traditional 401k',
           cPre2,
-          `Recommended ${Math.round((cPre2 / annualIncome2) * 100)}% of spouse income`,
+          `Recommended ${Math.round((cPre2 / spouseIncome) * 100)}% of spouse income`,
           'medium'
         );
       }
@@ -372,12 +372,12 @@ export function mapAIDataToCalculator(
       cPost2 = extractedData.savingsRateRoth2;
     } else {
       // Calculate default based on income
-      const defaultSavingsRate2 = calculateRecommendedSavingsRate(annualIncome2);
+      const defaultSavingsRate2 = calculateRecommendedSavingsRate(spouseIncome);
       const person1IsMaxingRoth = cPost1 >= IRS_LIMITS_2026.ira * 0.9;
 
       if (person1IsMaxingRoth) {
         // If person 1 maxes Roth, assume person 2 does too
-        cPost2 = Math.min(IRS_LIMITS_2026.ira, annualIncome2);
+        cPost2 = Math.min(IRS_LIMITS_2026.ira, spouseIncome);
         addAssumption(
           'cPost2',
           'Spouse Roth Contributions',
@@ -386,7 +386,7 @@ export function mapAIDataToCalculator(
           'medium'
         );
       } else {
-        cPost2 = Math.min(IRS_LIMITS_2026.ira, annualIncome2 * defaultSavingsRate2 * 0.3);
+        cPost2 = Math.min(IRS_LIMITS_2026.ira, spouseIncome * defaultSavingsRate2 * 0.3);
         addAssumption(
           'cPost2',
           'Spouse Roth Contributions',
@@ -400,8 +400,8 @@ export function mapAIDataToCalculator(
     // Taxable contributions for person 2: split combined total proportionally
     if (extractedData.contributionTaxable !== undefined) {
       // Split combined taxable contribution proportionally by income
-      const totalIncome = annualIncome1 + annualIncome2;
-      const person2Ratio = totalIncome > 0 ? annualIncome2 / totalIncome : 0.5;
+      const totalIncome = primaryIncome + spouseIncome;
+      const person2Ratio = totalIncome > 0 ? spouseIncome / totalIncome : 0.5;
       cTax2 = extractedData.contributionTaxable * person2Ratio;
       // Also adjust cTax1 to be the remainder
       cTax1 = extractedData.contributionTaxable * (1 - person2Ratio);
@@ -410,21 +410,21 @@ export function mapAIDataToCalculator(
       cTax2 = extractedData.savingsRateTaxable2;
     } else {
       // Calculate default
-      const defaultSavingsRate2 = calculateRecommendedSavingsRate(annualIncome2);
-      cTax2 = annualIncome2 * defaultSavingsRate2 * 0.1;
+      const defaultSavingsRate2 = calculateRecommendedSavingsRate(spouseIncome);
+      cTax2 = spouseIncome * defaultSavingsRate2 * 0.1;
     }
 
     // Employer match for person 2: split combined match proportionally
     if (extractedData.contributionMatch !== undefined) {
       // Split combined match proportionally by income
-      const totalIncome = annualIncome1 + annualIncome2;
-      const person2Ratio = totalIncome > 0 ? annualIncome2 / totalIncome : 0.5;
+      const totalIncome = primaryIncome + spouseIncome;
+      const person2Ratio = totalIncome > 0 ? spouseIncome / totalIncome : 0.5;
       cMatch2 = Math.min(extractedData.contributionMatch * person2Ratio, IRS_LIMITS_2026['401k'] - cPre2);
       // Also adjust cMatch1 to be the remainder
       cMatch1 = Math.min(extractedData.contributionMatch * (1 - person2Ratio), IRS_LIMITS_2026['401k'] - cPre1);
     } else {
       // Calculate default
-      cMatch2 = Math.min(annualIncome2 * 0.06 * 0.5, IRS_LIMITS_2026['401k'] - cPre2);
+      cMatch2 = Math.min(spouseIncome * 0.06 * 0.5, IRS_LIMITS_2026['401k'] - cPre2);
     }
   }
 
@@ -469,11 +469,11 @@ export function mapAIDataToCalculator(
 
   // === Retirement Goals ===
   // IMPORTANT: Use user-specified retirement age if provided, don't override it
-  const retirementAge = extractedData.retirementAge ?? calculateRecommendedRetirementAge(age1, annualIncome1);
+  const retirementAge = extractedData.retirementAge ?? calculateRecommendedRetirementAge(age1, primaryIncome);
 
   console.log('[aiOnboardingMapper] Retirement age:', {
     userProvided: extractedData.retirementAge,
-    calculated: calculateRecommendedRetirementAge(age1, annualIncome1),
+    calculated: calculateRecommendedRetirementAge(age1, primaryIncome),
     final: retirementAge,
   });
 
@@ -488,7 +488,7 @@ export function mapAIDataToCalculator(
   }
 
   // Desired retirement spending
-  const totalIncome = annualIncome1 + annualIncome2;
+  const totalIncome = primaryIncome + spouseIncome;
   const desiredSpending =
     extractedData.desiredRetirementSpending ??
     Math.round(totalIncome * 0.8); // 80% replacement ratio
@@ -556,9 +556,9 @@ export function mapAIDataToCalculator(
 
   // === Social Security ===
   const includeSS = true;
-  const ssIncome = annualIncome1; // Use full income for SS calculation
+  const ssIncome = primaryIncome; // Use full income for SS calculation
   const ssClaimAge = 67; // Full retirement age
-  const ssIncome2 = marital === 'married' ? annualIncome2 : 0;
+  const ssIncome2 = marital === 'married' ? spouseIncome : 0;
   const ssClaimAge2 = 67;
 
   addAssumption(
@@ -585,8 +585,8 @@ export function mapAIDataToCalculator(
     // Employment & Income
     employmentType1,
     employmentType2,
-    primaryIncome: annualIncome1,
-    spouseIncome: annualIncome2,
+    primaryIncome: primaryIncome,
+    spouseIncome: spouseIncome,
 
     // Income Calculator Details
     ...(eoyBonusAmount !== undefined && { eoyBonusAmount }),

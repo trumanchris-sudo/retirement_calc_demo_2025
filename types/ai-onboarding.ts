@@ -43,8 +43,8 @@ export interface ExtractedData {
   // Employment & Income
   employmentType1?: EmploymentType;
   employmentType2?: EmploymentType;
-  annualIncome1?: number;
-  annualIncome2?: number;
+  primaryIncome?: number;
+  spouseIncome?: number;
   bonusInfo?: string; // Raw bonus information for API to parse
 
   // Current Portfolio Balances
@@ -341,8 +341,8 @@ export const FIELD_DISPLAY_NAMES: Record<keyof ExtractedData, string> = {
   additionalChildrenExpected: 'Additional Children Expected',
   employmentType1: 'Your Employment Type',
   employmentType2: 'Spouse Employment Type',
-  annualIncome1: 'Your Annual Income',
-  annualIncome2: 'Spouse Annual Income',
+  primaryIncome: 'Your Annual Income',
+  spouseIncome: 'Spouse Annual Income',
   emergencyFund: 'Emergency Fund Balance',
   currentTaxable: 'Taxable Brokerage Balance',
   currentTraditional: 'Traditional Retirement Accounts',

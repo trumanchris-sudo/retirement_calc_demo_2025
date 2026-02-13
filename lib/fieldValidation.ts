@@ -30,17 +30,17 @@ export function validateAge(age: number, fieldName: string = 'Age'): FieldValida
 /**
  * Validate retirement age
  */
-export function validateRetirementAge(retAge: number, currentAge: number): FieldValidationResult {
-  if (isNaN(retAge)) {
+export function validateRetirementAge(retirementAge: number, currentAge: number): FieldValidationResult {
+  if (isNaN(retirementAge)) {
     return { isValid: false, error: 'Retirement age must be a valid number' };
   }
-  if (retAge <= currentAge) {
+  if (retirementAge <= currentAge) {
     return { isValid: false, error: 'Retirement age must be greater than current age' };
   }
-  if (retAge < VALIDATION_RULES.retirementAge.min) {
+  if (retirementAge < VALIDATION_RULES.retirementAge.min) {
     return { isValid: false, error: `Retirement age must be at least ${VALIDATION_RULES.retirementAge.min}` };
   }
-  if (retAge > VALIDATION_RULES.retirementAge.max) {
+  if (retirementAge > VALIDATION_RULES.retirementAge.max) {
     return { isValid: false, error: `Retirement age cannot exceed ${VALIDATION_RULES.retirementAge.max}` };
   }
   return { isValid: true };

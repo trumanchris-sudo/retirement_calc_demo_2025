@@ -51,7 +51,7 @@ export interface ResultsTabProps {
   guardrailsResult: GuardrailsResult | null;
 
   // Age info for sequence risk chart
-  retAge: number;
+  retirementAge: number;
   age1: number;
 }
 
@@ -67,7 +67,7 @@ export function ResultsTab({
   isDarkMode,
   batchSummary,
   guardrailsResult,
-  retAge,
+  retirementAge,
   age1
 }: ResultsTabProps) {
   return (
@@ -203,7 +203,7 @@ export function ResultsTab({
         <AnimatedSection animation="fade-in" delay={500}>
           <SequenceRiskChart
             batchSummary={batchSummary}
-            retirementAge={retAge}
+            retirementAge={retirementAge}
             age1={age1}
           />
         </AnimatedSection>
