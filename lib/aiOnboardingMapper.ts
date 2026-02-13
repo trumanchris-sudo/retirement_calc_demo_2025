@@ -324,15 +324,8 @@ export function mapAIDataToCalculator(
     // Use user-provided employer match
     cMatch1 = extractedData.contributionMatch;
   } else {
-    // Calculate default: assume 50% match up to 6% of salary
-    cMatch1 = Math.min(primaryIncome * 0.06 * 0.5, IRS_LIMITS_2026['401k'] - cPre1);
-    addAssumption(
-      'cMatch1',
-      'Employer Match',
-      cMatch1,
-      'Assumed 50% match up to 6% of salary (industry standard)',
-      'medium'
-    );
+    // No employer match assumed - user must provide this in the wizard
+    cMatch1 = 0;
   }
 
   // Person 2 contributions (if married)
@@ -445,8 +438,8 @@ export function mapAIDataToCalculator(
       // Also adjust cMatch1 to be the remainder
       cMatch1 = Math.min(extractedData.contributionMatch * (1 - person2Ratio), IRS_LIMITS_2026['401k'] - cPre1);
     } else {
-      // Calculate default
-      cMatch2 = Math.min(spouseIncome * 0.06 * 0.5, IRS_LIMITS_2026['401k'] - cPre2);
+      // No employer match assumed - user must provide this in the wizard
+      cMatch2 = 0;
     }
   }
 

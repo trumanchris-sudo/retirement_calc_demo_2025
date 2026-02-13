@@ -28,10 +28,10 @@ export const SS_BEND_POINTS = {
   second: 7749, // 32% of AIME between first and second, 15% above
 };
 
-/** Estate Tax (OBBBA July 2025 - permanent $15M/$30M exemption, indexed for inflation starting 2027) */
+/** Estate Tax (2026 IRS projected exemption, indexed for inflation) */
 export const ESTATE_TAX_EXEMPTION: Record<'single' | 'married', number> = {
-  single: 15_000_000,   // $15M for individual (OBBBA permanent, effective Jan 1, 2026)
-  married: 30_000_000,  // $30M for married couple (double)
+  single: 13_610_000,   // $13.61M for individual (2026 projected, inflation-adjusted)
+  married: 27_220_000,  // $27.22M for married couple (portability)
 } as const;
 export const ESTATE_TAX_RATE = 0.40; // 40% on amount over exemption
 

@@ -238,22 +238,22 @@ export function calcCombinedSocialSecurity(
 }
 
 /**
- * Calculate Estate Tax with OBBBA permanent exemption (July 2025)
- * OBBBA permanently set exemption at $15M single / $30M married, indexed for inflation starting 2027
+ * Calculate Estate Tax with 2026 exemption, indexed for inflation
+ * Base exemption: $13.61M single / $27.22M married (portability), inflated at 2.6% from 2027
  * @param totalEstate - Total estate value (all accounts)
  * @param status - Filing status (single or married)
  * @param year - Year of death (defaults to current year)
- * @param assumeExtended - Legacy parameter (kept for API compatibility, no longer affects calculation)
+ * @param assumeExtended - Legacy parameter (kept for API compatibility)
  */
 export function calcEstateTax(
   totalEstate: number,
   status: FilingStatus = "single",
   year: number = getCurrYear(),
-  assumeExtended: boolean = true // Default to true since OBBBA made exemption permanent
+  assumeExtended: boolean = true
 ): number {
   let exemption: number;
 
-  // OBBBA (July 2025) made the $15M/$30M exemption permanent
+  // 2026 base exemption: $13.61M single / $27.22M married
   // Apply inflation adjustment starting from 2027
   const baseExemption = ESTATE_TAX_EXEMPTION[status];
 
