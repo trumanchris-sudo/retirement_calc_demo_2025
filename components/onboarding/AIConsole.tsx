@@ -44,9 +44,9 @@ const ADMIN_PRESETS: Record<string, ExtractedData> = {
     currentRoth: 128000,         // $78k Roth IRAs + $50k Roth 401ks
     currentTaxable: 74000,       // Brokerage account
     emergencyFund: 80000,
-    // Annual Contributions (both max retirement accounts)
-    contributionTraditional: 94500,  // $23.5k each 401k + $47.5k K-1 defined contribution
-    contributionRoth: 14000,         // Max backdoor Roth for both ($7k each)
+    // Annual Contributions (both max retirement accounts, 2026 limits)
+    contributionTraditional: 96500,  // $24.5k each 401k + $47.5k K-1 defined contribution plan
+    contributionRoth: 15000,         // Max backdoor Roth for both ($7.5k each, 2026 limit)
     contributionTaxable: 100000,     // Additional brokerage savings
     contributionMatch: 15000,        // Estimated employer match
     retirementAge: 60,

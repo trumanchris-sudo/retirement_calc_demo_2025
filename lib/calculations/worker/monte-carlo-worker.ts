@@ -860,8 +860,15 @@ function simulateRealPerBeneficiaryPayout(
 
     if (t >= nextGenerationCheckpoint && generationData.length < 10) {
       const estateValueNominal = fundReal * Math.pow(1 + inflPct / 100, yearsFrom2025 + t);
-      const exemption = 13610000;
-      const taxableEstate = Math.max(0, estateValueNominal - exemption);
+      // Estate tax exemption: base of $13.61M (2026), inflated at 2.6% annually
+      // For married couples with portability: $27.22M base
+      const baseExemption = marital === 'married' ? 27220000 : 13610000;
+      const currentYear = 2026 + yearsFrom2025 + t;
+      const yearsAfter2026 = currentYear - 2026;
+      const inflatedExemption = yearsAfter2026 > 0
+        ? baseExemption * Math.pow(1.026, yearsAfter2026)
+        : baseExemption;
+      const taxableEstate = Math.max(0, estateValueNominal - inflatedExemption);
       const estateTax = taxableEstate * 0.40;
       const netToHeirs = estateValueNominal - estateTax;
 

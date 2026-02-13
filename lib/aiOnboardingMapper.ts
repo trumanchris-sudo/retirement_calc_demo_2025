@@ -239,12 +239,26 @@ export function mapAIDataToCalculator(
 
   if (extractedData.contributionTraditional !== undefined) {
     // Use user-provided traditional contribution
-    // For married couples, split between person 1 and person 2 (up to IRS limits)
+    // For K-1/self-employed: use total 401k limit (includes profit-sharing/employer contributions)
+    // For W-2: use employee-only 401k limit
+    const isP1SelfEmployed = employmentType1 === 'k1' || employmentType1 === 'self-employed';
+    const p1Limit = isP1SelfEmployed ? IRS_LIMITS_2026['401kTotal'] : IRS_LIMITS_2026['401k'];
+
     if (marital === 'married') {
-      const perPerson = extractedData.contributionTraditional / 2;
-      cPre1 = Math.min(perPerson, IRS_LIMITS_2026['401k']);
+      // Smart allocation: distribute proportionally based on each person's limit capacity
+      // This ensures K-1/self-employed can use their higher profit-sharing limits
+      const isP2SelfEmployed = employmentType2 === 'k1' || employmentType2 === 'self-employed';
+      const p2Limit = isP2SelfEmployed ? IRS_LIMITS_2026['401kTotal'] : IRS_LIMITS_2026['401k'];
+      const totalLimit = p1Limit + p2Limit;
+      const totalContrib = extractedData.contributionTraditional;
+
+      // Allocate proportionally to limits, capped at each person's max
+      const p1Share = (p1Limit / totalLimit) * totalContrib;
+      const p2Share = (p2Limit / totalLimit) * totalContrib;
+      cPre1 = Math.min(p1Share, p1Limit);
+      // Note: cPre2 will be set in the married section below
     } else {
-      cPre1 = Math.min(extractedData.contributionTraditional, IRS_LIMITS_2026['401k']);
+      cPre1 = Math.min(extractedData.contributionTraditional, p1Limit);
     }
   } else if (extractedData.savingsRateTraditional1 !== undefined) {
     // Legacy field support
@@ -328,11 +342,19 @@ export function mapAIDataToCalculator(
     cMatch2 = 0;
 
   if (marital === 'married' && spouseIncome > 0) {
-    // NEW: If user provided combined contributions, split them
+    // NEW: If user provided combined contributions, split them proportionally by limit
     if (extractedData.contributionTraditional !== undefined) {
-      // Split traditional contribution between person 1 and person 2
-      const perPerson = extractedData.contributionTraditional / 2;
-      cPre2 = Math.min(perPerson, IRS_LIMITS_2026['401k']);
+      // Use proportional allocation matching the logic used for cPre1
+      const isP1SelfEmployed = employmentType1 === 'k1' || employmentType1 === 'self-employed';
+      const isP2SelfEmployed = employmentType2 === 'k1' || employmentType2 === 'self-employed';
+      const p1Limit = isP1SelfEmployed ? IRS_LIMITS_2026['401kTotal'] : IRS_LIMITS_2026['401k'];
+      const p2Limit = isP2SelfEmployed ? IRS_LIMITS_2026['401kTotal'] : IRS_LIMITS_2026['401k'];
+      const totalLimit = p1Limit + p2Limit;
+      const totalContrib = extractedData.contributionTraditional;
+
+      // Allocate proportionally to limits, capped at each person's max
+      const p2Share = (p2Limit / totalLimit) * totalContrib;
+      cPre2 = Math.min(p2Share, p2Limit);
     } else if (extractedData.savingsRateTraditional2 !== undefined) {
       // Legacy field support
       cPre2 = extractedData.savingsRateTraditional2;
