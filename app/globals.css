@@ -58,10 +58,22 @@
 }
 
 /* Fix iOS Safari background behind keyboard - respects theme */
+/* Default to dark background before hydration to prevent white flash */
 html,
 body {
-  background-color: hsl(var(--background));
+  background-color: hsl(224 71% 4%); /* Dark default */
   overscroll-behavior-y: none; /* Prevents "bouncing" past limits */
+}
+
+/* Apply theme-specific backgrounds after class is added */
+html.light,
+html.light body {
+  background-color: hsl(0 0% 100%);
+}
+
+html.dark,
+html.dark body {
+  background-color: hsl(224 71% 4%);
 }
 
 body {
