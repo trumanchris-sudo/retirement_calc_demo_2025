@@ -11,7 +11,7 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const MODEL = 'claude-opus-4-5-20251101';
+const MODEL = 'claude-sonnet-4-20250514'; // Faster model for responsive UX
 
 export async function POST(request: NextRequest) {
   try {
