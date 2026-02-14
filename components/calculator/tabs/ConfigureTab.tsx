@@ -234,8 +234,8 @@ export function ConfigureTab({
                         Your Contributions
                       </Badge>
                       <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} onInputChange={onInputChange} defaultValue={12000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
-                      <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={validate401kContribution} tip="2026 IRS limit: $24,500" />
-                      <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} onInputChange={onInputChange} defaultValue={7000} validate={validateIRAContribution} tip="2026 IRS limit: $7,000" />
+                      <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={(val) => validate401kContribution(val, age1)} tip="2026 IRS limit: $24,500" />
+                      <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} onInputChange={onInputChange} defaultValue={7000} validate={(val) => validateIRAContribution(val, age1)} tip="2026 IRS limit: $7,000" />
                       <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
                     </div>
                     {isMar && (
@@ -244,8 +244,8 @@ export function ConfigureTab({
                           Spouse's Contributions
                         </Badge>
                         <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} onInputChange={onInputChange} defaultValue={8000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
-                        <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={validate401kContribution} tip="2026 IRS limit: $24,500" />
-                        <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} onInputChange={onInputChange} defaultValue={7000} validate={validateIRAContribution} tip="2026 IRS limit: $7,000" />
+                        <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={(val) => validate401kContribution(val, age2)} tip="2026 IRS limit: $24,500" />
+                        <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} onInputChange={onInputChange} defaultValue={7000} validate={(val) => validateIRAContribution(val, age2)} tip="2026 IRS limit: $7,000" />
                         <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
                       </div>
                     )}

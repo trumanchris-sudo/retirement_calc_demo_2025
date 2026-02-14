@@ -58,23 +58,23 @@ export default function StressToolsSection() {
             <div className="space-y-6 pt-4">
               <ScenarioBuilder />
               <WhatIfScenarios
-                age={planConfig.age1 ?? D.age1 ?? 35}
-                retirementAge={planConfig.retirementAge ?? D.retirementAge ?? 65}
-                marital={planConfig.marital ?? "single"}
-                taxableBalance={planConfig.taxableBalance ?? 0}
-                pretaxBalance={planConfig.pretaxBalance ?? 0}
-                rothBalance={planConfig.rothBalance ?? 0}
-                cTax1={planConfig.cTax1 ?? 0}
-                cPre1={planConfig.cPre1 ?? 0}
-                cPost1={planConfig.cPost1 ?? 0}
-                cMatch1={planConfig.cMatch1 ?? 0}
-                retRate={planConfig.retRate ?? 7}
-                inflationRate={planConfig.inflationRate ?? 2.5}
-                wdRate={planConfig.wdRate ?? 4}
-                stateRate={planConfig.stateRate ?? 5}
-                includeSS={planConfig.includeSS ?? true}
-                ssIncome={planConfig.ssIncome ?? 0}
-                ssClaimAge={planConfig.ssClaimAge ?? 67}
+                age={planConfig.age1 ?? D.age1}
+                retirementAge={planConfig.retirementAge ?? D.retirementAge}
+                marital={planConfig.marital ?? D.marital}
+                taxableBalance={planConfig.taxableBalance ?? D.taxableBalance}
+                pretaxBalance={planConfig.pretaxBalance ?? D.pretaxBalance}
+                rothBalance={planConfig.rothBalance ?? D.rothBalance}
+                cTax1={planConfig.cTax1 ?? D.cTax1}
+                cPre1={planConfig.cPre1 ?? D.cPre1}
+                cPost1={planConfig.cPost1 ?? D.cPost1}
+                cMatch1={planConfig.cMatch1 ?? D.cMatch1}
+                retRate={planConfig.retRate ?? D.retRate}
+                inflationRate={planConfig.inflationRate ?? D.inflationRate}
+                wdRate={planConfig.wdRate ?? D.wdRate}
+                stateRate={planConfig.stateRate ?? D.stateRate}
+                includeSS={planConfig.includeSS ?? D.includeSS}
+                ssIncome={planConfig.ssIncome ?? D.ssIncome}
+                ssClaimAge={planConfig.ssClaimAge ?? D.ssClaimAge}
               />
               <LifeEventSimulator />
             </div>
@@ -89,20 +89,20 @@ export default function StressToolsSection() {
             <div className="space-y-6 pt-4">
               <CrashSimulator
                 portfolioValue={
-                  (planConfig.taxableBalance ?? 0) +
-                  (planConfig.pretaxBalance ?? 0) +
-                  (planConfig.rothBalance ?? 0)
+                  (planConfig.taxableBalance ?? D.taxableBalance) +
+                  (planConfig.pretaxBalance ?? D.pretaxBalance) +
+                  (planConfig.rothBalance ?? D.rothBalance)
                 }
                 yearsToRetirement={
-                  (planConfig.retirementAge ?? D.retirementAge ?? 65) -
-                  (planConfig.age1 ?? D.age1 ?? 35)
+                  (planConfig.retirementAge ?? D.retirementAge) -
+                  (planConfig.age1 ?? D.age1)
                 }
               />
               <MonteCarloVisualizer />
               <SequenceRisk
                 batchSummary={null}
-                retirementAge={planConfig.retirementAge ?? D.retirementAge ?? 65}
-                age1={planConfig.age1 ?? D.age1 ?? 35}
+                retirementAge={planConfig.retirementAge ?? D.retirementAge}
+                age1={planConfig.age1 ?? D.age1}
               />
               <BondTent />
             </div>

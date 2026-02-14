@@ -70,6 +70,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { usePlanConfig } from '@/lib/plan-config-context';
+import { createDefaultPlanConfig } from '@/types/plan-config';
 import {
   getAllScenarios,
   saveScenario,
@@ -237,6 +238,7 @@ const MAX_SCENARIOS = 4;
  * Run simulation for a scenario config and return results
  */
 function runScenarioSimulation(config: PlanConfig): ScenarioResults {
+  const defaults = createDefaultPlanConfig();
   try {
     const inputs = {
       marital: config.marital,
@@ -250,21 +252,21 @@ function runScenarioSimulation(config: PlanConfig): ScenarioResults {
       cPre1: config.cPre1,
       cPost1: config.cPost1,
       cMatch1: config.cMatch1,
-      cTax2: config.cTax2 ?? 0,
-      cPre2: config.cPre2 ?? 0,
-      cPost2: config.cPost2 ?? 0,
-      cMatch2: config.cMatch2 ?? 0,
+      cTax2: config.cTax2 ?? defaults.cTax2,
+      cPre2: config.cPre2 ?? defaults.cPre2,
+      cPost2: config.cPost2 ?? defaults.cPost2,
+      cMatch2: config.cMatch2 ?? defaults.cMatch2,
       retRate: config.retRate,
       inflationRate: config.inflationRate,
-      stateRate: config.stateRate ?? 0,
-      incContrib: config.incContrib ?? false,
-      incRate: config.incRate ?? 0,
+      stateRate: config.stateRate ?? defaults.stateRate,
+      incContrib: config.incContrib ?? defaults.incContrib,
+      incRate: config.incRate ?? defaults.incRate,
       wdRate: config.wdRate,
       includeSS: config.includeSS,
       ssIncome: config.ssIncome,
       ssClaimAge: config.ssClaimAge,
-      ssIncome2: config.ssIncome2 ?? 0,
-      ssClaimAge2: config.ssClaimAge2 ?? 67,
+      ssIncome2: config.ssIncome2 ?? defaults.ssIncome2,
+      ssClaimAge2: config.ssClaimAge2 ?? defaults.ssClaimAge2,
       returnMode: 'fixed' as const,
       randomWalkSeries: 'trulyRandom' as const,
     };
@@ -274,7 +276,7 @@ function runScenarioSimulation(config: PlanConfig): ScenarioResults {
     // Calculate total contributions
     const yearsToRetirement = config.retirementAge - config.age1;
     const annualContrib = config.cTax1 + config.cPre1 + config.cPost1 + config.cMatch1 +
-      (config.marital === 'married' ? (config.cTax2 ?? 0) + (config.cPre2 ?? 0) + (config.cPost2 ?? 0) + (config.cMatch2 ?? 0) : 0);
+      (config.marital === 'married' ? (config.cTax2 ?? defaults.cTax2) + (config.cPre2 ?? defaults.cPre2) + (config.cPost2 ?? defaults.cPost2) + (config.cMatch2 ?? defaults.cMatch2) : 0);
 
     // Calculate final balance at retirement
     const retirementYearIndex = yearsToRetirement;
@@ -386,6 +388,7 @@ interface ScenarioComparisonProps {
 
 export function ScenarioComparison({ onScenarioLoad, className }: ScenarioComparisonProps) {
   const { config, setConfig } = usePlanConfig();
+  const D = createDefaultPlanConfig();
 
   // State
   const [comparisonScenarios, setComparisonScenarios] = useState<ComparisonScenario[]>([]);

@@ -322,20 +322,29 @@ ${getNextQuestion(0, {})}`;
       case 3: // Income + bonus
         const isMarriedIncome = currentData.maritalStatus === 'married';
 
-        // Extract income(s)
+        // Detect bonus information first so we can adjust number interpretation
+        const hasBonusMention = input.includes('bonus') && !input.includes('no bonus');
+
+        if (hasBonusMention) {
+          // Store original response for bonus details extraction
+          extracted.bonusInfo = userInput;
+        }
+
+        // Extract income(s) - handle "I make $X base and $Y bonus. She makes $Z"
         if (numbers.length > 0) {
           extracted.primaryIncome = numbers[0];
         }
-        if (numbers.length > 1 && isMarriedIncome) {
-          extracted.spouseIncome = numbers[1];
-        }
 
-        // Detect bonus information - store for API to process
-        // Look for: "bonus", "$X bonus", "X in bonuses", etc.
-        // We'll let the API handle the details, just flag it
-        if (input.includes('bonus') && !input.includes('no bonus')) {
-          // Store original response for API to extract bonus details
-          extracted.bonusInfo = userInput;
+        if (isMarriedIncome) {
+          if (hasBonusMention && numbers.length >= 3) {
+            // Pattern: [primary, bonus, spouse] — skip bonus when assigning spouse income
+            // The bonus is captured via bonusInfo for the mapper to parse
+            extracted.spouseIncome = numbers[2];
+            // Also set primary as base+bonus combined for total income
+            extracted.primaryIncome = numbers[0] + numbers[1];
+          } else if (numbers.length > 1) {
+            extracted.spouseIncome = numbers[1];
+          }
         }
         break;
 
@@ -377,8 +386,11 @@ ${getNextQuestion(0, {})}`;
 
       case 8: // Annual Traditional 401k/IRA contributions
         if (numbers.length > 0) {
-          extracted.contributionTraditional = numbers[0];
-          console.log('[AIConsole] ✅ PARSED Traditional contributions:', numbers[0]);
+          // Detect "both"/"each" pattern: "we both do $X" or "$X each" means per-person
+          const isBothTrad = currentData.maritalStatus === 'married' &&
+            (input.includes('both') || input.includes('each') || input.includes('per person'));
+          extracted.contributionTraditional = isBothTrad ? numbers[0] * 2 : numbers[0];
+          console.log('[AIConsole] ✅ PARSED Traditional contributions:', extracted.contributionTraditional, isBothTrad ? '(doubled for both)' : '');
         } else {
           extracted.contributionTraditional = 0;
         }
@@ -386,8 +398,11 @@ ${getNextQuestion(0, {})}`;
 
       case 9: // Annual Roth contributions
         if (numbers.length > 0) {
-          extracted.contributionRoth = numbers[0];
-          console.log('[AIConsole] ✅ PARSED Roth contributions:', numbers[0]);
+          // Detect "both"/"each" pattern: "we both max $X" or "$X each" means per-person
+          const isBothRoth = currentData.maritalStatus === 'married' &&
+            (input.includes('both') || input.includes('each') || input.includes('per person'));
+          extracted.contributionRoth = isBothRoth ? numbers[0] * 2 : numbers[0];
+          console.log('[AIConsole] ✅ PARSED Roth contributions:', extracted.contributionRoth, isBothRoth ? '(doubled for both)' : '');
         } else {
           extracted.contributionRoth = 0;
         }
@@ -444,6 +459,20 @@ ${getNextQuestion(0, {})}`;
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
+
+    // If we're in assumptions-review phase, treat input as a refinement/correction
+    // Do NOT re-parse through questionIndex-based parser (it would corrupt data)
+    if (phase === 'assumptions-review' || phase === 'refinement') {
+      setPhase('refinement');
+      const refinementMsg: ConversationMessage = {
+        role: 'assistant',
+        content: "Thanks for the correction! Please edit the values directly in the assumption cards above, or click **Update Assumptions** to recalculate.",
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, refinementMsg]);
+      setPhase('assumptions-review');
+      return;
+    }
 
     // Admin shortcut: type a preset name (e.g. "admin1") at Q0 to skip all questions
     const presetKey = userInput.toLowerCase();

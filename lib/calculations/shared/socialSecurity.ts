@@ -5,7 +5,7 @@
  * Used by both main app and Monte Carlo worker.
  */
 
-import { SS_BEND_POINTS } from "./constants";
+import { SS_BEND_POINTS, SS_EARNINGS_TEST_2026, SS_TAXATION_THRESHOLDS, type FilingStatus } from "./constants";
 
 /**
  * Calculate Primary Insurance Amount (PIA) for Social Security
@@ -127,4 +127,103 @@ export function calculateEffectiveSS(
 
   // Return the higher benefit
   return Math.max(ownBenefit, spousalBenefit);
+}
+
+/**
+ * Apply the Social Security Earnings Test for early claimers who are still working.
+ *
+ * SSA Rules (2026):
+ * - Under FRA: Benefits reduced $1 for every $2 earned above $23,400/year
+ * - In the year reaching FRA: Benefits reduced $1 for every $3 earned above $62,160/year
+ *   (only earnings before the birthday month count, but we use the full-year approximation)
+ * - At or past FRA: No reduction — earnings test does not apply
+ *
+ * These reductions are temporary. SSA recalculates the benefit upward at FRA to credit
+ * months of withheld benefits. This function models the cash-flow reduction only.
+ *
+ * @param ssAnnualBenefit - The annual SS benefit (already adjusted for claiming age)
+ * @param earnedIncome - Annual earned income from employment (W-2 wages or net self-employment)
+ * @param age - Current age of the beneficiary
+ * @param fra - Full Retirement Age (typically 67)
+ * @returns The annual SS benefit after applying the earnings test (never below $0)
+ */
+export function applyEarningsTest(
+  ssAnnualBenefit: number,
+  earnedIncome: number,
+  age: number,
+  fra: number = 67
+): number {
+  // No reduction at or past FRA
+  if (age >= fra) return ssAnnualBenefit;
+
+  // No benefit to reduce
+  if (ssAnnualBenefit <= 0) return 0;
+
+  // No earned income means no reduction
+  if (earnedIncome <= 0) return ssAnnualBenefit;
+
+  let reduction = 0;
+
+  if (Math.floor(age) === Math.floor(fra) - 1 && age + 1 >= fra) {
+    // In the year the beneficiary reaches FRA:
+    // $1 reduction for every $3 earned above the higher exempt amount
+    const excessEarnings = Math.max(0, earnedIncome - SS_EARNINGS_TEST_2026.fraYearExemptAmount);
+    reduction = excessEarnings * SS_EARNINGS_TEST_2026.fraYearReductionRate;
+  } else {
+    // Under FRA (not in the FRA year):
+    // $1 reduction for every $2 earned above the annual exempt amount
+    const excessEarnings = Math.max(0, earnedIncome - SS_EARNINGS_TEST_2026.annualExemptAmount);
+    reduction = excessEarnings * SS_EARNINGS_TEST_2026.reductionRate;
+  }
+
+  // Benefits cannot be reduced below $0
+  return Math.max(0, ssAnnualBenefit - reduction);
+}
+
+/**
+ * Calculate the taxable dollar amount of Social Security benefits.
+ *
+ * IRS rules (unchanged since 1984/1993 — thresholds are NOT inflation-indexed):
+ *   Combined income = AGI (excluding SS) + nontaxable interest + 50% of SS benefits
+ *
+ *   If combined income <= tier1:  0% of benefits are taxable
+ *   If tier1 < combined income <= tier2:  taxable = min(50% of SS, 50% of excess over tier1)
+ *   If combined income > tier2:  taxable = min(85% of SS, tier1-to-tier2 portion + 85% of excess over tier2)
+ *
+ * @param ssBenefit  - Total annual Social Security benefit (gross, before taxation)
+ * @param otherIncome - All other income that counts toward AGI (pre-tax withdrawals,
+ *                      capital gains, pensions, earned income, etc.) — do NOT include SS here
+ * @param filingStatus - "single" or "married"
+ * @returns The dollar amount of SS benefits that is taxable as ordinary income
+ */
+export function calculateSSTaxableAmount(
+  ssBenefit: number,
+  otherIncome: number,
+  filingStatus: FilingStatus
+): number {
+  if (ssBenefit <= 0) return 0;
+
+  // Combined income = other income + 50% of Social Security
+  const combinedIncome = otherIncome + ssBenefit * 0.5;
+
+  const thresholds = SS_TAXATION_THRESHOLDS[filingStatus];
+
+  if (combinedIncome <= thresholds.tier1) {
+    // Below tier1: nothing is taxable
+    return 0;
+  } else if (combinedIncome <= thresholds.tier2) {
+    // Between tier1 and tier2: up to 50% of benefits are taxable
+    // Taxable amount = lesser of: 50% of SS, or 50% of (combined income - tier1)
+    const excess = combinedIncome - thresholds.tier1;
+    return Math.min(ssBenefit * 0.5, excess * 0.5);
+  } else {
+    // Above tier2: up to 85% of benefits are taxable
+    // Step 1: 50% of the tier1-to-tier2 band
+    const tier1Taxable = (thresholds.tier2 - thresholds.tier1) * 0.5;
+    // Step 2: 85% of the excess above tier2
+    const tier2Excess = combinedIncome - thresholds.tier2;
+    const tier2Taxable = tier2Excess * 0.85;
+    // Cap at 85% of total SS benefit
+    return Math.min(ssBenefit * 0.85, tier1Taxable + tier2Taxable);
+  }
 }

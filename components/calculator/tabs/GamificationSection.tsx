@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { usePlanConfig } from "@/lib/plan-config-context";
+import { createDefaultPlanConfig } from "@/types/plan-config";
 import type { FinancialData } from "@/components/score/FinancialHealthScore";
 import type { UserFinancialProfile } from "@/components/behavioral/Nudges";
 import type { HelpContent } from "@/components/help/ContextualHelp";
@@ -24,49 +25,50 @@ const defaultHelpContent: HelpContent = {
 
 export default function GamificationSection() {
   const { config } = usePlanConfig();
+  const D = createDefaultPlanConfig();
 
   const financialData: FinancialData = useMemo(() => ({
-    emergencyFund: config.emergencyFund ?? 0,
+    emergencyFund: config.emergencyFund ?? D.emergencyFund,
     monthlyExpenses: (config.monthlyHouseholdExpenses ?? 0) + (config.monthlyDiscretionary ?? 0) + (config.monthlyChildcare ?? 0),
     totalDebt: 0,
     monthlyDebtPayment: 0,
-    monthlyIncome: (config.primaryIncome ?? 0) / 12,
+    monthlyIncome: (config.primaryIncome ?? D.primaryIncome) / 12,
     highInterestDebt: 0,
     savingsRate:
       config.primaryIncome > 0
-        ? (((config.cTax1 ?? 0) + (config.cPre1 ?? 0) + (config.cPost1 ?? 0)) / config.primaryIncome) * 100
+        ? (((config.cTax1 ?? D.cTax1) + (config.cPre1 ?? D.cPre1) + (config.cPost1 ?? D.cPost1)) / config.primaryIncome) * 100
         : 0,
-    retirementBalance: (config.pretaxBalance ?? 0) + (config.rothBalance ?? 0) + (config.taxableBalance ?? 0),
+    retirementBalance: (config.pretaxBalance ?? D.pretaxBalance) + (config.rothBalance ?? D.rothBalance) + (config.taxableBalance ?? D.taxableBalance),
     targetRetirementBalance: 0,
-    monthlyRetirementContribution: ((config.cPre1 ?? 0) + (config.cPost1 ?? 0) + (config.cMatch1 ?? 0)) / 12,
+    monthlyRetirementContribution: ((config.cPre1 ?? D.cPre1) + (config.cPost1 ?? D.cPost1) + (config.cMatch1 ?? D.cMatch1)) / 12,
     hasHealthInsurance: true,
     hasLifeInsurance: (config.annualLifeInsuranceP1 ?? 0) > 0,
     hasDisabilityInsurance: false,
     hasUmbrellaInsurance: false,
-    dependents: config.numChildren ?? 0,
-    age: config.age1 ?? 30,
-  }), [config]);
+    dependents: config.numChildren ?? D.numChildren,
+    age: config.age1 ?? D.age1,
+  }), [config, D]);
 
   const nudgeProfile: UserFinancialProfile = useMemo(() => ({
     currentSavingsRate:
       config.primaryIncome > 0
-        ? (((config.cTax1 ?? 0) + (config.cPre1 ?? 0) + (config.cPost1 ?? 0)) / config.primaryIncome) * 100
+        ? (((config.cTax1 ?? D.cTax1) + (config.cPre1 ?? D.cPre1) + (config.cPost1 ?? D.cPost1)) / config.primaryIncome) * 100
         : 0,
-    monthlyContribution: ((config.cPre1 ?? 0) + (config.cPost1 ?? 0) + (config.cTax1 ?? 0)) / 12,
-    annualIncome: config.primaryIncome ?? 0,
+    monthlyContribution: ((config.cPre1 ?? D.cPre1) + (config.cPost1 ?? D.cPost1) + (config.cTax1 ?? D.cTax1)) / 12,
+    annualIncome: config.primaryIncome ?? D.primaryIncome,
     employerMatchPercent: 50,
-    employerMatchLimit: config.primaryIncome > 0 ? ((config.cMatch1 ?? 0) / config.primaryIncome) * 100 * 2 : 0,
-    currentContributionPercent: config.primaryIncome > 0 ? ((config.cPre1 ?? 0) / config.primaryIncome) * 100 : 0,
-    totalBalance: (config.pretaxBalance ?? 0) + (config.rothBalance ?? 0) + (config.taxableBalance ?? 0),
-    taxableBalance: config.taxableBalance ?? 0,
-    pretaxBalance: config.pretaxBalance ?? 0,
-    rothBalance: config.rothBalance ?? 0,
-    age: config.age1 ?? 30,
-    retirementAge: config.retirementAge ?? 65,
+    employerMatchLimit: config.primaryIncome > 0 ? ((config.cMatch1 ?? D.cMatch1) / config.primaryIncome) * 100 * 2 : 0,
+    currentContributionPercent: config.primaryIncome > 0 ? ((config.cPre1 ?? D.cPre1) / config.primaryIncome) * 100 : 0,
+    totalBalance: (config.pretaxBalance ?? D.pretaxBalance) + (config.rothBalance ?? D.rothBalance) + (config.taxableBalance ?? D.taxableBalance),
+    taxableBalance: config.taxableBalance ?? D.taxableBalance,
+    pretaxBalance: config.pretaxBalance ?? D.pretaxBalance,
+    rothBalance: config.rothBalance ?? D.rothBalance,
+    age: config.age1 ?? D.age1,
+    retirementAge: config.retirementAge ?? D.retirementAge,
     retirementGoal: 0,
     marginalTaxRate: 22,
-    stateTaxRate: config.stateRate ?? 0,
-  }), [config]);
+    stateTaxRate: config.stateRate ?? D.stateRate,
+  }), [config, D]);
 
   return (
     <div className="space-y-6">

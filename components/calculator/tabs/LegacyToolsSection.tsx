@@ -32,9 +32,9 @@ export default function LegacyToolsSection() {
               <BeneficiaryReview />
               <InheritanceGuide />
               <CharitableGiving
-                age={planConfig.age1 ?? D.age1 ?? 35}
-                filingStatus={planConfig.marital ?? "single"}
-                iraBalance={planConfig.pretaxBalance ?? 0}
+                age={planConfig.age1 ?? D.age1}
+                filingStatus={planConfig.marital ?? D.marital}
+                iraBalance={planConfig.pretaxBalance ?? D.pretaxBalance}
               />
             </div>
           </AccordionContent>

@@ -47,44 +47,61 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
     }
   };
 
+  // Collect all categorized field names to identify uncategorized assumptions
+  const categorizedFields = new Set<string>();
+  const categorize = (fields: string[]) => {
+    fields.forEach(f => categorizedFields.add(f));
+    return assumptions.filter(a => fields.includes(a.field));
+  };
+
   // Group assumptions by category
   const groupedAssumptions = {
-    cashSafety: assumptions.filter(a =>
-      a.field === 'emergencyFund' ||
-      (a.field === 'currentTaxable' && !assumptions.find(x => x.field === 'cTax1'))
-    ),
-    retirement: assumptions.filter(a =>
-      a.field === 'currentTraditional' ||
-      a.field === 'currentRoth' ||
-      a.field === 'cPre1' ||
-      a.field === 'cPost1' ||
-      a.field === 'cMatch1' ||
-      a.field === 'cPre2' ||
-      a.field === 'cPost2' ||
-      a.field === 'cMatch2'
-    ),
-    taxableIncome: assumptions.filter(a =>
-      a.field === 'cTax1' ||
-      a.field === 'cTax2' ||
-      a.field === 'primaryIncome' ||
-      a.field === 'spouseIncome' ||
-      a.field === 'age' ||
-      a.field === 'spouseAge' ||
-      a.field === 'retirementAge'
-    ),
-    other: assumptions.filter(a =>
-      a.field === 'maritalStatus' ||
-      a.field === 'employmentType1' ||
-      a.field === 'employmentType2' ||
-      a.field === 'state'
-    )
+    cashSafety: categorize([
+      'emergencyFund',
+      ...(assumptions.find(x => x.field === 'cTax1') ? [] : ['currentTaxable']),
+    ]),
+    retirement: categorize([
+      'currentTraditional', 'currentRoth',
+      'cPre1', 'cPost1', 'cMatch1',
+      'cPre2', 'cPost2', 'cMatch2',
+    ]),
+    taxableIncome: categorize([
+      'cTax1', 'cTax2',
+      'primaryIncome', 'spouseIncome',
+      'age', 'spouseAge', 'retirementAge',
+    ]),
+    housing: categorize([
+      'monthlyMortgageRent', 'monthlyUtilities',
+      'monthlyInsurancePropertyTax',
+    ]),
+    healthcare: categorize([
+      'monthlyHealthcareP1', 'monthlyHealthcareP2',
+      'annualLifeInsuranceP1', 'annualLifeInsuranceP2',
+    ]),
+    lifestyle: categorize([
+      'monthlyOtherExpenses', 'monthlyHouseholdExpenses',
+      'monthlyDiscretionary', 'monthlyChildcare',
+      'desiredRetirementSpending',
+    ]),
+    other: categorize([
+      'maritalStatus', 'employmentType1', 'employmentType2', 'state',
+    ]),
   };
+
+  // Catch-all: any assumptions not in a named group
+  const uncategorized = assumptions.filter(a => !categorizedFields.has(a.field));
+  if (uncategorized.length > 0) {
+    groupedAssumptions.other = [...groupedAssumptions.other, ...uncategorized];
+  }
 
   // Filter out empty groups
   const sections = [
     { title: 'Cash & Safety', items: groupedAssumptions.cashSafety },
     { title: 'Retirement Accounts & Contributions', items: groupedAssumptions.retirement },
     { title: 'Income & Personal Details', items: groupedAssumptions.taxableIncome },
+    { title: 'Housing & Utilities', items: groupedAssumptions.housing },
+    { title: 'Healthcare & Insurance', items: groupedAssumptions.healthcare },
+    { title: 'Lifestyle & Spending', items: groupedAssumptions.lifestyle },
     { title: 'Employment & Location', items: groupedAssumptions.other },
   ].filter(section => section.items.length > 0);
 

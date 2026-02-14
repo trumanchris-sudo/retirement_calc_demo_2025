@@ -193,20 +193,20 @@ const AnnualCheckup = dynamic(
 export default function PlanningToolsExpanded() {
   const { config: planConfig } = usePlanConfig();
   const D = createDefaultPlanConfig();
-  const age = planConfig.age1 ?? D.age1 ?? 35;
-  const retAge = planConfig.retirementAge ?? D.retirementAge ?? 65;
+  const age = planConfig.age1 ?? D.age1;
+  const retAge = planConfig.retirementAge ?? D.retirementAge;
   const totalSavings =
-    (planConfig.pretaxBalance ?? D.pretaxBalance ?? 0) +
-    (planConfig.rothBalance ?? D.rothBalance ?? 0) +
-    (planConfig.taxableBalance ?? D.taxableBalance ?? 0);
+    (planConfig.pretaxBalance ?? D.pretaxBalance) +
+    (planConfig.rothBalance ?? D.rothBalance) +
+    (planConfig.taxableBalance ?? D.taxableBalance);
   const annualContributions =
-    (planConfig.cPre1 ?? D.cPre1 ?? 0) +
-    (planConfig.cPost1 ?? D.cPost1 ?? 0) +
-    (planConfig.cTax1 ?? D.cTax1 ?? 0) +
-    (planConfig.cMatch1 ?? D.cMatch1 ?? 0);
+    (planConfig.cPre1 ?? D.cPre1) +
+    (planConfig.cPost1 ?? D.cPost1) +
+    (planConfig.cTax1 ?? D.cTax1) +
+    (planConfig.cMatch1 ?? D.cMatch1);
   const retirementSpending =
-    (planConfig.primaryIncome ?? D.primaryIncome ?? 100000) *
-    (planConfig.wdRate ?? D.wdRate ?? 3.5) / 100;
+    (planConfig.primaryIncome ?? D.primaryIncome) *
+    (planConfig.wdRate ?? D.wdRate) / 100;
 
   return (
     <div className="space-y-6">

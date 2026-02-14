@@ -36,6 +36,46 @@ export const SS_BEND_POINTS = {
   second: 7749, // 32% of AIME between first and second, 15% above
 };
 
+/**
+ * Social Security Earnings Test (2026 values)
+ *
+ * For beneficiaries who claim SS before Full Retirement Age while still working:
+ * - Under FRA: Benefits reduced $1 for every $2 earned above the annual exempt amount
+ * - In the year reaching FRA: Benefits reduced $1 for every $3 earned above a higher limit
+ *   (only earnings before the birthday month count)
+ * - After FRA: No reduction — earnings test does not apply
+ *
+ * These reductions are NOT permanent — SSA recalculates benefits upward at FRA
+ * to credit months where benefits were withheld.
+ */
+export const SS_EARNINGS_TEST_2026 = {
+  annualExemptAmount: 23400,    // Under FRA
+  fraYearExemptAmount: 62160,   // Year reaching FRA
+  reductionRate: 0.5,           // $1 for every $2 over limit
+  fraYearReductionRate: 1 / 3,  // $1 for every $3 over limit in FRA year
+};
+
+/**
+ * Social Security Benefit Taxation Thresholds (IRS)
+ *
+ * Combined income = AGI + nontaxable interest + 50% of SS benefits
+ * These thresholds are NOT inflation-indexed and have been unchanged since 1984/1993.
+ *
+ * - Combined income <= tier1: 0% of SS benefits taxable
+ * - tier1 < combined income <= tier2: up to 50% of SS benefits taxable
+ * - Combined income > tier2: up to 85% of SS benefits taxable
+ */
+export const SS_TAXATION_THRESHOLDS = {
+  single: {
+    tier1: 25000, // Below this: 0% taxable
+    tier2: 34000, // Above this: up to 85% taxable
+  },
+  married: {
+    tier1: 32000, // Below this: 0% taxable
+    tier2: 44000, // Above this: up to 85% taxable
+  },
+};
+
 // ===============================
 // Tax Bracket Constants (2026)
 // ===============================

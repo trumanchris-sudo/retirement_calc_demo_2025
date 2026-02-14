@@ -4,6 +4,7 @@
  */
 
 import { VALIDATION_RULES } from './planConfig';
+import { getMax401kContribution, RETIREMENT_LIMITS_2026 } from './constants/tax2026';
 
 export interface FieldValidationResult {
   isValid: boolean;
@@ -63,25 +64,39 @@ export function validateBalance(balance: number, fieldName: string = 'Balance'):
 }
 
 /**
- * Validate 401(k) contribution
+ * Get maximum IRA contribution based on age (2026 limits)
  */
-export function validate401kContribution(contribution: number, year: number = 2026): FieldValidationResult {
+export function getMaxIRAContribution(age?: number): number {
+  if (age != null && age >= 50) {
+    return RETIREMENT_LIMITS_2026.IRA_LIMIT + RETIREMENT_LIMITS_2026.IRA_CATCHUP_50_PLUS; // $8,600
+  }
+  return RETIREMENT_LIMITS_2026.IRA_LIMIT; // $7,500
+}
+
+/**
+ * Validate 401(k) contribution
+ * @param contribution - The contribution amount to validate
+ * @param age - Optional age for age-aware catch-up limits. When omitted, uses the base limit.
+ * @param year - Tax year for error messages (default 2026)
+ */
+export function validate401kContribution(contribution: number, age?: number, year: number = 2026): FieldValidationResult {
   if (isNaN(contribution)) {
     return { isValid: false, error: '401(k) contribution must be a valid number' };
   }
   if (contribution < 0) {
     return { isValid: false, error: '401(k) contribution cannot be negative' };
   }
-  if (contribution > VALIDATION_RULES.contribution401k.max) {
+  const maxLimit = age != null ? getMax401kContribution(age) : VALIDATION_RULES.contribution401k.max;
+  if (contribution > maxLimit) {
     return {
       isValid: false,
-      error: `401(k) contribution exceeds ${year} IRS limit ($${VALIDATION_RULES.contribution401k.max.toLocaleString()})`,
+      error: `401(k) contribution exceeds ${year} IRS limit ($${maxLimit.toLocaleString()})`,
     };
   }
-  if (contribution > VALIDATION_RULES.contribution401k.max * 0.9) {
+  if (contribution > maxLimit * 0.9) {
     return {
       isValid: true,
-      error: `Approaching ${year} IRS limit ($${VALIDATION_RULES.contribution401k.max.toLocaleString()})`,
+      error: `Approaching ${year} IRS limit ($${maxLimit.toLocaleString()})`,
       warningOnly: true,
     };
   }
@@ -90,18 +105,22 @@ export function validate401kContribution(contribution: number, year: number = 20
 
 /**
  * Validate IRA contribution
+ * @param contribution - The contribution amount to validate
+ * @param age - Optional age for age-aware catch-up limits. When omitted, uses the base limit.
+ * @param year - Tax year for error messages (default 2026)
  */
-export function validateIRAContribution(contribution: number, year: number = 2026): FieldValidationResult {
+export function validateIRAContribution(contribution: number, age?: number, year: number = 2026): FieldValidationResult {
   if (isNaN(contribution)) {
     return { isValid: false, error: 'IRA contribution must be a valid number' };
   }
   if (contribution < 0) {
     return { isValid: false, error: 'IRA contribution cannot be negative' };
   }
-  if (contribution > VALIDATION_RULES.contributionIRA.max) {
+  const maxLimit = age != null ? getMaxIRAContribution(age) : VALIDATION_RULES.contributionIRA.max;
+  if (contribution > maxLimit) {
     return {
       isValid: false,
-      error: `IRA contribution exceeds ${year} IRS limit ($${VALIDATION_RULES.contributionIRA.max.toLocaleString()})`,
+      error: `IRA contribution exceeds ${year} IRS limit ($${maxLimit.toLocaleString()})`,
     };
   }
   return { isValid: true };

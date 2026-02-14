@@ -16,6 +16,8 @@ export {
   RMD_DIVISORS,
   // Social Security
   SS_BEND_POINTS,
+  SS_EARNINGS_TEST_2026,
+  SS_TAXATION_THRESHOLDS,
   // Tax brackets
   TAX_BRACKETS,
   LTCG_BRACKETS,
@@ -69,6 +71,8 @@ export {
   adjustSSForClaimAge,
   calcSocialSecurity,
   calculateEffectiveSS,
+  applyEarningsTest,
+  calculateSSTaxableAmount,
 } from "./socialSecurity";
 
 // Bond allocation calculations

@@ -9,7 +9,7 @@
  * Most people claim wrong.
  */
 
-import { calcPIA, adjustSSForClaimAge } from "./shared/socialSecurity";
+import { calcPIA, adjustSSForClaimAge, calculateSSTaxableAmount } from "./shared/socialSecurity";
 import { calcOrdinaryTax } from "./shared/taxCalculations";
 import { type FilingStatus } from "./shared/constants";
 
@@ -64,20 +64,9 @@ export const LIFE_EXPECTANCY_BY_AGE: Record<number, { male: number; female: numb
   85: { male: 5.8, female: 6.8 },
 };
 
-/**
- * Social Security taxation thresholds (2026)
- * Combined income = AGI + nontaxable interest + 50% of SS benefits
- */
-export const SS_TAXATION_THRESHOLDS = {
-  single: {
-    tier1: 25000, // 0-50% taxable
-    tier2: 34000, // 50-85% taxable
-  },
-  married: {
-    tier1: 32000, // 0-50% taxable
-    tier2: 44000, // 50-85% taxable
-  },
-};
+// SS_TAXATION_THRESHOLDS is now imported from shared/constants
+// Re-export for any consumers that import from this module
+export { SS_TAXATION_THRESHOLDS } from "./shared/constants";
 
 // ============================================================================
 // TYPES
@@ -720,33 +709,17 @@ export function calculatePortfolioImpact(
 // ============================================================================
 
 /**
- * Calculate how much of SS is taxable based on combined income
+ * Calculate what percentage of SS is taxable based on combined income.
+ * Delegates to the shared calculateSSTaxableAmount and converts to a percentage.
  */
 export function calculateSSTaxablePercent(
   ssBenefit: number,
   otherIncome: number,
   filingStatus: FilingStatus
 ): number {
-  // Combined income = AGI + nontaxable interest + 50% of SS
-  const combinedIncome = otherIncome + ssBenefit * 0.5;
-
-  const thresholds = SS_TAXATION_THRESHOLDS[filingStatus];
-
-  if (combinedIncome <= thresholds.tier1) {
-    return 0;
-  } else if (combinedIncome <= thresholds.tier2) {
-    // Up to 50% taxable
-    const excess = combinedIncome - thresholds.tier1;
-    const taxableAmount = Math.min(ssBenefit * 0.5, excess * 0.5);
-    return (taxableAmount / ssBenefit) * 100;
-  } else {
-    // Up to 85% taxable
-    const tier1Taxable = (thresholds.tier2 - thresholds.tier1) * 0.5;
-    const tier2Excess = combinedIncome - thresholds.tier2;
-    const tier2Taxable = tier2Excess * 0.85;
-    const totalTaxable = Math.min(ssBenefit * 0.85, tier1Taxable + tier2Taxable);
-    return (totalTaxable / ssBenefit) * 100;
-  }
+  if (ssBenefit <= 0) return 0;
+  const taxableAmount = calculateSSTaxableAmount(ssBenefit, otherIncome, filingStatus);
+  return (taxableAmount / ssBenefit) * 100;
 }
 
 /**

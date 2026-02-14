@@ -177,10 +177,11 @@ const GamificationSection = dynamic(
   { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
 );
 // Page-level features
-const MarketTicker = dynamic(
-  () => import("@/components/market/MarketTicker").then(mod => ({ default: mod.MarketTicker })),
-  { ssr: false, loading: () => <div className="h-8 animate-pulse bg-muted rounded" /> }
-);
+// MarketTicker removed: mock data was misleading. TODO: reconnect with real API.
+// const MarketTicker = dynamic(
+//   () => import("@/components/market/MarketTicker").then(mod => ({ default: mod.MarketTicker })),
+//   { ssr: false, loading: () => <div className="h-8 animate-pulse bg-muted rounded" /> }
+// );
 const VersionHistory = dynamic(
   () => import("@/components/history/VersionHistory"),
   { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
@@ -405,7 +406,7 @@ export default function App() {
   const ssClaimAge2 = planConfig.ssClaimAge2 ?? DEFAULTS.ssClaimAge2;
 
   // Family & Children - read from context (synced with wizard)
-  const numChildren = planConfig.numChildren ?? 0;
+  const numChildren = planConfig.numChildren ?? DEFAULTS.numChildren;
   const childrenAges = planConfig.childrenAges ?? [];
 
   // Helper setter functions - now using updatePlanConfig
@@ -465,11 +466,11 @@ export default function App() {
 
   // Healthcare costs (post-retirement) - now synced to context
   const includeMedicare = planConfig.includeMedicare ?? true;
-  const medicarePremium = planConfig.medicarePremium ?? 400;
-  const medicalInflation = planConfig.medicalInflation ?? 5.0;
-  const irmaaThresholdSingle = planConfig.irmaaThresholdSingle ?? 109000;
-  const irmaaThresholdMarried = planConfig.irmaaThresholdMarried ?? 218000;
-  const irmaaSurcharge = planConfig.irmaaSurcharge ?? 230;
+  const medicarePremium = planConfig.medicarePremium ?? DEFAULTS.medicarePremium;
+  const medicalInflation = planConfig.medicalInflation ?? DEFAULTS.medicalInflation;
+  const irmaaThresholdSingle = planConfig.irmaaThresholdSingle ?? DEFAULTS.irmaaThresholdSingle;
+  const irmaaThresholdMarried = planConfig.irmaaThresholdMarried ?? DEFAULTS.irmaaThresholdMarried;
+  const irmaaSurcharge = planConfig.irmaaSurcharge ?? DEFAULTS.irmaaSurcharge;
 
   const setIncludeMedicare = (value: boolean) => { updatePlanConfig({ includeMedicare: value }, 'user-entered'); markDirty(); };
   const setMedicarePremium = (value: number) => { updatePlanConfig({ medicarePremium: value }, 'user-entered'); markDirty(); };
@@ -480,12 +481,12 @@ export default function App() {
 
   // Long-Term Care - now synced to context
   const includeLTC = planConfig.includeLTC ?? false;
-  const ltcAnnualCost = planConfig.ltcAnnualCost ?? 80000;
-  const ltcProbability = planConfig.ltcProbability ?? 50;
-  const ltcDuration = planConfig.ltcDuration ?? 2.5;
-  const ltcOnsetAge = planConfig.ltcOnsetAge ?? 82;
-  const ltcAgeRangeStart = planConfig.ltcAgeRangeStart ?? 75;
-  const ltcAgeRangeEnd = planConfig.ltcAgeRangeEnd ?? 90;
+  const ltcAnnualCost = planConfig.ltcAnnualCost ?? DEFAULTS.ltcAnnualCost;
+  const ltcProbability = planConfig.ltcProbability ?? DEFAULTS.ltcProbability;
+  const ltcDuration = planConfig.ltcDuration ?? DEFAULTS.ltcDuration;
+  const ltcOnsetAge = planConfig.ltcOnsetAge ?? DEFAULTS.ltcOnsetAge;
+  const ltcAgeRangeStart = planConfig.ltcAgeRangeStart ?? DEFAULTS.ltcAgeRangeStart;
+  const ltcAgeRangeEnd = planConfig.ltcAgeRangeEnd ?? DEFAULTS.ltcAgeRangeEnd;
 
   const setIncludeLTC = (value: boolean) => { updatePlanConfig({ includeLTC: value }, 'user-entered'); markDirty(); };
   const setLtcAnnualCost = (value: number) => { updatePlanConfig({ ltcAnnualCost: value }, 'user-entered'); markDirty(); };
@@ -497,7 +498,7 @@ export default function App() {
 
   // Roth Conversion Strategy - now synced to context
   const enableRothConversions = planConfig.enableRothConversions ?? false;
-  const targetConversionBracket = planConfig.targetConversionBracket ?? 0.24;
+  const targetConversionBracket = planConfig.targetConversionBracket ?? DEFAULTS.targetConversionBracket;
 
   const setEnableRothConversions = (value: boolean) => { updatePlanConfig({ enableRothConversions: value }, 'user-entered'); markDirty(); };
   const setTargetConversionBracket = (value: number) => { updatePlanConfig({ targetConversionBracket: value }, 'user-entered'); markDirty(); };
@@ -507,7 +508,7 @@ export default function App() {
   const setShowGen = (value: boolean) => { updatePlanConfig({ showGen: value }, 'user-entered'); markDirty(); };
 
   // Generational wealth parameters (improved demographic model)
-  const hypPerBen = planConfig.hypPerBen ?? 30000;
+  const hypPerBen = planConfig.hypPerBen ?? DEFAULTS.hypPerBen;
   const setHypPerBen = (value: number) => { updatePlanConfig({ hypPerBen: value }, 'user-entered'); markDirty(); };
   const numberOfBeneficiaries = planConfig.numberOfBeneficiaries ?? 2;
   const setNumberOfBeneficiaries = (value: number) => { updatePlanConfig({ numberOfBeneficiaries: value }, 'user-entered'); markDirty(); };
@@ -515,7 +516,7 @@ export default function App() {
   // Beneficiary inputs - DERIVED from planConfig (no useEffect sync needed)
   // childrenCurrentAges and numberOfChildren are now computed directly from planConfig
   // This eliminates the infinite loop bug that occurred with useEffect-based syncing
-  const additionalChildrenExpected = planConfig.additionalChildrenExpected ?? 0;
+  const additionalChildrenExpected = planConfig.additionalChildrenExpected ?? DEFAULTS.additionalChildrenExpected;
   const setAdditionalChildrenExpected = (value: number) => {
     updatePlanConfig({ additionalChildrenExpected: value }, 'user-entered');
     markDirty();
@@ -610,17 +611,17 @@ export default function App() {
   }, [planConfig.numChildren, planConfig.childrenAges, planConfig.numberOfBeneficiaries, updatePlanConfig]);
 
   // Generational wealth demographic parameters - read from planConfig context
-  const totalFertilityRate = planConfig.totalFertilityRate ?? 2.1; // Children per person (lifetime)
+  const totalFertilityRate = planConfig.totalFertilityRate ?? DEFAULTS.totalFertilityRate; // Children per person (lifetime)
   const setTotalFertilityRate = (value: number) => { updatePlanConfig({ totalFertilityRate: value }, 'user-entered'); markDirty(); };
-  const generationLength = planConfig.generationLength ?? 30; // Average age when having children
+  const generationLength = planConfig.generationLength ?? DEFAULTS.generationLength; // Average age when having children
   const setGenerationLength = (value: number) => { updatePlanConfig({ generationLength: value }, 'user-entered'); markDirty(); };
-  const fertilityWindowStart = planConfig.fertilityWindowStart ?? 20;
+  const fertilityWindowStart = planConfig.fertilityWindowStart ?? DEFAULTS.fertilityWindowStart;
   const setFertilityWindowStart = (value: number) => { updatePlanConfig({ fertilityWindowStart: value }, 'user-entered'); markDirty(); };
-  const fertilityWindowEnd = planConfig.fertilityWindowEnd ?? 45;
+  const fertilityWindowEnd = planConfig.fertilityWindowEnd ?? DEFAULTS.fertilityWindowEnd;
   const setFertilityWindowEnd = (value: number) => { updatePlanConfig({ fertilityWindowEnd: value }, 'user-entered'); markDirty(); };
-  const hypDeathAge = planConfig.hypDeathAge ?? 90;
+  const hypDeathAge = planConfig.hypDeathAge ?? DEFAULTS.hypDeathAge;
   const setHypDeathAge = (value: number) => { updatePlanConfig({ hypDeathAge: value }, 'user-entered'); markDirty(); };
-  const hypMinDistAge = planConfig.hypMinDistAge ?? 18; // Minimum age to receive distributions
+  const hypMinDistAge = planConfig.hypMinDistAge ?? DEFAULTS.hypMinDistAge; // Minimum age to receive distributions
   const setHypMinDistAge = (value: number) => { updatePlanConfig({ hypMinDistAge: value }, 'user-entered'); markDirty(); };
 
   // Legacy state variables for backward compatibility with old simulation
@@ -629,7 +630,7 @@ export default function App() {
 
   // Simulation Settings - synced to context
   const returnMode = planConfig.returnMode ?? 'randomWalk';
-  const seed = planConfig.seed ?? 42;
+  const seed = planConfig.seed ?? DEFAULTS.seed;
   const randomWalkSeries = planConfig.randomWalkSeries ?? 'trulyRandom';
 
   const setReturnMode = (value: "fixed" | "randomWalk") => { updatePlanConfig({ returnMode: value }, 'user-entered'); markDirty(); };
@@ -638,10 +639,10 @@ export default function App() {
 
   // Bond Glide Path Configuration - synced to context
   const allocationStrategy = planConfig.allocationStrategy ?? 'aggressive';
-  const bondStartPct = planConfig.bondStartPct ?? 10;
-  const bondEndPct = planConfig.bondEndPct ?? 60;
+  const bondStartPct = planConfig.bondStartPct ?? DEFAULTS.bondStartPct;
+  const bondEndPct = planConfig.bondEndPct ?? DEFAULTS.bondEndPct;
   const bondStartAge = planConfig.bondStartAge ?? age1;
-  const bondEndAge = planConfig.bondEndAge ?? 75;
+  const bondEndAge = planConfig.bondEndAge ?? DEFAULTS.bondEndAge;
   const glidePathShape = planConfig.glidePathShape ?? 'linear';
 
   const setAllocationStrategy = (value: 'aggressive' | 'ageBased' | 'custom') => { updatePlanConfig({ allocationStrategy: value }, 'user-entered'); markDirty(); };
@@ -671,8 +672,8 @@ export default function App() {
 
   // Scenario Testing - synced to context
   const historicalYear = planConfig.historicalYear ?? null;
-  const inflationShockRate = planConfig.inflationShockRate ?? 0;
-  const inflationShockDuration = planConfig.inflationShockDuration ?? 5;
+  const inflationShockRate = planConfig.inflationShockRate ?? DEFAULTS.inflationShockRate ?? 0;
+  const inflationShockDuration = planConfig.inflationShockDuration ?? DEFAULTS.inflationShockDuration;
 
   const setHistoricalYear = (value: number | null) => { updatePlanConfig({ historicalYear: value ?? undefined }, 'user-entered'); markDirty(); };
   const setInflationShockRate = (value: number) => { updatePlanConfig({ inflationShockRate: value }, 'user-entered'); markDirty(); };
@@ -1026,47 +1027,48 @@ export default function App() {
     const inp = scenario.inputs;
 
     // Update PlanConfig in one operation
+    // All fallbacks use DEFAULTS from createDefaultPlanConfig() for consistency.
     updatePlanConfig({
       // Personal Info
-      age1: inp.age1 ?? 30,
-      age2: inp.age2 ?? 30,
-      retirementAge: inp.retirementAge ?? 65,
-      marital: inp.marital ?? 'single',
+      age1: inp.age1 ?? DEFAULTS.age1,
+      age2: inp.age2 ?? DEFAULTS.age2,
+      retirementAge: inp.retirementAge ?? DEFAULTS.retirementAge,
+      marital: inp.marital ?? DEFAULTS.marital,
       // Employment & Income
-      employmentType1: inp.employmentType1 ?? 'w2',
+      employmentType1: inp.employmentType1 ?? DEFAULTS.employmentType1,
       employmentType2: inp.employmentType2,
-      primaryIncome: inp.primaryIncome ?? 100000,
-      spouseIncome: inp.spouseIncome ?? 0,
+      primaryIncome: inp.primaryIncome ?? DEFAULTS.primaryIncome,
+      spouseIncome: inp.spouseIncome ?? DEFAULTS.spouseIncome,
       // Current Balances
-      emergencyFund: inp.emergencyFund ?? 0,
-      taxableBalance: inp.taxableBalance ?? 0,
-      pretaxBalance: inp.pretaxBalance ?? 0,
-      rothBalance: inp.rothBalance ?? 0,
+      emergencyFund: inp.emergencyFund ?? DEFAULTS.emergencyFund,
+      taxableBalance: inp.taxableBalance ?? DEFAULTS.taxableBalance,
+      pretaxBalance: inp.pretaxBalance ?? DEFAULTS.pretaxBalance,
+      rothBalance: inp.rothBalance ?? DEFAULTS.rothBalance,
       // Contributions
-      cTax1: inp.cTax1 ?? 0,
-      cPre1: inp.cPre1 ?? 0,
-      cPost1: inp.cPost1 ?? 0,
-      cMatch1: inp.cMatch1 ?? 0,
-      cTax2: inp.cTax2 ?? 0,
-      cPre2: inp.cPre2 ?? 0,
-      cPost2: inp.cPost2 ?? 0,
-      cMatch2: inp.cMatch2 ?? 0,
+      cTax1: inp.cTax1 ?? DEFAULTS.cTax1,
+      cPre1: inp.cPre1 ?? DEFAULTS.cPre1,
+      cPost1: inp.cPost1 ?? DEFAULTS.cPost1,
+      cMatch1: inp.cMatch1 ?? DEFAULTS.cMatch1,
+      cTax2: inp.cTax2 ?? DEFAULTS.cTax2,
+      cPre2: inp.cPre2 ?? DEFAULTS.cPre2,
+      cPost2: inp.cPost2 ?? DEFAULTS.cPost2,
+      cMatch2: inp.cMatch2 ?? DEFAULTS.cMatch2,
       // Assumptions
-      retRate: inp.retRate ?? 7,
-      inflationRate: inp.inflationRate ?? 3,
-      stateRate: inp.stateRate ?? 0,
-      wdRate: inp.wdRate ?? 4,
-      incContrib: inp.incContrib ?? false,
-      incRate: inp.incRate ?? 4.5,
-      dividendYield: inp.dividendYield ?? 2.0,
+      retRate: inp.retRate ?? DEFAULTS.retRate,
+      inflationRate: inp.inflationRate ?? DEFAULTS.inflationRate,
+      stateRate: inp.stateRate ?? DEFAULTS.stateRate,
+      wdRate: inp.wdRate ?? DEFAULTS.wdRate,
+      incContrib: inp.incContrib ?? DEFAULTS.incContrib,
+      incRate: inp.incRate ?? DEFAULTS.incRate,
+      dividendYield: inp.dividendYield ?? DEFAULTS.dividendYield,
       // Social Security
-      includeSS: inp.includeSS ?? true,
-      ssIncome: inp.ssIncome ?? 0,
-      ssClaimAge: inp.ssClaimAge ?? 67,
-      ssIncome2: inp.ssIncome2 ?? 0,
-      ssClaimAge2: inp.ssClaimAge2 ?? 67,
+      includeSS: inp.includeSS ?? DEFAULTS.includeSS,
+      ssIncome: inp.ssIncome ?? DEFAULTS.ssIncome,
+      ssClaimAge: inp.ssClaimAge ?? DEFAULTS.ssClaimAge,
+      ssIncome2: inp.ssIncome2 ?? DEFAULTS.ssIncome2,
+      ssClaimAge2: inp.ssClaimAge2 ?? DEFAULTS.ssClaimAge2,
     }, 'user-entered');
-  }, [updatePlanConfig]);
+  }, [updatePlanConfig, DEFAULTS]);
 
   // Deferred calculation trigger — runs calc() AFTER React flushes planConfig updates.
   // Replaces the fragile setTimeout(100) hack that raced against React rendering.
@@ -1304,7 +1306,8 @@ export default function App() {
           }
         }}
       />
-      <MarketTicker className="no-print" />
+      {/* MarketTicker removed: was displaying fake mock data as live market conditions.
+          TODO: Re-enable when connected to a real market data API. */}
 
       <ExportModal
         open={exportModalOpen}
@@ -1917,7 +1920,7 @@ export default function App() {
           taxableBalance={taxableBalance}
           pretaxBalance={pretaxBalance}
           rothBalance={rothBalance}
-          primaryIncome={planConfig.primaryIncome ?? 100000}
+          primaryIncome={planConfig.primaryIncome ?? DEFAULTS.primaryIncome}
           ssIncome={ssIncome}
           filingStatus={marital}
           isMarried={isMar}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { usePlanConfig } from '@/lib/plan-config-context';
+import { createDefaultPlanConfig } from '@/types/plan-config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -1108,6 +1109,7 @@ function HistoricalView({ snapshots, onLoadYear, onDeleteYear }: HistoricalViewP
 
 export function AnnualCheckup() {
   const { config } = usePlanConfig();
+  const D = createDefaultPlanConfig();
   const [checkupData, setCheckupData] = useState<AnnualCheckupData>({ snapshots: [], lastUpdated: Date.now() });
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -1163,16 +1165,16 @@ export function AnnualCheckup() {
     } else {
       // Pre-fill from plan config
       setBalances({
-        taxable: config.taxableBalance ?? 0,
-        pretax: config.pretaxBalance ?? 0,
-        roth: config.rothBalance ?? 0,
+        taxable: config.taxableBalance ?? D.taxableBalance,
+        pretax: config.pretaxBalance ?? D.pretaxBalance,
+        roth: config.rothBalance ?? D.rothBalance,
         other: 0,
       });
       setContributions({
-        taxable: config.cTax1 ?? 0,
-        pretax401k: config.cPre1 ?? 0,
-        rothIRA: config.cPost1 ?? 0,
-        employerMatch: config.cMatch1 ?? 0,
+        taxable: config.cTax1 ?? D.cTax1,
+        pretax401k: config.cPre1 ?? D.cPre1,
+        rothIRA: config.cPost1 ?? D.cPost1,
+        employerMatch: config.cMatch1 ?? D.cMatch1,
         hsa: 0,
       });
     }
@@ -1200,7 +1202,7 @@ export function AnnualCheckup() {
       checklist,
       keyQuestions,
       notes,
-      projectedRetirementAge: config.retirementAge ?? 65,
+      projectedRetirementAge: config.retirementAge ?? D.retirementAge,
       onTrack: true, // Could be calculated based on projections
     };
   }, [balances, contributions, checklist, keyQuestions, notes, investmentReturns, currentYear, config, isLoaded]);
@@ -1491,8 +1493,8 @@ export function AnnualCheckup() {
             <div className="p-4 pt-0">
               <NextYearProjections
                 currentSnapshot={currentSnapshot}
-                returnRate={config.retRate ?? 7}
-                inflationRate={config.inflationRate ?? 3}
+                returnRate={config.retRate ?? D.retRate}
+                inflationRate={config.inflationRate ?? D.inflationRate}
               />
             </div>
           )}

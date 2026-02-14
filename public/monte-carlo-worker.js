@@ -59,6 +59,16 @@
     second: 7749
     // 32% of AIME between first and second, 15% above
   };
+  var SS_EARNINGS_TEST_2026 = {
+    annualExemptAmount: 23400,
+    // Under FRA
+    fraYearExemptAmount: 62160,
+    // Year reaching FRA
+    reductionRate: 0.5,
+    // $1 for every $2 over limit
+    fraYearReductionRate: 1 / 3
+    // $1 for every $3 over limit in FRA year
+  };
   var TAX_BRACKETS = {
     single: {
       deduction: 16100,

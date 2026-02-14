@@ -43,6 +43,8 @@ import {
   calcSocialSecurity as sharedCalcSocialSecurity,
   calcPIA as sharedCalcPIA,
   calculateEffectiveSS as sharedCalculateEffectiveSS,
+  applyEarningsTest as sharedApplyEarningsTest,
+  calculateSSTaxableAmount,
 } from "./shared";
 
 // Import from lib/constants for things not in shared (like estate tax, getCurrYear)
@@ -207,6 +209,19 @@ export function calculateEffectiveSS(
   fra: number = 67
 ): number {
   return sharedCalculateEffectiveSS(ownPIA, spousePIA, ownClaimAge, fra);
+}
+
+/**
+ * Apply the Social Security Earnings Test for early claimers who are still working.
+ * Delegates to the shared implementation.
+ */
+export function applyEarningsTest(
+  ssAnnualBenefit: number,
+  earnedIncome: number,
+  age: number,
+  fra: number = 67
+): number {
+  return sharedApplyEarningsTest(ssAnnualBenefit, earnedIncome, age, fra);
 }
 
 /**
@@ -804,6 +819,55 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
       }
     }
 
+    // Social Security benefits during accumulation phase (early claiming while still working)
+    // If SS is claimed before retirement age, the person receives benefits but they are
+    // subject to the earnings test which reduces benefits based on earned income.
+    if (includeSS && a1 < retirementAge) {
+      let ssAccumBenefit = 0;
+
+      if (isMar) {
+        const spouse1Eligible = a1 >= ssClaimAge;
+        const spouse2Eligible = a2 !== null && a2 >= ssClaimAge2;
+
+        const pia1 = calcPIA(ssIncome);
+        const pia2 = calcPIA(ssIncome2);
+
+        if (spouse1Eligible && spouse2Eligible) {
+          const benefit1 = calculateEffectiveSS(pia1, pia2, ssClaimAge) * 12;
+          const benefit2 = calculateEffectiveSS(pia2, pia1, ssClaimAge2) * 12;
+          // Apply earnings test to each spouse individually based on their own earned income
+          const earnedIncome1 = primaryIncome * Math.pow(1 + incRate / 100, y);
+          const earnedIncome2 = spouseIncome * Math.pow(1 + incRate / 100, y);
+          const adjusted1 = applyEarningsTest(benefit1, earnedIncome1, a1);
+          const adjusted2 = a2 !== null
+            ? applyEarningsTest(benefit2, earnedIncome2, a2)
+            : benefit2;
+          ssAccumBenefit = adjusted1 + adjusted2;
+        } else if (spouse1Eligible) {
+          const benefit1 = calcSocialSecurity(ssIncome, ssClaimAge);
+          const earnedIncome1 = primaryIncome * Math.pow(1 + incRate / 100, y);
+          ssAccumBenefit = applyEarningsTest(benefit1, earnedIncome1, a1);
+        } else if (spouse2Eligible && a2 !== null) {
+          const benefit2 = calcSocialSecurity(ssIncome2, ssClaimAge2);
+          const earnedIncome2 = spouseIncome * Math.pow(1 + incRate / 100, y);
+          ssAccumBenefit = applyEarningsTest(benefit2, earnedIncome2, a2);
+        }
+      } else {
+        // Single person
+        if (a1 >= ssClaimAge) {
+          const benefit = calcSocialSecurity(ssIncome, ssClaimAge);
+          const earnedIncome1 = primaryIncome * Math.pow(1 + incRate / 100, y);
+          ssAccumBenefit = applyEarningsTest(benefit, earnedIncome1, a1);
+        }
+      }
+
+      // SS income received during working years adds to taxable savings
+      if (ssAccumBenefit > 0) {
+        bTax += ssAccumBenefit;
+        basisTax += ssAccumBenefit;
+      }
+    }
+
     // Emergency fund grows at inflation rate only (preserves real value)
     if (y > 0) {
       bEmergency *= infl_factor;
@@ -915,6 +979,16 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
       }
     }
 
+    // ---------------------------------------------------------------
+    // SS Benefit Taxation: Determine the taxable portion of Social Security
+    // IRS rules: 0% / up to 50% / up to 85% taxable depending on combined income
+    // "Other income" for this calculation = estimated AGI excluding SS.
+    // We approximate this with the gross withdrawal need + RMD (the main
+    // sources of taxable income during drawdown).
+    // ---------------------------------------------------------------
+    const ssOtherIncomeEstimate = currWdGross + requiredRMD;
+    const ssTaxableAmount = calculateSSTaxableAmount(ssAnnualBenefit, ssOtherIncomeEstimate, marital);
+
     // Healthcare costs calculation
     let healthcareCost = 0;
     if (includeMedicare && currentAge >= 65) {
@@ -924,8 +998,8 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
       let annualMedicareCost = medicarePremium * 12 * medInflationFactor;
 
       // IRMAA surcharge based on tiered brackets (2026)
-      // Use previous year's income (approximated by withdrawal + SS + RMD)
-      const estimatedMAGI = currWdGross + ssAnnualBenefit + requiredRMD;
+      // MAGI for IRMAA = AGI + tax-exempt interest; AGI includes taxable portion of SS
+      const estimatedMAGI = currWdGross + ssTaxableAmount + requiredRMD;
       const monthlyIrmaaSurcharge = getIRMAASurcharge(estimatedMAGI, isMar);
       annualMedicareCost += monthlyIrmaaSurcharge * 12 * medInflationFactor;
 
@@ -966,8 +1040,8 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
 
       if (targetBracket) {
         // Calculate taxable ordinary income available before hitting target bracket
-        // Current ordinary income = Social Security
-        const currentOrdinaryIncome = ssAnnualBenefit;
+        // Current ordinary income = taxable portion of Social Security (not the full benefit)
+        const currentOrdinaryIncome = ssTaxableAmount;
 
         // Headroom = (bracket limit) - (standard deduction + current ordinary income)
         // This is how much more ordinary income we can add while staying in the target bracket
@@ -1042,7 +1116,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
       currBasis,
       stateRate,
       requiredRMD,      // Pass RMD as minimum pre-tax draw
-      ssAnnualBenefit   // Pass Social Security as base ordinary income
+      ssTaxableAmount   // Only the taxable portion of SS counts as ordinary income
     );
 
     retBalTax -= taxes.draw.t;

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { CalculatorInputs, FilingStatus, EmploymentType } from '@/types/calculator';
+import { createDefaultPlanConfig } from '@/types/plan-config';
 import type { UpdateSource } from '@/types/plan-config';
 
 /**
@@ -23,6 +24,7 @@ import type { UpdateSource } from '@/types/plan-config';
  */
 export function SSOTTab() {
   const { config, updateConfig } = usePlanConfig();
+  const D = createDefaultPlanConfig();
 
   // Helper to update a single field
   const updateField = <K extends keyof CalculatorInputs>(
@@ -84,7 +86,7 @@ export function SSOTTab() {
                 <FieldBadge field="marital" />
               </Label>
               <Select
-                value={config.marital ?? 'single'}
+                value={config.marital ?? D.marital}
                 onValueChange={(value) => updateField('marital', value as FilingStatus)}
               >
                 <SelectTrigger id="ssot-marital">
@@ -109,8 +111,8 @@ export function SSOTTab() {
                 type="number"
                 min="18"
                 max="100"
-                value={config.age1 ?? 35}
-                onChange={(e) => updateField('age1', parseInt(e.target.value) || 35)}
+                value={config.age1 ?? D.age1}
+                onChange={(e) => updateField('age1', parseInt(e.target.value) || D.age1)}
               />
             </div>
 
@@ -126,8 +128,8 @@ export function SSOTTab() {
                   type="number"
                   min="18"
                   max="100"
-                  value={config.age2 ?? 35}
-                  onChange={(e) => updateField('age2', parseInt(e.target.value) || 35)}
+                  value={config.age2 ?? D.age2}
+                  onChange={(e) => updateField('age2', parseInt(e.target.value) || D.age2)}
                 />
               </div>
             )}
@@ -143,8 +145,8 @@ export function SSOTTab() {
                 type="number"
                 min="50"
                 max="80"
-                value={config.retirementAge ?? 65}
-                onChange={(e) => updateField('retirementAge', parseInt(e.target.value) || 65)}
+                value={config.retirementAge ?? D.retirementAge}
+                onChange={(e) => updateField('retirementAge', parseInt(e.target.value) || D.retirementAge)}
               />
             </div>
 
@@ -159,7 +161,7 @@ export function SSOTTab() {
                 type="number"
                 min="0"
                 max="10"
-                value={config.numChildren ?? 0}
+                value={config.numChildren ?? D.numChildren}
                 onChange={(e) => updateField('numChildren', parseInt(e.target.value) || 0)}
               />
             </div>
@@ -182,7 +184,7 @@ export function SSOTTab() {
                 <FieldBadge field="employmentType1" />
               </Label>
               <Select
-                value={config.employmentType1 ?? 'w2'}
+                value={config.employmentType1 ?? D.employmentType1}
                 onValueChange={(value) => updateField('employmentType1', value as EmploymentType)}
               >
                 <SelectTrigger id="ssot-employmentType1">
@@ -209,8 +211,8 @@ export function SSOTTab() {
                 type="number"
                 min="0"
                 step="1000"
-                value={config.primaryIncome ?? 100000}
-                onChange={(e) => updateField('primaryIncome', parseInt(e.target.value) || 100000)}
+                value={config.primaryIncome ?? D.primaryIncome}
+                onChange={(e) => updateField('primaryIncome', parseInt(e.target.value) || D.primaryIncome)}
               />
             </div>
 
@@ -249,7 +251,7 @@ export function SSOTTab() {
                     type="number"
                     min="0"
                     step="1000"
-                    value={config.spouseIncome ?? 0}
+                    value={config.spouseIncome ?? D.spouseIncome}
                     onChange={(e) => updateField('spouseIncome', parseInt(e.target.value) || 0)}
                   />
                 </div>
@@ -277,7 +279,7 @@ export function SSOTTab() {
                 type="number"
                 min="0"
                 step="1000"
-                value={config.emergencyFund ?? 0}
+                value={config.emergencyFund ?? D.emergencyFund}
                 onChange={(e) => updateField('emergencyFund', parseInt(e.target.value) || 0)}
               />
             </div>
@@ -292,7 +294,7 @@ export function SSOTTab() {
                 type="number"
                 min="0"
                 step="1000"
-                value={config.taxableBalance ?? 0}
+                value={config.taxableBalance ?? D.taxableBalance}
                 onChange={(e) => updateField('taxableBalance', parseInt(e.target.value) || 0)}
               />
             </div>
@@ -307,7 +309,7 @@ export function SSOTTab() {
                 type="number"
                 min="0"
                 step="1000"
-                value={config.pretaxBalance ?? 0}
+                value={config.pretaxBalance ?? D.pretaxBalance}
                 onChange={(e) => updateField('pretaxBalance', parseInt(e.target.value) || 0)}
               />
             </div>
@@ -322,7 +324,7 @@ export function SSOTTab() {
                 type="number"
                 min="0"
                 step="1000"
-                value={config.rothBalance ?? 0}
+                value={config.rothBalance ?? D.rothBalance}
                 onChange={(e) => updateField('rothBalance', parseInt(e.target.value) || 0)}
               />
             </div>
@@ -348,7 +350,7 @@ export function SSOTTab() {
                 type="number"
                 min="0"
                 step="500"
-                value={config.cPre1 ?? 0}
+                value={config.cPre1 ?? D.cPre1}
                 onChange={(e) => updateField('cPre1', parseInt(e.target.value) || 0)}
               />
             </div>
@@ -363,7 +365,7 @@ export function SSOTTab() {
                 type="number"
                 min="0"
                 step="500"
-                value={config.cPost1 ?? 0}
+                value={config.cPost1 ?? D.cPost1}
                 onChange={(e) => updateField('cPost1', parseInt(e.target.value) || 0)}
               />
             </div>
@@ -378,7 +380,7 @@ export function SSOTTab() {
                 type="number"
                 min="0"
                 step="500"
-                value={config.cTax1 ?? 0}
+                value={config.cTax1 ?? D.cTax1}
                 onChange={(e) => updateField('cTax1', parseInt(e.target.value) || 0)}
               />
             </div>
@@ -393,7 +395,7 @@ export function SSOTTab() {
                 type="number"
                 min="0"
                 step="500"
-                value={config.cMatch1 ?? 0}
+                value={config.cMatch1 ?? D.cMatch1}
                 onChange={(e) => updateField('cMatch1', parseInt(e.target.value) || 0)}
               />
             </div>
@@ -420,7 +422,7 @@ export function SSOTTab() {
                   type="number"
                   min="0"
                   step="500"
-                  value={config.cPre2 ?? 0}
+                  value={config.cPre2 ?? D.cPre2}
                   onChange={(e) => updateField('cPre2', parseInt(e.target.value) || 0)}
                 />
               </div>
@@ -435,7 +437,7 @@ export function SSOTTab() {
                   type="number"
                   min="0"
                   step="500"
-                  value={config.cPost2 ?? 0}
+                  value={config.cPost2 ?? D.cPost2}
                   onChange={(e) => updateField('cPost2', parseInt(e.target.value) || 0)}
                 />
               </div>
@@ -450,7 +452,7 @@ export function SSOTTab() {
                   type="number"
                   min="0"
                   step="500"
-                  value={config.cTax2 ?? 0}
+                  value={config.cTax2 ?? D.cTax2}
                   onChange={(e) => updateField('cTax2', parseInt(e.target.value) || 0)}
                 />
               </div>
@@ -465,7 +467,7 @@ export function SSOTTab() {
                   type="number"
                   min="0"
                   step="500"
-                  value={config.cMatch2 ?? 0}
+                  value={config.cMatch2 ?? D.cMatch2}
                   onChange={(e) => updateField('cMatch2', parseInt(e.target.value) || 0)}
                 />
               </div>
@@ -493,8 +495,8 @@ export function SSOTTab() {
                 min="0"
                 max="20"
                 step="0.1"
-                value={config.retRate ?? 9.8}
-                onChange={(e) => updateField('retRate', parseFloat(e.target.value) || 9.8)}
+                value={config.retRate ?? D.retRate}
+                onChange={(e) => updateField('retRate', parseFloat(e.target.value) || D.retRate)}
               />
             </div>
 
@@ -509,8 +511,8 @@ export function SSOTTab() {
                 min="0"
                 max="10"
                 step="0.1"
-                value={config.inflationRate ?? 2.6}
-                onChange={(e) => updateField('inflationRate', parseFloat(e.target.value) || 2.6)}
+                value={config.inflationRate ?? D.inflationRate}
+                onChange={(e) => updateField('inflationRate', parseFloat(e.target.value) || D.inflationRate)}
               />
             </div>
 
@@ -525,8 +527,8 @@ export function SSOTTab() {
                 min="0"
                 max="10"
                 step="0.1"
-                value={config.dividendYield ?? 2.0}
-                onChange={(e) => updateField('dividendYield', parseFloat(e.target.value) || 2.0)}
+                value={config.dividendYield ?? D.dividendYield}
+                onChange={(e) => updateField('dividendYield', parseFloat(e.target.value) || D.dividendYield)}
               />
             </div>
 
@@ -541,8 +543,8 @@ export function SSOTTab() {
                 min="0"
                 max="10"
                 step="0.1"
-                value={config.wdRate ?? 3.5}
-                onChange={(e) => updateField('wdRate', parseFloat(e.target.value) || 3.5)}
+                value={config.wdRate ?? D.wdRate}
+                onChange={(e) => updateField('wdRate', parseFloat(e.target.value) || D.wdRate)}
               />
             </div>
 
@@ -557,7 +559,7 @@ export function SSOTTab() {
                 min="0"
                 max="15"
                 step="0.1"
-                value={config.stateRate ?? 0}
+                value={config.stateRate ?? D.stateRate}
                 onChange={(e) => updateField('stateRate', parseFloat(e.target.value) || 0)}
               />
             </div>
@@ -573,8 +575,8 @@ export function SSOTTab() {
                 min="0"
                 max="10"
                 step="0.1"
-                value={config.incRate ?? 4.5}
-                onChange={(e) => updateField('incRate', parseFloat(e.target.value) || 4.5)}
+                value={config.incRate ?? D.incRate}
+                onChange={(e) => updateField('incRate', parseFloat(e.target.value) || D.incRate)}
               />
             </div>
           </div>
@@ -765,7 +767,7 @@ export function SSOTTab() {
               <input
                 id="ssot-includeSS"
                 type="checkbox"
-                checked={config.includeSS ?? true}
+                checked={config.includeSS ?? D.includeSS}
                 onChange={(e) => updateField('includeSS', e.target.checked)}
                 className="rounded border-gray-300"
               />
@@ -786,7 +788,7 @@ export function SSOTTab() {
                   type="number"
                   min="0"
                   step="1000"
-                  value={config.ssIncome ?? 0}
+                  value={config.ssIncome ?? D.ssIncome}
                   onChange={(e) => updateField('ssIncome', parseInt(e.target.value) || 0)}
                 />
               </div>
@@ -801,8 +803,8 @@ export function SSOTTab() {
                   type="number"
                   min="62"
                   max="70"
-                  value={config.ssClaimAge ?? 67}
-                  onChange={(e) => updateField('ssClaimAge', parseInt(e.target.value) || 67)}
+                  value={config.ssClaimAge ?? D.ssClaimAge}
+                  onChange={(e) => updateField('ssClaimAge', parseInt(e.target.value) || D.ssClaimAge)}
                 />
               </div>
 
@@ -818,7 +820,7 @@ export function SSOTTab() {
                       type="number"
                       min="0"
                       step="1000"
-                      value={config.ssIncome2 ?? 0}
+                      value={config.ssIncome2 ?? D.ssIncome2}
                       onChange={(e) => updateField('ssIncome2', parseInt(e.target.value) || 0)}
                     />
                   </div>
@@ -833,8 +835,8 @@ export function SSOTTab() {
                       type="number"
                       min="62"
                       max="70"
-                      value={config.ssClaimAge2 ?? 67}
-                      onChange={(e) => updateField('ssClaimAge2', parseInt(e.target.value) || 67)}
+                      value={config.ssClaimAge2 ?? D.ssClaimAge2}
+                      onChange={(e) => updateField('ssClaimAge2', parseInt(e.target.value) || D.ssClaimAge2)}
                     />
                   </div>
                 </>
@@ -862,7 +864,7 @@ export function SSOTTab() {
                 type="number"
                 min="0"
                 max="20"
-                value={config.numChildren ?? 0}
+                value={config.numChildren ?? D.numChildren}
                 onChange={(e) => updateField('numChildren', parseInt(e.target.value) || 0)}
               />
             </div>
@@ -877,7 +879,7 @@ export function SSOTTab() {
                 type="number"
                 min="0"
                 max="10"
-                value={config.additionalChildrenExpected ?? 0}
+                value={config.additionalChildrenExpected ?? D.additionalChildrenExpected}
                 onChange={(e) => updateField('additionalChildrenExpected', parseInt(e.target.value) || 0)}
               />
             </div>
