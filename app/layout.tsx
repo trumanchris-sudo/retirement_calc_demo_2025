@@ -8,6 +8,7 @@ import { SkipLink } from '@/components/a11y/SkipLink'
 import { LiveRegion } from '@/components/a11y/LiveRegion'
 import { InstallPrompt } from '@/components/pwa/InstallPrompt'
 import { OfflineUI } from '@/components/pwa/OfflineUI'
+import { Toaster } from '@/components/ui/toaster'
 
 export const metadata: Metadata = {
   title: 'WORK DIE RETIRE - Free Retirement Calculator',
@@ -104,6 +105,7 @@ export default function RootLayout({
             {children}
             <InstallPrompt />
             <OfflineUI />
+            <Toaster />
           </Providers>
         </ErrorBoundary>
         <LiveRegion />

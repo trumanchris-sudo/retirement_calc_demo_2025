@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { ChartDataPoint, ComparisonData } from "@/types/calculator";
+import { CHART_SEMANTIC, getTooltipStyles } from "@/lib/chartColors";
 
 // Lazy load the ComposedChart for better performance
 const ComposedChart = dynamic(
@@ -32,9 +33,10 @@ export interface WealthChartProps {
  * Mobile-responsive with touch-friendly tooltips
  */
 export const WealthAccumulationChart = React.memo<WealthChartProps>(
-  ({ data, showP10, showP90, isDarkMode, fmt }) => {
+  ({ data, showP10, showP90, fmt }) => {
     // Mobile-responsive height
     const [chartHeight, setChartHeight] = React.useState(400);
+    const tooltipStyles = getTooltipStyles();
 
     React.useEffect(() => {
       const updateHeight = () => {
@@ -51,12 +53,12 @@ export const WealthAccumulationChart = React.memo<WealthChartProps>(
         <ComposedChart data={data}>
           <defs>
             <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+              <stop offset="5%" stopColor={CHART_SEMANTIC.nominal} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={CHART_SEMANTIC.nominal} stopOpacity={0} />
             </linearGradient>
             <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+              <stop offset="5%" stopColor={CHART_SEMANTIC.real} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={CHART_SEMANTIC.real} stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -64,23 +66,14 @@ export const WealthAccumulationChart = React.memo<WealthChartProps>(
           <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
           <RTooltip
             formatter={(v) => fmt(v as number)}
-            contentStyle={{
-              backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-              borderRadius: "8px",
-              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-              color: isDarkMode ? "#f3f4f6" : "#1f2937",
-            }}
-            labelStyle={{
-              color: isDarkMode ? "#f3f4f6" : "#1f2937",
-              fontWeight: "bold",
-            }}
+            contentStyle={tooltipStyles.contentStyle}
+            labelStyle={tooltipStyles.labelStyle}
           />
           <Legend />
           <Line
             type="monotone"
             dataKey="bal"
-            stroke="#3b82f6"
+            stroke={CHART_SEMANTIC.nominal}
             strokeWidth={3}
             dot={false}
             name="Nominal (50th Percentile)"
@@ -92,7 +85,7 @@ export const WealthAccumulationChart = React.memo<WealthChartProps>(
           <Line
             type="monotone"
             dataKey="real"
-            stroke="#10b981"
+            stroke={CHART_SEMANTIC.real}
             strokeWidth={2}
             strokeDasharray="5 5"
             dot={false}
@@ -106,7 +99,7 @@ export const WealthAccumulationChart = React.memo<WealthChartProps>(
             <Line
               type="monotone"
               dataKey="p10"
-              stroke="#ef4444"
+              stroke={CHART_SEMANTIC.p10}
               strokeWidth={2}
               strokeDasharray="3 3"
               dot={false}
@@ -121,7 +114,7 @@ export const WealthAccumulationChart = React.memo<WealthChartProps>(
             <Line
               type="monotone"
               dataKey="p90"
-              stroke="#f59e0b"
+              stroke={CHART_SEMANTIC.p90}
               strokeWidth={2}
               strokeDasharray="3 3"
               dot={false}
@@ -151,8 +144,9 @@ export interface ComparisonChartProps {
  * ScenarioComparisonChart - Shows baseline vs stress scenarios
  */
 export const ScenarioComparisonChart = React.memo<ComparisonChartProps>(
-  ({ data, comparisonData, isDarkMode, fmt }) => {
+  ({ data, comparisonData, fmt }) => {
     const [isMobile, setIsMobile] = React.useState(false);
+    const tooltipStyles = getTooltipStyles();
 
     React.useEffect(() => {
       const checkMobile = () => {
@@ -191,23 +185,14 @@ export const ScenarioComparisonChart = React.memo<ComparisonChartProps>(
           <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
           <RTooltip
             formatter={(v) => fmt(v as number)}
-            contentStyle={{
-              backgroundColor: isDarkMode ? "#1f2937" : "#ffffff",
-              borderRadius: "8px",
-              border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-              color: isDarkMode ? "#f3f4f6" : "#1f2937",
-            }}
-            labelStyle={{
-              color: isDarkMode ? "#f3f4f6" : "#1f2937",
-              fontWeight: "bold",
-            }}
+            contentStyle={tooltipStyles.contentStyle}
+            labelStyle={tooltipStyles.labelStyle}
           />
           <Legend />
           <Line
             type="monotone"
             dataKey="baseline"
-            stroke="#3b82f6"
+            stroke={CHART_SEMANTIC.nominal}
             strokeWidth={3}
             dot={false}
             name="Baseline (Real)"
@@ -220,7 +205,7 @@ export const ScenarioComparisonChart = React.memo<ComparisonChartProps>(
             <Line
               type="monotone"
               dataKey="bearMarket"
-              stroke="#ef4444"
+              stroke={CHART_SEMANTIC.bearMarket}
               strokeWidth={2}
               dot={false}
               name={comparisonData.bearMarket.label || "Bear Market"}
@@ -234,7 +219,7 @@ export const ScenarioComparisonChart = React.memo<ComparisonChartProps>(
             <Line
               type="monotone"
               dataKey="inflation"
-              stroke="#f59e0b"
+              stroke={CHART_SEMANTIC.inflation}
               strokeWidth={2}
               dot={false}
               name={comparisonData.inflation.label || "Inflation Shock"}

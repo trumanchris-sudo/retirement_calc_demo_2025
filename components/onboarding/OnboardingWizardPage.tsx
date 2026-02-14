@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState, useEffect } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { AIConsole } from './AIConsole';
 import { mapAIDataToCalculator } from '@/lib/aiOnboardingMapper';
 import { processOnboardingClientSide } from '@/lib/processOnboardingClientSide';
@@ -67,7 +68,7 @@ export function OnboardingWizardPage({ onComplete, onSkip }: OnboardingWizardPag
         onComplete();
       } catch (error) {
         console.error('[OnboardingWizardPage] Failed to complete onboarding:', error);
-        alert(`Error completing onboarding: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error(`Error completing onboarding: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     },
     [updateConfig, onComplete]

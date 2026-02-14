@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { fmt } from "@/lib/utils";
+import { SANKEY_COLORS } from "@/lib/chartColors";
 
 // ==================== Types ====================
 
@@ -67,25 +68,25 @@ interface Particle {
 // ==================== Default Data ====================
 
 const DEFAULT_INCOME_SOURCES: IncomeSource[] = [
-  { id: "salary", label: "Salary", amount: 120000, color: "#10b981" },
-  { id: "bonus", label: "Bonus", amount: 15000, color: "#34d399" },
-  { id: "investments", label: "Investment Income", amount: 8000, color: "#6ee7b7" },
-  { id: "social-security", label: "Social Security", amount: 24000, color: "#a7f3d0" },
+  { id: "salary", label: "Salary", amount: 120000, color: SANKEY_COLORS.income.salary },
+  { id: "bonus", label: "Bonus", amount: 15000, color: SANKEY_COLORS.income.bonus },
+  { id: "investments", label: "Investment Income", amount: 8000, color: SANKEY_COLORS.income.investments },
+  { id: "social-security", label: "Social Security", amount: 24000, color: SANKEY_COLORS.income.socialSecurity },
 ];
 
 const DEFAULT_ACCOUNTS: AccountNode[] = [
-  { id: "401k", label: "401(k)", type: "401k", inflow: 50000, outflow: 35000, taxLeakage: 7000, color: "#3b82f6" },
-  { id: "roth", label: "Roth IRA", type: "roth", inflow: 25000, outflow: 20000, taxLeakage: 0, color: "#8b5cf6" },
-  { id: "taxable", label: "Taxable", type: "taxable", inflow: 30000, outflow: 25000, taxLeakage: 3750, color: "#06b6d4" },
-  { id: "hsa", label: "HSA", type: "hsa", inflow: 8000, outflow: 6000, taxLeakage: 0, color: "#14b8a6" },
+  { id: "401k", label: "401(k)", type: "401k", inflow: 50000, outflow: 35000, taxLeakage: 7000, color: SANKEY_COLORS.accounts["401k"] },
+  { id: "roth", label: "Roth IRA", type: "roth", inflow: 25000, outflow: 20000, taxLeakage: 0, color: SANKEY_COLORS.accounts.roth },
+  { id: "taxable", label: "Taxable", type: "taxable", inflow: 30000, outflow: 25000, taxLeakage: 3750, color: SANKEY_COLORS.accounts.taxable },
+  { id: "hsa", label: "HSA", type: "hsa", inflow: 8000, outflow: 6000, taxLeakage: 0, color: SANKEY_COLORS.accounts.hsa },
 ];
 
 const DEFAULT_SPENDING: SpendingCategory[] = [
-  { id: "housing", label: "Housing", amount: 24000, color: "#f59e0b" },
-  { id: "healthcare", label: "Healthcare", amount: 12000, color: "#ef4444" },
-  { id: "lifestyle", label: "Lifestyle", amount: 30000, color: "#ec4899" },
-  { id: "travel", label: "Travel", amount: 15000, color: "#f97316" },
-  { id: "legacy", label: "Legacy/Gifts", amount: 5000, color: "#a855f7" },
+  { id: "housing", label: "Housing", amount: 24000, color: SANKEY_COLORS.spending.housing },
+  { id: "healthcare", label: "Healthcare", amount: 12000, color: SANKEY_COLORS.spending.healthcare },
+  { id: "lifestyle", label: "Lifestyle", amount: 30000, color: SANKEY_COLORS.spending.lifestyle },
+  { id: "travel", label: "Travel", amount: 15000, color: SANKEY_COLORS.spending.travel },
+  { id: "legacy", label: "Legacy/Gifts", amount: 5000, color: SANKEY_COLORS.spending.legacy },
 ];
 
 const DEFAULT_FLOWS: FlowLink[] = [
@@ -510,8 +511,8 @@ export const SankeyDiagram: React.FC<SankeyDiagramProps> = ({
           width={position.width}
           height={position.height}
           rx={4}
-          fill={isTaxLeak ? "#dc2626" : color}
-          stroke={isHovered ? "#fff" : "transparent"}
+          fill={isTaxLeak ? SANKEY_COLORS.taxLeak : color}
+          stroke={isHovered ? "hsl(var(--background))" : "transparent"}
           strokeWidth={2}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{
@@ -621,12 +622,12 @@ export const SankeyDiagram: React.FC<SankeyDiagramProps> = ({
               >
                 <stop
                   offset="0%"
-                  stopColor={flow.isTaxLeakage ? "#dc2626" : sourceNode?.color || "#6b7280"}
+                  stopColor={flow.isTaxLeakage ? SANKEY_COLORS.taxLeak : sourceNode?.color || SANKEY_COLORS.neutral}
                   stopOpacity={0.8}
                 />
                 <stop
                   offset="100%"
-                  stopColor={flow.isTaxLeakage ? "#dc2626" : targetNode?.color || "#6b7280"}
+                  stopColor={flow.isTaxLeakage ? SANKEY_COLORS.taxLeak : targetNode?.color || SANKEY_COLORS.neutral}
                   stopOpacity={0.8}
                 />
               </linearGradient>
@@ -712,7 +713,7 @@ export const SankeyDiagram: React.FC<SankeyDiagramProps> = ({
               cx={point.x}
               cy={point.y}
               r={flow.isTaxLeakage ? 3 : 2.5}
-              fill={flow.isTaxLeakage ? "#ef4444" : "#fff"}
+              fill={flow.isTaxLeakage ? SANKEY_COLORS.taxLeak : "hsl(var(--background))"}
               opacity={flow.isTaxLeakage ? 0.9 : 0.7}
               filter="url(#particle-glow)"
             />
@@ -735,7 +736,7 @@ export const SankeyDiagram: React.FC<SankeyDiagramProps> = ({
 
         {/* Render tax leakage node */}
         {layout.nodePositions["tax-leak"] && (
-          renderNode("tax-leak", "Taxes", "#dc2626", layout.nodePositions["tax-leak"], true)
+          renderNode("tax-leak", "Taxes", SANKEY_COLORS.taxLeak, layout.nodePositions["tax-leak"], true)
         )}
 
         {/* Render spending category nodes */}

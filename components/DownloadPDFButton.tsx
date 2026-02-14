@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { generatePDFReport, type PDFReportData, type PDFReportInputs } from '@/lib/pdfReport';
 import type { CalculationResult } from '@/types/calculator';
@@ -126,7 +127,7 @@ export const DownloadPDFButton: React.FC<DownloadPDFButtonProps> = ({
 
   const handleDownloadPDF = async () => {
     if (!results) {
-      alert('Please run calculations before generating a report');
+      toast.warning('Please run calculations before generating a report');
       return;
     }
 
@@ -195,7 +196,7 @@ export const DownloadPDFButton: React.FC<DownloadPDFButtonProps> = ({
       console.log('PDF report generated successfully');
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF report. Please try again.');
+      toast.error('Failed to generate PDF report. Please try again.');
     } finally {
       setIsGenerating(false);
     }

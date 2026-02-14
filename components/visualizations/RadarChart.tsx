@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Info, Target, TrendingUp, Shield, Droplets, PieChart, Percent } from "lucide-react";
+import { RADAR_COLORS } from "@/lib/chartColors";
 
 // ============================================================================
 // Types
@@ -691,7 +692,7 @@ export interface UserFinancialData {
 export function createUserProfile(
   data: UserFinancialData,
   name: string = "Your Profile",
-  color: string = "#3b82f6"
+  color: string = RADAR_COLORS.userProfile
 ): RadarScenario {
   // Calculate savings rate score (0-100)
   // 0% = 0, 20% = 100, caps at 100
@@ -772,7 +773,7 @@ export function createUserProfile(
  * Creates the optimal/target profile for comparison
  */
 export function createOptimalProfile(
-  color: string = "#22c55e"
+  color: string = RADAR_COLORS.optimal
 ): RadarScenario {
   return {
     id: "optimal",
@@ -796,7 +797,7 @@ export function RadarChartDemo() {
     assetClassCount: 4,
     emergencyFundMonths: 4,
     age: 35
-  }, "Your Profile", "#3b82f6");
+  }, "Your Profile", RADAR_COLORS.userProfile);
 
   // Alternative scenario
   const aggressiveProfile = createUserProfile({
@@ -806,9 +807,9 @@ export function RadarChartDemo() {
     assetClassCount: 3,
     emergencyFundMonths: 3,
     age: 35
-  }, "Aggressive Scenario", "#f59e0b");
+  }, "Aggressive Scenario", RADAR_COLORS.aggressive);
 
-  const optimalProfile = createOptimalProfile("#22c55e");
+  const optimalProfile = createOptimalProfile(RADAR_COLORS.optimal);
 
   const scenarios = [userProfile, optimalProfile, aggressiveProfile];
 

@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input as UIInput } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import {
   validate401kContribution,
   validateIRAContribution,
   validateRate,
+  validateTotalContributions,
 } from "@/lib/fieldValidation";
 import { calculateBondAllocation } from "@/lib/bondAllocation";
 import { RMD_START_AGE } from "@/lib/constants";
@@ -173,6 +174,16 @@ export function ConfigureTab({
   enableRothConversions, setEnableRothConversions, targetConversionBracket, setTargetConversionBracket,
   onCalculate, onInputChange, isLoading, err, calcProgress, tabGroupRef
 }: ConfigureTabProps) {
+  // Cross-field validation: IRS Section 415(c) total annual additions
+  const person1TotalValidation = useMemo(
+    () => validateTotalContributions(cPre1, cMatch1, age1),
+    [cPre1, cMatch1, age1]
+  );
+  const person2TotalValidation = useMemo(
+    () => (isMar ? validateTotalContributions(cPre2, cMatch2, age2) : null),
+    [cPre2, cMatch2, age2, isMar]
+  );
+
   return (
     <AnimatedSection animation="fade-in" delay={100}>
       <Card className="print:hidden">
@@ -237,6 +248,18 @@ export function ConfigureTab({
                       <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={(val) => validate401kContribution(val, age1)} tip="2026 IRS limit: $24,500" />
                       <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} onInputChange={onInputChange} defaultValue={7000} validate={(val) => validateIRAContribution(val, age1)} tip="2026 IRS limit: $7,000" />
                       <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
+                      {person1TotalValidation && person1TotalValidation.error && (
+                        <div
+                          className={`p-3 rounded-lg border text-sm ${
+                            person1TotalValidation.isValid
+                              ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                              : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
+                          }`}
+                          role="alert"
+                        >
+                          {person1TotalValidation.error}
+                        </div>
+                      )}
                     </div>
                     {isMar && (
                       <div className="space-y-4">
@@ -247,6 +270,18 @@ export function ConfigureTab({
                         <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={(val) => validate401kContribution(val, age2)} tip="2026 IRS limit: $24,500" />
                         <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} onInputChange={onInputChange} defaultValue={7000} validate={(val) => validateIRAContribution(val, age2)} tip="2026 IRS limit: $7,000" />
                         <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
+                        {person2TotalValidation && person2TotalValidation.error && (
+                          <div
+                            className={`p-3 rounded-lg border text-sm ${
+                              person2TotalValidation.isValid
+                                ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                                : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
+                            }`}
+                            role="alert"
+                          >
+                            {person2TotalValidation.error}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

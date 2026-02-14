@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { usePlanConfig } from '@/lib/plan-config-context';
 import {
   getAllScenarios,
@@ -55,7 +56,7 @@ export function ScenarioManager() {
 
   const handleSave = () => {
     if (!scenarioName.trim()) {
-      alert('Please enter a scenario name');
+      toast.warning('Please enter a scenario name');
       return;
     }
 
@@ -65,9 +66,9 @@ export function ScenarioManager() {
       setScenarioDescription('');
       setShowSaveDialog(false);
       refreshScenarios();
-      alert(`✅ Scenario "${scenarioName}" saved successfully!`);
+      toast.success(`Scenario "${scenarioName}" saved successfully!`);
     } catch (error) {
-      alert(`Failed to save scenario: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to save scenario: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -75,7 +76,7 @@ export function ScenarioManager() {
     if (confirm(`Load scenario "${scenario.name}"? This will replace your current plan.`)) {
       setConfig(scenario.config);
       setShowLoadDialog(false);
-      alert(`✅ Scenario "${scenario.name}" loaded!`);
+      toast.success(`Scenario "${scenario.name}" loaded!`);
     }
   };
 
@@ -83,7 +84,7 @@ export function ScenarioManager() {
     const newScenario = duplicateScenario(scenario.id);
     if (newScenario) {
       refreshScenarios();
-      alert(`✅ Created copy: "${newScenario.name}"`);
+      toast.success(`Created copy: "${newScenario.name}"`);
     }
   };
 
@@ -91,7 +92,7 @@ export function ScenarioManager() {
     if (confirm(`Delete scenario "${scenario.name}"? This cannot be undone.`)) {
       deleteScenario(scenario.id);
       refreshScenarios();
-      alert(`🗑️ Scenario "${scenario.name}" deleted`);
+      toast({ title: `Scenario "${scenario.name}" deleted`, variant: 'default' });
     }
   };
 
@@ -116,12 +117,12 @@ export function ScenarioManager() {
         const result = importScenarios(event.target?.result as string);
         if (result.success) {
           refreshScenarios();
-          alert(`✅ Imported ${result.imported} scenario(s)${result.errors.length > 0 ? ` with ${result.errors.length} error(s)` : ''}`);
+          toast.success(`Imported ${result.imported} scenario(s)${result.errors.length > 0 ? ` with ${result.errors.length} error(s)` : ''}`);
         } else {
-          alert(`❌ Import failed: ${result.errors.join(', ')}`);
+          toast.error(`Import failed: ${result.errors.join(', ')}`);
         }
       } catch (error) {
-        alert(`❌ Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     };
     reader.readAsText(file);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { QuickStart } from './QuickStart';
 import { AIConsole } from './AIConsole';
 import { mapAIDataToCalculator } from '@/lib/aiOnboardingMapper';
@@ -55,7 +56,7 @@ export function OnboardingSelector({ onComplete, onSkip }: OnboardingSelectorPro
         onComplete();
       } catch (error) {
         console.error('[OnboardingSelector] Failed to complete AI wizard:', error);
-        alert(`Error completing onboarding: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error(`Error completing onboarding: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     },
     [updateConfig, onComplete]

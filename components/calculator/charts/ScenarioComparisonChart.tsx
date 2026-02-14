@@ -16,6 +16,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import type { ChartDataPoint, ComparisonData } from '@/types/calculator';
+import { CHART_SEMANTIC, getTooltipStyles } from '@/lib/chartColors';
 
 const ComposedChart = dynamic(
   () => import('recharts').then((mod) => ({ default: mod.ComposedChart })),
@@ -29,8 +30,9 @@ export interface ComparisonChartProps {
   fmt: (n: number) => string;
 }
 
-export const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data, comparisonData, isDarkMode, fmt }) => {
+export const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data, comparisonData, fmt }) => {
   const [isMobile, setIsMobile] = React.useState(false);
+  const tooltipStyles = getTooltipStyles();
 
   React.useEffect(() => {
     const checkMobile = () => {
@@ -54,24 +56,15 @@ export const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data,
         <RTooltip
           formatter={(v) => fmt(v as number)}
           labelFormatter={(l) => `Year ${l}`}
-          contentStyle={{
-            backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-            borderRadius: "8px",
-            border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-            color: isDarkMode ? '#f3f4f6' : '#1f2937'
-          }}
-          labelStyle={{
-            color: isDarkMode ? '#f3f4f6' : '#1f2937',
-            fontWeight: 'bold'
-          }}
+          contentStyle={tooltipStyles.contentStyle}
+          labelStyle={tooltipStyles.labelStyle}
         />
         <Legend />
         {comparisonData.baseline?.visible && (
           <Line
             type="monotone"
             dataKey="baseline"
-            stroke="#3b82f6"
+            stroke={CHART_SEMANTIC.nominal}
             strokeWidth={3}
             dot={false}
             name="Baseline"
@@ -81,7 +74,7 @@ export const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data,
           <Line
             type="monotone"
             dataKey="bearMarket"
-            stroke="#ef4444"
+            stroke={CHART_SEMANTIC.bearMarket}
             strokeWidth={3}
             dot={false}
             name={comparisonData.bearMarket.label}
@@ -91,7 +84,7 @@ export const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data,
           <Line
             type="monotone"
             dataKey="inflation"
-            stroke="#f59e0b"
+            stroke={CHART_SEMANTIC.inflation}
             strokeWidth={3}
             dot={false}
             name={comparisonData.inflation.label}

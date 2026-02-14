@@ -1293,6 +1293,17 @@ body {
     --chart-4: 38 92% 50%;
     --chart-5: 0 84% 60%;
 
+    /* Sankey diagram extended palette - Light mode */
+    --sankey-income-2: 160 64% 55%;
+    --sankey-income-3: 152 58% 65%;
+    --sankey-income-4: 152 47% 75%;
+    --sankey-account-3: 190 84% 42%;
+    --sankey-account-4: 172 66% 40%;
+    --sankey-spending-3: 330 81% 60%;
+    --sankey-spending-4: 25 95% 53%;
+    --sankey-spending-5: 271 81% 56%;
+    --sankey-tax-leak: 0 72% 51%;
+
     /* Success/Warning/Info semantic colors */
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
@@ -1342,6 +1353,17 @@ body {
     --chart-3: 262 83% 68%;
     --chart-4: 38 92% 60%;
     --chart-5: 0 84% 65%;
+
+    /* Sankey diagram extended palette - Dark mode */
+    --sankey-income-2: 160 64% 60%;
+    --sankey-income-3: 152 58% 70%;
+    --sankey-income-4: 152 47% 78%;
+    --sankey-account-3: 190 84% 50%;
+    --sankey-account-4: 172 66% 50%;
+    --sankey-spending-3: 330 81% 65%;
+    --sankey-spending-4: 25 95% 58%;
+    --sankey-spending-5: 271 81% 63%;
+    --sankey-tax-leak: 0 72% 55%;
 
     /* Success/Warning/Info semantic colors - Dark mode */
     --success: 142 69% 58%;

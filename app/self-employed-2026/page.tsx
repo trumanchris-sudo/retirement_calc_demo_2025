@@ -1,8 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { Calculator, TrendingUp, Info, DollarSign, Building2, Home } from "lucide-react";
+import Link from "next/link";
+import { toast } from "@/hooks/use-toast";
+import { Calculator, TrendingUp, Info, DollarSign, Building2, Home, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/calculator/InputHelpers";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -56,6 +59,10 @@ import {
 export default function SelfEmployed2026Page() {
   useBudget();
   const { config: planConfig, updateConfig: updatePlanConfig } = usePlanConfig();
+
+  // Route guard: check if PlanConfig has been meaningfully configured.
+  // If fieldMetadata is empty, the user has not interacted with the calculator yet.
+  const hasUserData = Object.keys(planConfig.fieldMetadata).length > 0;
 
   // Use shared hooks
   const scrollState = useScrollState();
@@ -306,7 +313,7 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
 - Spouse Retirement: $${totalRetirement2.toLocaleString()}
 - Spouse Max 401(k) for Age ${spouseAge}: $${max401kPerson2.toLocaleString()}` : ''}`;
 
-    alert(summaryMsg);
+    toast.success('Self-employed data applied', { description: summaryMsg });
   }, [
     results, guaranteedPayments, distributiveShare, traditional401k, roth401k,
     definedBenefitPlan, sepIRA, solo401kEmployer, isMarried, spouseTraditional401k,
@@ -692,6 +699,37 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
   // ============================================================================
   // RENDER
   // ============================================================================
+
+  // Route guard: show setup prompt if user hasn't configured their plan yet
+  if (!hasUserData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
+              Setup Required
+            </CardTitle>
+            <CardDescription>
+              Please complete the main calculator setup first so your income,
+              age, and contribution data are available for this planner.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/">
+              <Button
+                className="min-h-[44px] w-full flex items-center gap-2"
+                aria-label="Go back to the main retirement calculator"
+              >
+                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                Go to Calculator Setup
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <IncomeCalculatorLayout

@@ -174,8 +174,9 @@ function formatFullCurrency(value: number): string {
 export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
   const { updateConfig } = usePlanConfig();
 
-  // The 3 questions + filing status
+  // The 3 questions + filing status + spouse age
   const [age, setAge] = useState<string>('');
+  const [spouseAge, setSpouseAge] = useState<string>('');
   const [income, setIncome] = useState<string>('');
   const [savings, setSavings] = useState<string>('');
   const [maritalStatus, setMaritalStatus] = useState<'single' | 'married'>('single');
@@ -187,11 +188,16 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
 
   // Parse inputs
   const parsedAge = parseInt(age, 10) || 0;
+  const parsedSpouseAge = parseInt(spouseAge, 10) || 0;
   const parsedIncome = parseInt(income.replace(/[,$]/g, ''), 10) || 0;
   const parsedSavings = parseInt(savings.replace(/[,$]/g, ''), 10) || 0;
 
-  // Check if all inputs are valid
-  const isValid = parsedAge >= 18 && parsedAge <= 90 && parsedIncome > 0;
+  // Check if all inputs are valid (spouse age required when married)
+  const isValid =
+    parsedAge >= 18 &&
+    parsedAge <= 90 &&
+    parsedIncome > 0 &&
+    (maritalStatus !== 'married' || (parsedSpouseAge >= 18 && parsedSpouseAge <= 90));
 
   // Calculate projections
   const projection = useMemo(() => {
@@ -252,7 +258,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
     const extractedData: ExtractedData = {
       age: parsedAge,
       maritalStatus,
-      spouseAge: maritalStatus === 'married' ? parsedAge : undefined,
+      spouseAge: maritalStatus === 'married' ? parsedSpouseAge : undefined,
       primaryIncome: parsedIncome,
       spouseIncome: maritalStatus === 'married' ? 0 : undefined, // Can be refined later
       currentTraditional: projection.pretaxBalance,
@@ -282,7 +288,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
     updateConfig(configUpdate, 'ai-suggested');
 
     onComplete();
-  }, [projection, parsedAge, parsedIncome, parsedSavings, maritalStatus, updateConfig, onComplete]);
+  }, [projection, parsedAge, parsedSpouseAge, parsedIncome, parsedSavings, maritalStatus, updateConfig, onComplete]);
 
   // Format input as currency on blur
   const formatInputAsCurrency = (value: string, setValue: (v: string) => void) => {
@@ -368,6 +374,27 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                     </button>
                   </div>
                 </div>
+
+                {/* Spouse Age (conditional) */}
+                {maritalStatus === 'married' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="spouse-age" className="text-base font-medium text-foreground flex items-center gap-2">
+                      <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      Spouse&apos;s age?
+                    </Label>
+                    <Input
+                      id="spouse-age"
+                      type="number"
+                      inputMode="numeric"
+                      placeholder="33"
+                      value={spouseAge}
+                      onChange={(e) => setSpouseAge(e.target.value)}
+                      className="bg-background border text-foreground text-lg h-14 placeholder:text-muted-foreground"
+                      min={18}
+                      max={90}
+                    />
+                  </div>
+                )}
 
                 {/* Question 2: Income */}
                 <div className="space-y-2">

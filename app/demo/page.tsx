@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 import { Hero } from "@/components/layout/Hero";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { TopBanner } from "@/components/layout/TopBanner";
@@ -97,7 +98,7 @@ export default function DemoPage() {
         onToggleDarkMode={toggleDarkMode}
         showActions={showResults}
         onPrint={() => window.print()}
-        onShare={() => alert("Share functionality")}
+        onShare={() => toast.info("Share functionality")}
       />
 
       {/* Main content wrapper with landmark and skip target */}

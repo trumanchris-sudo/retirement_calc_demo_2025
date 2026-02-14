@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { toast } from '@/hooks/use-toast';
 import { usePlanConfig } from '@/lib/plan-config-context';
 import { createDefaultPlanConfig } from '@/types/plan-config';
 import { Button } from '@/components/ui/button';
@@ -1228,7 +1229,7 @@ export function AnnualCheckup() {
     saveCheckupData(updatedData);
     setCheckupData(updatedData);
     setHasUnsavedChanges(false);
-    alert('Annual checkup saved successfully!');
+    toast.success('Annual checkup saved successfully!');
   }, [currentSnapshot, checkupData.snapshots, currentYear]);
 
   // Load a specific year
@@ -1281,12 +1282,12 @@ export function AnnualCheckup() {
         if (imported.snapshots && Array.isArray(imported.snapshots)) {
           setCheckupData(imported);
           saveCheckupData(imported);
-          alert('Data imported successfully!');
+          toast.success('Data imported successfully!');
         } else {
-          alert('Invalid file format');
+          toast.error('Invalid file format');
         }
       } catch {
-        alert('Failed to import data');
+        toast.error('Failed to import data');
       }
     };
     reader.readAsText(file);

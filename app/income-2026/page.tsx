@@ -1,8 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Calculator, TrendingUp } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import Link from "next/link";
+import { Calculator, TrendingUp, ArrowLeft, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input as UIInput } from "@/components/ui/input";
 import { Input } from "@/components/calculator/InputHelpers";
 import { Label } from "@/components/ui/label";
@@ -97,6 +100,10 @@ interface YearSummary {
 export default function Income2026Page() {
   const { setImplied } = useBudget();
   const { config: planConfig, updateConfig: updatePlanConfig } = usePlanConfig();
+
+  // Route guard: check if PlanConfig has been meaningfully configured.
+  // If fieldMetadata is empty, the user has not interacted with the calculator yet.
+  const hasUserData = Object.keys(planConfig.fieldMetadata).length > 0;
 
   // Use shared hooks
   const scrollState = useScrollState();
@@ -239,7 +246,7 @@ export default function Income2026Page() {
     }, 'user-entered');
 
     console.log('[INCOME-2026] Calculated effective tax rate:', (effectiveTaxRate * 100).toFixed(1) + '%');
-    alert('Your 2026 income data has been applied to your main retirement plan!');
+    toast.success('Your 2026 income data has been applied to your main retirement plan!');
   }, [results, housingState, expenseState, updatePlanConfig]);
 
   // ============================================================================
@@ -818,6 +825,37 @@ export default function Income2026Page() {
   // ============================================================================
   // RENDER
   // ============================================================================
+
+  // Route guard: show setup prompt if user hasn't configured their plan yet
+  if (!hasUserData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
+              Setup Required
+            </CardTitle>
+            <CardDescription>
+              Please complete the main calculator setup first so your income,
+              age, and contribution data are available for this planner.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/">
+              <Button
+                className="min-h-[44px] w-full flex items-center gap-2"
+                aria-label="Go back to the main retirement calculator"
+              >
+                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                Go to Calculator Setup
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <IncomeCalculatorLayout

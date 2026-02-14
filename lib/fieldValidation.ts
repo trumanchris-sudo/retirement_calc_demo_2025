@@ -151,6 +151,53 @@ export function validateRate(rate: number, fieldName: string = 'Rate', allowNega
 }
 
 /**
+ * Get the IRS Section 415(c) total annual additions limit based on age (2026 limits).
+ * This is the combined limit for employee 401(k) deferrals + employer matching + other additions.
+ */
+export function getTotal415cLimit(age?: number): number {
+  if (age != null && age >= 60 && age <= 63) {
+    return RETIREMENT_LIMITS_2026.TOTAL_401K_LIMIT_60_TO_63; // $83,250
+  } else if (age != null && age >= 50) {
+    return RETIREMENT_LIMITS_2026.TOTAL_401K_LIMIT_50_PLUS; // $80,000
+  }
+  return RETIREMENT_LIMITS_2026.TOTAL_401K_LIMIT_UNDER_50; // $72,000
+}
+
+/**
+ * Validate total 401(k) annual additions (employee + employer) against IRS Section 415(c) limit.
+ * Returns a warning if the combined amount exceeds the limit.
+ *
+ * @param employee401k - Employee elective deferral amount
+ * @param employerMatch - Employer matching/profit-sharing amount
+ * @param age - Optional age for age-aware 415(c) limits
+ * @param year - Tax year for error messages (default 2026)
+ */
+export function validateTotalContributions(
+  employee401k: number,
+  employerMatch: number,
+  age?: number,
+  year: number = 2026,
+): FieldValidationResult {
+  const total = employee401k + employerMatch;
+  const limit = getTotal415cLimit(age);
+
+  if (total > limit) {
+    return {
+      isValid: false,
+      error: `Combined employee + employer 401(k) contributions ($${total.toLocaleString()}) exceed the ${year} IRS Section 415(c) limit ($${limit.toLocaleString()})`,
+    };
+  }
+  if (total > limit * 0.9) {
+    return {
+      isValid: true,
+      error: `Combined 401(k) contributions ($${total.toLocaleString()}) are approaching the ${year} IRS 415(c) limit ($${limit.toLocaleString()})`,
+      warningOnly: true,
+    };
+  }
+  return { isValid: true };
+}
+
+/**
  * Validate withdrawal rate
  */
 export function validateWithdrawalRate(rate: number): FieldValidationResult {

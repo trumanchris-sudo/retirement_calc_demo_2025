@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, fmt } from "@/lib/utils";
+import { WATERFALL_COLORS, CHART_COLORS } from "@/lib/chartColors";
 
 // ============================================================================
 // Types
@@ -65,11 +66,11 @@ export interface WaterfallChartProps {
 // ============================================================================
 
 const DEFAULT_COLORS: Record<WaterfallCategory, string> = {
-  income: "#22c55e",    // green-500
-  tax: "#ef4444",       // red-500
-  expense: "#f97316",   // orange-500
-  savings: "#3b82f6",   // blue-500
-  total: "#8b5cf6",     // violet-500
+  income: WATERFALL_COLORS.income,
+  tax: WATERFALL_COLORS.tax,
+  expense: WATERFALL_COLORS.expense,
+  savings: WATERFALL_COLORS.savings,
+  total: WATERFALL_COLORS.total,
 };
 
 const CATEGORY_LABELS: Record<WaterfallCategory, string> = {
@@ -540,14 +541,14 @@ export const WaterfallChart = React.memo(function WaterfallChart({
                   stroke="url(#runningTotalGradient)"
                   strokeWidth={2}
                   dot={{
-                    fill: "#8b5cf6",
-                    stroke: "#ffffff",
+                    fill: CHART_COLORS.tertiary,
+                    stroke: "hsl(var(--background))",
                     strokeWidth: 2,
                     r: 4,
                   }}
                   activeDot={{
-                    fill: "#8b5cf6",
-                    stroke: "#ffffff",
+                    fill: CHART_COLORS.tertiary,
+                    stroke: "hsl(var(--background))",
                     strokeWidth: 2,
                     r: 6,
                   }}
