@@ -161,7 +161,7 @@ function runWhatIfSimulation(
     cMatch2: 0,
 
     // Rate defaults
-    retRate: 9.8,
+    retRate: 7.0,
     inflationRate: 2.6,
     stateRate: 0,
     incContrib: false,

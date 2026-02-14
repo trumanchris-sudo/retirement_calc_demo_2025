@@ -143,7 +143,7 @@ export function createDefaultPlanConfig(): PlanConfig {
     cMatch2: 0,
 
     // Rates & Assumptions
-    retRate: 9.8,
+    retRate: 7.0,
     inflationRate: 2.6,
     stateRate: 0,
     incContrib: true,
