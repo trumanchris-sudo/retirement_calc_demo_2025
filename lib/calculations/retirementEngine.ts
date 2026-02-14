@@ -879,7 +879,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     // Apply year-specific inflation (handles inflation shocks)
     const yearInflation = getEffectiveInflation(y, yrsToRet, inflationRate, inflationShockRate ?? null, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
-    balancesReal.push(bal / cumulativeInflation);
+    balancesReal.push(cumulativeInflation !== 0 ? bal / cumulativeInflation : bal);
     balancesNominal.push(bal);
   }
 
@@ -901,7 +901,8 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   );
 
   const wdAfterY1 = wdGrossY1 - y1.tax;
-  const wdRealY1 = wdAfterY1 / infAdj;
+  const safeInfAdj = infAdj || 1;
+  const wdRealY1 = wdAfterY1 / safeInfAdj;
 
   let retBalTax = bTax;
   let retBalPre = bPre;
@@ -1141,7 +1142,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     // Apply year-specific inflation (handles inflation shocks)
     const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, inflationRate, inflationShockRate ?? null, inflationShockDuration);
     cumulativeInflation *= (1 + yearInflation / 100);
-    balancesReal.push(totalNow / cumulativeInflation);
+    balancesReal.push(cumulativeInflation !== 0 ? totalNow / cumulativeInflation : totalNow);
     balancesNominal.push(totalNow);
 
     // Check if main portfolio is depleted (emergency fund is a separate safety net)
@@ -1169,7 +1170,8 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   const yearsFrom2025 = yrsToRet + yrsToSim;
   // Use cumulativeInflation to match the balancesReal array deflation (accounts for inflation shocks)
   // This is consistent with the Monte Carlo worker implementation
-  const eolReal = eolWealth / cumulativeInflation;
+  const safeCumulativeInflation = cumulativeInflation || 1;
+  const eolReal = eolWealth / safeCumulativeInflation;
 
   return {
     balancesReal,

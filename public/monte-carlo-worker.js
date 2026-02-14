@@ -980,12 +980,13 @@
       const bal = bTax + bPre + bPost + bEmergency;
       const yearInflation = getEffectiveInflation(y, yrsToRet, inflationRate, inflationShockRate, inflationShockDuration);
       cumulativeInflation *= 1 + yearInflation / 100;
-      balancesReal[balanceIndex] = bal / cumulativeInflation;
+      balancesReal[balanceIndex] = cumulativeInflation !== 0 ? bal / cumulativeInflation : bal;
       balancesNominal[balanceIndex] = bal;
       balanceIndex++;
     }
     const finNom = bTax + bPre + bPost + bEmergency;
     const infAdj = Math.pow(1 + infl, yrsToRet);
+    const safeInfAdj = infAdj || 1;
     const wdGrossY1 = finNom * (wdRate / 100);
     const y1 = computeWithdrawalTaxes(
       wdGrossY1,
@@ -999,7 +1000,7 @@
       0
     );
     const wdAfterY1 = wdGrossY1 - y1.tax;
-    const wdRealY1 = wdAfterY1 / infAdj;
+    const wdRealY1 = wdAfterY1 / safeInfAdj;
     let retBalTax = bTax;
     let retBalPre = bPre;
     let retBalRoth = bPost;
@@ -1135,7 +1136,7 @@
       const totalNow = retBalTax + retBalPre + retBalRoth + retBalEmergency;
       const yearInflation = getEffectiveInflation(yrsToRet + y, yrsToRet, inflationRate, inflationShockRate, inflationShockDuration);
       cumulativeInflation *= 1 + yearInflation / 100;
-      balancesReal[balanceIndex] = totalNow / cumulativeInflation;
+      balancesReal[balanceIndex] = cumulativeInflation !== 0 ? totalNow / cumulativeInflation : totalNow;
       balancesNominal[balanceIndex] = totalNow;
       balanceIndex++;
       const mainPortfolio = retBalTax + retBalPre + retBalRoth;
@@ -1156,7 +1157,8 @@
       currWdGross *= infl_factor;
     }
     const eolWealth = Math.max(0, retBalTax + retBalPre + retBalRoth + retBalEmergency);
-    const eolReal = eolWealth / cumulativeInflation;
+    const safeCumulativeInflation = cumulativeInflation || 1;
+    const eolReal = eolWealth / safeCumulativeInflation;
     const trimmedBalancesReal = balancesReal.slice(0, balanceIndex);
     const trimmedBalancesNominal = balancesNominal.slice(0, balanceIndex);
     return {
@@ -1170,7 +1172,7 @@
       conversionTaxesPaid
     };
   }
-  function runMonteCarloSimulation(params, baseSeed, N = 2e3) {
+  function runMonteCarloSimulation(params, baseSeed, N = 2e3, requestId) {
     const results = new Array(N);
     const rng = mulberry32(baseSeed);
     const seeds = new Uint32Array(N);
@@ -1184,7 +1186,8 @@
         self.postMessage({
           type: "progress",
           completed: i + 1,
-          total: N
+          total: N,
+          requestId
         });
       }
     }
@@ -1233,7 +1236,7 @@
     const y1AfterTaxReal_p25 = percentile(trimmedY1, 25);
     const y1AfterTaxReal_p50 = percentile(trimmedY1, 50);
     const y1AfterTaxReal_p75 = percentile(trimmedY1, 75);
-    const probRuin = results.filter((r) => r.ruined).length / N;
+    const probRuin = N > 0 ? results.filter((r) => r.ruined).length / N : 0;
     const allRunsLightweight = results.map((r) => ({
       eolReal: r.eolReal,
       y1AfterTaxReal: r.y1AfterTaxReal,
@@ -1295,15 +1298,17 @@
     return { cohorts: currentCohorts, fundReal: currentFund, years: yearsSimulated, depleted: false };
   }
   function checkPerpetualViability(realReturnRate, totalFertilityRate, generationLength, perBenReal, initialFundReal, startBens) {
-    const populationGrowthRate = (totalFertilityRate - 2) / generationLength;
+    const safeGenerationLength = generationLength || 1;
+    const populationGrowthRate = (totalFertilityRate - 2) / safeGenerationLength;
     const perpetualThreshold = realReturnRate - populationGrowthRate;
     const annualDistribution = perBenReal * startBens;
-    const distributionRate = annualDistribution / initialFundReal;
+    const distributionRate = initialFundReal > 0 ? annualDistribution / initialFundReal : Infinity;
     const safeThreshold = perpetualThreshold * 0.95;
     return distributionRate < safeThreshold;
   }
   function simulateRealPerBeneficiaryPayout(eolNominal, yearsFrom2025, nominalRet, inflPct, perBenReal, startBens, totalFertilityRate, generationLength, deathAge, minDistAge, capYears, initialBenAges, fertilityWindowStart, fertilityWindowEnd, marital = "single") {
-    let fundReal = eolNominal / Math.pow(1 + inflPct / 100, yearsFrom2025);
+    const inflDivisor = Math.pow(1 + inflPct / 100, yearsFrom2025);
+    let fundReal = inflDivisor > 0 ? eolNominal / inflDivisor : eolNominal;
     const r = realReturn(nominalRet, inflPct);
     const fertilityWindowYears = fertilityWindowEnd - fertilityWindowStart;
     const birthsPerYear = fertilityWindowYears > 0 ? totalFertilityRate / fertilityWindowYears : 0;
@@ -1382,8 +1387,10 @@
         fundAtYear1000 = fundReal;
       }
       if (t >= EARLY_TERM_CHECK && capYears >= 1e4) {
-        if (fundAtYear100 > 0 && fundReal > fundAtYear1000) {
-          const growthRate = Math.pow(fundReal / fundAtYear1000, 1 / (t - EARLY_TERM_CHECK)) - 1;
+        if (fundAtYear100 > 0 && fundAtYear1000 > 0 && fundReal > fundAtYear1000) {
+          const elapsed = t - EARLY_TERM_CHECK;
+          const safeElapsed = elapsed || 1;
+          const growthRate = Math.pow(fundReal / fundAtYear1000, 1 / safeElapsed) - 1;
           if (growthRate > 0.03) {
             const living = cohorts.reduce((acc, c) => acc + c.size, 0);
             return { years: Infinity, fundLeftReal: fundReal, lastLivingCount: living, generationData };
@@ -1398,15 +1405,17 @@
     const { type, params, baseSeed, N, requestId } = e.data;
     if (type === "run") {
       try {
-        const result = runMonteCarloSimulation(params, baseSeed, N);
+        const result = runMonteCarloSimulation(params, baseSeed, N, requestId);
         self.postMessage({
           type: "complete",
-          result
+          result,
+          requestId
         });
       } catch (error) {
         self.postMessage({
           type: "error",
-          error: error.message
+          error: error.message,
+          requestId
         });
       }
     } else if (type === "legacy") {
@@ -1473,7 +1482,8 @@
               newSuccessRate: 1,
               baselineSuccessRate: 1,
               improvement: 0
-            }
+            },
+            requestId
           });
           return;
         }
@@ -1498,9 +1508,10 @@
           preventableFailures += preventionRate * effectivenessScale;
         });
         const totalPaths = allRuns.length;
-        const baselineSuccessRate = (totalPaths - failedPaths.length) / totalPaths;
+        const safeTotalPaths = totalPaths || 1;
+        const baselineSuccessRate = (totalPaths - failedPaths.length) / safeTotalPaths;
         const newSuccesses = totalPaths - failedPaths.length + preventableFailures;
-        const newSuccessRate = newSuccesses / totalPaths;
+        const newSuccessRate = newSuccesses / safeTotalPaths;
         const improvement = newSuccessRate - baselineSuccessRate;
         self.postMessage({
           type: "guardrails-complete",
@@ -1510,12 +1521,14 @@
             newSuccessRate,
             baselineSuccessRate,
             improvement
-          }
+          },
+          requestId
         });
       } catch (error) {
         self.postMessage({
           type: "error",
-          error: error.message
+          error: error.message,
+          requestId
         });
       }
     } else if (type === "roth-optimizer") {
@@ -1535,7 +1548,8 @@
             result: {
               hasRecommendation: false,
               reason: "No pre-tax balance to convert"
-            }
+            },
+            requestId
           });
           return;
         }
@@ -1546,7 +1560,8 @@
             result: {
               hasRecommendation: false,
               reason: "Already at or past RMD age"
-            }
+            },
+            requestId
           });
           return;
         }
@@ -1637,12 +1652,14 @@
             optimizedRMDs: optimizedRMDs.slice(0, 10),
             targetBracket,
             targetBracketLimit
-          }
+          },
+          requestId
         });
       } catch (error) {
         self.postMessage({
           type: "error",
-          error: error.message
+          error: error.message,
+          requestId
         });
       }
     } else if (type === "optimize") {

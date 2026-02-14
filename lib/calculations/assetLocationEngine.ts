@@ -499,8 +499,9 @@ export function analyzeHolding(
   const annualSavings = currentTaxDrag - optimalTaxDrag;
 
   // Compound the savings over 20 years
+  const safeExpectedReturn = expectedReturn || 1;
   const twentyYearImpact = annualSavings > 0
-    ? annualSavings * ((Math.pow(1 + expectedReturn, 20) - 1) / expectedReturn)
+    ? annualSavings * ((Math.pow(1 + safeExpectedReturn, 20) - 1) / safeExpectedReturn)
     : 0;
 
   const isOptimal = currentAccount === optimalAccount || annualSavings < 100;
@@ -634,17 +635,19 @@ export function analyzePortfolio(
   const annualSavings = currentTaxDrag - optimalTaxDrag;
 
   // Compound savings
+  const safeExpReturn = expectedReturn || 1;
   const twentyYearImpact = annualSavings > 0
-    ? annualSavings * ((Math.pow(1 + expectedReturn, 20) - 1) / expectedReturn)
+    ? annualSavings * ((Math.pow(1 + safeExpReturn, 20) - 1) / safeExpReturn)
     : 0;
   const thirtyYearImpact = annualSavings > 0
-    ? annualSavings * ((Math.pow(1 + expectedReturn, 30) - 1) / expectedReturn)
+    ? annualSavings * ((Math.pow(1 + safeExpReturn, 30) - 1) / safeExpReturn)
     : 0;
 
   // Calculate efficiency scores
   const maxPossibleDrag = totalValue * 0.03; // Assume 3% max drag
-  const currentEfficiencyScore = Math.round(100 - (currentTaxDrag / maxPossibleDrag) * 100);
-  const optimalEfficiencyScore = Math.round(100 - (optimalTaxDrag / maxPossibleDrag) * 100);
+  const safeMaxDrag = maxPossibleDrag || 1;
+  const currentEfficiencyScore = Math.round(100 - (currentTaxDrag / safeMaxDrag) * 100);
+  const optimalEfficiencyScore = Math.round(100 - (optimalTaxDrag / safeMaxDrag) * 100);
 
   // Generate recommendations
   const recommendations = generateRecommendations(holdingAnalysis, expectedReturn);

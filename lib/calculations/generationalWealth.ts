@@ -87,10 +87,11 @@ export function checkPerpetualViability(
   startBens: number,
   debugLog = false
 ): boolean {
-  const populationGrowthRate = (totalFertilityRate - 2.0) / generationLength;
+  const safeGenerationLength = generationLength || 1;
+  const populationGrowthRate = (totalFertilityRate - 2.0) / safeGenerationLength;
   const perpetualThreshold = realReturnRate - populationGrowthRate;
   const annualDistribution = perBenReal * startBens;
-  const distributionRate = annualDistribution / initialFundReal;
+  const distributionRate = initialFundReal > 0 ? annualDistribution / initialFundReal : Infinity;
   const safeThreshold = perpetualThreshold * 0.95;
   const isPerpetual = distributionRate < safeThreshold;
 
@@ -133,7 +134,8 @@ export function simulateRealPerBeneficiaryPayout(
   fertilityWindowStart = 25,
   fertilityWindowEnd = 35
 ) {
-  let fundReal = eolNominal / Math.pow(1 + inflPct / 100, yearsFrom2025);
+  const inflDivisor = Math.pow(1 + inflPct / 100, yearsFrom2025);
+  let fundReal = inflDivisor > 0 ? eolNominal / inflDivisor : eolNominal;
   const r = realReturn(nominalRet, inflPct);
 
   const fertilityWindowYears = fertilityWindowEnd - fertilityWindowStart;
@@ -204,8 +206,10 @@ export function simulateRealPerBeneficiaryPayout(
     }
 
     if (t >= EARLY_TERM_CHECK && capYears >= 10000) {
-      if (fundAtYear100 > 0 && fundReal > fundAtYear1000) {
-        const growthRate = Math.pow(fundReal / fundAtYear1000, 1 / (t - EARLY_TERM_CHECK)) - 1;
+      if (fundAtYear100 > 0 && fundAtYear1000 > 0 && fundReal > fundAtYear1000) {
+        const elapsed = t - EARLY_TERM_CHECK;
+        const safeElapsed = elapsed || 1;
+        const growthRate = Math.pow(fundReal / fundAtYear1000, 1 / safeElapsed) - 1;
 
         if (growthRate > 0.03) {
           const living = cohorts.reduce((acc, c) => acc + c.size, 0);

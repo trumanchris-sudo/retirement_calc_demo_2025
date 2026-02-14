@@ -403,8 +403,8 @@ const features = [
   },
   {
     icon: Lock,
-    title: "Bank-Level Security",
-    description: "Your data is protected with AES-256 encryption and never shared with third parties.",
+    title: "Private by Design",
+    description: "Your financial data never leaves your browser. 100% client-side calculations with no server storage required.",
     gradient: "from-slate-500 to-slate-700",
     delay: 0.5,
   },
@@ -1056,7 +1056,7 @@ const faqs = [
   },
   {
     question: "Is my financial data secure?",
-    answer: "Absolutely. We use bank-level AES-256 encryption for all data at rest and in transit. Your data is never shared with third parties, and we're SOC 2 Type II compliant. You can also use the calculator without creating an account - all calculations run locally in your browser.",
+    answer: "Yes. Your data stays on your device and is never sent to our servers. All calculations run 100% client-side in your browser using localStorage, so your financial information never leaves your machine. No account is required, and no data is collected or shared with third parties.",
   },
   {
     question: "How is this different from other retirement calculators?",
@@ -1300,11 +1300,11 @@ const Footer: React.FC = () => {
           <div className="flex items-center gap-6 text-sm text-slate-400">
             <span className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-emerald-500" />
-              SOC 2 Compliant
+              100% Client-Side
             </span>
             <span className="flex items-center gap-2">
               <Lock className="w-4 h-4 text-emerald-500" />
-              256-bit Encryption
+              No Data Collected
             </span>
           </div>
         </div>

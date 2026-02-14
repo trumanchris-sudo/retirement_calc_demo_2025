@@ -37,6 +37,11 @@ export function useWorkerSimulations() {
   const [guardrailsResult, setGuardrailsResult] = useState<GuardrailsResult | null>(null);
   const [rothResult, setRothResult] = useState<RothConversionResult | null>(null);
 
+  // Request ID counters to prevent stale worker responses from overwriting current results
+  const monteCarloRequestIdRef = useRef(0);
+  const guardrailsRequestIdRef = useRef(0);
+  const rothRequestIdRef = useRef(0);
+
   // Worker lifecycle
   useEffect(() => {
     console.log('[WORKER] Initializing web worker...');
@@ -69,13 +74,23 @@ export function useWorkerSimulations() {
       }
 
       const worker = workerRef.current;
-      console.log('[WORKER] Worker exists, setting up message handler');
+      const requestId = ++monteCarloRequestIdRef.current;
+      console.log('[WORKER] Worker exists, setting up message handler, requestId:', requestId);
 
       const handleMessage = (e: MessageEvent) => {
         if (!e.data) return;
 
-        const { type, result, completed, total, error } = e.data;
-        console.log('[WORKER] Received message:', { type, completed, total, hasResult: !!result, error });
+        const { type, result, completed, total, error, requestId: responseId } = e.data;
+
+        // Discard stale responses from previous simulation runs
+        if (type === 'progress' || type === 'complete' || (type === 'error' && responseId !== undefined)) {
+          if (responseId !== requestId) {
+            console.log('[WORKER] Discarding stale response, expected:', requestId, 'got:', responseId);
+            return;
+          }
+        }
+
+        console.log('[WORKER] Received message:', { type, completed, total, hasResult: !!result, error, requestId: responseId });
 
         if (type === 'progress') {
           const percent = Math.round((completed / total) * 100);
@@ -109,8 +124,8 @@ export function useWorkerSimulations() {
 
       worker.addEventListener('message', handleMessage);
       worker.addEventListener('error', handleError);
-      console.log('[WORKER] Posting message to worker with N=', N);
-      worker.postMessage({ type: 'run', params: inputs, baseSeed, N });
+      console.log('[WORKER] Posting message to worker with N=', N, 'requestId:', requestId);
+      worker.postMessage({ type: 'run', params: inputs, baseSeed, N, requestId });
     });
   }, []);
 
@@ -188,18 +203,27 @@ export function useWorkerSimulations() {
     }
 
     const worker = workerRef.current;
+    const requestId = ++guardrailsRequestIdRef.current;
 
     const handleMessage = (e: MessageEvent) => {
       if (!e.data) return;
 
-      const { type, result, error } = e.data;
+      const { type, result, error, requestId: responseId } = e.data;
+
+      // Discard stale responses from previous guardrails runs
+      if (type === 'guardrails-complete' || (type === 'error' && responseId !== undefined)) {
+        if (responseId !== requestId) {
+          console.log('[GUARDRAILS] Discarding stale response, expected:', requestId, 'got:', responseId);
+          return;
+        }
+      }
 
       if (type === 'guardrails-complete') {
         worker.removeEventListener('message', handleMessage);
         worker.removeEventListener('error', handleError);
         setGuardrailsResult(result);
         console.log('[GUARDRAILS] Analysis complete:', result);
-      } else if (type === 'error') {
+      } else if (type === 'error' && responseId === requestId) {
         worker.removeEventListener('message', handleMessage);
         worker.removeEventListener('error', handleError);
         console.error('[GUARDRAILS] Error:', error);
@@ -218,6 +242,7 @@ export function useWorkerSimulations() {
     worker.addEventListener('error', handleError);
     worker.postMessage({
       type: 'guardrails',
+      requestId,
       params: {
         allRuns: batchData.allRuns,
         spendingReduction,
@@ -247,18 +272,27 @@ export function useWorkerSimulations() {
     }
 
     const worker = workerRef.current;
+    const requestId = ++rothRequestIdRef.current;
 
     const handleMessage = (e: MessageEvent) => {
       if (!e.data) return;
 
-      const { type, result: optimizerResult, error } = e.data;
+      const { type, result: optimizerResult, error, requestId: responseId } = e.data;
+
+      // Discard stale responses from previous roth optimizer runs
+      if (type === 'roth-optimizer-complete' || (type === 'error' && responseId !== undefined)) {
+        if (responseId !== requestId) {
+          console.log('[ROTH-OPT] Discarding stale response, expected:', requestId, 'got:', responseId);
+          return;
+        }
+      }
 
       if (type === 'roth-optimizer-complete') {
         worker.removeEventListener('message', handleMessage);
         worker.removeEventListener('error', handleError);
         setRothResult(optimizerResult);
         console.log('[ROTH-OPT] Analysis complete:', optimizerResult);
-      } else if (type === 'error') {
+      } else if (type === 'error' && responseId === requestId) {
         worker.removeEventListener('message', handleMessage);
         worker.removeEventListener('error', handleError);
         console.error('[ROTH-OPT] Error:', error);
@@ -280,6 +314,7 @@ export function useWorkerSimulations() {
     worker.addEventListener('error', handleError);
     worker.postMessage({
       type: 'roth-optimizer',
+      requestId,
       params: {
         retirementAge,
         pretaxBalance,

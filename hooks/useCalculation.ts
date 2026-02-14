@@ -555,7 +555,7 @@ export function useCalculation(deps: CalcDeps) {
       console.log('[CALC] Calculating estate tax...');
       const yearOfDeath = getCurrYear() + (LIFE_EXP - older);
       const estateTax = calcEstateTax(eolWealth, marital, yearOfDeath, assumeTaxCutsExtended);
-      const realEstateTax = estateTax * (eolReal / eolWealth);
+      const realEstateTax = eolWealth > 0 ? estateTax * (eolReal / eolWealth) : 0;
       const netEstate = eolReal - realEstateTax;
       console.log('[CALC] Estate tax calculated - year:', yearOfDeath, 'estateTax:', estateTax, 'realEstateTax:', realEstateTax, 'netEstate:', netEstate);
 
@@ -605,13 +605,17 @@ export function useCalculation(deps: CalcDeps) {
             // Calculate Implied CAGR for Legacy Simulations
             const startingBalance = taxableBalance + pretaxBalance + rothBalance;
             const yearsTotal = yrsToRet + yrsToSim;
+            const safeStartingBalance = startingBalance || 1;
+            const safeYearsTotal = yearsTotal || 1;
 
-            const totalGrowthP25 = batchResult.eolReal_p25 / startingBalance;
-            const impliedRealCAGR_P25 = Math.pow(totalGrowthP25, 1 / yearsTotal) - 1;
+            const totalGrowthP25 = batchResult.eolReal_p25 / safeStartingBalance;
+            const safeGrowthP25 = totalGrowthP25 > 0 ? totalGrowthP25 : 0;
+            const impliedRealCAGR_P25 = Math.pow(safeGrowthP25, 1 / safeYearsTotal) - 1;
             const impliedNominal_P25 = ((1 + impliedRealCAGR_P25) * (1 + inflationRate / 100) - 1) * 100;
 
-            const totalGrowthP75 = batchResult.eolReal_p75 / startingBalance;
-            const impliedRealCAGR_P75 = Math.pow(totalGrowthP75, 1 / yearsTotal) - 1;
+            const totalGrowthP75 = batchResult.eolReal_p75 / safeStartingBalance;
+            const safeGrowthP75 = totalGrowthP75 > 0 ? totalGrowthP75 : 0;
+            const impliedRealCAGR_P75 = Math.pow(safeGrowthP75, 1 / safeYearsTotal) - 1;
             const impliedNominal_P75 = ((1 + impliedRealCAGR_P75) * (1 + inflationRate / 100) - 1) * 100;
 
             console.log('[CALC] Implied CAGR - P25 Real:', (impliedRealCAGR_P25 * 100).toFixed(2) + '%, Nominal:', impliedNominal_P25.toFixed(2) + '%');
@@ -691,9 +695,10 @@ export function useCalculation(deps: CalcDeps) {
             console.log('[SUCCESS RATE DEBUG] ====================');
 
             const realReturnRate = realReturn(retRate, inflationRate);
-            const populationGrowthRate = (totalFertilityRate - 2.0) / generationLength;
+            const safeGenerationLength = generationLength || 1;
+            const populationGrowthRate = (totalFertilityRate - 2.0) / safeGenerationLength;
             const sustainableDistRate = realReturnRate - populationGrowthRate;
-            const minEstateRequired = totalAnnualDist / sustainableDistRate;
+            const minEstateRequired = sustainableDistRate > 0 ? totalAnnualDist / sustainableDistRate : Infinity;
             const safeMinEstate = minEstateRequired * 1.05;
 
             console.log('[SUCCESS RATE DEBUG] Real return rate: ' + (realReturnRate * 100).toFixed(2) + '%');
@@ -712,7 +717,7 @@ export function useCalculation(deps: CalcDeps) {
             });
 
             const successCount = allEstatesAfterTax.filter(estate => estate >= safeMinEstate).length;
-            const calculatedProbPerpetual = successCount / allEstatesAfterTax.length;
+            const calculatedProbPerpetual = allEstatesAfterTax.length > 0 ? successCount / allEstatesAfterTax.length : 0;
             const successRatePercent = Math.round(calculatedProbPerpetual * 100);
 
             console.log('[SUCCESS RATE DEBUG] Estates meeting perpetual threshold: ' + successCount + ' / ' + allEstatesAfterTax.length);

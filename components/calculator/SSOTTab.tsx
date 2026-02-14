@@ -64,10 +64,10 @@ export function SSOTTab() {
     <div className="space-y-6 pb-8">
       {/* Header */}
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">Single Source of Truth (SSOT)</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Plan Settings</h2>
         <p className="text-muted-foreground">
-          Master data view. All calculator inputs, assumptions, and configurations in one place.
-          Every field here is the authoritative source - all other UI components mirror these values.
+          All your plan inputs, assumptions, and configurations in one place.
+          Changes here are reflected across all calculator tabs.
         </p>
       </div>
 
@@ -909,18 +909,6 @@ export function SSOTTab() {
         </CardContent>
       </Card>
 
-      {/* Debug: Full PlanConfig JSON */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Debug: Full PlanConfig</CardTitle>
-          <CardDescription>Raw PlanConfig object for debugging</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto max-h-96">
-            {JSON.stringify(config, null, 2)}
-          </pre>
-        </CardContent>
-      </Card>
     </div>
   );
 }

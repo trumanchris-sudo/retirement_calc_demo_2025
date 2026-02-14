@@ -95,8 +95,11 @@ export const percentile = (arr: number[], p: number): number => {
 };
 
 /** Calculate real return from nominal return and inflation */
-export const realReturn = (nominalPct: number, inflPct: number) =>
-  (1 + nominalPct / 100) / (1 + inflPct / 100) - 1;
+export const realReturn = (nominalPct: number, inflPct: number) => {
+  const inflDivisor = 1 + inflPct / 100;
+  if (inflDivisor === 0) return 0;
+  return (1 + nominalPct / 100) / inflDivisor - 1;
+};
 
 /** Simple seeded PRNG so runs are reproducible */
 export function mulberry32(seed: number) {

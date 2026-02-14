@@ -1652,9 +1652,9 @@ export default function App() {
         </TabPanel>
         )}
 
-        {/* SSOT Tab - Single Source of Truth - Hide from All-in-One tab */}
+        {/* Plan Settings Tab (SSOT) - Hide from All-in-One tab */}
         {activeMainTab !== 'all' && (
-        <TabPanel id="ssot" activeTab={activeMainTab}>
+        <TabPanel id="planSettings" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>
           <SSOTTab />
         </AnimatedSection>
