@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { QuickStart } from './QuickStart';
 import { AIConsole } from './AIConsole';
 import { mapAIDataToCalculator } from '@/lib/aiOnboardingMapper';
-import { saveSharedIncomeData } from '@/lib/sharedIncomeData';
+import { processOnboardingClientSide } from '@/lib/processOnboardingClientSide';
 import { usePlanConfig } from '@/lib/plan-config-context';
 import type { PlanConfig } from '@/types/plan-config';
 import type { ExtractedData, AssumptionWithReasoning } from '@/types/ai-onboarding';
@@ -32,10 +32,15 @@ export function OnboardingSelector({ onComplete, onSkip }: OnboardingSelectorPro
       try {
         console.log('[OnboardingSelector] AI Wizard completed', { extractedData, assumptions });
 
-        // Map AI data to calculator inputs
+        // Enrich extracted data with expense assumptions
+        const processed = processOnboardingClientSide(extractedData);
+        const enrichedData = processed.extractedData;
+        const allAssumptions = [...assumptions, ...processed.assumptions];
+
+        // Map enriched data to calculator inputs
         const { generatedAssumptions, ...calculatorInputs } = mapAIDataToCalculator(
-          extractedData,
-          assumptions
+          enrichedData,
+          allAssumptions
         );
 
         console.log('[OnboardingSelector] Mapped calculator inputs:', calculatorInputs);
@@ -46,18 +51,6 @@ export function OnboardingSelector({ onComplete, onSkip }: OnboardingSelectorPro
           configUpdate.assumptions = generatedAssumptions;
         }
         updateConfig(configUpdate, 'ai-suggested');
-
-        // Save income data for income calculators (legacy support)
-        saveSharedIncomeData({
-          maritalStatus: extractedData.maritalStatus ?? 'single',
-          state: extractedData.state,
-          employmentType1: extractedData.employmentType1 ?? 'w2',
-          primaryIncome: extractedData.primaryIncome ?? 100000,
-          employmentType2: extractedData.employmentType2,
-          spouseIncome: extractedData.spouseIncome,
-          source: 'ai-onboarding',
-          timestamp: Date.now(),
-        });
 
         onComplete();
       } catch (error) {

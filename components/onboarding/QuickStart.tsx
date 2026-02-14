@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePlanConfig } from '@/lib/plan-config-context';
 import { mapAIDataToCalculator } from '@/lib/aiOnboardingMapper';
-import { saveSharedIncomeData } from '@/lib/sharedIncomeData';
 import type { ExtractedData } from '@/types/ai-onboarding';
 import { cn } from '@/lib/utils';
 import { ChevronRight, ChevronDown, Sparkles, TrendingUp, Users, PiggyBank, Target, ArrowRight } from 'lucide-react';
@@ -281,15 +280,6 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
       (configUpdate as Record<string, unknown>).assumptions = generatedAssumptions;
     }
     updateConfig(configUpdate, 'ai-suggested');
-
-    // Save for income calculators (legacy)
-    saveSharedIncomeData({
-      maritalStatus,
-      employmentType1: 'w2',
-      primaryIncome: parsedIncome,
-      source: 'quick-start',
-      timestamp: Date.now(),
-    });
 
     onComplete();
   }, [projection, parsedAge, parsedIncome, parsedSavings, maritalStatus, updateConfig, onComplete]);

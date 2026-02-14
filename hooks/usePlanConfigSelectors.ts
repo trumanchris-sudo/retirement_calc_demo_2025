@@ -13,6 +13,13 @@
 import { useMemo, useCallback } from 'react';
 import { usePlanConfig } from '@/lib/plan-config-context';
 import type { PlanConfig } from '@/types/plan-config';
+import { createDefaultPlanConfig } from '@/types/plan-config';
+
+/**
+ * Canonical defaults — all fallback values MUST come from here.
+ * This prevents divergence between selectors and createDefaultPlanConfig().
+ */
+const DEFAULTS = createDefaultPlanConfig();
 
 /**
  * Selector for personal/demographic information
@@ -23,12 +30,12 @@ export function usePersonalInfo() {
 
   const personalInfo = useMemo(
     () => ({
-      marital: config.marital ?? 'single',
-      age1: config.age1 ?? 35,
-      age2: config.age2 ?? 33,
-      retirementAge: config.retirementAge ?? 65,
-      numChildren: config.numChildren ?? 0,
-      childrenAges: config.childrenAges ?? [],
+      marital: config.marital ?? DEFAULTS.marital,
+      age1: config.age1 ?? DEFAULTS.age1,
+      age2: config.age2 ?? DEFAULTS.age2,
+      retirementAge: config.retirementAge ?? DEFAULTS.retirementAge,
+      numChildren: config.numChildren ?? DEFAULTS.numChildren,
+      childrenAges: config.childrenAges ?? DEFAULTS.childrenAges,
     }),
     [config.marital, config.age1, config.age2, config.retirementAge, config.numChildren, config.childrenAges]
   );
@@ -54,10 +61,10 @@ export function useIncomeInfo() {
 
   const incomeInfo = useMemo(
     () => ({
-      employmentType1: config.employmentType1 ?? 'w2',
+      employmentType1: config.employmentType1 ?? DEFAULTS.employmentType1,
       employmentType2: config.employmentType2,
-      primaryIncome: config.primaryIncome ?? 100000,
-      spouseIncome: config.spouseIncome ?? 0,
+      primaryIncome: config.primaryIncome ?? DEFAULTS.primaryIncome,
+      spouseIncome: config.spouseIncome ?? DEFAULTS.spouseIncome,
     }),
     [config.employmentType1, config.employmentType2, config.primaryIncome, config.spouseIncome]
   );
@@ -85,12 +92,12 @@ export function useAccountBalances() {
 
   const balances = useMemo(
     () => ({
-      emergencyFund: config.emergencyFund ?? 20000,
-      taxableBalance: config.taxableBalance ?? 50000,
-      pretaxBalance: config.pretaxBalance ?? 150000,
-      rothBalance: config.rothBalance ?? 25000,
+      emergencyFund: config.emergencyFund ?? DEFAULTS.emergencyFund,
+      taxableBalance: config.taxableBalance ?? DEFAULTS.taxableBalance,
+      pretaxBalance: config.pretaxBalance ?? DEFAULTS.pretaxBalance,
+      rothBalance: config.rothBalance ?? DEFAULTS.rothBalance,
       // Derived value - total balance
-      totalBalance: (config.taxableBalance ?? 50000) + (config.pretaxBalance ?? 150000) + (config.rothBalance ?? 25000),
+      totalBalance: (config.taxableBalance ?? DEFAULTS.taxableBalance) + (config.pretaxBalance ?? DEFAULTS.pretaxBalance) + (config.rothBalance ?? DEFAULTS.rothBalance),
     }),
     [config.emergencyFund, config.taxableBalance, config.pretaxBalance, config.rothBalance]
   );
@@ -116,28 +123,28 @@ export function useContributions() {
 
   const contributions = useMemo(
     () => ({
-      cTax1: config.cTax1 ?? 12000,
-      cPre1: config.cPre1 ?? 23000,
-      cPost1: config.cPost1 ?? 7000,
-      cMatch1: config.cMatch1 ?? 0,
-      cTax2: config.cTax2 ?? 8000,
-      cPre2: config.cPre2 ?? 23000,
-      cPost2: config.cPost2 ?? 7000,
-      cMatch2: config.cMatch2 ?? 0,
+      cTax1: config.cTax1 ?? DEFAULTS.cTax1,
+      cPre1: config.cPre1 ?? DEFAULTS.cPre1,
+      cPost1: config.cPost1 ?? DEFAULTS.cPost1,
+      cMatch1: config.cMatch1 ?? DEFAULTS.cMatch1,
+      cTax2: config.cTax2 ?? DEFAULTS.cTax2,
+      cPre2: config.cPre2 ?? DEFAULTS.cPre2,
+      cPost2: config.cPost2 ?? DEFAULTS.cPost2,
+      cMatch2: config.cMatch2 ?? DEFAULTS.cMatch2,
       // Derived values
       totalPerson1:
-        (config.cTax1 ?? 12000) + (config.cPre1 ?? 23000) + (config.cPost1 ?? 7000) + (config.cMatch1 ?? 0),
+        (config.cTax1 ?? DEFAULTS.cTax1) + (config.cPre1 ?? DEFAULTS.cPre1) + (config.cPost1 ?? DEFAULTS.cPost1) + (config.cMatch1 ?? DEFAULTS.cMatch1),
       totalPerson2:
-        (config.cTax2 ?? 8000) + (config.cPre2 ?? 23000) + (config.cPost2 ?? 7000) + (config.cMatch2 ?? 0),
+        (config.cTax2 ?? DEFAULTS.cTax2) + (config.cPre2 ?? DEFAULTS.cPre2) + (config.cPost2 ?? DEFAULTS.cPost2) + (config.cMatch2 ?? DEFAULTS.cMatch2),
       grandTotal:
-        (config.cTax1 ?? 12000) +
-        (config.cPre1 ?? 23000) +
-        (config.cPost1 ?? 7000) +
-        (config.cMatch1 ?? 0) +
-        (config.cTax2 ?? 8000) +
-        (config.cPre2 ?? 23000) +
-        (config.cPost2 ?? 7000) +
-        (config.cMatch2 ?? 0),
+        (config.cTax1 ?? DEFAULTS.cTax1) +
+        (config.cPre1 ?? DEFAULTS.cPre1) +
+        (config.cPost1 ?? DEFAULTS.cPost1) +
+        (config.cMatch1 ?? DEFAULTS.cMatch1) +
+        (config.cTax2 ?? DEFAULTS.cTax2) +
+        (config.cPre2 ?? DEFAULTS.cPre2) +
+        (config.cPost2 ?? DEFAULTS.cPost2) +
+        (config.cMatch2 ?? DEFAULTS.cMatch2),
     }),
     [
       config.cTax1,
@@ -176,15 +183,15 @@ export function useRateAssumptions() {
 
   const rates = useMemo(
     () => ({
-      retRate: config.retRate ?? 9.8,
-      inflationRate: config.inflationRate ?? 2.6,
-      stateRate: config.stateRate ?? 0,
-      incContrib: config.incContrib ?? false,
-      incRate: config.incRate ?? 4.5,
-      wdRate: config.wdRate ?? 3.5,
-      dividendYield: config.dividendYield ?? 2.0,
+      retRate: config.retRate ?? DEFAULTS.retRate,
+      inflationRate: config.inflationRate ?? DEFAULTS.inflationRate,
+      stateRate: config.stateRate ?? DEFAULTS.stateRate,
+      incContrib: config.incContrib ?? DEFAULTS.incContrib,
+      incRate: config.incRate ?? DEFAULTS.incRate,
+      wdRate: config.wdRate ?? DEFAULTS.wdRate,
+      dividendYield: config.dividendYield ?? DEFAULTS.dividendYield,
       // Derived: real return rate
-      realReturnRate: (config.retRate ?? 9.8) - (config.inflationRate ?? 2.6),
+      realReturnRate: (config.retRate ?? DEFAULTS.retRate) - (config.inflationRate ?? DEFAULTS.inflationRate),
     }),
     [
       config.retRate,
@@ -221,11 +228,11 @@ export function useSocialSecuritySettings() {
 
   const ssSettings = useMemo(
     () => ({
-      includeSS: config.includeSS ?? true,
-      ssIncome: config.ssIncome ?? 75000,
-      ssClaimAge: config.ssClaimAge ?? 67,
-      ssIncome2: config.ssIncome2 ?? 75000,
-      ssClaimAge2: config.ssClaimAge2 ?? 67,
+      includeSS: config.includeSS ?? DEFAULTS.includeSS,
+      ssIncome: config.ssIncome ?? DEFAULTS.ssIncome,
+      ssClaimAge: config.ssClaimAge ?? DEFAULTS.ssClaimAge,
+      ssIncome2: config.ssIncome2 ?? DEFAULTS.ssIncome2,
+      ssClaimAge2: config.ssClaimAge2 ?? DEFAULTS.ssClaimAge2,
     }),
     [config.includeSS, config.ssIncome, config.ssClaimAge, config.ssIncome2, config.ssClaimAge2]
   );
@@ -252,19 +259,19 @@ export function useHealthcareSettings() {
 
   const healthcareSettings = useMemo(
     () => ({
-      includeMedicare: config.includeMedicare ?? true,
-      medicarePremium: config.medicarePremium ?? 400,
-      medicalInflation: config.medicalInflation ?? 5.0,
-      irmaaThresholdSingle: config.irmaaThresholdSingle ?? 109000,
-      irmaaThresholdMarried: config.irmaaThresholdMarried ?? 218000,
-      irmaaSurcharge: config.irmaaSurcharge ?? 230,
-      includeLTC: config.includeLTC ?? false,
-      ltcAnnualCost: config.ltcAnnualCost ?? 80000,
-      ltcProbability: config.ltcProbability ?? 50,
-      ltcDuration: config.ltcDuration ?? 2.5,
-      ltcOnsetAge: config.ltcOnsetAge ?? 82,
-      ltcAgeRangeStart: config.ltcAgeRangeStart ?? 75,
-      ltcAgeRangeEnd: config.ltcAgeRangeEnd ?? 90,
+      includeMedicare: config.includeMedicare ?? DEFAULTS.includeMedicare,
+      medicarePremium: config.medicarePremium ?? DEFAULTS.medicarePremium,
+      medicalInflation: config.medicalInflation ?? DEFAULTS.medicalInflation,
+      irmaaThresholdSingle: config.irmaaThresholdSingle ?? DEFAULTS.irmaaThresholdSingle,
+      irmaaThresholdMarried: config.irmaaThresholdMarried ?? DEFAULTS.irmaaThresholdMarried,
+      irmaaSurcharge: config.irmaaSurcharge ?? DEFAULTS.irmaaSurcharge,
+      includeLTC: config.includeLTC ?? DEFAULTS.includeLTC,
+      ltcAnnualCost: config.ltcAnnualCost ?? DEFAULTS.ltcAnnualCost,
+      ltcProbability: config.ltcProbability ?? DEFAULTS.ltcProbability,
+      ltcDuration: config.ltcDuration ?? DEFAULTS.ltcDuration,
+      ltcOnsetAge: config.ltcOnsetAge ?? DEFAULTS.ltcOnsetAge,
+      ltcAgeRangeStart: config.ltcAgeRangeStart ?? DEFAULTS.ltcAgeRangeStart,
+      ltcAgeRangeEnd: config.ltcAgeRangeEnd ?? DEFAULTS.ltcAgeRangeEnd,
     }),
     [
       config.includeMedicare,
@@ -313,12 +320,12 @@ export function useSimulationSettings() {
 
   const simSettings = useMemo(
     () => ({
-      returnMode: config.returnMode ?? 'randomWalk',
-      seed: config.seed ?? 42,
-      randomWalkSeries: config.randomWalkSeries ?? 'trulyRandom',
+      returnMode: config.returnMode ?? DEFAULTS.returnMode,
+      seed: config.seed ?? DEFAULTS.seed,
+      randomWalkSeries: config.randomWalkSeries ?? DEFAULTS.randomWalkSeries,
       historicalYear: config.historicalYear ?? null,
-      inflationShockRate: config.inflationShockRate ?? 0,
-      inflationShockDuration: config.inflationShockDuration ?? 5,
+      inflationShockRate: config.inflationShockRate ?? (DEFAULTS.inflationShockRate ?? 0),
+      inflationShockDuration: config.inflationShockDuration ?? DEFAULTS.inflationShockDuration,
     }),
     [
       config.returnMode,
@@ -356,12 +363,12 @@ export function useBondGlidePath() {
 
   const glidePath = useMemo(
     () => ({
-      allocationStrategy: config.allocationStrategy ?? 'aggressive',
-      bondStartPct: config.bondStartPct ?? 10,
-      bondEndPct: config.bondEndPct ?? 60,
-      bondStartAge: config.bondStartAge ?? config.age1 ?? 35,
-      bondEndAge: config.bondEndAge ?? 75,
-      glidePathShape: config.glidePathShape ?? 'linear',
+      allocationStrategy: config.allocationStrategy ?? DEFAULTS.allocationStrategy,
+      bondStartPct: config.bondStartPct ?? DEFAULTS.bondStartPct,
+      bondEndPct: config.bondEndPct ?? DEFAULTS.bondEndPct,
+      bondStartAge: config.bondStartAge ?? config.age1 ?? DEFAULTS.age1,
+      bondEndAge: config.bondEndAge ?? DEFAULTS.bondEndAge,
+      glidePathShape: config.glidePathShape ?? DEFAULTS.glidePathShape,
     }),
     [
       config.allocationStrategy,
@@ -399,18 +406,18 @@ export function useGenerationalWealthSettings() {
 
   const genSettings = useMemo(
     () => ({
-      showGen: config.showGen ?? false,
-      hypPerBen: config.hypPerBen ?? 30000,
-      numberOfBeneficiaries: config.numberOfBeneficiaries ?? 2,
-      additionalChildrenExpected: config.additionalChildrenExpected ?? 0,
-      totalFertilityRate: config.totalFertilityRate ?? 2.1,
-      generationLength: config.generationLength ?? 30,
-      fertilityWindowStart: config.fertilityWindowStart ?? 20,
-      fertilityWindowEnd: config.fertilityWindowEnd ?? 45,
-      hypDeathAge: config.hypDeathAge ?? 90,
-      hypMinDistAge: config.hypMinDistAge ?? 18,
-      enableRothConversions: config.enableRothConversions ?? false,
-      targetConversionBracket: config.targetConversionBracket ?? 0.24,
+      showGen: config.showGen ?? DEFAULTS.showGen,
+      hypPerBen: config.hypPerBen ?? DEFAULTS.hypPerBen,
+      numberOfBeneficiaries: config.numberOfBeneficiaries ?? DEFAULTS.numberOfBeneficiaries,
+      additionalChildrenExpected: config.additionalChildrenExpected ?? DEFAULTS.additionalChildrenExpected,
+      totalFertilityRate: config.totalFertilityRate ?? DEFAULTS.totalFertilityRate,
+      generationLength: config.generationLength ?? DEFAULTS.generationLength,
+      fertilityWindowStart: config.fertilityWindowStart ?? DEFAULTS.fertilityWindowStart,
+      fertilityWindowEnd: config.fertilityWindowEnd ?? DEFAULTS.fertilityWindowEnd,
+      hypDeathAge: config.hypDeathAge ?? DEFAULTS.hypDeathAge,
+      hypMinDistAge: config.hypMinDistAge ?? DEFAULTS.hypMinDistAge,
+      enableRothConversions: config.enableRothConversions ?? DEFAULTS.enableRothConversions,
+      targetConversionBracket: config.targetConversionBracket ?? DEFAULTS.targetConversionBracket,
     }),
     [
       config.showGen,
@@ -465,8 +472,8 @@ export function useIsMarried(): boolean {
 export function useYearsToRetirement(): number {
   const { config } = usePlanConfig();
   return useMemo(() => {
-    const younger = Math.min(config.age1 ?? 35, config.marital === 'married' ? (config.age2 ?? 35) : (config.age1 ?? 35));
-    return Math.max(0, (config.retirementAge ?? 65) - younger);
+    const younger = Math.min(config.age1 ?? DEFAULTS.age1, config.marital === 'married' ? (config.age2 ?? DEFAULTS.age2) : (config.age1 ?? DEFAULTS.age1));
+    return Math.max(0, (config.retirementAge ?? DEFAULTS.retirementAge) - younger);
   }, [config.age1, config.age2, config.retirementAge, config.marital]);
 }
 

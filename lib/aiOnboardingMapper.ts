@@ -7,6 +7,14 @@
 import type { ExtractedData, AssumptionWithReasoning } from '@/types/ai-onboarding';
 import type { CalculatorInputs } from '@/types/calculator';
 import { IRS_LIMITS_2026 } from '@/types/onboarding';
+import { createDefaultPlanConfig } from '@/types/plan-config';
+
+/**
+ * Canonical defaults from createDefaultPlanConfig().
+ * All fallback values in this mapper MUST come from here.
+ * Cast to Required<PlanConfig> since createDefaultPlanConfig() provides all fields.
+ */
+const DEFAULTS = createDefaultPlanConfig() as Required<ReturnType<typeof createDefaultPlanConfig>>;
 
 /**
  * State tax rates by state (simplified - top marginal rate)
@@ -22,14 +30,14 @@ const STATE_TAX_RATES: Record<string, number> = {
 };
 
 /**
- * Default return assumptions
+ * Default return assumptions — sourced from createDefaultPlanConfig()
  */
 const DEFAULT_ASSUMPTIONS = {
-  retRate: 9.8,           // Historical S&P 500 nominal return
-  inflationRate: 2.6,     // Long-term inflation average
-  wdRate: 3.5,            // Safe withdrawal rate
-  dividendYield: 2.0,     // Typical dividend yield
-  incRate: 4.5,           // Wage inflation + raises
+  retRate: DEFAULTS.retRate,
+  inflationRate: DEFAULTS.inflationRate,
+  wdRate: DEFAULTS.wdRate,
+  dividendYield: DEFAULTS.dividendYield,
+  incRate: DEFAULTS.incRate,
 };
 
 /**
@@ -157,8 +165,8 @@ export function mapAIDataToCalculator(
   console.log('[Mapper] Validation complete. Warnings:', validationWarnings.length);
 
   // === Personal Information ===
-  const age1 = extractedData.age ?? 35;
-  const marital = extractedData.maritalStatus ?? 'single';
+  const age1 = extractedData.age ?? DEFAULTS.age1;
+  const marital = extractedData.maritalStatus ?? DEFAULTS.marital;
   const age2 = extractedData.spouseAge ?? age1;
 
   if (!extractedData.age) {
@@ -172,10 +180,10 @@ export function mapAIDataToCalculator(
   const additionalChildrenExpected = extractedData.additionalChildrenExpected;
 
   // === Employment & Income ===
-  const employmentType1 = extractedData.employmentType1 ?? 'w2';
+  const employmentType1 = extractedData.employmentType1 ?? DEFAULTS.employmentType1;
   const employmentType2 = extractedData.employmentType2;
-  const primaryIncome = extractedData.primaryIncome ?? 100000;
-  const spouseIncome = extractedData.spouseIncome ?? 0;
+  const primaryIncome = extractedData.primaryIncome ?? DEFAULTS.primaryIncome;
+  const spouseIncome = extractedData.spouseIncome ?? DEFAULTS.spouseIncome;
 
   if (!extractedData.primaryIncome) {
     addAssumption(
@@ -189,9 +197,9 @@ export function mapAIDataToCalculator(
 
   // === Current Balances ===
   const emergencyFund = extractedData.emergencyFund ?? Math.round(primaryIncome * 0.25); // 3 months
-  const taxableBalance = extractedData.currentTaxable ?? 50000;
-  const pretaxBalance = extractedData.currentTraditional ?? 150000;
-  const rothBalance = extractedData.currentRoth ?? 25000;
+  const taxableBalance = extractedData.currentTaxable ?? DEFAULTS.taxableBalance;
+  const pretaxBalance = extractedData.currentTraditional ?? DEFAULTS.pretaxBalance;
+  const rothBalance = extractedData.currentRoth ?? DEFAULTS.rothBalance;
 
   if (!extractedData.emergencyFund) {
     addAssumption(
@@ -718,6 +726,30 @@ function calculateRecommendedRetirementAge(currentAge: number, income: number): 
 
   return Math.max(currentAge + 25, baseAge);
 }
+
+/**
+ * Compile-time field mapping documentation.
+ * Maps ExtractedData field names → PlanConfig/CalculatorInputs field names.
+ * If either side renames a field, TypeScript will catch it here.
+ */
+type _FieldMappingAssertion = {
+  [K in keyof Required<Pick<ExtractedData,
+    'currentTaxable' | 'currentTraditional' | 'currentRoth' |
+    'age' | 'spouseAge' | 'maritalStatus'
+  >>]: K extends 'currentTaxable' ? 'taxableBalance'
+    : K extends 'currentTraditional' ? 'pretaxBalance'
+    : K extends 'currentRoth' ? 'rothBalance'
+    : K extends 'age' ? 'age1'
+    : K extends 'spouseAge' ? 'age2'
+    : K extends 'maritalStatus' ? 'marital'
+    : never;
+};
+
+// Verify the mapping targets exist on CalculatorInputs (compile-time check)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _VerifyMappingTargets = {
+  [K in _FieldMappingAssertion[keyof _FieldMappingAssertion]]: K extends keyof CalculatorInputs ? true : never;
+};
 
 /**
  * Validate that calculator inputs are complete and valid

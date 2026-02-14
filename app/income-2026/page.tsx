@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
+import { createDefaultPlanConfig } from "@/types/plan-config";
 import { loadSharedIncomeData, hasRecentIncomeData } from "@/lib/sharedIncomeData";
 import { fmtFull } from "@/lib/utils";
 import { METRIC_COLORS, TYPOGRAPHY } from "@/lib/designTokens";
@@ -94,7 +95,7 @@ interface YearSummary {
 // ============================================================================
 
 export default function Income2026Page() {
-  const { implied, setImplied } = useBudget();
+  const { setImplied } = useBudget();
   const { config: planConfig, updateConfig: updatePlanConfig } = usePlanConfig();
 
   // Use shared hooks
@@ -104,66 +105,57 @@ export default function Income2026Page() {
   const expenseState = useExpenseState();
 
   // ============================================================================
-  // LOCAL STATE
+  // DEFAULTS (module-level would cause SSR issues, so use a stable ref)
+  // ============================================================================
+  const DEFAULTS = React.useMemo(() => createDefaultPlanConfig(), []);
+
+  // ============================================================================
+  // DERIVED STATE FROM PLANCONFIG (SSOT reads)
   // ============================================================================
 
-  // Marital status
-  const [maritalStatus, setMaritalStatus] = useState<FilingStatus>("single");
+  const maritalStatus = planConfig.marital ?? DEFAULTS.marital;
+  const p1BaseIncome = planConfig.primaryIncome ?? 0;
+  const p2BaseIncome = planConfig.spouseIncome ?? 0;
+  const p1Bonus = planConfig.eoyBonusAmount ?? 0;
+  const p1BonusMonth = planConfig.eoyBonusMonth ?? "December";
+  const p1FirstPayDate = planConfig.firstPayDate ?? "2026-01-15";
+  const p1PreTax401k = planConfig.cPre1 ?? 0;
+  const p1PostTaxRoth = planConfig.cPost1 ?? 0;
+  const p2PreTax401k = planConfig.cPre2 ?? 0;
+  const p2PostTaxRoth = planConfig.cPost2 ?? 0;
+  const p1LifeInsuranceAnnual = planConfig.annualLifeInsuranceP1 ?? 0;
+  const p2LifeInsuranceAnnual = planConfig.annualLifeInsuranceP2 ?? 0;
 
-  // Ages
-  const [p1Age, setP1Age] = useState(30);
-  const [p2Age, setP2Age] = useState(30);
+  // ============================================================================
+  // PAGE-LOCAL STATE (not in PlanConfig)
+  // ============================================================================
 
-  // State for tax calculations
-  const [selectedState, setSelectedState] = useState("");
-
-  // Employment types
-  const [p1EmploymentType, setP1EmploymentType] = useState<'w2' | 'self-employed' | 'both' | 'retired' | 'other'>('w2');
-  const [p2EmploymentType, setP2EmploymentType] = useState<'w2' | 'self-employed' | 'both' | 'retired' | 'other'>('w2');
-
-  // Person 1 Income Inputs
-  const [p1BaseIncome, setP1BaseIncome] = useState(0);
-  const [p1Bonus, setP1Bonus] = useState(0);
-  const [p1BonusMonth, setP1BonusMonth] = useState("December");
+  // Person 1 page-local
   const [p1OvertimeMonthly, setP1OvertimeMonthly] = useState(0);
   const [p1PayFrequency, setP1PayFrequency] = useState<PayFrequency>("biweekly");
-  const [p1FirstPayDate, setP1FirstPayDate] = useState("2026-01-15");
 
-  // Person 1 Pre-tax Deductions
-  const [p1PreTax401k, setP1PreTax401k] = useState(0);
+  // Person 1 Pre-tax Deductions (page-local)
   const [p1PreTaxHealthInsurance, setP1PreTaxHealthInsurance] = useState(0);
   const [p1PreTaxHSA, setP1PreTaxHSA] = useState(0);
   const [p1PreTaxFSA, setP1PreTaxFSA] = useState(0);
 
-  // Person 1 Post-tax Contributions
-  const [p1PostTaxRoth, setP1PostTaxRoth] = useState(0);
-
-  // Person 2 Income Inputs
-  const [p2BaseIncome, setP2BaseIncome] = useState(0);
+  // Person 2 page-local
   const [p2Bonus, setP2Bonus] = useState(0);
   const [p2BonusMonth, setP2BonusMonth] = useState("December");
   const [p2OvertimeMonthly, setP2OvertimeMonthly] = useState(0);
   const [p2PayFrequency, setP2PayFrequency] = useState<PayFrequency>("biweekly");
   const [p2FirstPayDate, setP2FirstPayDate] = useState("2026-01-15");
 
-  // Person 2 Pre-tax Deductions
-  const [p2PreTax401k, setP2PreTax401k] = useState(0);
+  // Person 2 Pre-tax Deductions (page-local)
   const [p2PreTaxHealthInsurance, setP2PreTaxHealthInsurance] = useState(0);
   const [p2PreTaxHSA, setP2PreTaxHSA] = useState(0);
   const [p2PreTaxFSA, setP2PreTaxFSA] = useState(0);
 
-  // Person 2 Post-tax Contributions
-  const [p2PostTaxRoth, setP2PostTaxRoth] = useState(0);
-
-  // Tax Settings
+  // Tax Settings (page-local)
   const [federalWithholdingExtra] = useState(0);
   const [stateWithholdingExtra] = useState(0);
 
-  // Life Insurance
-  const [p1LifeInsuranceAnnual, setP1LifeInsuranceAnnual] = useState(0);
-  const [p2LifeInsuranceAnnual, setP2LifeInsuranceAnnual] = useState(0);
-
-  // Other deductions
+  // Other deductions (page-local)
   const [p1DisabilityInsurance] = useState(0);
 
   // Results state
@@ -179,104 +171,33 @@ export default function Income2026Page() {
   const isMarried = maritalStatus === "married";
 
   // ============================================================================
-  // SSOT SYNC FUNCTIONS
+  // HANDLERS - direct PlanConfig updates (no sync functions needed)
   // ============================================================================
 
-  const updateMaritalStatusInSSOT = useCallback((value: FilingStatus) => {
-    const previousStatus = maritalStatus;
-    setMaritalStatus(value);
-    updatePlanConfig({ marital: value }, 'user-entered');
-    console.log('[INCOME-2026] Wrote marital status to PlanConfig SSOT:', value);
-
-    if (value === 'single' && previousStatus === 'married') {
-      console.log('[INCOME-2026] Clearing spouse data (switched to single)');
-      setP2Age(30);
-      setP2EmploymentType('w2');
-      setP2BaseIncome(0);
+  const handleMaritalStatusChange = useCallback((newStatus: FilingStatus) => {
+    updatePlanConfig({ marital: newStatus }, 'user-entered');
+    if (newStatus === 'single') {
+      updatePlanConfig({
+        spouseIncome: 0, cPre2: 0, cPost2: 0,
+        annualLifeInsuranceP2: 0
+      }, 'user-entered');
+      // Also reset page-local spouse state
       setP2Bonus(0);
       setP2BonusMonth("December");
       setP2OvertimeMonthly(0);
       setP2PayFrequency("biweekly");
       setP2FirstPayDate("2026-01-15");
-      setP2PreTax401k(0);
       setP2PreTaxHealthInsurance(0);
       setP2PreTaxHSA(0);
       setP2PreTaxFSA(0);
-      setP2PostTaxRoth(0);
-      setP2LifeInsuranceAnnual(0);
     }
-  }, [maritalStatus, updatePlanConfig]);
-
-  const updateP1IncomeInSSOT = useCallback((value: number) => {
-    setP1BaseIncome(value);
-    updatePlanConfig({ primaryIncome: value }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateP2IncomeInSSOT = useCallback((value: number) => {
-    setP2BaseIncome(value);
-    updatePlanConfig({ spouseIncome: value }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateP1401kInSSOT = useCallback((value: number) => {
-    setP1PreTax401k(value);
-    updatePlanConfig({ cPre1: value }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateP2401kInSSOT = useCallback((value: number) => {
-    setP2PreTax401k(value);
-    updatePlanConfig({ cPre2: value }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateP1RothInSSOT = useCallback((value: number) => {
-    setP1PostTaxRoth(value);
-    updatePlanConfig({ cPost1: value }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateP2RothInSSOT = useCallback((value: number) => {
-    setP2PostTaxRoth(value);
-    updatePlanConfig({ cPost2: value }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateBonusInSSOT = useCallback((amount: number) => {
-    setP1Bonus(amount);
-    updatePlanConfig({ eoyBonusAmount: amount }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateBonusMonthInSSOT = useCallback((month: string) => {
-    setP1BonusMonth(month);
-    updatePlanConfig({ eoyBonusMonth: month }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateFirstPayDateInSSOT = useCallback((date: string) => {
-    setP1FirstPayDate(date);
-    updatePlanConfig({ firstPayDate: date }, 'user-entered');
   }, [updatePlanConfig]);
 
   // ============================================================================
-  // EFFECTS - PRE-POPULATE FROM PLANCONFIG
+  // EFFECTS - Detect AI onboarding (no pre-population needed)
   // ============================================================================
 
   useEffect(() => {
-    console.log('[INCOME-2026] Pre-populating from PlanConfig:', planConfig);
-
-    if (planConfig.marital) setMaritalStatus(planConfig.marital);
-    if (planConfig.age1 && planConfig.age1 > 0) setP1Age(planConfig.age1);
-    if (planConfig.marital === 'married' && planConfig.age2 && planConfig.age2 > 0) setP2Age(planConfig.age2);
-    if (planConfig.employmentType1) setP1EmploymentType(planConfig.employmentType1);
-    if (planConfig.marital === 'married' && planConfig.employmentType2) setP2EmploymentType(planConfig.employmentType2);
-    if (planConfig.primaryIncome && planConfig.primaryIncome > 0) setP1BaseIncome(planConfig.primaryIncome);
-    if (planConfig.marital === 'married' && planConfig.spouseIncome && planConfig.spouseIncome > 0) setP2BaseIncome(planConfig.spouseIncome);
-    if (planConfig.cPre1 && planConfig.cPre1 > 0) setP1PreTax401k(planConfig.cPre1);
-    if (planConfig.marital === 'married' && planConfig.cPre2 && planConfig.cPre2 > 0) setP2PreTax401k(planConfig.cPre2);
-    if (planConfig.cPost1 && planConfig.cPost1 > 0) setP1PostTaxRoth(planConfig.cPost1);
-    if (planConfig.marital === 'married' && planConfig.cPost2 && planConfig.cPost2 > 0) setP2PostTaxRoth(planConfig.cPost2);
-    if (planConfig.eoyBonusAmount && planConfig.eoyBonusAmount > 0) setP1Bonus(planConfig.eoyBonusAmount);
-    if (planConfig.eoyBonusMonth) setP1BonusMonth(planConfig.eoyBonusMonth);
-    if (planConfig.firstPayDate) setP1FirstPayDate(planConfig.firstPayDate);
-    if (planConfig.annualLifeInsuranceP1 && planConfig.annualLifeInsuranceP1 > 0) setP1LifeInsuranceAnnual(planConfig.annualLifeInsuranceP1);
-    if (planConfig.marital === 'married' && planConfig.annualLifeInsuranceP2 && planConfig.annualLifeInsuranceP2 > 0) setP2LifeInsuranceAnnual(planConfig.annualLifeInsuranceP2);
-
-    // Detect AI onboarding
     const hasAISuggestedFields = planConfig.fieldMetadata &&
       Object.values(planConfig.fieldMetadata).some((meta: { source?: string }) => meta?.source === 'ai-suggested');
     if (hasAISuggestedFields) {
@@ -284,28 +205,17 @@ export default function Income2026Page() {
       setShowAIBanner(true);
     }
 
-    // Fallback to budget context
-    if (!planConfig.primaryIncome || planConfig.primaryIncome === 0) {
-      if (implied && implied.grossIncome > 0) {
-        const estimatedBaseIncome = implied.grossIncome * 0.5;
-        setP1BaseIncome(Math.round(estimatedBaseIncome));
-        if (implied.maritalStatus === 'married') {
-          setP2BaseIncome(Math.round(estimatedBaseIncome));
-        }
-      }
-    }
-
     // Legacy sharedIncomeData
     if (!hasAISuggestedFields && hasRecentIncomeData()) {
       const sharedData = loadSharedIncomeData();
       if (sharedData && sharedData.source === 'ai-onboarding') {
-        if (!planConfig.primaryIncome) setP1BaseIncome(sharedData.primaryIncome);
-        if (!planConfig.spouseIncome && sharedData.spouseIncome) setP2BaseIncome(sharedData.spouseIncome);
+        if (!planConfig.primaryIncome) updatePlanConfig({ primaryIncome: sharedData.primaryIncome }, 'imported');
+        if (!planConfig.spouseIncome && sharedData.spouseIncome) updatePlanConfig({ spouseIncome: sharedData.spouseIncome }, 'imported');
         setIsFromAIOnboarding(true);
         setShowAIBanner(true);
       }
     }
-  }, [planConfig, implied]);
+  }, [planConfig, updatePlanConfig]);
 
   // ============================================================================
   // HANDLERS
@@ -314,38 +224,23 @@ export default function Income2026Page() {
   const handleClearAIData = useCallback(() => {
     setIsFromAIOnboarding(false);
     setShowAIBanner(false);
-    setMaritalStatus('single');
-    setP1BaseIncome(0);
-    setP2BaseIncome(0);
-  }, []);
+    updatePlanConfig({ marital: 'single', primaryIncome: 0, spouseIncome: 0 }, 'user-entered');
+  }, [updatePlanConfig]);
 
   const handleApplyToMainPlan = useCallback(() => {
     const effectiveTaxRate = results?.yearSummary?.effectiveTaxRate ?? 0;
 
+    // Income fields are already in PlanConfig; push housing/expense fields
     updatePlanConfig({
-      marital: maritalStatus,
-      primaryIncome: p1BaseIncome,
-      spouseIncome: isMarried ? p2BaseIncome : 0,
-      cPre1: p1PreTax401k,
-      cPre2: isMarried ? p2PreTax401k : 0,
-      cPost1: p1PostTaxRoth,
-      cPost2: isMarried ? p2PostTaxRoth : 0,
       monthlyMortgageRent: housingState.housingType === 'rent' ? housingState.rentPayment : housingState.mortgagePayment,
       monthlyUtilities: expenseState.monthlyUtilities,
       monthlyHealthcareP1: expenseState.monthlyHealthcare,
       monthlyOtherExpenses: expenseState.monthlyOtherExpenses,
-      eoyBonusAmount: p1Bonus,
-      eoyBonusMonth: p1BonusMonth,
-      firstPayDate: p1FirstPayDate,
     }, 'user-entered');
 
     console.log('[INCOME-2026] Calculated effective tax rate:', (effectiveTaxRate * 100).toFixed(1) + '%');
     alert('Your 2026 income data has been applied to your main retirement plan!');
-  }, [
-    results, maritalStatus, p1BaseIncome, p2BaseIncome, isMarried,
-    p1PreTax401k, p2PreTax401k, p1PostTaxRoth, p2PostTaxRoth,
-    housingState, expenseState, p1Bonus, p1BonusMonth, p1FirstPayDate, updatePlanConfig
-  ]);
+  }, [results, housingState, expenseState, updatePlanConfig]);
 
   // ============================================================================
   // CALCULATION LOGIC
@@ -963,7 +858,7 @@ export default function Income2026Page() {
       <SectionCard id="household-setup" title="Household Setup">
         <div className="space-y-2 max-w-xs">
           <Label htmlFor="marital-status">Marital Status</Label>
-          <Select value={maritalStatus} onValueChange={(value: FilingStatus) => { updateMaritalStatusInSSOT(value); calculationState.handleInputChange(); }}>
+          <Select value={maritalStatus} onValueChange={(value: FilingStatus) => { handleMaritalStatusChange(value); calculationState.handleInputChange(); }}>
             <SelectTrigger id="marital-status"><SelectValue placeholder="Select marital status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="single">Single</SelectItem>
@@ -983,12 +878,12 @@ export default function Income2026Page() {
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Income Sources</h4>
             <div className="space-y-4">
-              <DualInputField label="Base Annual Salary" value1={p1BaseIncome} onChange1={updateP1IncomeInSSOT} value2={p2BaseIncome} onChange2={updateP2IncomeInSSOT} />
-              <DualInputField label="Annual Bonus" value1={p1Bonus} onChange1={updateBonusInSSOT} value2={p2Bonus} onChange2={setP2Bonus} />
-              <DualSelectField label="Bonus Payment Month" idPrefix="bonus-month" value1={p1BonusMonth} onChange1={updateBonusMonthInSSOT} value2={p2BonusMonth} onChange2={setP2BonusMonth} options={MONTHS.slice(0, 12)} />
+              <DualInputField label="Base Annual Salary" value1={p1BaseIncome} onChange1={(v) => updatePlanConfig({ primaryIncome: v }, 'user-entered')} value2={p2BaseIncome} onChange2={(v) => updatePlanConfig({ spouseIncome: v }, 'user-entered')} />
+              <DualInputField label="Annual Bonus" value1={p1Bonus} onChange1={(v) => updatePlanConfig({ eoyBonusAmount: v }, 'user-entered')} value2={p2Bonus} onChange2={setP2Bonus} />
+              <DualSelectField label="Bonus Payment Month" idPrefix="bonus-month" value1={p1BonusMonth} onChange1={(v) => updatePlanConfig({ eoyBonusMonth: v }, 'user-entered')} value2={p2BonusMonth} onChange2={setP2BonusMonth} options={MONTHS.slice(0, 12)} />
               <DualInputField label="Estimated Monthly Overtime" value1={p1OvertimeMonthly} onChange1={setP1OvertimeMonthly} value2={p2OvertimeMonthly} onChange2={setP2OvertimeMonthly} />
               <DualSelectField label="Pay Frequency" idPrefix="pay-frequency" value1={p1PayFrequency} onChange1={(v) => setP1PayFrequency(v as PayFrequency)} value2={p2PayFrequency} onChange2={(v) => setP2PayFrequency(v as PayFrequency)} options={["biweekly", "semimonthly", "monthly", "weekly"]} />
-              <DualDateField label="First Pay Date" idPrefix="first-pay-date" value1={p1FirstPayDate} onChange1={updateFirstPayDateInSSOT} value2={p2FirstPayDate} onChange2={setP2FirstPayDate} />
+              <DualDateField label="First Pay Date" idPrefix="first-pay-date" value1={p1FirstPayDate} onChange1={(v) => updatePlanConfig({ firstPayDate: v }, 'user-entered')} value2={p2FirstPayDate} onChange2={setP2FirstPayDate} />
             </div>
           </div>
 
@@ -997,7 +892,7 @@ export default function Income2026Page() {
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Annual Pre-Tax Deductions</h4>
             <div className="space-y-4">
-              <DualInputField label="401(k) Contribution (Annual)" value1={p1PreTax401k} onChange1={updateP1401kInSSOT} value2={p2PreTax401k} onChange2={updateP2401kInSSOT} />
+              <DualInputField label="401(k) Contribution (Annual)" value1={p1PreTax401k} onChange1={(v) => updatePlanConfig({ cPre1: v }, 'user-entered')} value2={p2PreTax401k} onChange2={(v) => updatePlanConfig({ cPre2: v }, 'user-entered')} />
               <DualInputField label="Health Insurance Premium" value1={p1PreTaxHealthInsurance} onChange1={setP1PreTaxHealthInsurance} value2={p2PreTaxHealthInsurance} onChange2={setP2PreTaxHealthInsurance} />
               <DualInputField label="HSA Contribution" value1={p1PreTaxHSA} onChange1={setP1PreTaxHSA} value2={p2PreTaxHSA} onChange2={setP2PreTaxHSA} />
               <DualInputField label="FSA Contribution" value1={p1PreTaxFSA} onChange1={setP1PreTaxFSA} value2={p2PreTaxFSA} onChange2={setP2PreTaxFSA} />
@@ -1009,7 +904,7 @@ export default function Income2026Page() {
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Post-Tax Retirement Contributions</h4>
             <div className="space-y-4">
-              <DualInputField label="Roth IRA/401(k) Contribution (Annual)" value1={p1PostTaxRoth} onChange1={updateP1RothInSSOT} value2={p2PostTaxRoth} onChange2={updateP2RothInSSOT} />
+              <DualInputField label="Roth IRA/401(k) Contribution (Annual)" value1={p1PostTaxRoth} onChange1={(v) => updatePlanConfig({ cPost1: v }, 'user-entered')} value2={p2PostTaxRoth} onChange2={(v) => updatePlanConfig({ cPost2: v }, 'user-entered')} />
             </div>
           </div>
         </div>
@@ -1066,9 +961,9 @@ export default function Income2026Page() {
           <div>
             <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Life Insurance</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Your Life Insurance (Annual)" value={p1LifeInsuranceAnnual} setter={(v) => { setP1LifeInsuranceAnnual(v); calculationState.handleInputChange(); }} onInputChange={calculationState.handleInputChange} />
+              <Input label="Your Life Insurance (Annual)" value={p1LifeInsuranceAnnual} setter={(v) => { updatePlanConfig({ annualLifeInsuranceP1: v }, 'user-entered'); calculationState.handleInputChange(); }} onInputChange={calculationState.handleInputChange} />
               {isMarried && (
-                <Input label="Spouse Life Insurance (Annual)" value={p2LifeInsuranceAnnual} setter={(v) => { setP2LifeInsuranceAnnual(v); calculationState.handleInputChange(); }} onInputChange={calculationState.handleInputChange} />
+                <Input label="Spouse Life Insurance (Annual)" value={p2LifeInsuranceAnnual} setter={(v) => { updatePlanConfig({ annualLifeInsuranceP2: v }, 'user-entered'); calculationState.handleInputChange(); }} onInputChange={calculationState.handleInputChange} />
               )}
             </div>
           </div>

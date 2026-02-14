@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Calculator, TrendingUp, Info, DollarSign, Building2, Home } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/calculator/InputHelpers";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
+import { createDefaultPlanConfig } from "@/types/plan-config";
 import { loadSharedIncomeData, hasRecentIncomeData } from "@/lib/sharedIncomeData";
 import {
   FilingStatus as SEFilingStatus,
@@ -61,12 +62,34 @@ export default function SelfEmployed2026Page() {
   const calculationState = useCalculationState();
 
   // ============================================================================
-  // STATE MANAGEMENT
+  // DEFAULTS FOR FALLBACK VALUES
+  // ============================================================================
+  const DEFAULTS = useMemo(() => createDefaultPlanConfig(), []);
+
+  // ============================================================================
+  // DERIVED STATE FROM PLANCONFIG (Single Source of Truth)
   // ============================================================================
 
-  // Income Section — seeded from PlanConfig; hardcoded defaults removed
-  const [grossCompensation, setGrossCompensation] = useState(planConfig.primaryIncome || 0);
-  const [guaranteedPayments, setGuaranteedPayments] = useState(planConfig.primaryIncome || 0);
+  const filingStatus: SEFilingStatus = planConfig.marital === 'married' ? 'mfj' : 'single';
+  const age = planConfig.age1 ?? DEFAULTS.age1;
+  const spouseAge = planConfig.age2 ?? DEFAULTS.age2;
+  const spouseW2Income = planConfig.spouseIncome ?? 0;
+  const traditional401k = planConfig.cPre1 ?? DEFAULTS.cPre1;
+  const roth401k = planConfig.cPost1 ?? DEFAULTS.cPost1;
+  const spouseTraditional401k = planConfig.cPre2 ?? 0;
+  const spouseRoth401k = planConfig.cPost2 ?? 0;
+  const solo401kEmployer = planConfig.cMatch1 ?? 0;
+  const stateRate = planConfig.stateRate ?? DEFAULTS.stateRate;
+  const guaranteedPayments = planConfig.primaryIncome ?? 0;
+
+  // ============================================================================
+  // PAGE-LOCAL STATE (not in PlanConfig)
+  // ============================================================================
+
+  // grossCompensation: user can set independently from guaranteedPayments
+  const [grossCompensation, setGrossCompensation] = useState(() =>
+    Math.round((planConfig.primaryIncome ?? 0) * 1.3)
+  );
   const [payFrequency, setPayFrequency] = useState<PayFrequency>("semimonthly");
 
   // Distributive Share Schedule
@@ -75,26 +98,13 @@ export default function SelfEmployed2026Page() {
   const [statePTETAlreadyPaid, setStatePTETAlreadyPaid] = useState(false);
   const [federalEstimatesAlreadyPaid, setFederalEstimatesAlreadyPaid] = useState(false);
 
-  // Filing Status & Spouse — seeded from PlanConfig
-  const [filingStatus, setFilingStatus] = useState<SEFilingStatus>(
-    planConfig.marital === 'married' ? 'mfj' : 'single'
-  );
-  const [spouseW2Income, setSpouseW2Income] = useState(planConfig.spouseIncome || 0);
+  // Spouse local-only fields
   const [spouseWithholding, setSpouseWithholding] = useState(1577);
   const [spousePayFrequency, setSpousePayFrequency] = useState<PayFrequency>("biweekly");
 
-  // Retirement & Benefits — seeded from PlanConfig
-  const [age, setAge] = useState(planConfig.age1 || 35);
-  const [traditional401k, setTraditional401k] = useState(24500);
-  const [roth401k, setRoth401k] = useState(0);
+  // Retirement (page-local, not in PlanConfig)
   const [definedBenefitPlan, setDefinedBenefitPlan] = useState(26500);
   const [sepIRA, setSepIRA] = useState(0);
-  const [solo401kEmployer, setSolo401kEmployer] = useState(0);
-
-  // Spouse Retirement — seeded from PlanConfig
-  const [spouseAge, setSpouseAge] = useState(planConfig.age2 || 30);
-  const [spouseTraditional401k, setSpouseTraditional401k] = useState(0);
-  const [spouseRoth401k, setSpouseRoth401k] = useState(0);
 
   // Health Benefits
   const [healthInsuranceCoverage, setHealthInsuranceCoverage] = useState<'self' | 'self_spouse' | 'family' | 'none'>('self');
@@ -104,8 +114,7 @@ export default function SelfEmployed2026Page() {
   const [dependentCareFSA, setDependentCareFSA] = useState(5000);
   const [healthFSA, setHealthFSA] = useState(0);
 
-  // State Taxes — seeded from PlanConfig
-  const [stateRate, setStateRate] = useState(planConfig.stateRate || 4.5);
+  // State tax local-only fields
   const [withholdingMethod, setWithholdingMethod] = useState<'partnership_withholds' | 'quarterly_estimates'>('partnership_withholds');
 
   // Fixed Expenses
@@ -117,6 +126,7 @@ export default function SelfEmployed2026Page() {
   const [results, setResults] = useState<{
     periods: PerPeriodCashFlow[];
     yearSummary: YearSummary;
+    // Reason: seTaxResult and federalTaxResult come from calculation engine with dynamic shape
     seTaxResult: any;
     federalTaxResult: any;
   } | null>(null);
@@ -135,118 +145,26 @@ export default function SelfEmployed2026Page() {
   const isMarried = filingStatus === 'mfj';
 
   // ============================================================================
-  // SSOT SYNC FUNCTIONS
+  // FILING STATUS HANDLER
   // ============================================================================
 
-  const updateMaritalInSSOT = useCallback((value: string) => {
-    const previousStatus = filingStatus;
-    const newIsSingle = value !== 'mfj';
-    const wasMarried = previousStatus === 'mfj';
-
-    setFilingStatus(value as SEFilingStatus);
-    updatePlanConfig({
-      marital: value === 'mfj' ? 'married' : 'single'
-    }, 'user-entered');
-    console.log('[SelfEmployed2026] Wrote marital status to PlanConfig SSOT:', value);
-
-    if (newIsSingle && wasMarried) {
-      console.log('[SelfEmployed2026] Clearing spouse data (switched to single)');
-      setSpouseW2Income(0);
+  const handleFilingStatusChange = useCallback((newStatus: string) => {
+    const maritalValue = newStatus === 'mfj' ? 'married' : 'single';
+    updatePlanConfig({ marital: maritalValue }, 'user-entered');
+    if (maritalValue === 'single') {
+      updatePlanConfig({ spouseIncome: 0, cPre2: 0, cPost2: 0 }, 'user-entered');
+      // Clear local-only spouse fields
       setSpouseWithholding(0);
       setSpousePayFrequency("biweekly");
-      setSpouseAge(30);
-      setSpouseTraditional401k(0);
-      setSpouseRoth401k(0);
     }
-  }, [filingStatus, updatePlanConfig]);
-
-  const updateGuaranteedPaymentsInSSOT = useCallback((value: number) => {
-    setGuaranteedPayments(value);
-    updatePlanConfig({ primaryIncome: value }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateSpouseIncomeInSSOT = useCallback((value: number) => {
-    setSpouseW2Income(value);
-    updatePlanConfig({ spouseIncome: value }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateTraditional401kInSSOT = useCallback((value: number) => {
-    setTraditional401k(value);
-    updatePlanConfig({ cPre1: value }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateRoth401kInSSOT = useCallback((value: number) => {
-    setRoth401k(value);
-    updatePlanConfig({ cPost1: value }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateSpouseTraditional401kInSSOT = useCallback((value: number) => {
-    setSpouseTraditional401k(value);
-    updatePlanConfig({ cPre2: value }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateSpouseRoth401kInSSOT = useCallback((value: number) => {
-    setSpouseRoth401k(value);
-    updatePlanConfig({ cPost2: value }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateAgeInSSOT = useCallback((value: number) => {
-    setAge(value);
-    updatePlanConfig({ age1: value }, 'user-entered');
-  }, [updatePlanConfig]);
-
-  const updateSpouseAgeInSSOT = useCallback((value: number) => {
-    setSpouseAge(value);
-    updatePlanConfig({ age2: value }, 'user-entered');
   }, [updatePlanConfig]);
 
   // ============================================================================
-  // EFFECTS - PRE-POPULATE FROM PLANCONFIG
+  // EFFECTS - INITIALIZE PAGE-LOCAL STATE FROM PLANCONFIG (one-time setup)
   // ============================================================================
 
   useEffect(() => {
-    if (planConfig.marital) {
-      setFilingStatus(planConfig.marital === 'married' ? 'mfj' : 'single');
-    }
-
-    if (planConfig.age1 && planConfig.age1 > 0) setAge(planConfig.age1);
-    if (planConfig.age2 && planConfig.age2 > 0) setSpouseAge(planConfig.age2);
-
-    if (planConfig.stateRate !== undefined && planConfig.stateRate > 0) {
-      setStateRate(planConfig.stateRate);
-    }
-
-    const isSelfEmployed =
-      planConfig.employmentType1 === 'self-employed' ||
-      planConfig.employmentType1 === 'both';
-
-    if (isSelfEmployed && planConfig.primaryIncome && planConfig.primaryIncome > 0) {
-      setGuaranteedPayments(planConfig.primaryIncome);
-      const estimatedGross = Math.round(planConfig.primaryIncome * 1.3);
-      setGrossCompensation(estimatedGross);
-    }
-
-    if (planConfig.marital === 'married' && planConfig.spouseIncome && planConfig.spouseIncome > 0) {
-      setSpouseW2Income(planConfig.spouseIncome);
-    }
-
-    if (planConfig.cPre1 !== undefined && planConfig.cPre1 > 0) {
-      setTraditional401k(planConfig.cPre1);
-    }
-
-    if (planConfig.cPost1 !== undefined && planConfig.cPost1 > 0) {
-      setRoth401k(planConfig.cPost1);
-    }
-
-    if (planConfig.marital === 'married') {
-      if (planConfig.cPre2 !== undefined && planConfig.cPre2 > 0) {
-        setSpouseTraditional401k(planConfig.cPre2);
-      }
-      if (planConfig.cPost2 !== undefined && planConfig.cPost2 > 0) {
-        setSpouseRoth401k(planConfig.cPost2);
-      }
-    }
-
+    // Initialize health insurance coverage based on marital status
     if (planConfig.marital === 'married') {
       if (planConfig.numChildren && planConfig.numChildren > 0) {
         setHealthInsuranceCoverage('family');
@@ -262,7 +180,7 @@ export default function SelfEmployed2026Page() {
       setHealthInsurancePremium(totalMonthlyHealthcare * 12);
     }
 
-    const currentAge = planConfig.age1 || 35;
+    const currentAge = planConfig.age1 ?? 35;
     const isFamilyCoverage = planConfig.marital === 'married';
     const hsaBaseLimit = isFamilyCoverage ? HSA_LIMITS_2026.FAMILY : HSA_LIMITS_2026.SELF_ONLY;
     const hsaCatchUp = currentAge >= 55 ? HSA_LIMITS_2026.CATCHUP_55_PLUS : 0;
@@ -295,9 +213,18 @@ export default function SelfEmployed2026Page() {
       setDiscretionaryBudget(planConfig.monthlyDiscretionary);
     }
 
+    // Initialize grossCompensation from primaryIncome
+    const isSelfEmployed =
+      planConfig.employmentType1 === 'self-employed' ||
+      planConfig.employmentType1 === 'both';
+
+    if (isSelfEmployed && planConfig.primaryIncome && planConfig.primaryIncome > 0) {
+      setGrossCompensation(Math.round(planConfig.primaryIncome * 1.3));
+    }
+
     // Detect AI onboarding
     const hasAISuggestedFields = planConfig.fieldMetadata &&
-      Object.values(planConfig.fieldMetadata).some((meta: any) => meta?.source === 'ai-suggested');
+      Object.values(planConfig.fieldMetadata).some((meta) => meta?.source === 'ai-suggested');
     if (hasAISuggestedFields) {
       setIsFromAIOnboarding(true);
       setShowAIBanner(true);
@@ -312,11 +239,12 @@ export default function SelfEmployed2026Page() {
           sharedData.source === 'ai-onboarding' &&
           (sharedData.employmentType1 === 'self-employed' || sharedData.employmentType1 === 'both')
         ) {
-          setGuaranteedPayments(sharedData.primaryIncome);
+          // Write to PlanConfig SSOT instead of local state
+          updatePlanConfig({ primaryIncome: sharedData.primaryIncome }, 'imported');
           setGrossCompensation(Math.round(sharedData.primaryIncome * 1.3));
 
           if (sharedData.maritalStatus === 'married' && sharedData.spouseIncome) {
-            setSpouseW2Income(sharedData.spouseIncome);
+            updatePlanConfig({ spouseIncome: sharedData.spouseIncome }, 'imported');
           }
 
           setIsFromAIOnboarding(true);
@@ -324,7 +252,8 @@ export default function SelfEmployed2026Page() {
         }
       }
     }
-  }, [planConfig]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ============================================================================
   // HANDLERS
@@ -333,11 +262,9 @@ export default function SelfEmployed2026Page() {
   const handleClearAIData = useCallback(() => {
     setIsFromAIOnboarding(false);
     setShowAIBanner(false);
-    setFilingStatus('single');
+    updatePlanConfig({ marital: 'single', primaryIncome: 0, spouseIncome: 0 }, 'user-entered');
     setGrossCompensation(0);
-    setGuaranteedPayments(0);
-    setSpouseW2Income(0);
-  }, []);
+  }, [updatePlanConfig]);
 
   const handleApplyToMainPlan = useCallback(() => {
     const seTaxDeductible = results?.seTaxResult?.deductiblePortion ?? 0;
@@ -823,7 +750,7 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
                 </span>
               }
               value={guaranteedPayments}
-              setter={(v) => { updateGuaranteedPaymentsInSSOT(v); calculationState.handleInputChange(); }}
+              setter={(v) => { updatePlanConfig({ primaryIncome: v }, 'user-entered'); calculationState.handleInputChange(); }}
             />
           </div>
         </div>
@@ -929,7 +856,7 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <Label>Filing Status</Label>
-            <Select value={filingStatus} onValueChange={(value: SEFilingStatus) => { updateMaritalInSSOT(value); calculationState.handleInputChange(); }}>
+            <Select value={filingStatus} onValueChange={(value: SEFilingStatus) => { handleFilingStatusChange(value); calculationState.handleInputChange(); }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="single">Single</SelectItem>
@@ -949,7 +876,7 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
               <Input
                 label="Spouse W-2 Annual Income"
                 value={spouseW2Income}
-                setter={(v) => { updateSpouseIncomeInSSOT(v); calculationState.handleInputChange(); }}
+                setter={(v) => { updatePlanConfig({ spouseIncome: v }, 'user-entered'); calculationState.handleInputChange(); }}
               />
               <Input
                 label="Spouse Federal Withholding (per paycheck)"
@@ -983,7 +910,7 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
           <Input
             label="Your Age"
             value={age}
-            setter={(v) => { updateAgeInSSOT(v); calculationState.handleInputChange(); }}
+            setter={(v) => { updatePlanConfig({ age1: v }, 'user-entered'); calculationState.handleInputChange(); }}
           />
           <p className="text-xs text-muted-foreground mt-1">
             Age {age}: Max 401(k) is {fmtFull(max401k)}
@@ -999,12 +926,12 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
           <Input
             label="Traditional 401(k)"
             value={traditional401k}
-            setter={(v) => { updateTraditional401kInSSOT(v); calculationState.handleInputChange(); }}
+            setter={(v) => { updatePlanConfig({ cPre1: v }, 'user-entered'); calculationState.handleInputChange(); }}
           />
           <Input
             label="Roth 401(k)"
             value={roth401k}
-            setter={(v) => { updateRoth401kInSSOT(v); calculationState.handleInputChange(); }}
+            setter={(v) => { updatePlanConfig({ cPost1: v }, 'user-entered'); calculationState.handleInputChange(); }}
           />
           <Input
             label="Defined Benefit Plan"
@@ -1035,17 +962,17 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
               <Input
                 label="Spouse Age"
                 value={spouseAge}
-                setter={(v) => { updateSpouseAgeInSSOT(v); calculationState.handleInputChange(); }}
+                setter={(v) => { updatePlanConfig({ age2: v }, 'user-entered'); calculationState.handleInputChange(); }}
               />
               <Input
                 label="Spouse Traditional 401(k)"
                 value={spouseTraditional401k}
-                setter={(v) => { updateSpouseTraditional401kInSSOT(v); calculationState.handleInputChange(); }}
+                setter={(v) => { updatePlanConfig({ cPre2: v }, 'user-entered'); calculationState.handleInputChange(); }}
               />
               <Input
                 label="Spouse Roth 401(k)"
                 value={spouseRoth401k}
-                setter={(v) => { updateSpouseRoth401kInSSOT(v); calculationState.handleInputChange(); }}
+                setter={(v) => { updatePlanConfig({ cPost2: v }, 'user-entered'); calculationState.handleInputChange(); }}
               />
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -1111,7 +1038,7 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
             <Input
               label="Estimated State Tax Rate (%)"
               value={stateRate}
-              setter={(v) => { setStateRate(v); calculationState.handleInputChange(); }}
+              setter={(v) => { updatePlanConfig({ stateRate: v }, 'user-entered'); calculationState.handleInputChange(); }}
               isRate
             />
             <p className="text-xs text-muted-foreground mt-1">

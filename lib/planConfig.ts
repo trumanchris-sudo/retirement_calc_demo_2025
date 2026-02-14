@@ -290,55 +290,5 @@ export function migrateConfig(data: unknown): PlanConfig {
   };
 }
 
-// ==================== Local Storage Helpers ====================
-// DEPRECATED: These functions duplicate the PlanConfigProvider's localStorage handling.
-// The context in lib/plan-config-context.tsx is the authoritative source.
-// These functions are not currently used and should be removed in a future cleanup.
-
-const STORAGE_KEY = 'retirement_plan_config';
-
-/**
- * @deprecated Use usePlanConfig() hook from lib/plan-config-context.tsx instead.
- * The context auto-loads from localStorage on mount.
- */
-export function loadConfigFromStorage(): PlanConfig {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return DEFAULT_PLAN_CONFIG;
-
-    const parsed = JSON.parse(stored);
-    return migrateConfig(parsed);
-  } catch (error) {
-    console.error('[CONFIG] Failed to load from storage:', error);
-    return DEFAULT_PLAN_CONFIG;
-  }
-}
-
-/**
- * @deprecated Use updateConfig() from usePlanConfig() hook instead.
- * The context auto-saves to localStorage on every config change.
- */
-export function saveConfigToStorage(config: Partial<PlanConfig>): void {
-  try {
-    const current = loadConfigFromStorage();
-    const updated = {
-      ...current,
-      ...config,
-      metadata: {
-        ...current.metadata,
-        lastModified: Date.now(),
-      },
-    };
-
-    // Validate before saving
-    const validation = validatePlanConfig(updated);
-    if (!validation.isValid) {
-      console.error('[CONFIG] Validation failed:', validation.errors);
-      return;
-    }
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  } catch (error) {
-    console.error('[CONFIG] Failed to save to storage:', error);
-  }
-}
+// Local Storage Helpers (loadConfigFromStorage, saveConfigToStorage) removed.
+// Use usePlanConfig() hook from lib/plan-config-context.tsx instead.

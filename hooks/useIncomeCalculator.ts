@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { usePlanConfig } from "@/lib/plan-config-context";
 import { useBudget } from "@/lib/budget-context";
-import { loadSharedIncomeData, clearSharedIncomeData, hasRecentIncomeData } from "@/lib/sharedIncomeData";
 
 /**
  * Shared types for income calculators
@@ -93,7 +92,6 @@ export function useAIOnboardingState(): AIOnboardingState {
   const [showAIBanner, setShowAIBanner] = useState(false);
 
   const handleClearAIData = useCallback(() => {
-    clearSharedIncomeData();
     setIsFromAIOnboarding(false);
     setShowAIBanner(false);
   }, []);
@@ -324,13 +322,6 @@ export function useDetectAIOnboarding(
       setIsFromAIOnboarding(true);
       setShowAIBanner(true);
       console.log('[useIncomeCalculator] Detected AI-suggested data via PlanConfig fieldMetadata');
-    } else if (hasRecentIncomeData()) {
-      const sharedData = loadSharedIncomeData();
-      if (sharedData && sharedData.source === 'ai-onboarding') {
-        setIsFromAIOnboarding(true);
-        setShowAIBanner(true);
-        console.log('[useIncomeCalculator] Found legacy AI onboarding data');
-      }
     }
   }, [planConfig.fieldMetadata, setIsFromAIOnboarding, setShowAIBanner]);
 }

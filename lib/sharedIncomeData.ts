@@ -1,75 +1,51 @@
 /**
  * Shared Income Data Store
  *
- * Stores income and employment data from AI onboarding for use across calculators
+ * @deprecated This module is deprecated. All income and employment data should be
+ * read from PlanConfig context (usePlanConfig hook) which is the single source of truth.
+ * The save/load functions are no-ops and will be removed in a future cleanup.
+ *
+ * Migration: Use `usePlanConfig()` to read `primaryIncome`, `spouseIncome`,
+ * `employmentType1`, `employmentType2`, `marital` directly from context.
  */
 
 export interface SharedIncomeData {
-  // Personal Information
   maritalStatus: 'single' | 'married';
   state?: string;
-
-  // Person 1
   employmentType1: 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
   primaryIncome: number;
-
-  // Person 2 (if married)
   employmentType2?: 'w2' | 'self-employed' | 'both' | 'retired' | 'other';
   spouseIncome?: number;
-
-  // Metadata
   source: 'ai-onboarding' | 'quick-start' | 'manual';
   timestamp: number;
 }
 
-const STORAGE_KEY = 'shared_income_data';
-
-/**
- * Save income data to localStorage
- */
-export function saveSharedIncomeData(data: SharedIncomeData): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (error) {
-    console.error('[SharedIncomeData] Failed to save:', error);
+/** @deprecated No-op. Use PlanConfig context instead. */
+export function saveSharedIncomeData(_data: SharedIncomeData): void {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[SharedIncomeData] DEPRECATED: saveSharedIncomeData is a no-op. Use PlanConfig context.');
   }
 }
 
-/**
- * Load income data from localStorage
- */
+/** @deprecated Returns null. Use PlanConfig context instead. */
 export function loadSharedIncomeData(): SharedIncomeData | null {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return null;
-
-    return JSON.parse(stored) as SharedIncomeData;
-  } catch (error) {
-    console.error('[SharedIncomeData] Failed to load:', error);
-    return null;
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[SharedIncomeData] DEPRECATED: loadSharedIncomeData always returns null. Use PlanConfig context.');
   }
+  return null;
 }
 
-/**
- * Clear income data from localStorage
- */
+/** @deprecated No-op. Use PlanConfig context instead. */
 export function clearSharedIncomeData(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (error) {
-    console.error('[SharedIncomeData] Failed to clear:', error);
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[SharedIncomeData] DEPRECATED: clearSharedIncomeData is a no-op. Use PlanConfig context.');
   }
 }
 
-/**
- * Check if income data exists and is recent (within 24 hours)
- */
+/** @deprecated Always returns false. Use PlanConfig fieldMetadata instead. */
 export function hasRecentIncomeData(): boolean {
-  const data = loadSharedIncomeData();
-  if (!data) return false;
-
-  const dayInMs = 24 * 60 * 60 * 1000;
-  const isRecent = Date.now() - data.timestamp < dayInMs;
-
-  return isRecent;
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[SharedIncomeData] DEPRECATED: hasRecentIncomeData always returns false. Use PlanConfig fieldMetadata.');
+  }
+  return false;
 }

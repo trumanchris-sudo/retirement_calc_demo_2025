@@ -17,10 +17,8 @@ import type {
   ChartDataPoint,
   SavedScenario,
   ComparisonData,
-  CalculationProgress,
-  BondGlidePath,
 } from '@/types/calculator';
-import type { BatchSummary, GuardrailsResult, RothConversionResult } from '@/types/planner';
+import type { BatchSummary } from '@/types/planner';
 import type { LegacyResult } from '@/lib/walletPass';
 import { fmt } from '@/lib/utils';
 
@@ -68,22 +66,18 @@ interface UseCalculatorResultsReturn {
   isRunning: boolean;
   setIsRunning: (running: boolean) => void;
   isDirty: boolean;
+  setIsDirty: (dirty: boolean) => void;
   markDirty: () => void;
   markClean: () => void;
-  progress: CalculationProgress | null;
-  setProgress: (progress: CalculationProgress | null) => void;
 
   // Derived results (memoized)
   formattedResults: FormattedResults | null;
   chartData: ChartData | null;
 
   // Batch/Monte Carlo results
+  // Note: guardrailsResult, rothResult, and calcProgress are managed by useWorkerSimulations
   batchSummary: BatchSummary | null;
   setBatchSummary: (summary: BatchSummary | null) => void;
-  guardrailsResult: GuardrailsResult | null;
-  setGuardrailsResult: (result: GuardrailsResult | null) => void;
-  rothResult: RothConversionResult | null;
-  setRothResult: (result: RothConversionResult | null) => void;
   legacyResult: LegacyResult | null;
   setLegacyResult: (result: LegacyResult | null) => void;
 
@@ -105,7 +99,6 @@ interface UseCalculatorResultsReturn {
 }
 
 const SESSION_KEY_RESULTS = 'calculatorResults';
-const SESSION_KEY_TAB = 'calculatorTab';
 
 /**
  * Hook for managing calculator results and related state
@@ -118,12 +111,9 @@ export function useCalculatorResults(): UseCalculatorResultsReturn {
   // Calculation state
   const [isRunning, setIsRunning] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-  const [progress, setProgress] = useState<CalculationProgress | null>(null);
 
-  // Batch results
+  // Batch results (guardrailsResult, rothResult, calcProgress are in useWorkerSimulations)
   const [batchSummary, setBatchSummary] = useState<BatchSummary | null>(null);
-  const [guardrailsResult, setGuardrailsResult] = useState<GuardrailsResult | null>(null);
-  const [rothResult, setRothResult] = useState<RothConversionResult | null>(null);
   const [legacyResult, setLegacyResult] = useState<LegacyResult | null>(null);
 
   // Comparison
@@ -147,8 +137,6 @@ export function useCalculatorResults(): UseCalculatorResultsReturn {
     setResult(null);
     setError(null);
     setBatchSummary(null);
-    setGuardrailsResult(null);
-    setRothResult(null);
     setLegacyResult(null);
     setComparisonData({
       baseline: null,
@@ -156,7 +144,6 @@ export function useCalculatorResults(): UseCalculatorResultsReturn {
       inflation: null,
     });
     setComparisonMode(false);
-    setProgress(null);
     setLastCalculated(null);
     setInputsModified(false);
     setIsDirty(false);
@@ -235,10 +222,9 @@ export function useCalculatorResults(): UseCalculatorResultsReturn {
     isRunning,
     setIsRunning,
     isDirty,
+    setIsDirty,
     markDirty,
     markClean,
-    progress,
-    setProgress,
 
     // Derived results
     formattedResults,
@@ -247,10 +233,6 @@ export function useCalculatorResults(): UseCalculatorResultsReturn {
     // Batch results
     batchSummary,
     setBatchSummary,
-    guardrailsResult,
-    setGuardrailsResult,
-    rothResult,
-    setRothResult,
     legacyResult,
     setLegacyResult,
 
@@ -353,6 +335,7 @@ export function useSavedScenarios() {
   return {
     savedScenarios,
     selectedScenarios,
+    setSelectedScenarios,
     scenarioName,
     setScenarioName,
     showScenarios,
@@ -396,7 +379,7 @@ export function useAIInsightState() {
       // Remove LRU entry
       let oldestKey: string | null = null;
       let oldestTime = Infinity;
-      aiCache.current.forEach((value, k) => {
+      aiCache.current.forEach((value: { response: string; timestamp: number }, k: string) => {
         if (value.timestamp < oldestTime) {
           oldestTime = value.timestamp;
           oldestKey = k;

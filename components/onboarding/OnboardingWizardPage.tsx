@@ -3,7 +3,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { AIConsole } from './AIConsole';
 import { mapAIDataToCalculator } from '@/lib/aiOnboardingMapper';
-import { saveSharedIncomeData } from '@/lib/sharedIncomeData';
+import { processOnboardingClientSide } from '@/lib/processOnboardingClientSide';
 import { usePlanConfig } from '@/lib/plan-config-context';
 import type { ExtractedData, AssumptionWithReasoning } from '@/types/ai-onboarding';
 
@@ -24,10 +24,15 @@ export function OnboardingWizardPage({ onComplete, onSkip }: OnboardingWizardPag
       try {
         console.log('[OnboardingWizardPage] Starting completion...', { extractedData, assumptions });
 
-        // Map AI data to calculator inputs
+        // Enrich extracted data with expense assumptions (housing, healthcare, discretionary, etc.)
+        const processed = processOnboardingClientSide(extractedData);
+        const enrichedData = processed.extractedData;
+        const allAssumptions = [...assumptions, ...processed.assumptions];
+
+        // Map enriched data to calculator inputs
         const { generatedAssumptions, ...calculatorInputs } = mapAIDataToCalculator(
-          extractedData,
-          assumptions
+          enrichedData,
+          allAssumptions
         );
 
         console.log('[OnboardingWizardPage] Mapped calculator inputs:', calculatorInputs);
@@ -55,18 +60,6 @@ export function OnboardingWizardPage({ onComplete, onSkip }: OnboardingWizardPag
         if (generatedAssumptions && generatedAssumptions.length > 0) {
           updateConfig({ assumptions: generatedAssumptions }, 'ai-suggested');
         }
-
-        // Save income data for income calculators (legacy support - will be removed when income calc uses SSOT)
-        saveSharedIncomeData({
-          maritalStatus: extractedData.maritalStatus ?? 'single',
-          state: extractedData.state,
-          employmentType1: extractedData.employmentType1 ?? 'w2',
-          primaryIncome: extractedData.primaryIncome ?? 100000,
-          employmentType2: extractedData.employmentType2,
-          spouseIncome: extractedData.spouseIncome,
-          source: 'ai-onboarding',
-          timestamp: Date.now(),
-        });
 
         console.log('[OnboardingWizardPage] Wizard complete, calling onComplete...');
 
