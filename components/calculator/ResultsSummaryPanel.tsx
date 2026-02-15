@@ -212,9 +212,9 @@ export function ResultsSummaryPanel({
             <div className="space-y-6">
             <div className="print:hidden grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
               <FlippingStatCard
-                title="Future Balance"
+                title="Projected Balance"
                 value={fmt(res.finNom)}
-                sub={`At age ${retirementAge} (nominal)`}
+                sub={`Estimated at age ${retirementAge} (nominal)`}
                 color="blue"
                 icon={DollarSignIcon}
                 backContent={
@@ -225,7 +225,7 @@ export function ResultsSummaryPanel({
                     </div>
                     <div className="flip-card-body-details">
                       <p className="mb-4">
-                        This is your projected total retirement balance at age {retirementAge} in future dollars (nominal).
+                        This is your estimated retirement balance at age {retirementAge}. Actual results will vary based on market performance, contribution changes, and other factors.
                       </p>
                       <ul className="flip-card-list">
                         <li>
@@ -301,7 +301,7 @@ export function ResultsSummaryPanel({
                 }
               />
               <FlippingStatCard
-                title="Annual Withdrawal"
+                title="Est. Annual Withdrawal"
                 value={fmt(res.wd)}
                 sub={`Year 1 (${wdRate}% rate)`}
                 color="green"
@@ -342,7 +342,7 @@ export function ResultsSummaryPanel({
                 }
               />
               <FlippingStatCard
-                title="Real After-Tax Income"
+                title="Est. After-Tax Income"
                 value={fmt(res.wdReal)}
                 sub="Year 1 inflation-adjusted spending"
                 color="emerald"
@@ -408,14 +408,14 @@ export function ResultsSummaryPanel({
                             askExplainQuestion("How can I optimize my end-of-life wealth and estate planning?");
                           }}
                         >
-                          Explain This
+                          What Does This Mean?
                         </Button>
                       </CardTitle>
                       <CardDescription className="flex items-center justify-between">
                         <span>From end-of-life wealth to net inheritance (all values in today's dollars)</span>
                         {res.probRuin !== undefined && (
                           <span className="text-xs text-muted-foreground">
-                            Probability of Running Out: <span className="font-semibold">{(res.probRuin * 100).toFixed(0)}%</span>
+                            Risk of Outliving Savings: <span className="font-semibold">{(res.probRuin * 100).toFixed(0)}%</span>
                           </span>
                         )}
                       </CardDescription>
@@ -646,7 +646,7 @@ export function ResultsSummaryPanel({
                   </>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    <p className="text-sm">No end-of-life wealth data available.</p>
+                    <p className="text-sm">Wealth flow projection will appear after running a calculation. If this persists, try adjusting your withdrawal rate or retirement age.</p>
                   </div>
                 )}
                     </CardContent>
@@ -673,7 +673,7 @@ export function ResultsSummaryPanel({
                       }}
                       className="no-print whitespace-nowrap"
                     >
-                      Generate
+                      Analyze My Plan
                     </Button>
                   )}
                 </div>
@@ -905,7 +905,7 @@ export function ResultsSummaryPanel({
                     {savedScenarios.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
                         <p className="text-sm">No saved scenarios yet.</p>
-                        <p className="text-xs mt-2">Run a calculation and save it above to start comparing different strategies.</p>
+                        <p className="text-xs mt-2">Run a calculation and save it to start comparing strategies — for example, retiring at 62 vs. 67, or saving more aggressively.</p>
                       </div>
                     ) : (
                       <>
@@ -1056,7 +1056,7 @@ export function ResultsSummaryPanel({
                                   </th>
                                 )}
                                 <th className="text-left py-2 px-2 font-semibold">Scenario</th>
-                                <th className="text-right py-2 px-2 font-semibold">Retire Age</th>
+                                <th className="text-right py-2 px-2 font-semibold">Retirement Age</th>
                                 <th className="text-right py-2 px-2 font-semibold">Balance @ Retirement</th>
                                 <th className="text-right py-2 px-2 font-semibold">Annual Income</th>
                                 <th className="text-right py-2 px-2 font-semibold">End-of-Life</th>

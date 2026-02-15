@@ -244,10 +244,10 @@ export function ConfigureTab({
                       <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
                         Your Contributions
                       </Badge>
-                      <Input label="Taxable" value={cTax1} setter={setCTax1} step={1000} onInputChange={onInputChange} defaultValue={12000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
-                      <Input label="Pre-Tax" value={cPre1} setter={setCPre1} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={(val) => validate401kContribution(val, age1)} tip="2026 IRS limit: $24,500" />
-                      <Input label="Post-Tax" value={cPost1} setter={setCPost1} step={500} onInputChange={onInputChange} defaultValue={7000} validate={(val) => validateIRAContribution(val, age1)} tip="2026 IRS limit: $7,000" />
-                      <Input label="Employer Match" value={cMatch1} setter={setCMatch1} step={500} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
+                      <Input label="Taxable Brokerage ($/yr)" value={cTax1} setter={setCTax1} step={1000} onInputChange={onInputChange} defaultValue={12000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
+                      <Input label="401(k) Pre-Tax ($/yr)" value={cPre1} setter={setCPre1} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={(val) => validate401kContribution(val, age1)} tip="2026 IRS limit: $24,500" />
+                      <Input label="Roth / Post-Tax ($/yr)" value={cPost1} setter={setCPost1} step={500} onInputChange={onInputChange} defaultValue={7000} validate={(val) => validateIRAContribution(val, age1)} tip="2026 IRS limit: $7,000" />
+                      <Input label="Employer Match ($/yr)" value={cMatch1} setter={setCMatch1} step={500} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
                       {person1TotalValidation && person1TotalValidation.error && (
                         <div
                           className={`p-3 rounded-lg border text-sm ${
@@ -266,10 +266,10 @@ export function ConfigureTab({
                         <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
                           Spouse's Contributions
                         </Badge>
-                        <Input label="Taxable" value={cTax2} setter={setCTax2} step={1000} onInputChange={onInputChange} defaultValue={8000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
-                        <Input label="Pre-Tax" value={cPre2} setter={setCPre2} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={(val) => validate401kContribution(val, age2)} tip="2026 IRS limit: $24,500" />
-                        <Input label="Post-Tax" value={cPost2} setter={setCPost2} step={500} onInputChange={onInputChange} defaultValue={7000} validate={(val) => validateIRAContribution(val, age2)} tip="2026 IRS limit: $7,000" />
-                        <Input label="Employer Match" value={cMatch2} setter={setCMatch2} step={500} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
+                        <Input label="Taxable Brokerage ($/yr)" value={cTax2} setter={setCTax2} step={1000} onInputChange={onInputChange} defaultValue={8000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
+                        <Input label="401(k) Pre-Tax ($/yr)" value={cPre2} setter={setCPre2} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={(val) => validate401kContribution(val, age2)} tip="2026 IRS limit: $24,500" />
+                        <Input label="Roth / Post-Tax ($/yr)" value={cPost2} setter={setCPost2} step={500} onInputChange={onInputChange} defaultValue={7000} validate={(val) => validateIRAContribution(val, age2)} tip="2026 IRS limit: $7,000" />
+                        <Input label="Employer Match ($/yr)" value={cMatch2} setter={setCMatch2} step={500} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
                         {person2TotalValidation && person2TotalValidation.error && (
                           <div
                             className={`p-3 rounded-lg border text-sm ${
@@ -498,13 +498,14 @@ export function ConfigureTab({
                       />
                       <div className="space-y-4">
                         <Input
-                          label="Increase Rate (%)"
+                          label="Contribution Growth Rate (%)"
                           value={incRate}
                           setter={setIncRate}
                           step={0.1}
                           isRate
                           disabled={!incContrib}
                           onInputChange={onInputChange}
+                          tip="Annual rate at which your contributions increase (e.g., to keep pace with salary raises)"
                         />
                         <div className="flex items-center space-x-2">
                           <input
@@ -550,11 +551,11 @@ export function ConfigureTab({
                             <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 mb-2">Primary</Badge>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <Input
-                                label="Avg Career Earnings ($/yr)"
+                                label="Average Annual Income (for Social Security)"
                                 value={ssIncome}
                                 setter={setSSIncome}
                                 step={1000}
-                                tip="Your average indexed earnings for SS calculation"
+                                tip="Your average annual income used to estimate Social Security benefits"
                                 onInputChange={onInputChange}
                               />
                               <Input
@@ -574,11 +575,11 @@ export function ConfigureTab({
                               <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 mb-2">Spouse</Badge>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input
-                                  label="Avg Career Earnings ($/yr)"
+                                  label="Average Annual Income (for Social Security)"
                                   value={ssIncome2}
                                   setter={setSSIncome2}
                                   step={1000}
-                                  tip="Spouse's average indexed earnings"
+                                  tip="Spouse's average annual income used to estimate Social Security benefits"
                                   onInputChange={onInputChange}
                                 />
                                 <Input

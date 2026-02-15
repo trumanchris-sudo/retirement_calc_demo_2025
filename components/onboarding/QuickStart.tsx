@@ -476,13 +476,13 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                 {/* Main Projection */}
                 <div className="text-center py-4">
                   <p className="text-muted-foreground text-sm mb-2">
-                    At age 65, you&apos;re on track to have
+                    At age 65, you could have approximately
                   </p>
                   <p className="text-5xl sm:text-6xl font-bold text-foreground mb-2">
                     {formatCurrency(projection.futureValue)}
                   </p>
                   <p className="text-muted-foreground">
-                    That&apos;s <span className="text-green-600 dark:text-green-400 font-semibold">{formatCurrency(projection.monthlyIncome)}/month</span> in retirement
+                    That could provide roughly <span className="text-green-600 dark:text-green-400 font-semibold">{formatCurrency(projection.monthlyIncome)}/month</span> in retirement
                   </p>
                 </div>
 
@@ -577,7 +577,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                       {/* Quick Facts */}
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-muted rounded-lg p-3">
-                          <p className="text-xs text-muted-foreground mb-1">Assumed retirement age</p>
+                          <p className="text-xs text-muted-foreground mb-1">Retirement Age</p>
                           <p className="text-lg font-semibold text-foreground">{projection.retirementAge}</p>
                         </div>
                         <div className="bg-muted rounded-lg p-3">

@@ -137,7 +137,7 @@ export function SSOTTab() {
             {/* Retirement Age */}
             <div className="space-y-2">
               <Label htmlFor="ssot-retirementAge" className="flex items-center gap-2">
-                Target Retirement Age
+                Retirement Age
                 <FieldBadge field="retirementAge" />
               </Label>
               <Input
@@ -566,7 +566,7 @@ export function SSOTTab() {
 
             <div className="space-y-2">
               <Label htmlFor="ssot-incRate" className="flex items-center gap-2">
-                Income Growth Rate (%)
+                Contribution Growth Rate (%)
                 <FieldBadge field="incRate" />
               </Label>
               <Input

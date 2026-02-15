@@ -836,7 +836,7 @@ ${getNextQuestion(0, {})}`;
                   className="min-h-[48px] px-6"
                   aria-label="Confirm and complete onboarding"
                 >
-                  Looks Good - Continue
+                  These Look Right — Build My Plan
                 </Button>
               </div>
             </>
@@ -862,7 +862,7 @@ ${getNextQuestion(0, {})}`;
                 : phase === 'complete'
                 ? 'Onboarding complete!'
                 : phase === 'assumptions-review'
-                ? 'Reviewing assumptions...'
+                ? 'Review your assumptions above, then confirm to proceed'
                 : 'Type your response...'
             }
           />
