@@ -152,27 +152,27 @@ export function AIConsole({ onComplete, onSkip, onBack }: AIConsoleProps) {
           ? "**What's your annual income, and what's your spouse's annual income?** (Before taxes)\n\nAlso, does any of that include bonuses or variable compensation?"
           : "**What's your annual income?** (Before taxes)\n\nDoes any of that include bonuses or variable compensation?";
       case 4:
-        return "**What's your current pre-tax retirement account balance?**\n\nInclude:\n• Traditional 401k, 403b, 457\n• Traditional IRA\n• SEP IRA, SIMPLE IRA\n• Any other pre-tax retirement accounts\n\n(Enter $0 if you don't have any)";
+        return "Great, thanks! **What's your current pre-tax retirement account balance?**\n\nInclude:\n• Traditional 401k, 403b, 457\n• Traditional IRA\n• SEP IRA, SIMPLE IRA\n• Any other pre-tax retirement accounts\n\n(Enter $0 if you don't have any)";
       case 5:
-        return "**What's your current Roth account balance?**\n\nInclude:\n• Roth IRA\n• Roth 401k, Roth 403b, Roth 457\n• Any other Roth accounts\n\n(Enter $0 if you don't have any)";
+        return "Got it! **What's your current Roth account balance?**\n\nInclude:\n• Roth IRA\n• Roth 401k, Roth 403b, Roth 457\n• Any other Roth accounts\n\n(Enter $0 if you don't have any)";
       case 6:
-        return "**What's your current taxable brokerage account balance?**\n\n(Enter $0 if you don't have a brokerage account)";
+        return "Almost done with balances! **What's your current taxable brokerage account balance?**\n\n(Enter $0 if you don't have a brokerage account)";
       case 7:
         return "**How much do you have in cash/emergency fund?**\n\n(Enter $0 if you're just getting started)";
       case 8:
         return isMarried
-          ? "**How much do you contribute annually to pre-tax retirement accounts?**\n\nInclude (for both spouses combined):\n• Traditional 401k, 403b, 457\n• Traditional IRA\n• SEP IRA, SIMPLE IRA, Solo 401k\n• Deferred Comp Plans (DCP)\n\n(Enter $0 if none)"
-          : "**How much do you contribute annually to pre-tax retirement accounts?**\n\nInclude:\n• Traditional 401k, 403b, 457\n• Traditional IRA\n• SEP IRA, SIMPLE IRA, Solo 401k\n• Deferred Comp Plans (DCP)\n\n(Enter $0 if none)";
+          ? "Now let's look at your annual savings. **How much do you contribute annually to pre-tax retirement accounts?**\n\nInclude (for both spouses combined):\n• Traditional 401k, 403b, 457\n• Traditional IRA\n• SEP IRA, SIMPLE IRA, Solo 401k\n• Deferred Comp Plans (DCP)\n\n(Enter $0 if none)"
+          : "Now let's look at your annual savings. **How much do you contribute annually to pre-tax retirement accounts?**\n\nInclude:\n• Traditional 401k, 403b, 457\n• Traditional IRA\n• SEP IRA, SIMPLE IRA, Solo 401k\n• Deferred Comp Plans (DCP)\n\n(Enter $0 if none)";
       case 9:
         return isMarried
           ? "**How much do you contribute annually to Roth accounts?**\n\nInclude (for both spouses combined):\n• Roth IRA\n• Roth 401k, Roth 403b, Roth 457\n• Backdoor Roth conversions\n\n(Enter $0 if none)"
           : "**How much do you contribute annually to Roth accounts?**\n\nInclude:\n• Roth IRA\n• Roth 401k, Roth 403b, Roth 457\n• Backdoor Roth conversions\n\n(Enter $0 if none)";
       case 10:
         return isMarried
-          ? "**How much do you save annually to taxable brokerage?**\n\nCombined total for both of you. (Enter $0 if none)"
-          : "**How much do you save annually to taxable brokerage?**\n\n(Enter $0 if none)";
+          ? "Almost there! **How much do you save annually to taxable brokerage?**\n\nCombined total for both of you. (Enter $0 if none)"
+          : "Almost there! **How much do you save annually to taxable brokerage?**\n\n(Enter $0 if none)";
       case 11:
-        return "**What's your total annual employer 401k match?**\n\n(Enter $0 if no match or not sure)";
+        return "Last question! **What's your total annual employer 401k match?**\n\n(Enter $0 if no match or not sure)";
       case 12:
         return "Finally, **what age would you like to retire?** (Even if it feels unrealistic right now!)";
       default:

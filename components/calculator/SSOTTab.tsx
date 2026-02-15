@@ -282,6 +282,7 @@ export function SSOTTab() {
                 value={config.emergencyFund ?? D.emergencyFund}
                 onChange={(e) => updateField('emergencyFund', parseInt(e.target.value) || 0)}
               />
+              <p className="text-xs text-muted-foreground mt-1">Recommended: 3-6 months of expenses</p>
             </div>
 
             <div className="space-y-2">
@@ -498,6 +499,7 @@ export function SSOTTab() {
                 value={config.retRate ?? D.retRate}
                 onChange={(e) => updateField('retRate', parseFloat(e.target.value) || D.retRate)}
               />
+              <p className="text-xs text-muted-foreground mt-1">Historical S&amp;P 500 average: ~10% nominal, ~7% real (after inflation)</p>
             </div>
 
             <div className="space-y-2">
@@ -514,6 +516,7 @@ export function SSOTTab() {
                 value={config.inflationRate ?? D.inflationRate}
                 onChange={(e) => updateField('inflationRate', parseFloat(e.target.value) || D.inflationRate)}
               />
+              <p className="text-xs text-muted-foreground mt-1">Long-term US average: ~2.5-3%. Fed target: 2%</p>
             </div>
 
             <div className="space-y-2">
@@ -530,6 +533,7 @@ export function SSOTTab() {
                 value={config.dividendYield ?? D.dividendYield}
                 onChange={(e) => updateField('dividendYield', parseFloat(e.target.value) || D.dividendYield)}
               />
+              <p className="text-xs text-muted-foreground mt-1">S&amp;P 500 current yield: ~1.3%. Total market: ~1.5-2%</p>
             </div>
 
             <div className="space-y-2">
@@ -546,6 +550,7 @@ export function SSOTTab() {
                 value={config.wdRate ?? D.wdRate}
                 onChange={(e) => updateField('wdRate', parseFloat(e.target.value) || D.wdRate)}
               />
+              <p className="text-xs text-muted-foreground mt-1">The 4% rule is a common starting point for sustainable withdrawals</p>
             </div>
 
             <div className="space-y-2">
@@ -562,6 +567,7 @@ export function SSOTTab() {
                 value={config.stateRate ?? D.stateRate}
                 onChange={(e) => updateField('stateRate', parseFloat(e.target.value) || 0)}
               />
+              <p className="text-xs text-muted-foreground mt-1">Varies by state. 0% in TX, FL, NV, WA, WY. Up to 13.3% in CA</p>
             </div>
 
             <div className="space-y-2">
@@ -578,6 +584,7 @@ export function SSOTTab() {
                 value={config.incRate ?? D.incRate}
                 onChange={(e) => updateField('incRate', parseFloat(e.target.value) || D.incRate)}
               />
+              <p className="text-xs text-muted-foreground mt-1">Typical range: 2-5%, often tied to expected salary growth</p>
             </div>
           </div>
         </CardContent>
@@ -780,7 +787,7 @@ export function SSOTTab() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="ssot-ssIncome" className="flex items-center gap-2">
-                  Your SS Benefit Basis (Annual Income)
+                  Average Annual Income
                   <FieldBadge field="ssIncome" />
                 </Label>
                 <Input
@@ -812,7 +819,7 @@ export function SSOTTab() {
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="ssot-ssIncome2" className="flex items-center gap-2">
-                      Spouse SS Benefit Basis
+                      Spouse Average Annual Income
                       <FieldBadge field="ssIncome2" />
                     </Label>
                     <Input
