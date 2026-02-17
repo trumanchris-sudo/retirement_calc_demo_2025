@@ -81,10 +81,6 @@ interface StateTaxData {
   notes?: string;
 }
 
-interface ComparisonState {
-  code: string;
-  selected: boolean;
-}
 
 // ==================== Comprehensive State Tax Data ====================
 
@@ -583,7 +579,6 @@ const US_STATES = [
 // Retirement-friendly state categories
 const NO_INCOME_TAX_STATES = ["AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY"];
 const NO_RETIREMENT_TAX_STATES = ["PA", "IL", "MS", "AL", "HI", "IA"];
-const NO_ESTATE_TAX_STATES = ["FL", "TX", "NV", "AZ", "NC", "TN", "GA", "PA"];
 
 // ==================== Helper Functions ====================
 
@@ -594,8 +589,7 @@ function calculateStateTax(
   state: StateTaxData,
   totalIncome: number,
   ssIncome: number,
-  pensionIncome: number,
-  investmentIncome: number
+  pensionIncome: number
 ): number {
   if (state.incomeTaxRate === 0) return 0;
 
@@ -818,7 +812,6 @@ export function StateTaxComparison({
   // State for comparison states
   const [selectedCurrentState, setSelectedCurrentState] = useState(currentState);
   const [comparisonStates, setComparisonStates] = useState<string[]>(["FL", "TX"]);
-  const [showAllStates, setShowAllStates] = useState(false);
 
   // Income inputs (local state for user customization)
   const [income, setIncome] = useState({
@@ -1286,7 +1279,7 @@ export function StateTaxComparison({
               <p className="text-sm text-muted-foreground">
                 Most states have no estate tax (only 12 states + DC have one). States with estate
                 taxes often have lower exemptions than the federal $13.61M, triggering state tax
-                even when federal estate tax doesn't apply.
+                even when federal estate tax doesn&apos;t apply.
               </p>
               <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mt-3">
                 <div className="flex items-start gap-3">
@@ -1380,7 +1373,7 @@ export function StateTaxComparison({
                     Establishing New State Residency
                   </div>
                   <p className="text-sm text-blue-800 dark:text-blue-200">
-                    Simply moving to a new state doesn't automatically change your tax residency.
+                    Simply moving to a new state doesn&apos;t automatically change your tax residency.
                     Follow these steps to properly establish domicile in your new state.
                   </p>
                 </div>
@@ -1456,7 +1449,7 @@ export function StateTaxComparison({
                   <li className="flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
                     <span>
-                      <strong>183-Day Rule:</strong> Many states consider you a resident if you're present
+                      <strong>183-Day Rule:</strong> Many states consider you a resident if you&apos;re present
                       183+ days. High-tax states actively audit this.
                     </span>
                   </li>
@@ -1485,7 +1478,7 @@ export function StateTaxComparison({
                 <div className="p-3 border rounded-lg">
                   <div className="font-medium text-green-600 mb-1">Florida</div>
                   <p className="text-sm text-muted-foreground">
-                    File Declaration of Domicile with county clerk. Get FL driver's license within
+                    File Declaration of Domicile with county clerk. Get FL driver&apos;s license within
                     30 days of moving. Register to vote. Popular destination - well-established process.
                   </p>
                 </div>
@@ -1493,7 +1486,7 @@ export function StateTaxComparison({
                   <div className="font-medium text-green-600 mb-1">Texas</div>
                   <p className="text-sm text-muted-foreground">
                     No formal declaration required. Focus on physical presence and ties. Get TX
-                    driver's license and vehicle registration. Over 65 property tax freeze available.
+                    driver&apos;s license and vehicle registration. Over 65 property tax freeze available.
                   </p>
                 </div>
                 <div className="p-3 border rounded-lg">
@@ -1506,7 +1499,7 @@ export function StateTaxComparison({
                 <div className="p-3 border rounded-lg">
                   <div className="font-medium text-amber-600 mb-1">New York (Leaving)</div>
                   <p className="text-sm text-muted-foreground">
-                    "Statutory resident" if 184+ days in NY with permanent residence. Audit risk
+                    &quot;Statutory resident&quot; if 184+ days in NY with permanent residence. Audit risk
                     for 2 years after leaving. Similar to CA - keep comprehensive documentation.
                   </p>
                 </div>
@@ -1521,10 +1514,10 @@ export function StateTaxComparison({
                 <Heart className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
                 <div>
                   <div className="font-semibold text-purple-900 dark:text-purple-100 mb-1">
-                    Taxes Aren't Everything
+                    Taxes Aren&apos;t Everything
                   </div>
                   <p className="text-sm text-purple-800 dark:text-purple-200">
-                    While tax savings can be significant, they shouldn't be the only factor in
+                    While tax savings can be significant, they shouldn&apos;t be the only factor in
                     choosing where to spend your retirement years. Consider these important factors.
                   </p>
                 </div>
@@ -1601,7 +1594,7 @@ export function StateTaxComparison({
                     <li>Travel costs to visit family if you move away</li>
                   </ul>
                   <p className="pt-2">
-                    <strong>Consider:</strong> $10k/year in tax savings means little if you're
+                    <strong>Consider:</strong> $10k/year in tax savings means little if you&apos;re
                     spending $5k on flights and hotels to see grandkids.
                   </p>
                 </CardContent>

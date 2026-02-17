@@ -41,6 +41,7 @@ import {
   Info,
   ChevronRight,
   Lightbulb,
+  Baby,
 } from "lucide-react";
 import { TAX_BRACKETS } from "@/lib/constants";
 
@@ -1435,7 +1436,7 @@ export const SpouseWorkDecision: React.FC = () => {
                 <ul className="space-y-1 text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <ChevronRight className="h-4 w-4 mt-0.5 text-purple-500" />
-                    What's my true take-home after all costs?
+                    What&apos;s my true take-home after all costs?
                   </li>
                   <li className="flex items-start gap-2">
                     <ChevronRight className="h-4 w-4 mt-0.5 text-purple-500" />
@@ -1443,7 +1444,7 @@ export const SpouseWorkDecision: React.FC = () => {
                   </li>
                   <li className="flex items-start gap-2">
                     <ChevronRight className="h-4 w-4 mt-0.5 text-purple-500" />
-                    What's childcare costing vs. my net income?
+                    What&apos;s childcare costing vs. my net income?
                   </li>
                   <li className="flex items-start gap-2">
                     <ChevronRight className="h-4 w-4 mt-0.5 text-purple-500" />
@@ -1458,7 +1459,7 @@ export const SpouseWorkDecision: React.FC = () => {
                 <ul className="space-y-1 text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <ChevronRight className="h-4 w-4 mt-0.5 text-blue-500" />
-                    What's the 10-year career impact of stopping now?
+                    What&apos;s the 10-year career impact of stopping now?
                   </li>
                   <li className="flex items-start gap-2">
                     <ChevronRight className="h-4 w-4 mt-0.5 text-blue-500" />
@@ -1466,7 +1467,7 @@ export const SpouseWorkDecision: React.FC = () => {
                   </li>
                   <li className="flex items-start gap-2">
                     <ChevronRight className="h-4 w-4 mt-0.5 text-blue-500" />
-                    What's our risk if primary income disappears?
+                    What&apos;s our risk if primary income disappears?
                   </li>
                   <li className="flex items-start gap-2">
                     <ChevronRight className="h-4 w-4 mt-0.5 text-blue-500" />
@@ -1480,7 +1481,7 @@ export const SpouseWorkDecision: React.FC = () => {
                 <strong>Bottom line:</strong> The decision is rarely black and
                 white. Use this calculator to understand the financial reality,
                 but weigh it against career trajectory, personal fulfillment,
-                family needs, and risk tolerance. Sometimes "breaking even" is
+                family needs, and risk tolerance. Sometimes &quot;breaking even&quot; is
                 still worth it for the long-term benefits.
               </p>
             </div>

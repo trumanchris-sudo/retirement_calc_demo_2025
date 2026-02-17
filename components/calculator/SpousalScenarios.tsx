@@ -774,7 +774,7 @@ export function SpousalScenarios({
     primarySSIncome, secondarySSIncome, primaryLifeInsurance, secondaryLifeInsurance,
     hasMinorChildren, minorChildren, childrenAges, estimatedMortgageBalance,
     annualExpenses, pretaxBalance, rothBalance, taxableBalance,
-    disabilityInsuranceP1, ssIncome, ssIncome2, primaryIsPerson1,
+    disabilityInsuranceP1, ssIncome, ssIncome2, primaryIsPerson1, age1, age2,
   ]);
 
   const toggleAction = useCallback((scenarioId: string, actionTitle: string) => {

@@ -50,13 +50,10 @@ import {
   Sparkles,
   Target,
   TrendingDown,
-  Unlock,
-  Wallet,
   X,
 } from "lucide-react";
-import { TAX_BRACKETS, LTCG_BRACKETS, NIIT_THRESHOLD } from "@/lib/constants";
-import { AMT_2026, TAX_BRACKETS_2026 } from "@/lib/constants/tax2026";
-import type { FilingStatus } from "@/types/calculator";
+import { TAX_BRACKETS } from "@/lib/constants";
+import { AMT_2026 } from "@/lib/constants/tax2026";
 
 // ==================== Types ====================
 
@@ -74,16 +71,6 @@ interface VestingEvent {
   costBasis?: number; // For tax calculations
   exercised?: boolean; // For ISO/NSO
   sold?: boolean;
-}
-
-interface ESPPPurchase {
-  id: string;
-  purchaseDate: string;
-  grantDate: string;
-  shares: number;
-  purchasePrice: number; // 15% discount price
-  marketPriceAtPurchase: number;
-  currentPrice: number;
 }
 
 interface TaxProjection {
@@ -117,9 +104,6 @@ interface StockCompensationProps {
 // ==================== Constants ====================
 
 const FEDERAL_WITHHOLDING_RATE = 0.22; // Default 22% for supplemental income
-const STATE_WITHHOLDING_RATE = 0.10; // Approximate
-const FICA_RATE = 0.0765; // SS + Medicare (up to SS limit)
-const SS_WAGE_BASE_2026 = 184500;
 
 const CONCENTRATION_THRESHOLDS = {
   target: 0.10, // Ideal: <10% in any single stock
@@ -192,58 +176,6 @@ function calcAMT(
     inAMT: amtLiability > 0,
     amtIncome,
   };
-}
-
-/**
- * Calculate LTCG tax
- */
-function calcLTCGTax(
-  capitalGains: number,
-  ordinaryIncome: number,
-  status: FilingStatusExtended
-): number {
-  if (capitalGains <= 0) return 0;
-
-  const brackets = LTCG_BRACKETS[status as keyof typeof LTCG_BRACKETS];
-  const deduction = TAX_BRACKETS[status as keyof typeof TAX_BRACKETS].deduction;
-  const adjustedOrdinary = Math.max(0, ordinaryIncome - deduction);
-
-  let remainingGains = capitalGains;
-  let tax = 0;
-  let cumulativeIncome = adjustedOrdinary;
-
-  for (const b of brackets) {
-    const bracketRoom = Math.max(0, b.limit - cumulativeIncome);
-    const taxedHere = Math.min(remainingGains, bracketRoom);
-
-    if (taxedHere > 0) {
-      tax += taxedHere * b.rate;
-      remainingGains -= taxedHere;
-      cumulativeIncome += taxedHere;
-    }
-
-    if (remainingGains <= 0) break;
-  }
-
-  if (remainingGains > 0) {
-    tax += remainingGains * 0.20;
-  }
-
-  return tax;
-}
-
-/**
- * Calculate NIIT (3.8% Medicare surtax)
- */
-function calcNIIT(
-  investmentIncome: number,
-  totalIncome: number,
-  status: FilingStatusExtended
-): number {
-  const threshold = NIIT_THRESHOLD[status as keyof typeof NIIT_THRESHOLD];
-  const excess = Math.max(0, totalIncome - threshold);
-  if (excess <= 0) return 0;
-  return Math.min(investmentIncome, excess) * 0.038;
 }
 
 /**
@@ -721,7 +653,7 @@ function AMTCalculator({
               <p className="text-sm text-red-800 dark:text-red-200">
                 When you exercise ISOs, the <strong>spread</strong> (current price minus strike price)
                 is added to your income for AMT purposes - even though you receive no cash.
-                This can create a large tax bill on "phantom income" you never received.
+                This can create a large tax bill on &quot;phantom income&quot; you never received.
               </p>
             </div>
           </div>
@@ -832,7 +764,7 @@ function AMTCalculator({
               </div>
               <p className="text-sm text-blue-800 dark:text-blue-200">
                 If you pay AMT, you may be able to recover it as a credit in future years when your
-                regular tax exceeds AMT. This "AMT credit carryforward" can take years to fully recover.
+                regular tax exceeds AMT. This &quot;AMT credit carryforward&quot; can take years to fully recover.
                 Track your AMT payments carefully.
               </p>
             </div>
@@ -908,7 +840,7 @@ function ConcentrationRisk({
           Concentration Risk
         </CardTitle>
         <CardDescription>
-          "Don't let one stock be more than 10% of net worth"
+          &quot;Don&apos;t let one stock be more than 10% of net worth&quot;
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -1055,13 +987,9 @@ function ConcentrationRisk({
  * Tax Optimization Strategies
  */
 function TaxOptimization({
-  filingStatus,
-  currentIncome,
   hasISOs,
   hasESPP,
 }: {
-  filingStatus: FilingStatusExtended;
-  currentIncome: number;
   hasISOs: boolean;
   hasESPP: boolean;
 }) {
@@ -1259,7 +1187,6 @@ function VestDateCalendar({
 
     return sortedEvents.map((event) => {
       let eventIncome = 0;
-      let eventCapGains = 0;
 
       if (event.type === "RSU") {
         eventIncome = event.shares * event.vestPrice;
@@ -1267,7 +1194,7 @@ function VestDateCalendar({
         eventIncome = event.shares * (event.vestPrice - event.grantPrice);
       } else if (event.type === "ISO") {
         // ISO: No regular income, but track for AMT
-        eventCapGains = event.shares * (event.currentPrice - event.grantPrice);
+        // eventCapGains = event.shares * (event.currentPrice - event.grantPrice);
       } else if (event.type === "ESPP") {
         eventIncome = event.shares * event.vestPrice * 0.15; // 15% discount
       }
@@ -1345,7 +1272,7 @@ function VestDateCalendar({
 
         {/* Event List */}
         <div className="space-y-3">
-          {taxProjections.map((projection, idx) => {
+          {taxProjections.map((projection) => {
             const { event } = projection;
             const daysUntilVest = daysUntil(event.date);
             const isPast = daysUntilVest < 0;
@@ -1550,7 +1477,7 @@ function ESPPIntegration() {
                   <li>Stock price at offering start (lookback)</li>
                   <li>Stock price at purchase date</li>
                 </ul>
-                This discount is essentially "free money" - with the right tax treatment.
+                This discount is essentially &quot;free money&quot; - with the right tax treatment.
               </p>
             </div>
           </div>
@@ -1649,13 +1576,9 @@ function ESPPIntegration() {
  */
 function IntegrationPanel({
   vestingEvents,
-  currentIncome,
-  filingStatus,
   totalNetWorth,
 }: {
   vestingEvents: VestingEvent[];
-  currentIncome: number;
-  filingStatus: FilingStatusExtended;
   totalNetWorth: number;
 }) {
   const [includeUnvested, setIncludeUnvested] = useState(false);
@@ -1787,14 +1710,12 @@ export const StockCompensation = React.memo(function StockCompensation({
   filingStatus = "single",
   currentIncome = 150000,
   totalNetWorth = 500000,
-  age = 35,
   isInsider = false,
-  onUpdateProjections,
 }: StockCompensationProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [vestingEvents, setVestingEvents] = useState<VestingEvent[]>([]);
   const [isoSpread, setIsoSpread] = useState(0);
-  const [companyStockValue, setCompanyStockValue] = useState(100000);
+  const [companyStockValue] = useState(100000);
 
   // Add sample vesting event
   const handleAddEvent = useCallback((event: Omit<VestingEvent, "id">) => {
@@ -1968,7 +1889,7 @@ export const StockCompensation = React.memo(function StockCompensation({
                   Common Mistakes
                 </h4>
                 <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
-                  <li>Assuming 22% withholding is enough (it's not)</li>
+                  <li>Assuming 22% withholding is enough (it&apos;s not)</li>
                   <li>Exercising ISOs without checking AMT</li>
                   <li>Holding too much in company stock</li>
                   <li>Selling ESPP before qualifying period</li>
@@ -2018,8 +1939,6 @@ export const StockCompensation = React.memo(function StockCompensation({
           {/* Strategies Tab */}
           <TabsContent value="strategies" className="mt-6">
             <TaxOptimization
-              filingStatus={filingStatus}
-              currentIncome={currentIncome}
               hasISOs={hasISOs}
               hasESPP={hasESPP}
             />
@@ -2046,8 +1965,6 @@ export const StockCompensation = React.memo(function StockCompensation({
         <div className="mt-8 pt-8 border-t">
           <IntegrationPanel
             vestingEvents={vestingEvents}
-            currentIncome={currentIncome}
-            filingStatus={filingStatus}
             totalNetWorth={totalNetWorth}
           />
         </div>

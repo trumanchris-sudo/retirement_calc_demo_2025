@@ -1123,7 +1123,7 @@ export default function StudentLoanOptimizer() {
                         </p>
                         <div className="bg-amber-100 dark:bg-amber-900/30 rounded p-3 mt-2">
                           <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                            Example: If $50,000 is forgiven and you're in the 22% tax bracket:
+                            Example: If $50,000 is forgiven and you&apos;re in the 22% tax bracket:
                           </p>
                           <p className="text-lg font-bold text-amber-900 dark:text-amber-100">
                             Tax bill: ~{formatCurrency(50000 * 0.22)}
@@ -1393,7 +1393,7 @@ export default function StudentLoanOptimizer() {
                       <li>Excellent credit score (760+)</li>
                       <li>Stable, high income</li>
                       <li>Can get rate 1%+ lower than current</li>
-                      <li>Don't need forbearance flexibility</li>
+                      <li>Don&apos;t need forbearance flexibility</li>
                     </ul>
                   </div>
                   <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-4 border border-red-200 dark:border-red-900">
@@ -1501,7 +1501,7 @@ export default function StudentLoanOptimizer() {
                     <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">The Rule of Thumb:</p>
                     <ul className="text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
                       <li><strong>{">"} 6-7%:</strong> Pay off the loan first</li>
-                      <li><strong>4-6%:</strong> It's a toss-up - either is fine</li>
+                      <li><strong>4-6%:</strong> It&apos;s a toss-up - either is fine</li>
                       <li><strong>{"<"} 4%:</strong> Consider investing instead</li>
                     </ul>
                   </div>
@@ -1517,13 +1517,13 @@ export default function StudentLoanOptimizer() {
                       The Psychological Factor
                     </p>
                     <p className="text-sm text-purple-800 dark:text-purple-200">
-                      Math aside, there's huge value in being <strong>debt-free</strong>. Studies show that
+                      Math aside, there&apos;s huge value in being <strong>debt-free</strong>. Studies show that
                       eliminating debt reduces stress and improves decision-making. If carrying debt bothers you,
-                      paying it off faster - even "low interest" debt - might be worth the potential opportunity cost.
+                      paying it off faster - even &quot;low interest&quot; debt - might be worth the potential opportunity cost.
                     </p>
                     <p className="text-sm text-purple-800 dark:text-purple-200 mt-2">
-                      <strong>The best plan is one you'll actually follow.</strong> If aggressively paying off loans
-                      keeps you motivated, that's worth something.
+                      <strong>The best plan is one you&apos;ll actually follow.</strong> If aggressively paying off loans
+                      keeps you motivated, that&apos;s worth something.
                     </p>
                   </div>
                 </div>
@@ -1561,7 +1561,7 @@ export default function StudentLoanOptimizer() {
                 Balancing Loans + Retirement
               </CardTitle>
               <CardDescription>
-                Don't let student loans derail your retirement - here's how to balance both
+                Don&apos;t let student loans derail your retirement - here&apos;s how to balance both
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1729,7 +1729,7 @@ export default function StudentLoanOptimizer() {
                 {employerContribution > 0 && (
                   <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4 border border-green-200 dark:border-green-900">
                     <p className="text-sm text-green-800 dark:text-green-200">
-                      That's <strong>{formatCurrency(employerContribution)}/year</strong> or{" "}
+                      That&apos;s <strong>{formatCurrency(employerContribution)}/year</strong> or{" "}
                       <strong>{formatCurrency(employerContribution / 12)}/month</strong> extra toward your loans -
                       tax-free! Over the life of your loans, this could save you thousands in interest.
                     </p>
@@ -1808,7 +1808,7 @@ export default function StudentLoanOptimizer() {
               <div className="bg-gray-50 dark:bg-gray-900/50 border rounded-lg p-4">
                 <h4 className="font-semibold mb-2">When Student Loans Delay Retirement</h4>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Student loans can delay retirement if they prevent you from saving adequately. Here's the impact:
+                  Student loans can delay retirement if they prevent you from saving adequately. Here&apos;s the impact:
                 </p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
