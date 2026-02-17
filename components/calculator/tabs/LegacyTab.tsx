@@ -1,6 +1,6 @@
 "use client"
 
-import React, { Suspense } from "react";
+import React, { Suspense, useId } from "react";
 import dynamic from "next/dynamic";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -89,6 +89,9 @@ export function LegacyTab({
   res, legacyResult, legacyCardRef, genRef,
   updatePlanConfig, onInputChange
 }: LegacyTabProps) {
+  const id = useId();
+  const childrenAgesId = `${id}-children-ages`;
+
   const parsedChildrenAges = childrenCurrentAges
     .split(',')
     .map(s => parseInt(s.trim(), 10))
@@ -159,11 +162,12 @@ export function LegacyTab({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="flex items-center gap-1.5 text-foreground">
+                <Label htmlFor={childrenAgesId} className="flex items-center gap-1.5 text-foreground">
                   Children&apos;s Current Ages
                   <Tip text="Enter current ages of your children, separated by commas (e.g., 5, 3)" />
                 </Label>
                 <UIInput
+                  id={childrenAgesId}
                   type="text"
                   value={childrenCurrentAges}
                   onChange={(e) => {

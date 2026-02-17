@@ -77,7 +77,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       role="banner"
     >
       <nav
-        className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2"
+        className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2 overflow-x-hidden"
         aria-label="Main navigation"
       >
         {/* Logo/Title - CUBE ALWAYS RENDERS */}
@@ -103,12 +103,12 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
         {/* Actions - Always show dark mode toggle prominently */}
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-          {/* Income Planner Link */}
+          {/* Income Planner Link - hidden on smallest screens to prevent overflow */}
           <Link href="/income-2026">
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden no-print"
+              className="hidden sm:inline-flex md:hidden no-print"
               aria-label="2026 Income Planner"
             >
               <DollarSign className="w-4 h-4" />
@@ -125,12 +125,12 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             </Button>
           </Link>
 
-          {/* Self-Employed Calculator Link */}
+          {/* Self-Employed Calculator Link - hidden on smallest screens to prevent overflow */}
           <Link href="/self-employed-2026">
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden no-print"
+              className="hidden sm:inline-flex md:hidden no-print"
               aria-label="Self-Employed 2026"
             >
               <Briefcase className="w-4 h-4" />

@@ -16,9 +16,10 @@ interface OptimizationTabProps {
   inputs: Record<string, unknown>; // Reason: Dynamic calculator inputs with varying shape
   currentAge: number;
   plannedRetirementAge: number;
+  baseSuccessRate?: number;
 }
 
-export default function OptimizationTab({ inputs, currentAge, plannedRetirementAge }: OptimizationTabProps) {
+export default function OptimizationTab({ inputs, currentAge, plannedRetirementAge, baseSuccessRate }: OptimizationTabProps) {
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<OptimizationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -122,6 +123,18 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
               One-time expense you can afford today
             </p>
           </div>
+
+          {/* Context when splurge is $0 due to low success rate */}
+          {result.maxSplurge === 0 && baseSuccessRate !== undefined && baseSuccessRate < 95 && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+              <h4 className="font-semibold text-sm mb-2 text-amber-900 dark:text-amber-100">Why $0?</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Your plan&apos;s current success rate is <strong>{baseSuccessRate.toFixed(1)}%</strong>, which is below the
+                95% threshold used for splurge calculations. To unlock splurge capacity, consider increasing contributions,
+                reducing expenses, or adjusting your retirement age to bring your success rate above 95%.
+              </p>
+            </div>
+          )}
 
           {/* Explanation of how this was determined */}
           <div className="p-4 bg-purple-100/50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">

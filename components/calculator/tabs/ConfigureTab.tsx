@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo } from "react";
+import React, { useId, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input as UIInput } from "@/components/ui/input";
@@ -173,6 +173,8 @@ export function ConfigureTab({
   enableRothConversions, setEnableRothConversions, targetConversionBracket, setTargetConversionBracket,
   onCalculate, onInputChange, isLoading, err, calcProgress, tabGroupRef
 }: ConfigureTabProps) {
+  const selectId = useId();
+
   // Cross-field validation: IRS Section 415(c) total annual additions
   const person1TotalValidation = useMemo(
     () => validateTotalContributions(cPre1, cMatch1, age1),
@@ -201,8 +203,9 @@ export function ConfigureTab({
                 content: (
                   <div className="space-y-6">
                     <div className="space-y-2">
-                      <Label>Marital Status</Label>
+                      <Label htmlFor={selectId + '-marital-status'}>Marital Status</Label>
                       <select
+                        id={selectId + '-marital-status'}
                         value={marital}
                         onChange={(e) => { setMarital(e.target.value as FilingStatus); onInputChange(); }}
                         className="flex h-11 md:h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
@@ -333,11 +336,12 @@ export function ConfigureTab({
 
                     <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-2">
-                        <Label className="flex items-center gap-1.5">
+                        <Label htmlFor={selectId + '-return-model'} className="flex items-center gap-1.5">
                           Return Model
                           <Tip text="How investment returns are modeled. Fixed uses a constant rate; Historical simulates returns based on past S&P 500 data." />
                         </Label>
                         <select
+                          id={selectId + '-return-model'}
                           value={returnMode}
                           onChange={(e) => {
                             const newMode = e.target.value as ReturnMode;
@@ -364,11 +368,12 @@ export function ConfigureTab({
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="flex items-center gap-1.5">
+                        <Label htmlFor={selectId + '-allocation-type'} className="flex items-center gap-1.5">
                           Allocation Type
                           <Tip text="How your investments are divided between stocks, bonds, and other assets" />
                         </Label>
                         <select
+                          id={selectId + '-allocation-type'}
                           value={allocationStrategy}
                           onChange={(e) => {
                             setAllocationStrategy(e.target.value as 'aggressive' | 'ageBased' | 'custom');
@@ -842,8 +847,9 @@ export function ConfigureTab({
                           </div>
 
                           <div className="space-y-2">
-                            <Label>Target Tax Bracket</Label>
+                            <Label htmlFor={selectId + '-target-tax-bracket'}>Target Tax Bracket</Label>
                             <select
+                              id={selectId + '-target-tax-bracket'}
                               value={targetConversionBracket}
                               onChange={(e) => {
                                 setTargetConversionBracket(parseFloat(e.target.value));

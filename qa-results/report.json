@@ -1,81 +1,25 @@
 {
-  "timestamp": "2026-02-13T19:35:03.659Z",
-  "duration": 44353,
-  "url": "http://localhost:3000",
+  "timestamp": "2026-02-17T03:58:02.601Z",
+  "duration": 46290,
+  "url": "http://localhost:3001",
   "findings": [
     {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "all",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
-    },
-    {
       "severity": "low",
       "category": "accessibility",
       "tab": "all",
       "description": "20 input(s) without associated labels"
     },
     {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "configure",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
-    },
-    {
       "severity": "low",
       "category": "accessibility",
       "tab": "configure",
-      "description": "1 input(s) without associated labels"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "ssot",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "results",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "stress",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "legacy",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
+      "description": "4 input(s) without associated labels"
     },
     {
       "severity": "low",
       "category": "accessibility",
       "tab": "legacy",
-      "description": "1 input(s) without associated labels"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "optimize",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "tools",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
+      "description": "5 input(s) without associated labels"
     },
     {
       "severity": "low",
@@ -86,27 +30,6 @@
     {
       "severity": "medium",
       "category": "visual",
-      "tab": "checkUs",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "math",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "mobile-all",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
       "tab": "mobile-all",
       "description": "Page has horizontal overflow (content wider than viewport)"
     },
@@ -120,40 +43,19 @@
       "severity": "medium",
       "category": "visual",
       "tab": "mobile-configure",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "mobile-configure",
       "description": "Page has horizontal overflow (content wider than viewport)"
     },
     {
       "severity": "low",
       "category": "accessibility",
       "tab": "mobile-configure",
-      "description": "1 input(s) without associated labels"
+      "description": "4 input(s) without associated labels"
     },
     {
       "severity": "medium",
       "category": "visual",
-      "tab": "mobile-ssot",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "mobile-ssot",
+      "tab": "mobile-planSettings",
       "description": "Page has horizontal overflow (content wider than viewport)"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "mobile-results",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
     },
     {
       "severity": "medium",
@@ -165,21 +67,7 @@
       "severity": "medium",
       "category": "visual",
       "tab": "mobile-stress",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "mobile-stress",
       "description": "Page has horizontal overflow (content wider than viewport)"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "mobile-legacy",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
     },
     {
       "severity": "medium",
@@ -191,27 +79,13 @@
       "severity": "low",
       "category": "accessibility",
       "tab": "mobile-legacy",
-      "description": "1 input(s) without associated labels"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "mobile-optimize",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
+      "description": "5 input(s) without associated labels"
     },
     {
       "severity": "medium",
       "category": "visual",
       "tab": "mobile-optimize",
       "description": "Page has horizontal overflow (content wider than viewport)"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "mobile-tools",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
     },
     {
       "severity": "medium",
@@ -229,21 +103,7 @@
       "severity": "medium",
       "category": "visual",
       "tab": "mobile-checkUs",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "mobile-checkUs",
       "description": "Page has horizontal overflow (content wider than viewport)"
-    },
-    {
-      "severity": "medium",
-      "category": "visual",
-      "tab": "mobile-math",
-      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
-      "selector": "DIV.recharts-wrapper"
     },
     {
       "severity": "medium",
@@ -255,7 +115,7 @@
   "tabsVisited": [
     "all",
     "configure",
-    "ssot",
+    "planSettings",
     "results",
     "stress",
     "legacy",
@@ -270,7 +130,7 @@
     "qa-results/02-post-calc.png",
     "qa-results/all.png",
     "qa-results/configure.png",
-    "qa-results/ssot.png",
+    "qa-results/planSettings.png",
     "qa-results/results.png",
     "qa-results/stress.png",
     "qa-results/legacy.png",
@@ -280,7 +140,7 @@
     "qa-results/math.png",
     "qa-results/mobile-all.png",
     "qa-results/mobile-configure.png",
-    "qa-results/mobile-ssot.png",
+    "qa-results/mobile-planSettings.png",
     "qa-results/mobile-results.png",
     "qa-results/mobile-stress.png",
     "qa-results/mobile-legacy.png",
@@ -289,11 +149,372 @@
     "qa-results/mobile-checkUs.png",
     "qa-results/mobile-math.png"
   ],
-  "consoleErrors": [],
+  "consoleErrors": [
+    {
+      "tab": "initial",
+      "message": "[Mapper] Traditional contribution exceeds reasonable limit: 96500 max: 73500",
+      "type": "warning"
+    },
+    {
+      "tab": "initial",
+      "message": "[Mapper] Validation warnings: [Traditional 401k contribution ($96,500) seems very high for IRS limits]",
+      "type": "warning"
+    },
+    {
+      "tab": "initial",
+      "message": "[Mapper] Traditional contribution exceeds reasonable limit: 96500 max: 73500",
+      "type": "warning"
+    },
+    {
+      "tab": "initial",
+      "message": "[Mapper] Validation warnings: [Traditional 401k contribution ($96,500) seems very high for IRS limits]",
+      "type": "warning"
+    },
+    {
+      "tab": "initial",
+      "message": "[Mapper] Traditional contribution exceeds reasonable limit: 96500 max: 73500",
+      "type": "warning"
+    },
+    {
+      "tab": "initial",
+      "message": "[Mapper] Validation warnings: [Traditional 401k contribution ($96,500) seems very high for IRS limits]",
+      "type": "warning"
+    },
+    {
+      "tab": "initial",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "initial",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "initial",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "initial",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "all",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "all",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "all",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "all",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "configure",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "configure",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "configure",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "planSettings",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "planSettings",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "planSettings",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "results",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "results",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "results",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "stress",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "stress",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "stress",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "legacy",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "legacy",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "legacy",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "optimize",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "optimize",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "optimize",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "tools",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "tools",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "tools",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "checkUs",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "checkUs",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "checkUs",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "math",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "math",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "math",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "math",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-all",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-all",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-configure",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-configure",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-configure",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-planSettings",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-planSettings",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-planSettings",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-results",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-results",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-results",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-stress",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-stress",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-stress",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-legacy",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-legacy",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-legacy",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-optimize",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-optimize",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-optimize",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-optimize",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-tools",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-tools",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-tools",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-checkUs",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-checkUs",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-checkUs",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-math",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-math",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    },
+    {
+      "tab": "mobile-math",
+      "message": "The width(0) and height(0) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+      "type": "warning"
+    }
+  ],
   "summary": {
     "critical": 0,
     "high": 0,
-    "medium": 30,
+    "medium": 10,
     "low": 8,
     "info": 0
   }

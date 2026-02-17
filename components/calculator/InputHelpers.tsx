@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useId } from "react";
 import { Label } from "@/components/ui/label";
 import { clampNum, toNumber, cn } from "@/lib/utils";
 import type { FieldValidationResult } from "@/lib/fieldValidation";
@@ -175,6 +175,7 @@ export const Input: React.FC<InputProps> = ({
   helpText,
   size = "md",
 }) => {
+  const inputId = useId();
   const [local, setLocal] = useState<string>(String(value ?? 0));
   const [isFocused, setIsFocused] = useState(false);
   const [validationResult, setValidationResult] = useState<FieldValidationResult | null>(null);
@@ -291,7 +292,7 @@ export const Input: React.FC<InputProps> = ({
 
   return (
     <div className="space-y-2">
-      <Label className="flex items-center gap-1.5 text-foreground font-medium">
+      <Label htmlFor={inputId} className="flex items-center gap-1.5 text-foreground font-medium">
         {label}
         {tip && <Tip text={tip} />}
       </Label>
@@ -305,6 +306,7 @@ export const Input: React.FC<InputProps> = ({
         )}
 
         <input
+          id={inputId}
           ref={inputRef}
           type="text"
           inputMode="decimal"
@@ -320,9 +322,9 @@ export const Input: React.FC<InputProps> = ({
           aria-invalid={hasError ? "true" : undefined}
           aria-describedby={
             (hasError || hasWarning) && validationResult?.error
-              ? `${label}-error`
+              ? `${inputId}-error`
               : helpText
-                ? `${label}-help`
+                ? `${inputId}-help`
                 : undefined
           }
         />
@@ -356,7 +358,7 @@ export const Input: React.FC<InputProps> = ({
       {/* Validation message */}
       {validationResult && validationResult.error && (
         <p
-          id={`${label}-error`}
+          id={`${inputId}-error`}
           className={cn(
             "text-xs flex items-center gap-1 animate-in slide-in-from-top-1 duration-200",
             hasError ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"
@@ -375,7 +377,7 @@ export const Input: React.FC<InputProps> = ({
       {/* Help text */}
       {helpText && !validationResult?.error && (
         <p
-          id={`${label}-help`}
+          id={`${inputId}-help`}
           className="text-xs text-muted-foreground"
         >
           {helpText}

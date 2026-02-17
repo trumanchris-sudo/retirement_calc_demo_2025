@@ -15,7 +15,7 @@
  * 6. Psychological Benefits - Purpose beyond money
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import type { SimulationInputs } from '@/lib/calculations/retirementEngine';
 import {
   Briefcase,
@@ -407,6 +407,7 @@ interface PhaseEditorProps {
 }
 
 function PhaseEditor({ phases, setPhases, minAge, maxAge }: PhaseEditorProps) {
+  const baseId = useId();
   const addPhase = () => {
     const lastPhase = phases[phases.length - 1];
     const newStartAge = lastPhase ? lastPhase.endAge : minAge;
@@ -442,9 +443,11 @@ function PhaseEditor({ phases, setPhases, minAge, maxAge }: PhaseEditorProps) {
         >
           <div className="flex items-center justify-between mb-3">
             <Input
+              id={`${baseId}-${index}-label`}
               value={phase.label}
               onChange={(e) => updatePhase(index, { label: e.target.value })}
               className="w-32 font-medium"
+              aria-label={`Phase ${index + 1} label`}
             />
             {phases.length > 1 && (
               <Button variant="ghost" size="sm" onClick={() => removePhase(index)}>
@@ -455,8 +458,9 @@ function PhaseEditor({ phases, setPhases, minAge, maxAge }: PhaseEditorProps) {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <Label className="text-xs text-muted-foreground">Start Age</Label>
+              <Label htmlFor={`${baseId}-${index}-start-age`} className="text-xs text-muted-foreground">Start Age</Label>
               <Input
+                id={`${baseId}-${index}-start-age`}
                 type="number"
                 value={phase.startAge}
                 onChange={(e) => updatePhase(index, { startAge: parseInt(e.target.value) || minAge })}
@@ -465,8 +469,9 @@ function PhaseEditor({ phases, setPhases, minAge, maxAge }: PhaseEditorProps) {
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">End Age</Label>
+              <Label htmlFor={`${baseId}-${index}-end-age`} className="text-xs text-muted-foreground">End Age</Label>
               <Input
+                id={`${baseId}-${index}-end-age`}
                 type="number"
                 value={phase.endAge}
                 onChange={(e) => updatePhase(index, { endAge: parseInt(e.target.value) || maxAge })}
@@ -475,8 +480,9 @@ function PhaseEditor({ phases, setPhases, minAge, maxAge }: PhaseEditorProps) {
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Annual Income</Label>
+              <Label htmlFor={`${baseId}-${index}-annual-income`} className="text-xs text-muted-foreground">Annual Income</Label>
               <Input
+                id={`${baseId}-${index}-annual-income`}
                 type="number"
                 value={phase.annualIncome}
                 onChange={(e) => updatePhase(index, { annualIncome: parseInt(e.target.value) || 0 })}
@@ -484,8 +490,9 @@ function PhaseEditor({ phases, setPhases, minAge, maxAge }: PhaseEditorProps) {
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Hours/Week</Label>
+              <Label htmlFor={`${baseId}-${index}-hours-week`} className="text-xs text-muted-foreground">Hours/Week</Label>
               <Input
+                id={`${baseId}-${index}-hours-week`}
                 type="number"
                 value={phase.hoursPerWeek}
                 onChange={(e) => updatePhase(index, { hoursPerWeek: parseInt(e.target.value) || 0 })}
@@ -497,10 +504,11 @@ function PhaseEditor({ phases, setPhases, minAge, maxAge }: PhaseEditorProps) {
 
           <div className="flex items-center gap-2 mt-3">
             <Switch
+              id={`${baseId}-${index}-healthcare`}
               checked={phase.hasHealthcare}
               onCheckedChange={(checked) => updatePhase(index, { hasHealthcare: checked })}
             />
-            <Label className="text-sm">Employer provides healthcare</Label>
+            <Label htmlFor={`${baseId}-${index}-healthcare`} className="text-sm">Employer provides healthcare</Label>
           </div>
         </div>
       ))}
@@ -529,6 +537,7 @@ export function SemiRetirement({
   ssClaimAge,
   currentPortfolioAtRetirement = 0,
 }: SemiRetirementProps) {
+  const semiId = useId();
   const [activeTab, setActiveTab] = useState('phased');
   const [extraWorkYears, setExtraWorkYears] = useState(5);
   const [partTimeIncome, setPartTimeIncome] = useState(40000);
@@ -812,9 +821,10 @@ export function SemiRetirement({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-4">
                 <div>
-                  <Label className="text-sm font-medium">Extra Work Years</Label>
+                  <Label htmlFor={`${semiId}-extra-work-years`} className="text-sm font-medium">Extra Work Years</Label>
                   <div className="flex items-center gap-4 mt-2">
                     <Slider
+                      id={`${semiId}-extra-work-years`}
                       value={[extraWorkYears]}
                       onValueChange={([v]) => setExtraWorkYears(v)}
                       min={1}
@@ -827,8 +837,9 @@ export function SemiRetirement({
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium">Part-Time Annual Income</Label>
+                  <Label htmlFor={`${semiId}-part-time-income`} className="text-sm font-medium">Part-Time Annual Income</Label>
                   <Input
+                    id={`${semiId}-part-time-income`}
                     type="number"
                     value={partTimeIncome}
                     onChange={(e) => setPartTimeIncome(parseInt(e.target.value) || 0)}
@@ -837,8 +848,9 @@ export function SemiRetirement({
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium">Annual Expenses</Label>
+                  <Label htmlFor={`${semiId}-annual-expenses`} className="text-sm font-medium">Annual Expenses</Label>
                   <Input
+                    id={`${semiId}-annual-expenses`}
                     type="number"
                     value={annualExpenses}
                     onChange={(e) => setAnnualExpenses(parseInt(e.target.value) || 0)}
@@ -1161,8 +1173,9 @@ export function SemiRetirement({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <Label className="text-sm font-medium">Annual Consulting Income</Label>
+                  <Label htmlFor={`${semiId}-consulting-income`} className="text-sm font-medium">Annual Consulting Income</Label>
                   <Input
+                    id={`${semiId}-consulting-income`}
                     type="number"
                     value={consultingIncome}
                     onChange={(e) => setConsultingIncome(parseInt(e.target.value) || 0)}

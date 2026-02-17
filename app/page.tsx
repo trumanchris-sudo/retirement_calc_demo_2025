@@ -1309,6 +1309,7 @@ export default function App() {
               }}
               currentAge={Math.min(age1, isMar ? age2 : age1)}
               plannedRetirementAge={retirementAge}
+              baseSuccessRate={res.probRuin !== undefined ? (1 - res.probRuin) * 100 : undefined}
             />
           )}
         </AnimatedSection>

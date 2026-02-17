@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useId, useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -186,12 +186,15 @@ const LoanInputCard: React.FC<LoanInputCardProps> = ({
   onRemove,
   canRemove,
 }) => {
+  const loanCardId = useId();
+
   return (
     <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-lg p-4 space-y-4">
       <div className="flex items-center justify-between">
         <Input
           value={loan.name}
           onChange={(e) => onUpdate({ ...loan, name: e.target.value })}
+          aria-label="Loan name"
           placeholder="Loan name (e.g., Federal Direct)"
           className="max-w-[200px] text-sm font-medium"
         />
@@ -209,10 +212,11 @@ const LoanInputCard: React.FC<LoanInputCardProps> = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Balance</label>
+          <label htmlFor={`${loanCardId}-balance`} className="text-xs text-muted-foreground">Balance</label>
           <div className="relative">
             <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              id={`${loanCardId}-balance`}
               type="number"
               value={loan.balance || ""}
               onChange={(e) =>
@@ -225,8 +229,9 @@ const LoanInputCard: React.FC<LoanInputCardProps> = ({
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Interest Rate (%)</label>
+          <label htmlFor={`${loanCardId}-rate`} className="text-xs text-muted-foreground">Interest Rate (%)</label>
           <Input
+            id={`${loanCardId}-rate`}
             type="number"
             step="0.1"
             value={loan.interestRate || ""}
@@ -241,10 +246,11 @@ const LoanInputCard: React.FC<LoanInputCardProps> = ({
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Min. Payment</label>
+          <label htmlFor={`${loanCardId}-min-payment`} className="text-xs text-muted-foreground">Min. Payment</label>
           <div className="relative">
             <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              id={`${loanCardId}-min-payment`}
               type="number"
               value={loan.minimumPayment || ""}
               onChange={(e) =>
@@ -262,14 +268,14 @@ const LoanInputCard: React.FC<LoanInputCardProps> = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Loan Type</label>
+          <label id={`${loanCardId}-loan-type-label`} className="text-xs text-muted-foreground">Loan Type</label>
           <Select
             value={loan.loanType}
             onValueChange={(value: "federal" | "private") =>
               onUpdate({ ...loan, loanType: value })
             }
           >
-            <SelectTrigger>
+            <SelectTrigger aria-labelledby={`${loanCardId}-loan-type-label`}>
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
@@ -281,14 +287,14 @@ const LoanInputCard: React.FC<LoanInputCardProps> = ({
 
         {loan.loanType === "federal" && (
           <div className="space-y-1">
-            <label className="text-xs text-muted-foreground">Subsidy Type</label>
+            <label id={`${loanCardId}-subsidy-type-label`} className="text-xs text-muted-foreground">Subsidy Type</label>
             <Select
               value={loan.subsidizedType}
               onValueChange={(value: "subsidized" | "unsubsidized" | "na") =>
                 onUpdate({ ...loan, subsidizedType: value })
               }
             >
-              <SelectTrigger>
+              <SelectTrigger aria-labelledby={`${loanCardId}-subsidy-type-label`}>
                 <SelectValue placeholder="Select subsidy" />
               </SelectTrigger>
               <SelectContent>
@@ -310,6 +316,8 @@ const LoanInputCard: React.FC<LoanInputCardProps> = ({
 
 export default function StudentLoanOptimizer() {
   // State for loans
+  const mainId = useId();
+
   const [loans, setLoans] = useState<Loan[]>([
     {
       id: generateId(),
@@ -704,10 +712,11 @@ export default function StudentLoanOptimizer() {
                 <h4 className="font-semibold mb-4">Your Income (for IDR calculations)</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-sm text-muted-foreground">Annual Gross Income</label>
+                    <label htmlFor={`${mainId}-income`} className="text-sm text-muted-foreground">Annual Gross Income</label>
                     <div className="relative">
                       <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
+                        id={`${mainId}-income`}
                         type="number"
                         value={annualIncome}
                         onChange={(e) => setAnnualIncome(parseFloat(e.target.value) || 0)}
@@ -716,12 +725,12 @@ export default function StudentLoanOptimizer() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-sm text-muted-foreground">Family Size</label>
+                    <label id={`${mainId}-family-size-label`} className="text-sm text-muted-foreground">Family Size</label>
                     <Select
                       value={familySize.toString()}
                       onValueChange={(value) => setFamilySize(parseInt(value))}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger aria-labelledby={`${mainId}-family-size-label`}>
                         <SelectValue placeholder="Select size" />
                       </SelectTrigger>
                       <SelectContent>
@@ -947,11 +956,12 @@ export default function StudentLoanOptimizer() {
 
                     {isEligibleEmployer && (
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">
+                        <label id={`${mainId}-payments-label`} className="text-sm font-medium">
                           Qualifying Payments Made (out of 120)
                         </label>
                         <div className="flex items-center gap-4">
                           <Slider
+                            aria-labelledby={`${mainId}-payments-label`}
                             value={[paymentsMade]}
                             onValueChange={([value]) => setPaymentsMade(value)}
                             min={0}
@@ -1213,9 +1223,10 @@ export default function StudentLoanOptimizer() {
                 <h4 className="font-semibold">Refinancing Scenario</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">New Interest Rate (%)</label>
+                    <label id={`${mainId}-refi-rate-label`} className="text-sm text-muted-foreground">New Interest Rate (%)</label>
                     <div className="flex items-center gap-4">
                       <Slider
+                        aria-labelledby={`${mainId}-refi-rate-label`}
                         value={[refinanceRate]}
                         onValueChange={([value]) => setRefinanceRate(value)}
                         min={2}
@@ -1227,12 +1238,12 @@ export default function StudentLoanOptimizer() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">New Loan Term</label>
+                    <label id={`${mainId}-refi-term-label`} className="text-sm text-muted-foreground">New Loan Term</label>
                     <Select
                       value={refinanceTerm.toString()}
                       onValueChange={(value) => setRefinanceTerm(parseInt(value))}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger aria-labelledby={`${mainId}-refi-term-label`}>
                         <SelectValue placeholder="Select term" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1574,8 +1585,8 @@ export default function StudentLoanOptimizer() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">Does your employer offer a match?</label>
-                    <div className="flex gap-2">
+                    <label id={`${mainId}-match-label`} className="text-sm text-muted-foreground">Does your employer offer a match?</label>
+                    <div className="flex gap-2" role="group" aria-labelledby={`${mainId}-match-label`}>
                       <Button
                         variant={hasEmployerMatch ? "default" : "outline"}
                         size="sm"
@@ -1596,9 +1607,10 @@ export default function StudentLoanOptimizer() {
                   {hasEmployerMatch && (
                     <>
                       <div className="space-y-2">
-                        <label className="text-sm text-muted-foreground">Match up to (% of salary)</label>
+                        <label id={`${mainId}-match-pct-label`} className="text-sm text-muted-foreground">Match up to (% of salary)</label>
                         <div className="flex items-center gap-4">
                           <Slider
+                            aria-labelledby={`${mainId}-match-pct-label`}
                             value={[matchPercent]}
                             onValueChange={([value]) => setMatchPercent(value)}
                             min={1}
@@ -1610,11 +1622,12 @@ export default function StudentLoanOptimizer() {
                         </div>
                       </div>
                       <div className="space-y-2 sm:col-span-2">
-                        <label className="text-sm text-muted-foreground">
+                        <label id={`${mainId}-contribution-label`} className="text-sm text-muted-foreground">
                           Your current contribution (% of salary)
                         </label>
                         <div className="flex items-center gap-4">
                           <Slider
+                            aria-labelledby={`${mainId}-contribution-label`}
                             value={[currentRetirementContribution]}
                             onValueChange={([value]) => setCurrentRetirementContribution(value)}
                             min={0}
@@ -1708,11 +1721,12 @@ export default function StudentLoanOptimizer() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">
+                  <label id={`${mainId}-employer-contrib-label`} className="text-sm text-muted-foreground">
                     Annual employer contribution to your loans
                   </label>
                   <div className="flex items-center gap-4">
                     <Slider
+                      aria-labelledby={`${mainId}-employer-contrib-label`}
                       value={[employerContribution]}
                       onValueChange={([value]) => setEmployerContribution(value)}
                       min={0}

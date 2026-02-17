@@ -334,15 +334,15 @@ export function CheckUsTab() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between p-3 bg-indigo-50 rounded">
                       <span className="text-sm font-medium">Aggressive (100% Stocks)</span>
-                      <span className="font-bold text-indigo-900">{aggressiveAlloc.toFixed(0)}% bonds / {(100 - aggressiveAlloc).toFixed(0)}% stocks</span>
+                      <span className="font-bold text-indigo-900">{Math.round(aggressiveAlloc)}% bonds / {100 - Math.round(aggressiveAlloc)}% stocks</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-blue-50 rounded">
                       <span className="text-sm font-medium">Age-Based (Conservative)</span>
-                      <span className="font-bold text-blue-900">{ageBasedAlloc.toFixed(0)}% bonds / {(100 - ageBasedAlloc).toFixed(0)}% stocks</span>
+                      <span className="font-bold text-blue-900">{Math.round(ageBasedAlloc)}% bonds / {100 - Math.round(ageBasedAlloc)}% stocks</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-purple-50 rounded">
                       <span className="text-sm font-medium">Conservative (High Stability)</span>
-                      <span className="font-bold text-purple-900">{conservativeAlloc.toFixed(0)}% bonds / {(100 - conservativeAlloc).toFixed(0)}% stocks</span>
+                      <span className="font-bold text-purple-900">{Math.round(conservativeAlloc)}% bonds / {100 - Math.round(conservativeAlloc)}% stocks</span>
                     </div>
                   </div>
                   <div className="text-xs text-gray-500">
