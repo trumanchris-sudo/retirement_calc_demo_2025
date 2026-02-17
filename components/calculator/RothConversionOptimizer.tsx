@@ -262,7 +262,7 @@ export const RothConversionOptimizer = React.memo(function RothConversionOptimiz
           <div className="text-sm font-medium">How to Implement:</div>
           <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
             <li>
-              <strong>Start conversions in year 1 of retirement</strong> (or whenever you're in lower tax brackets)
+              <strong>Start conversions in year 1 of retirement</strong> (or whenever you&apos;re in lower tax brackets)
             </li>
             <li>
               <strong>Calculate annual taxable income</strong> - Include SS, pensions, investment income, withdrawals
@@ -274,7 +274,7 @@ export const RothConversionOptimizer = React.memo(function RothConversionOptimiz
               <strong>Convert to fill the bracket</strong> - Work with your tax advisor to execute conversion
             </li>
             <li>
-              <strong>Pay conversion taxes from taxable accounts</strong> - Don't use IRA funds to pay the tax
+              <strong>Pay conversion taxes from taxable accounts</strong> - Don&apos;t use IRA funds to pay the tax
             </li>
             <li>
               <strong>Repeat annually until age 72</strong> - Stop before RMDs start at 73

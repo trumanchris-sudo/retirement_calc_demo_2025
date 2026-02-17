@@ -15,9 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
@@ -38,7 +35,6 @@ import {
 import {
   PiggyBank,
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   CheckCircle,
   Target,
