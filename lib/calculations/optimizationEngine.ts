@@ -525,15 +525,13 @@ function analyzeTaxBracketArbitrage(inputs: OptimizationInputs): Recommendation[
 function analyzeSocialSecurityOptimization(inputs: OptimizationInputs): Recommendation[] {
   const recommendations: Recommendation[] = [];
   const {
-    marital, age1, age2 = age1,
+    marital, age1,
     ssIncome, ssClaimAge = 67,
-    ssIncome2 = 0, ssClaimAge2 = 67,
+    ssIncome2 = 0,
     includeSS,
   } = inputs;
 
   if (!includeSS || ssIncome <= 0) return recommendations;
-
-  const FRA = 67; // Full Retirement Age for most people today
 
   // Calculate PIA for both spouses
   const pia1 = calcPIA(ssIncome);
@@ -541,7 +539,6 @@ function analyzeSocialSecurityOptimization(inputs: OptimizationInputs): Recommen
 
   // Calculate benefits at different claiming ages
   const benefit62_1 = calcSocialSecurity(ssIncome, 62);
-  const benefit67_1 = calcSocialSecurity(ssIncome, 67);
   const benefit70_1 = calcSocialSecurity(ssIncome, 70);
 
   // Calculate breakeven and lifetime benefits
@@ -549,21 +546,7 @@ function analyzeSocialSecurityOptimization(inputs: OptimizationInputs): Recommen
 
   // Lifetime benefits calculation (simplified)
   const lifetime62 = benefit62_1 * Math.max(0, LIFE_EXP - 62);
-  const lifetime67 = benefit67_1 * Math.max(0, LIFE_EXP - 67);
   const lifetime70 = benefit70_1 * Math.max(0, LIFE_EXP - 70);
-
-  // Determine optimal claiming age
-  let optimalAge = 67;
-  let maxLifetime = lifetime67;
-
-  if (lifetime70 > maxLifetime) {
-    optimalAge = 70;
-    maxLifetime = lifetime70;
-  }
-  if (lifetime62 > maxLifetime) {
-    optimalAge = 62;
-    maxLifetime = lifetime62;
-  }
 
   // Current claiming age benefit
   const currentBenefit = calcSocialSecurity(ssIncome, ssClaimAge);
@@ -652,10 +635,9 @@ function analyzeSocialSecurityOptimization(inputs: OptimizationInputs): Recommen
 function analyzeWithdrawalStrategy(inputs: OptimizationInputs): Recommendation[] {
   const recommendations: Recommendation[] = [];
   const {
-    marital, age1, retirementAge,
+    age1, retirementAge,
     taxableBalance, pretaxBalance, rothBalance,
     wdRate, retRate, inflationRate,
-    includeSS, ssIncome, ssClaimAge = 67,
   } = inputs;
 
   const totalBalance = taxableBalance + pretaxBalance + rothBalance;
@@ -675,8 +657,6 @@ function analyzeWithdrawalStrategy(inputs: OptimizationInputs): Recommendation[]
   const annualWithdrawal = projectedTotal * (wdRate / 100);
 
   // 1. Withdrawal Order Strategy
-  const rothPct = projectedRoth / projectedTotal * 100;
-
   recommendations.push({
     id: 'withdrawal-order',
     priority: 'high',
