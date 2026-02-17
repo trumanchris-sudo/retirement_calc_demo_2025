@@ -129,8 +129,8 @@ export function MathTab({
               <div>
                 <h4 className="text-lg font-semibold mb-2 text-blue-800">Withdrawal Strategy</h4>
                 <p className="text-gray-700 mb-2">
-                  The first year's withdrawal is calculated as a percentage of your total retirement balance
-                  (e.g., 3.5% for a conservative approach, 4% for the classic "4% rule"). In subsequent years,
+                  The first year&apos;s withdrawal is calculated as a percentage of your total retirement balance
+                  (e.g., 3.5% for a conservative approach, 4% for the classic &quot;4% rule&quot;). In subsequent years,
                   the withdrawal amount increases with inflation to maintain constant purchasing power:
                 </p>
                 <p className="font-mono text-sm bg-gray-100 p-3 rounded text-gray-800">
@@ -150,7 +150,7 @@ export function MathTab({
               <div>
                 <h4 className="text-lg font-semibold mb-2 text-blue-800">Tax Calculation</h4>
                 <p className="text-gray-700 mb-2">
-                  Each year's withdrawal is subject to multiple layers of taxation:
+                  Each year&apos;s withdrawal is subject to multiple layers of taxation:
                 </p>
                 <ul className="list-disc pl-6 space-y-2 text-gray-700">
                   <li>
@@ -172,7 +172,7 @@ export function MathTab({
                     specify a state tax rate (varies by state, 0% to ~13%).
                   </li>
                   <li>
-                    <strong>Roth Withdrawals:</strong> Completely tax-free! This is the "tax-free income"
+                    <strong>Roth Withdrawals:</strong> Completely tax-free! This is the &quot;tax-free income&quot;
                     advantage of Roth accounts.
                   </li>
                 </ul>
@@ -289,7 +289,7 @@ export function MathTab({
                   <p className="text-gray-700">
                     <strong>NOTE:</strong> The previous sunset provision that would have reduced the exemption to ~$7M has been eliminated.
                     While the federal exemption has increased, state-level estate taxes may still apply at lower thresholds. This is a simplified
-                    calculation that doesn't account for spousal transfers, portability elections, trusts, or state estate taxes. Early gifting
+                    calculation that doesn&apos;t account for spousal transfers, portability elections, trusts, or state estate taxes. Early gifting
                     remains a powerful tool to freeze asset values and remove future appreciation from your taxable estate.
                   </p>
                 </div>
@@ -316,7 +316,7 @@ export function MathTab({
                     25-35) gradually produce children over those years. The total fertility rate (default 2.1 children
                     per person) is distributed evenly across the fertile years. For example, with a 10-year window and
                     2.1 total fertility, each person produces 0.21 children per year while fertile. This creates realistic,
-                    gradual population growth rather than sudden generational "waves."
+                    gradual population growth rather than sudden generational &quot;waves.&quot;
                   </li>
                   <li>
                     <strong>Population Growth:</strong> At replacement level (2.1 children per person), the population

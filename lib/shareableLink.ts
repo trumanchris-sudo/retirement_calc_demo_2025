@@ -274,7 +274,7 @@ export function createSendToKidsLink(config: SendToKidsConfig): {
  * Generate email link for sending to kids
  */
 export function createSendToKidsEmailLink(config: SendToKidsConfig): string {
-  const { url, message, subject } = createSendToKidsLink(config);
+  const { message, subject } = createSendToKidsLink(config);
 
   const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
   return mailtoLink;

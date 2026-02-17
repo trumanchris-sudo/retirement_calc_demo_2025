@@ -980,12 +980,12 @@ function AssetLocationIntegration() {
         <div className="p-4 bg-teal-100 dark:bg-teal-900/30 rounded-lg">
           <h4 className="font-semibold text-teal-800 dark:text-teal-200 mb-3 flex items-center gap-2">
             <RefreshCw className="h-5 w-5" />
-            The "Harvest & Rebalance" Strategy
+            The &ldquo;Harvest &amp; Rebalance&rdquo; Strategy
           </h4>
           <p className="text-sm text-muted-foreground mb-4">
             When you sell a position in your taxable account to harvest losses,
             you can immediately buy that same position in your 401(k) or IRA
-            without triggering a wash sale—as long as you don't buy it back in
+            without triggering a wash sale—as long as you don&apos;t buy it back in
             the taxable account for 31 days.
           </p>
           <div className="text-sm space-y-2">
@@ -1060,7 +1060,7 @@ function AssetLocationIntegration() {
             <strong>Never</strong> buy in your IRA/401(k) at the same time you
             sell in taxable if you want to claim the loss. The wash sale rule
             applies across ALL your accounts, including retirement accounts.
-            The retirement account purchase "taints" the loss.
+            The retirement account purchase &ldquo;taints&rdquo; the loss.
           </AlertDescription>
         </Alert>
 
@@ -1085,7 +1085,7 @@ function AssetLocationIntegration() {
             <li className="flex items-start gap-2">
               <Check className="h-4 w-4 text-teal-500 flex-shrink-0 mt-0.5" />
               <span>
-                Coordinate with spouse's accounts too—wash sale applies there
+                Coordinate with spouse&apos;s accounts too—wash sale applies there
               </span>
             </li>
             <li className="flex items-start gap-2">

@@ -196,12 +196,13 @@ export const BulletChart: React.FC<BulletChartProps> = ({
       return;
     }
 
+    const element = containerRef.current;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          if (containerRef.current) {
-            observer.unobserve(containerRef.current);
+          if (element) {
+            observer.unobserve(element);
           }
         }
       },
@@ -211,13 +212,13 @@ export const BulletChart: React.FC<BulletChartProps> = ({
       }
     );
 
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
+    if (element) {
+      observer.observe(element);
     }
 
     return () => {
-      if (containerRef.current) {
-        observer.unobserve(containerRef.current);
+      if (element) {
+        observer.unobserve(element);
       }
     };
   }, [animateOnScroll]);

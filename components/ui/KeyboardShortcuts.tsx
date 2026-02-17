@@ -628,7 +628,6 @@ export function useAppShortcuts(handlers: {
 
     // Only register shortcuts that have handlers
     const activeShortcuts = shortcuts.filter((s) => {
-      const handlerKey = `on${s.id.charAt(0).toUpperCase()}${s.id.slice(1).replace(/-([a-z])/g, (_, c) => c.toUpperCase())}` as keyof typeof handlers;
       // Special mapping for some handler names
       const handlerMappings: Record<string, keyof typeof handlers> = {
         'calculate': 'onCalculate',

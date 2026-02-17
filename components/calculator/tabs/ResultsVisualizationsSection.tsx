@@ -384,7 +384,6 @@ export default function ResultsVisualizationsSection() {
 
     // Age-based stock/bond split using rule of 110
     const stockPct = Math.max(20, Math.min(90, 110 - age)) / 100;
-    const bondPct = 1 - stockPct;
 
     const buildChildren = (
       parentId: string,

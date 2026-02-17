@@ -120,9 +120,7 @@ export interface AnimatedCounterProps {
 
 const useSoundManager = (
   enabled: boolean,
-  volume: number,
-  // Reason: sounds parameter reserved for future custom sound URLs feature
-  _sounds?: AnimatedCounterProps["sounds"]
+  volume: number
 ) => {
   const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -565,7 +563,6 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
 }) => {
   // State
   const [hasStarted, setHasStarted] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [changeDirection, setChangeDirection] = useState<"positive" | "negative" | "neutral">("neutral");
   const [isHighlighted, setIsHighlighted] = useState(false);
   const [colorOpacity, setColorOpacity] = useState(0);
@@ -599,8 +596,7 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
   // Sound effects
   const { playTick, playComplete, playMilestone, initAudio } = useSoundManager(
     enableSound,
-    soundVolume,
-    sounds
+    soundVolume
   );
 
   // Initialize audio on first user interaction
@@ -630,7 +626,7 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
   const animatedValue = useSpringValue(
     hasStarted ? value : prevValueRef.current,
     prefersReducedMotion ? { stiffness: 1000, damping: 100, mass: 0.1 } : springConfig,
-    useCallback((_v: number) => {
+    useCallback(() => {
       // Play tick sound occasionally during animation
       if (enableSound && Math.random() < 0.1) {
         playTick();
@@ -693,9 +689,7 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
     }
 
     // Mark animation complete
-    setIsAnimating(true);
     const completeTimer = setTimeout(() => {
-      setIsAnimating(false);
       onAnimationComplete?.();
       if (enableSound && Math.abs(change) > 0) {
         playComplete();

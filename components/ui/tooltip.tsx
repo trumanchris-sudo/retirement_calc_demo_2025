@@ -366,8 +366,8 @@ const TooltipContent = React.forwardRef<
       e.preventDefault()
       context.setIsPinned(false)
     }
-    // Reason: Radix UI event type is not properly exported, so type assertion is needed
-    onPointerDownOutside?.(e as any)
+    // Reason: Radix UI PointerDownOutside event type is not properly exported
+    onPointerDownOutside?.(e as unknown as React.PointerEvent)
   }, [context, onPointerDownOutside])
 
   // Get animation class based on side
@@ -516,6 +516,8 @@ interface TooltipImageProps {
   height?: number
 }
 
+// Note: Using img instead of next/image for tooltip compatibility and flexibility
+// eslint-disable-next-line @next/next/no-img-element
 const TooltipImage = React.forwardRef<HTMLImageElement, TooltipImageProps>(
   ({ src, alt, className, width, height }, ref) => (
     <img
@@ -565,8 +567,8 @@ const TooltipList = React.forwardRef<HTMLUListElement, TooltipListProps>(
     const ListTag = ordered ? "ol" : "ul"
     return (
       <ListTag
-        // Reason: Radix UI ref can be either ol or ul, so type assertion needed
-        ref={ref as any}
+        // Reason: Polymorphic ref needs type assertion - ref can be either HTMLOListElement or HTMLUListElement
+        ref={ref as React.Ref<HTMLOListElement & HTMLUListElement>}
         className={cn(
           "my-1.5 ml-4 space-y-0.5 text-sm",
           ordered ? "list-decimal" : "list-disc",

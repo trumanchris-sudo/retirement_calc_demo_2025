@@ -21,6 +21,7 @@ export interface SharedIncomeData {
 }
 
 /** @deprecated No-op. Use PlanConfig context instead. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function saveSharedIncomeData(_data: SharedIncomeData): void {
   if (process.env.NODE_ENV === 'development') {
     console.warn('[SharedIncomeData] DEPRECATED: saveSharedIncomeData is a no-op. Use PlanConfig context.');

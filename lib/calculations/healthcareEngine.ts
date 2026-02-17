@@ -578,7 +578,7 @@ function getIRMAATier(income: number, status: FilingStatus): string {
 export function calculateLTCAnalysis(
   currentAge: number,
   strategy: 'self_insure' | 'ltc_insurance' | 'hybrid' | 'medicaid_planning',
-  existingInsurancePremium?: number // Reason: Reserved for future feature to handle existing LTC policies
+  _existingInsurancePremium?: number // Reason: Reserved for future feature to handle existing LTC policies
 ): LTCAnalysis {
   const probabilityOfNeed = LONG_TERM_CARE.probabilityOfNeeding65Plus;
   const avgDuration = LONG_TERM_CARE.avgDurationYears;
@@ -652,7 +652,7 @@ export function calculateHSAStrategy(
   currentBalance: number,
   annualContribution: number,
   isFamily: boolean,
-  retirementAge: number = 65 // Reason: Reserved for future feature to support custom retirement ages
+  _retirementAge: number = 65 // Reason: Reserved for future feature to support custom retirement ages
 ): HSAStrategy {
   const maxContribution = isFamily
     ? HSA_CONSTANTS.familyLimit2024 + (currentAge >= 55 ? HSA_CONSTANTS.catchUpAge55 : 0)

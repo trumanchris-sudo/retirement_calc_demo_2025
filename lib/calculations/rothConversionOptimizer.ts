@@ -345,7 +345,6 @@ export function generateConversionLadder(inputs: RothLadderInputs): RothLadderRe
 
   // Key ages and years
   const age59_5 = 59.5;
-  const yearsToRetirement = Math.max(0, retirementAge - currentAge); // Reason: Reserved for future feature to handle accumulation phase analysis
 
   // Target the 22% bracket by default (good balance of tax efficiency)
   // For very low earners, might target 12% bracket
@@ -381,6 +380,7 @@ export function generateConversionLadder(inputs: RothLadderInputs): RothLadderRe
   const timeline: TimelineEntry[] = [];
 
   // Add retirement event
+  const yearsToRetirement = Math.max(0, retirementAge - currentAge);
   if (yearsToRetirement > 0) {
     timeline.push({
       year: yearsToRetirement,

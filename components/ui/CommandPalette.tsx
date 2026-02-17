@@ -614,7 +614,7 @@ export function CommandPalette({
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Search className="mb-2 h-8 w-8 text-slate-300 dark:text-slate-600" />
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  No commands found for "{query}"
+                  No commands found for &quot;{query}&quot;
                 </p>
               </div>
             ) : (

@@ -255,7 +255,7 @@ export function calcEstateTax(
   totalEstate: number,
   status: FilingStatus = "single",
   year: number = getCurrYear(),
-  assumeExtended: boolean = true
+  _assumeExtended: boolean = true // Reason: Legacy parameter kept for API compatibility
 ): number {
   let exemption: number;
 
@@ -550,9 +550,6 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     includeMedicare = false,
     medicarePremium = 400,
     medicalInflation = 5.0,
-    irmaaThresholdSingle = 109000,
-    irmaaThresholdMarried = 218000,
-    irmaaSurcharge = 230,
     // Long-Term Care
     includeLTC = false,
     ltcAnnualCost = 80000,

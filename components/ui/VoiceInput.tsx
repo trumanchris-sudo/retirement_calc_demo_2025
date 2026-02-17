@@ -146,7 +146,6 @@ export function parseSpokenNumber(speech: string): number | null {
   if (!normalized) return null;
 
   // Try direct number parsing first (handles "150000", "150,000", etc.)
-  const directNumber = parseFloat(normalized.replace(/[^\d.]/g, ''));
   if (normalized.match(/^\d[\d.]*[kmb]?$/i)) {
     let multiplier = 1;
     if (normalized.endsWith('k')) multiplier = 1000;

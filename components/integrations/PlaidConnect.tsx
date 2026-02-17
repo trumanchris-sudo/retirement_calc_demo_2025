@@ -17,9 +17,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -262,18 +259,14 @@ const getAccountTypeIcon = (type: PlaidAccount["type"]): string => {
 };
 
 const getAccountTypeLabel = (type: PlaidAccount["type"]): string => {
-  switch (type) {
-    case "depository":
-      return "Cash";
-    case "investment":
-      return "Investment";
-    case "credit":
-      return "Credit";
-    case "loan":
-      return "Loan";
-    default:
-      return "Other";
-  }
+  const labels: Record<PlaidAccount["type"], string> = {
+    depository: "Cash",
+    investment: "Investment",
+    credit: "Credit",
+    loan: "Loan",
+    other: "Other",
+  };
+  return labels[type];
 };
 
 // =============================================================================

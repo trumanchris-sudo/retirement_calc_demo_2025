@@ -462,7 +462,6 @@ interface StickyNoteProps {
   currentUser: NoteAuthor
   currentUserName: string
   isExpanded?: boolean
-  onToggleExpand?: () => void
   className?: string
 }
 
@@ -474,7 +473,6 @@ function StickyNote({
   currentUser,
   currentUserName,
   isExpanded = false,
-  onToggleExpand,
   className,
 }: StickyNoteProps) {
   const [isEditing, setIsEditing] = React.useState(false)
@@ -1169,7 +1167,7 @@ export function generateAnnotationsPDFContent(data: AnnotationExport): string {
       </p>
   `
 
-  data.annotations.forEach((annotation, index) => {
+  data.annotations.forEach((annotation) => {
     html += `
       <div style="margin-bottom: 24px; padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; background: #fefce8;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">

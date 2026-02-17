@@ -143,7 +143,10 @@ export function setVolume(volume: number): void {
 
 /**
  * Create a gain node with envelope for smooth attack/release
+ * Currently unused but kept for future sound design enhancements
  */
+// Reason: Reserved for future envelope-based sound effects
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function createEnvelope(
   ctx: AudioContext,
   attackTime: number,

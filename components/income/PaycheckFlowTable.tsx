@@ -419,7 +419,7 @@ export function PaycheckFlowTable({ paychecks }: PaycheckFlowTableProps) {
         <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
           <p className="text-sm text-blue-800 dark:text-blue-200">
             <strong>How to Read This Table:</strong> Each column represents one paycheck. Read left-to-right to see progression through the year.
-            Read top-to-bottom within a column to see a single paycheck's complete waterfall from gross pay to final investment allocation.
+            Read top-to-bottom within a column to see a single paycheck&apos;s complete waterfall from gross pay to final investment allocation.
             Watch for transitions where values change (FSA caps, SS wage base limits, Medicare threshold crossings).
           </p>
         </div>

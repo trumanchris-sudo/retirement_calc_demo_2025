@@ -148,7 +148,6 @@ export const CalculationProgress: React.FC<CalculationProgressProps> = ({
   message,
   className,
   compact = false,
-  estimatedTime,
 }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const info = phaseInfo[phase] || phaseInfo.validating;

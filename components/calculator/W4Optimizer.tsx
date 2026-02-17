@@ -991,7 +991,7 @@ export default function W4Optimizer() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="spouseWithholding">Spouse's Projected Annual Withholding</Label>
+                      <Label htmlFor="spouseWithholding">Spouse&apos;s Projected Annual Withholding</Label>
                       <NumericInput
                         id="spouseWithholding"
                         value={spouseWithholding}
@@ -1371,7 +1371,7 @@ export default function W4Optimizer() {
                   {formatCurrency(calculations.recommendation.additionalIncome)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Income not from jobs that's not already withheld
+                  Income not from jobs that&apos;s not already withheld
                 </p>
               </div>
             </div>

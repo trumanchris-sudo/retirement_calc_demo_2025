@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, useInView, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
   ChevronRight,
@@ -490,8 +490,8 @@ const FeatureShowcase: React.FC = () => {
 
         {/* Features grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <FeatureCard key={feature.title} feature={feature} index={index} />
+          {features.map((feature) => (
+            <FeatureCard key={feature.title} feature={feature} />
           ))}
         </div>
       </div>
@@ -596,7 +596,7 @@ const InteractiveDemo: React.FC = () => {
       description: "Simply input your current savings, income, and retirement goals. Our intuitive interface makes it easy.",
       visual: (
         <div className="space-y-4">
-          {["Current Savings", "Monthly Contribution", "Retirement Age", "Risk Tolerance"].map((field, i) => (
+          {["Current Savings", "Monthly Contribution", "Retirement Age", "Risk Tolerance"].map((field) => (
             <div key={field} className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl">
               <span className="text-slate-600 dark:text-slate-300">{field}</span>
               <div className="w-32 h-8 bg-slate-200 dark:bg-slate-600 rounded-lg animate-pulse" />
@@ -808,7 +808,7 @@ const TestimonialCard: React.FC<{ testimonial: typeof testimonials[0] }> = ({ te
     <Quote className="w-10 h-10 text-blue-200 dark:text-blue-900 mb-4" />
 
     <p className="text-lg text-slate-700 dark:text-slate-200 flex-grow mb-8 leading-relaxed">
-      "{testimonial.quote}"
+      &quot;{testimonial.quote}&quot;
     </p>
 
     <div className="flex items-center gap-4 pt-6 border-t border-slate-100 dark:border-slate-700">

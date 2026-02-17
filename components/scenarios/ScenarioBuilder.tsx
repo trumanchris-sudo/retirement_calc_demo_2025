@@ -855,7 +855,7 @@ export function ScenarioBuilder({
   const comparisons = useMemo<Record<string, ScenarioComparison>>(() => {
     const results: Record<string, ScenarioComparison> = {};
 
-    activeScenarios.forEach((scenario, index) => {
+    activeScenarios.forEach((scenario) => {
       const eventImpact = scenario.events.reduce((acc, event) => {
         const multiplier = FREQUENCY_CONFIG[event.frequency].multiplier;
         const years = event.endAge ? event.endAge - event.startAge : 1;

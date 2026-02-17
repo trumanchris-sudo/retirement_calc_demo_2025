@@ -114,7 +114,7 @@
         trimCache(CALCULATION_CACHE, MAX_CALCULATION_CACHE_ITEMS);
       }
       return networkResponse;
-    } catch (error) {
+    } catch {
       const cachedResponse = await caches.match(request);
       if (cachedResponse) {
         console.log("[ServiceWorker] Serving cached API response");

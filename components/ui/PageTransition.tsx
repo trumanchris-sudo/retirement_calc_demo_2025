@@ -44,12 +44,12 @@ interface PageTransitionContextValue {
   prefersReducedMotion: boolean;
 }
 
-// Reason: SharedElementState interface is defined for future use with shared element transitions
-interface SharedElementState {
-  id: string;
-  rect: DOMRect;
-  element: HTMLElement;
-}
+// Reason: Reserved for future shared element transitions feature
+// interface SharedElementState {
+//   id: string;
+//   rect: DOMRect;
+//   element: HTMLElement;
+// }
 
 // =============================================================================
 // CONSTANTS & DEFAULTS
@@ -789,13 +789,12 @@ export const AnimatedTabContent: React.FC<AnimatedTabContentProps> = ({
 }) => {
   const isActive = value === activeValue;
   const prevValueRef = useRef(activeValue);
-  const [slideDirection, setSlideDirection] = useState<TransitionDirection>("right");
 
   useEffect(() => {
     if (prevValueRef.current !== activeValue) {
       // Determine direction based on position change
       // This is a simple approach - you can customize based on your tab order
-      setSlideDirection(direction === "horizontal" ? "right" : "down");
+      // For future use with slide direction: direction === "horizontal" ? "right" : "down"
       prevValueRef.current = activeValue;
     }
   }, [activeValue, direction]);
@@ -1014,7 +1013,7 @@ export const presetTransitions = {
 // DEFAULT EXPORT
 // =============================================================================
 
-export default {
+const PageTransitionExports = {
   PageTransitionProvider,
   PageTransition,
   FadeTransition,
@@ -1032,3 +1031,5 @@ export default {
   presetVariants,
   presetTransitions,
 };
+
+export default PageTransitionExports;

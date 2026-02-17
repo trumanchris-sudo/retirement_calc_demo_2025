@@ -56,7 +56,7 @@ import {
 } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import { fmt } from '@/lib/utils';
-import { calcPIA, calcSocialSecurity } from '@/lib/calculations/retirementEngine';
+import { calcPIA } from '@/lib/calculations/retirementEngine';
 import type { FilingStatus } from '@/types/calculator';
 
 // ==================== Types ====================
@@ -138,7 +138,6 @@ interface ScenarioDetail {
 const SS_SURVIVOR_BENEFIT_PCT = 1.0; // 100% of deceased's PIA at FRA
 const SS_SURVIVOR_EARLY_REDUCTION_PCT = 0.715; // 71.5% at age 60 (earliest)
 const SS_WIDOW_EARLIEST_AGE = 60;
-const SS_WIDOW_DISABLED_AGE = 50;
 const SS_CHILD_BENEFIT_PCT = 0.75; // 75% of deceased's PIA per child
 const SS_FAMILY_MAX_PCT = 1.8; // Family max ~150-180% of PIA
 
@@ -147,14 +146,12 @@ const MARRIAGE_YEARS_FOR_SS = 10; // Must be married 10+ years for ex-spouse SS 
 const QDRO_TYPICAL_SPLIT = 0.5; // 50/50 split of marital retirement assets
 
 // Disability constants
-const SS_DISABILITY_WAIT_MONTHS = 5; // 5-month waiting period
 const DISABILITY_INSURANCE_TARGET_PCT = 0.6; // Target 60% income replacement
 const AVG_LTD_POLICY_PCT = 0.6; // Most LTD policies cover 60% of income
 
 // Life insurance guidelines (years of income)
 const LIFE_INSURANCE_MULTIPLIER_WITH_KIDS = 10;
 const LIFE_INSURANCE_MULTIPLIER_NO_KIDS = 7;
-const MORTGAGE_PAYOFF_PRIORITY = true;
 
 // Average childcare cost per child per year
 const AVG_CHILDCARE_COST_PER_CHILD = 15000;
@@ -272,11 +269,9 @@ function calculateLifeInsuranceNeed(
 function calculateDivorceImpact(
   pretaxBalance: number,
   rothBalance: number,
-  taxableBalance: number,
   yearsMarried: number,
   ssIncome1: number,
-  ssIncome2: number,
-  ssClaimAge: number
+  ssIncome2: number
 ): {
   assetDivision: number;
   ssBenefitFromEx: number;
@@ -310,8 +305,7 @@ function calculateDivorceImpact(
 function calculateDisabilityImpact(
   annualIncome: number,
   existingDisabilityInsurance: number,
-  ssIncome: number,
-  currentAge: number
+  ssIncome: number
 ): {
   incomeGap: number;
   ssDisabilityBenefit: number;
@@ -342,16 +336,13 @@ export function SpousalScenarios({
   age1,
   age2,
   marital,
-  retirementAge,
   primaryIncome,
   spouseIncome,
   taxableBalance,
   pretaxBalance,
   rothBalance,
   ssIncome,
-  ssClaimAge,
   ssIncome2,
-  ssClaimAge2,
   numChildren = 0,
   childrenAges = [],
   lifeInsuranceP1 = 0,
@@ -360,18 +351,11 @@ export function SpousalScenarios({
   disabilityInsuranceP2 = 0,
   monthlyExpenses = 0,
   monthlyMortgage = 0,
-  monthlyChildcare = 0,
 }: SpousalScenariosProps) {
   const [showScenarios, setShowScenarios] = useState(false);
-  const [expandedScenario, setExpandedScenario] = useState<string | null>(null);
   const [completedActions, setCompletedActions] = useState<Set<string>>(new Set());
 
-  // Only show for married couples
-  if (marital !== 'married') {
-    return null;
-  }
-
-  // Determine primary vs secondary earner
+  // Determine primary vs secondary earner (before early return to satisfy hook rules)
   const primaryIsPerson1 = primaryIncome >= spouseIncome;
   const primaryEarnerIncome = primaryIsPerson1 ? primaryIncome : spouseIncome;
   const secondaryEarnerIncome = primaryIsPerson1 ? spouseIncome : primaryIncome;
@@ -395,6 +379,8 @@ export function SpousalScenarios({
   // Generate scenarios
   const scenarios = useMemo<ScenarioAnalysis[]>(() => {
     const results: ScenarioAnalysis[] = [];
+    // Reasons for dependencies: All these values determine scenario calculations
+    // eslint-disable-next-line react-hooks/exhaustive-deps
 
     // ========== Scenario 1: Early Death of Primary Earner ==========
     const survivorBenefitFromPrimary = calculateSurvivorBenefit(
@@ -501,6 +487,8 @@ export function SpousalScenarios({
       primaryEarnerAge,
       hasMinorChildren
     );
+    // Reason: Child benefits calculated for completeness but not displayed in secondary scenario findings
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const childBenefitsFromSecondary = calculateChildSurvivorBenefits(secondarySSIncome, minorChildren);
     const secondaryLifeInsuranceNeed = calculateLifeInsuranceNeed(
       secondaryEarnerIncome,
@@ -602,11 +590,9 @@ export function SpousalScenarios({
     const divorceImpact = calculateDivorceImpact(
       pretaxBalance,
       rothBalance,
-      taxableBalance,
       yearsMarried,
       ssIncome,
-      ssIncome2,
-      ssClaimAge
+      ssIncome2
     );
 
     results.push({
@@ -693,14 +679,7 @@ export function SpousalScenarios({
     const primaryDisabilityImpact = calculateDisabilityImpact(
       primaryEarnerIncome,
       disabilityInsuranceP1,
-      primarySSIncome,
-      primaryEarnerAge
-    );
-    const secondaryDisabilityImpact = calculateDisabilityImpact(
-      secondaryEarnerIncome,
-      disabilityInsuranceP2,
-      secondarySSIncome,
-      secondaryEarnerAge
+      primarySSIncome
     );
 
     // Use primary earner for the main scenario
@@ -793,8 +772,7 @@ export function SpousalScenarios({
     primarySSIncome, secondarySSIncome, primaryLifeInsurance, secondaryLifeInsurance,
     hasMinorChildren, minorChildren, childrenAges, estimatedMortgageBalance,
     annualExpenses, pretaxBalance, rothBalance, taxableBalance,
-    disabilityInsuranceP1, disabilityInsuranceP2, ssIncome, ssIncome2,
-    ssClaimAge, primaryIsPerson1,
+    disabilityInsuranceP1, ssIncome, ssIncome2, primaryIsPerson1,
   ]);
 
   const toggleAction = useCallback((scenarioId: string, actionTitle: string) => {
@@ -817,6 +795,11 @@ export function SpousalScenarios({
     ).length;
     return { completed: completedCount, total: totalActions, percent: (completedCount / totalActions) * 100 };
   }, [completedActions]);
+
+  // Only show for married couples (after hooks to satisfy rules of hooks)
+  if (marital !== 'married') {
+    return null;
+  }
 
   return (
     <Card className="border-2 border-slate-200 dark:border-slate-700">

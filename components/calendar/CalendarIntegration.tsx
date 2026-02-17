@@ -26,8 +26,6 @@ import {
   Shield,
   Target,
   Heart,
-  Building2,
-  Wallet,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -154,41 +152,6 @@ const CATEGORY_CONFIG: Record<
   },
 }
 
-const PLATFORM_CONFIG: Record<
-  CalendarPlatform,
-  { label: string; icon: string; color: string }
-> = {
-  google: {
-    label: 'Google Calendar',
-    icon: '/icons/google-calendar.svg',
-    color: 'hover:bg-blue-50 dark:hover:bg-blue-900/20',
-  },
-  apple: {
-    label: 'Apple Calendar',
-    icon: '/icons/apple-calendar.svg',
-    color: 'hover:bg-gray-50 dark:hover:bg-gray-800/50',
-  },
-  outlook: {
-    label: 'Outlook',
-    icon: '/icons/outlook.svg',
-    color: 'hover:bg-blue-50 dark:hover:bg-blue-900/20',
-  },
-  ics: {
-    label: 'Download ICS',
-    icon: '/icons/calendar.svg',
-    color: 'hover:bg-green-50 dark:hover:bg-green-900/20',
-  },
-}
-
-const REMINDER_LABELS: Record<ReminderTiming, string> = {
-  '15min': '15 minutes before',
-  '1hour': '1 hour before',
-  '1day': '1 day before',
-  '1week': '1 week before',
-  '2weeks': '2 weeks before',
-  '1month': '1 month before',
-}
-
 const RECURRENCE_LABELS: Record<RecurrenceFrequency, string> = {
   none: 'Does not repeat',
   weekly: 'Weekly',
@@ -233,16 +196,6 @@ function getDaysUntil(date: Date): number {
 
 function getDateForYear(month: number, day: number, year: number = new Date().getFullYear()): Date {
   return new Date(year, month - 1, day)
-}
-
-function getQuarterlyDates(startMonth: number, startDay: number, year: number): Date[] {
-  const dates: Date[] = []
-  for (let q = 0; q < 4; q++) {
-    const month = (startMonth - 1 + q * 3) % 12 + 1
-    const adjustedYear = startMonth - 1 + q * 3 >= 12 ? year + 1 : year
-    dates.push(getDateForYear(month, startDay, adjustedYear))
-  }
-  return dates
 }
 
 // ==================== ICS Generation ====================
@@ -575,7 +528,7 @@ function generateDefaultFinancialEvents(
     rebalancingDates.push(getDateForYear(12, 31, year))
   }
 
-  rebalancingDates.forEach((date, index) => {
+  rebalancingDates.forEach((date) => {
     events.push({
       id: generateEventId(),
       title: 'Portfolio Rebalancing Review',

@@ -67,8 +67,7 @@ interface ChecklistItem {
   description: string;
   deadline: string;
   deadlineDate: Date;
-  // Reason: lucide-react icon components accept generic props
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ className?: string }>;
   category: 'retirement' | 'investments' | 'giving' | 'healthcare' | 'income' | 'business';
   dollarImpact: (situation: UserSituation) => number;
   isApplicable: (situation: UserSituation) => boolean;

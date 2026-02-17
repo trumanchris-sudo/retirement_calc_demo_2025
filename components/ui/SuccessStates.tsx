@@ -5,7 +5,6 @@ import React, {
   useEffect,
   useCallback,
   useRef,
-  useMemo,
   createContext,
   useContext,
 } from "react";
@@ -13,7 +12,7 @@ import dynamic from "next/dynamic";
 import { cn } from "@/lib/utils";
 import { fmt } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Share2,
   Twitter,
@@ -620,7 +619,6 @@ export const AnimatedTypography: React.FC<AnimatedTypographyProps> = ({
   text,
   className,
   delay = 0,
-  duration = 0.6,
   variant = "bounce",
 }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -1207,7 +1205,6 @@ export const SuccessStateInline: React.FC<SuccessStateInlineProps> = ({
   soundEnabled = true,
 }) => {
   const [showConfetti, setShowConfetti] = useState(false);
-  const [showParticles, setShowParticles] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const hasPlayedSound = useRef(false);
 
@@ -1217,7 +1214,6 @@ export const SuccessStateInline: React.FC<SuccessStateInlineProps> = ({
 
   useEffect(() => {
     setShowConfetti(true);
-    setShowParticles(true);
 
     if (soundEnabled && !hasPlayedSound.current) {
       playSuccessSound(celebrationLevel);

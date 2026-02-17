@@ -904,7 +904,7 @@ const RecommendationSection: React.FC = () => (
           <li className="flex items-start gap-2">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
             <span>
-              <strong>Avoid active target date funds</strong> - The extra 0.50%+ in fees isn't worth it
+              <strong>Avoid active target date funds</strong> - The extra 0.50%+ in fees isn&apos;t worth it
             </span>
           </li>
         </ul>
@@ -940,8 +940,8 @@ export const TargetDateAnalyzer: React.FC<TargetDateAnalyzerProps> = ({ currentA
           <h1 className="text-3xl font-bold">Target Date Fund Analyzer</h1>
         </div>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          The "set-and-forget" option for retirement investing. Understand how they work,
-          compare providers, and decide if they're right for you.
+          The &ldquo;set-and-forget&rdquo; option for retirement investing. Understand how they work,
+          compare providers, and decide if they&apos;re right for you.
         </p>
         <Badge className="bg-blue-100 text-blue-800 border-blue-200">
           Recommended for most 401(k) investors

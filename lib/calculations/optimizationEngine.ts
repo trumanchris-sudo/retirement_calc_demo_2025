@@ -161,15 +161,6 @@ function getBracketHeadroom(income: number, status: FilingStatus): { headroom: n
 }
 
 /**
- * Calculate present value of future benefit stream
- */
-function calculatePresentValue(annualAmount: number, years: number, discountRate: number): number {
-  if (discountRate === 0) return annualAmount * years;
-  const rate = discountRate / 100;
-  return annualAmount * ((1 - Math.pow(1 + rate, -years)) / rate);
-}
-
-/**
  * Calculate future value with compounding
  */
 function calculateFutureValue(presentValue: number, years: number, rate: number): number {
@@ -186,8 +177,8 @@ function calculateFutureValue(presentValue: number, years: number, rate: number)
 function analyzeRothConversions(inputs: OptimizationInputs): Recommendation[] {
   const recommendations: Recommendation[] = [];
   const {
-    marital, age1, retirementAge, pretaxBalance, taxableBalance,
-    primaryIncome = 0, spouseIncome = 0, retRate, inflationRate, includeSS, ssIncome
+    marital, age1, retirementAge, pretaxBalance,
+    primaryIncome = 0, spouseIncome = 0, retRate, includeSS, ssIncome
   } = inputs;
 
   // Skip if no pre-tax balance or too young
@@ -197,11 +188,10 @@ function analyzeRothConversions(inputs: OptimizationInputs): Recommendation[] {
   const totalIncome = primaryIncome + (spouseIncome || 0);
 
   // Get bracket headroom
-  const { headroom, currentRate, nextRate } = getBracketHeadroom(totalIncome, marital);
+  const { headroom, currentRate } = getBracketHeadroom(totalIncome, marital);
 
   // Determine years until RMD (age 73)
   const yearsToRMD = Math.max(0, RMD_START_AGE - age1);
-  const yearsToRetirement = Math.max(0, retirementAge - age1);
 
   // Calculate projected pre-tax balance at RMD age
   const projectedPretaxAtRMD = calculateFutureValue(pretaxBalance, yearsToRMD, retRate);

@@ -330,40 +330,39 @@ export function WhatIfScenarios({
     (isMarried ? cTax2 + cPre2 + cPost2 + cMatch2 : 0);
   const totalCurrentBalance = taxableBalance + pretaxBalance + rothBalance;
 
-  // Create base inputs for simulations
-  const baseInputs: Partial<SimulationInputs> = {
-    marital,
-    age1: age,
-    age2: spouseAge || age,
-    retirementAge,
-    taxableBalance,
-    pretaxBalance,
-    rothBalance,
-    cTax1,
-    cPre1,
-    cPost1,
-    cMatch1,
-    cTax2,
-    cPre2,
-    cPost2,
-    cMatch2,
-    retRate,
-    inflationRate,
-    stateRate,
-    wdRate,
-    includeSS,
-    ssIncome,
-    ssClaimAge,
-    ssIncome2,
-    ssClaimAge2,
-    returnMode: 'fixed',
-    randomWalkSeries: 'trulyRandom',
-    incContrib: false,
-    incRate: 0,
-  };
-
   // Calculate all scenarios
   const scenarios = useMemo<ScenarioResult[]>(() => {
+    // Create base inputs for simulations
+    const baseInputs: Partial<SimulationInputs> = {
+      marital,
+      age1: age,
+      age2: spouseAge || age,
+      retirementAge,
+      taxableBalance,
+      pretaxBalance,
+      rothBalance,
+      cTax1,
+      cPre1,
+      cPost1,
+      cMatch1,
+      cTax2,
+      cPre2,
+      cPost2,
+      cMatch2,
+      retRate,
+      inflationRate,
+      stateRate,
+      wdRate,
+      includeSS,
+      ssIncome,
+      ssClaimAge,
+      ssIncome2,
+      ssClaimAge2,
+      returnMode: 'fixed',
+      randomWalkSeries: 'trulyRandom',
+      incContrib: false,
+      incRate: 0,
+    };
     const results: ScenarioResult[] = [];
 
     // ========== Scenario 1: Started at 25 ==========
@@ -577,9 +576,11 @@ export function WhatIfScenarios({
 
     return results;
   }, [
-    age, retirementAge, totalCurrentContrib, totalCurrentBalance,
-    retRate, inflationRate, wdRate, includeSS, ssIncome, ssClaimAge,
-    isMarried, childrenAges, childrenNames, currentEolReal, baseInputs,
+    age, spouseAge, marital, retirementAge, totalCurrentContrib, totalCurrentBalance,
+    taxableBalance, pretaxBalance, rothBalance,
+    cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+    retRate, inflationRate, wdRate, stateRate, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+    isMarried, childrenAges, childrenNames, currentEolReal,
   ]);
 
   // Share handlers

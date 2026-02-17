@@ -172,10 +172,6 @@ function getDaysUntil(date: Date): number {
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function isDateInPast(date: Date): boolean {
-  return getDaysUntil(date) < 0
-}
-
 function generateEventId(): string {
   return `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
@@ -516,7 +512,7 @@ function generateICSFile(events: TaxEvent[]): string {
     return text.replace(/[,;\\]/g, (match) => '\\' + match).replace(/\n/g, '\\n')
   }
 
-  let ics = [
+  const ics = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//Retirement Calculator//Tax Calendar//EN',
@@ -719,7 +715,7 @@ function NotificationSettings({ event, onUpdateTimings, onClose }: NotificationS
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Choose when to receive reminders for "{event.title}"
+        Choose when to receive reminders for &quot;{event.title}&quot;
       </p>
 
       <div className="space-y-2">
@@ -753,7 +749,6 @@ export function TaxCalendar({
   userAge = 40,
   spouseAge = 40,
   isMarried = false,
-  onEventSelect,
   onNotificationSchedule,
   customEvents = [],
   className,

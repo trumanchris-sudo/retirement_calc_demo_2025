@@ -676,7 +676,7 @@ export function analyzePortfolio(
  */
 function generateRecommendations(
   holdingAnalysis: HoldingTaxDrag[],
-  expectedReturn: number // Reason: Reserved for future enhancements to recommendation impact calculations
+  _expectedReturn: number // Reason: Reserved for future enhancements to recommendation impact calculations
 ): OptimizationRecommendation[] {
   const recommendations: OptimizationRecommendation[] = [];
 

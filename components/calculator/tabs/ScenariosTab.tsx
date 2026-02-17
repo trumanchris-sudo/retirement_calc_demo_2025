@@ -8,8 +8,8 @@ import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
 import { RecalculateButton } from "@/components/calculator/RecalculateButton";
 import { ScenarioComparisonChart } from "@/components/calculator/charts";
-import { BEAR_MARKET_SCENARIOS, type BearMarketScenario } from "@/lib/simulation/bearMarkets";
-import { INFLATION_SHOCK_SCENARIOS, type InflationShockScenario } from "@/lib/simulation/inflationShocks";
+import { BEAR_MARKET_SCENARIOS } from "@/lib/simulation/bearMarkets";
+import { INFLATION_SHOCK_SCENARIOS } from "@/lib/simulation/inflationShocks";
 import type { CalculationResult, ComparisonData } from "@/types/calculator";
 import type { ReturnMode } from "@/types/planner";
 import { fmt } from "@/lib/utils";
@@ -346,7 +346,7 @@ export function ScenariosTab({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
-                          <strong>Comparison Mode Active:</strong> Select a bear market and/or inflation shock above, then click "Refresh Comparison" to update the chart.
+                          <strong>Comparison Mode Active:</strong> Select a bear market and/or inflation shock above, then click &quot;Refresh Comparison&quot; to update the chart.
                         </div>
                       </div>
                     </div>

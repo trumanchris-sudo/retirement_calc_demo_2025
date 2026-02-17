@@ -244,7 +244,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   // Initialize animated values
   useEffect(() => {
     setAnimatedValues(normalizedSegments.map(() => 0));
-  }, [normalizedSegments.length]);
+  }, [normalizedSegments]);
 
   // Intersection Observer for scroll animation
   useEffect(() => {
@@ -253,12 +253,13 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
       return;
     }
 
+    const currentRef = containerRef.current;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          if (containerRef.current) {
-            observer.unobserve(containerRef.current);
+          if (currentRef) {
+            observer.unobserve(currentRef);
           }
         }
       },
@@ -268,13 +269,13 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
       }
     );
 
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (containerRef.current) {
-        observer.unobserve(containerRef.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
   }, [animateOnScroll]);

@@ -246,47 +246,6 @@ const CustomBar: React.FC<CustomBarProps> = ({
   );
 };
 
-interface ConnectorLineProps {
-  data: ProcessedDataPoint[];
-  xScale: (value: string) => number;
-  yScale: (value: number) => number;
-  barWidth: number;
-}
-
-const ConnectorLines: React.FC<ConnectorLineProps> = ({
-  data,
-  xScale,
-  yScale,
-  barWidth,
-}) => {
-  return (
-    <g className="connector-lines">
-      {data.slice(0, -1).map((point, index) => {
-        const nextPoint = data[index + 1];
-        if (!nextPoint || nextPoint.category === "total") return null;
-
-        const x1 = xScale(point.label) + barWidth;
-        const x2 = xScale(nextPoint.label);
-        const y = yScale(point.runningTotal);
-
-        return (
-          <line
-            key={`connector-${index}`}
-            x1={x1}
-            x2={x2}
-            y1={y}
-            y2={y}
-            stroke="rgba(156, 163, 175, 0.5)"
-            strokeWidth={1}
-            strokeDasharray="4,4"
-            className="transition-opacity duration-300"
-          />
-        );
-      })}
-    </g>
-  );
-};
-
 interface CustomTooltipProps {
   active?: boolean;
   payload?: Array<{ payload: ProcessedDataPoint }>;
@@ -360,7 +319,6 @@ export const WaterfallChart = React.memo(function WaterfallChart({
   description = "Step-by-step breakdown of income, taxes, expenses, and savings",
   height = 400,
   showRunningTotal = true,
-  showConnectors = true,
   animated = true,
   animationDuration = 100,
   colors: customColors,
