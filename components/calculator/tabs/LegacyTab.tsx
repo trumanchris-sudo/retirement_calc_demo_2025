@@ -17,6 +17,7 @@ import DownloadCardButton from "@/components/DownloadCardButton";
 import type { LegacyResult } from "@/lib/walletPass";
 import type { CalculationResult } from "@/types/calculator";
 import type { PlanConfig } from "@/types/plan-config";
+import { fmt } from "@/lib/utils";
 
 // Lazy load DynastyTimeline
 const DynastyTimeline = dynamic(
@@ -74,6 +75,7 @@ export interface LegacyTabProps {
 export function LegacyTab({
   showGen, setShowGen,
   hypPerBen, setHypPerBen,
+  numberOfBeneficiaries,
   childrenCurrentAges, setChildrenCurrentAges,
   additionalChildrenExpected, setAdditionalChildrenExpected,
   totalFertilityRate, setTotalFertilityRate,
@@ -87,6 +89,14 @@ export function LegacyTab({
   res, legacyResult, legacyCardRef, genRef,
   updatePlanConfig, onInputChange
 }: LegacyTabProps) {
+  const parsedChildrenAges = childrenCurrentAges
+    .split(',')
+    .map(s => parseInt(s.trim(), 10))
+    .filter(n => !isNaN(n) && n >= 0);
+  const hasNoBeneficiaries = numberOfBeneficiaries === 0 && parsedChildrenAges.length === 0;
+  const isEstimateDepleted = res && res.eolReal !== undefined && res.eolReal <= 0;
+  const isEstateTooSmall = res && res.eolReal !== undefined && res.eolReal > 0 && res.eolReal < 10000;
+
   return (
     <AnimatedSection animation="fade-in" delay={100}>
       <Card className="print:hidden">
@@ -265,6 +275,31 @@ export function LegacyTab({
             </AccordionItem>
           </Accordion>
 
+          {/* Validation messages */}
+          {hasNoBeneficiaries && (
+            <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-center">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                Add at least one beneficiary to model generational wealth distributions
+              </p>
+            </div>
+          )}
+
+          {isEstimateDepleted && (
+            <div className="mt-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg text-center">
+              <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                Your portfolio is projected to be depleted before end of life. Consider adjusting withdrawal rate or retirement age.
+              </p>
+            </div>
+          )}
+
+          {isEstateTooSmall && (
+            <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-center">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                Estate too small for meaningful generational distributions.
+              </p>
+            </div>
+          )}
+
           {/* Calculate Button */}
           <div className="mt-8 flex justify-center">
             <Button
@@ -274,7 +309,7 @@ export function LegacyTab({
                 // Pass forceShowGen to ensure legacy calculation runs immediately
                 onCalculate({ forceShowGen: true });
               }}
-              disabled={isRunning}
+              disabled={isRunning || hasNoBeneficiaries}
               size="lg"
               className="px-8 py-6 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all"
             >
@@ -284,7 +319,7 @@ export function LegacyTab({
                   Calculating...
                 </>
               ) : (
-                'Calculate Legacy Plan'
+                'Calculate Generational Wealth'
               )}
             </Button>
           </div>
@@ -305,6 +340,31 @@ export function LegacyTab({
           {res?.genPayout && (
             <>
               <Separator className="my-6" />
+
+              {/* Estate Tax Breakdown Card - only shown when estate tax applies */}
+              {res.estateTax > 0 && (
+                <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <h4 className="text-sm font-semibold text-red-900 dark:text-red-100 mb-3">Estate Tax Summary</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Gross Estate Value</p>
+                      <p className="font-semibold text-foreground">{fmt(res.eolReal || res.eol)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Estate Tax</p>
+                      <p className="font-semibold text-red-700 dark:text-red-400">-{fmt(res.estateTax)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Net Estate for Heirs</p>
+                      <p className="font-semibold text-foreground">{fmt(res.netEstate)}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    The generational wealth projections below are funded from the net estate after estate taxes.
+                  </p>
+                </div>
+              )}
+
               <div ref={genRef} className="mt-6">
                 {/* Single LegacyResultCard with calculated success rate */}
                 <p className="text-sm text-muted-foreground mb-4 text-center">

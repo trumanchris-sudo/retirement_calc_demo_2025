@@ -360,6 +360,19 @@ export default function SelfEmployed2026Page() {
   ]);
 
   // ============================================================================
+  // NAVIGATION GUARD - warn about unsaved changes
+  // ============================================================================
+
+  useEffect(() => {
+    if (!calculationState.isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [calculationState.isDirty]);
+
+  // ============================================================================
   // HANDLERS
   // ============================================================================
 

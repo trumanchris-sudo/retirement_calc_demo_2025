@@ -13,6 +13,7 @@ import { RMD_START_AGE } from "@/lib/constants";
 import type { CalculationResult, CalculatorInputs } from "@/types/calculator";
 import type { WalkSeries, BatchSummary, GuardrailsResult } from "@/types/planner";
 import { fmt } from "@/lib/utils";
+import { CHART_SEMANTIC, getTooltipStyles } from "@/lib/chartColors";
 
 // RMD chart components from recharts
 import {
@@ -151,23 +152,14 @@ export function ResultsTab({
                               <YAxis tickFormatter={(v) => fmt(v as number)} />
                               <RTooltip
                                 formatter={(v) => fmt(v as number)}
-                                contentStyle={{
-                                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                                  borderRadius: "8px",
-                                  border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-                                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                                  color: isDarkMode ? '#f3f4f6' : '#1f2937'
-                                }}
-                                labelStyle={{
-                                  color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                                  fontWeight: 'bold'
-                                }}
+                                contentStyle={getTooltipStyles().contentStyle}
+                                labelStyle={getTooltipStyles().labelStyle}
                               />
                               <Legend />
                               <Line
                                 type="monotone"
                                 dataKey="spending"
-                                stroke="#10b981"
+                                stroke={CHART_SEMANTIC.real}
                                 strokeWidth={2}
                                 dot={false}
                                 name="Spending Need (after SS)"
@@ -175,7 +167,7 @@ export function ResultsTab({
                               <Line
                                 type="monotone"
                                 dataKey="rmd"
-                                stroke="#ef4444"
+                                stroke={CHART_SEMANTIC.bearMarket}
                                 strokeWidth={2}
                                 strokeDasharray="5 5"
                                 dot={false}
@@ -195,7 +187,23 @@ export function ResultsTab({
                     </>
                   ) : (
                     <div className="text-center py-12 text-muted-foreground">
-                      <p className="text-sm">No RMD data available. RMDs begin at age {RMD_START_AGE} when you have pre-tax account balances.</p>
+                      {(() => {
+                        const hasPretaxBalance = (calculatorInputs?.pretaxBalance ?? 0) > 0 ||
+                          (res.eolAccounts?.pretax ?? 0) > 0;
+                        const currentAge = calculatorInputs?.age1 ?? 0;
+                        if (hasPretaxBalance && currentAge < RMD_START_AGE) {
+                          return (
+                            <p className="text-sm">
+                              RMDs will begin at age {RMD_START_AGE}. You currently have pre-tax balances that will be subject to RMDs.
+                            </p>
+                          );
+                        }
+                        return (
+                          <p className="text-sm">
+                            No pre-tax account balances detected. RMDs only apply to pre-tax accounts (401k/Traditional IRA).
+                          </p>
+                        );
+                      })()}
                     </div>
                   )}
                 </TabsContent>

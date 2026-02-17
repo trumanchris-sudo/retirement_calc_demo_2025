@@ -264,7 +264,7 @@ export function MathTab({
           <Separator />
 
           <section>
-            <h3 className="text-xl font-semibold mb-3 text-blue-900">Estate Planning</h3>
+            <h3 className="text-xl font-semibold mb-3 text-blue-900">Generational Wealth</h3>
 
             <div className="space-y-4">
               <div>

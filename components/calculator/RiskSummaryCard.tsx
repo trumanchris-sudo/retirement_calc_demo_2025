@@ -12,7 +12,7 @@ export interface RiskSummaryCardProps {
     name: string;
     description: string;
     successRate?: number;
-    eolWealth?: number;
+    netEstate?: number;
     withdrawalAmount?: number;
   };
   showComparison?: boolean;
@@ -84,6 +84,9 @@ export const RiskSummaryCard = React.memo(function RiskSummaryCard({
                 <div className={`${TYPOGRAPHY.metricMedium} ${currentRisk.color}`}>
                   {successRate.toFixed(1)}%
                 </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  (based on 1,000 Monte Carlo simulations using historical market volatility)
+                </div>
               </div>
               <div className="text-right">
                 <Badge variant="outline" className={currentRisk.color}>
@@ -93,12 +96,12 @@ export const RiskSummaryCard = React.memo(function RiskSummaryCard({
             </div>
 
             {/* Additional Metrics */}
-            {currentScenario.eolWealth !== undefined && (
+            {currentScenario.netEstate !== undefined && (
               <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div>
-                  <div className={`${TYPOGRAPHY.tableCellCompact} text-muted-foreground`}>End-of-Life Wealth (real)</div>
+                  <div className={`${TYPOGRAPHY.tableCellCompact} text-muted-foreground`}>Net Estate (real)</div>
                   <div className={TYPOGRAPHY.metricSmall}>
-                    ${Math.round(currentScenario.eolWealth).toLocaleString()}
+                    ${Math.round(currentScenario.netEstate).toLocaleString()}
                   </div>
                 </div>
               </div>

@@ -57,6 +57,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -400,6 +410,8 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
   const [showDiffOnly, setShowDiffOnly] = useState(false);
   const [baseScenarioId, setBaseScenarioId] = useState<string | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [lastCalcTimestamp, setLastCalcTimestamp] = useState<number>(0);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   // Refs for sync scrolling
   const scrollRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -426,6 +438,7 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
       });
 
       setComparisonScenarios(updatedScenarios);
+      setLastCalcTimestamp(Date.now());
       setIsCalculating(false);
     };
 
@@ -434,6 +447,21 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comparisonScenarios.length]); // Only recalculate when scenarios are added/removed
+
+  // Detect if the current plan card is potentially stale (config changed after last calculation)
+  const isCurrentPlanStale = useMemo(() => {
+    if (lastCalcTimestamp === 0) return false;
+    const hasCurrentPlan = comparisonScenarios.some(s => s.isCurrent);
+    if (!hasCurrentPlan) return false;
+    // config.updatedAt may exist; otherwise compare config snapshot
+    const configTimestamp = (config as PlanConfig & { updatedAt?: number }).updatedAt;
+    if (configTimestamp && configTimestamp > lastCalcTimestamp) return true;
+    // Fallback: check if config differs from the snapshot stored in the current plan scenario
+    const currentScenario = comparisonScenarios.find(s => s.isCurrent);
+    if (!currentScenario) return false;
+    const snapshotKeys: (keyof PlanConfig)[] = ['age1', 'retirementAge', 'taxableBalance', 'pretaxBalance', 'rothBalance', 'cTax1', 'cPre1', 'cPost1', 'cMatch1', 'retRate', 'inflationRate', 'wdRate', 'includeSS', 'ssIncome', 'ssClaimAge'];
+    return snapshotKeys.some(key => config[key] !== currentScenario.config[key]);
+  }, [config, comparisonScenarios, lastCalcTimestamp]);
 
   // Sync scroll handler
   const handleScroll = useCallback((index: number) => {
@@ -512,18 +540,45 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
     }
   }, [config, newScenarioName, newScenarioDescription, comparisonScenarios.length, addSavedScenario]);
 
-  // Delete a saved scenario
+  // Delete a saved scenario (opens confirmation dialog)
   const handleDeleteScenario = useCallback((scenarioId: string) => {
-    deleteScenario(scenarioId);
-    setSavedScenarios(getAllScenarios());
-    removeScenario(scenarioId);
-  }, [removeScenario]);
+    setDeleteTargetId(scenarioId);
+  }, []);
+
+  // Confirm deletion of a saved scenario
+  const confirmDeleteScenario = useCallback(() => {
+    if (deleteTargetId) {
+      deleteScenario(deleteTargetId);
+      setSavedScenarios(getAllScenarios());
+      removeScenario(deleteTargetId);
+      setDeleteTargetId(null);
+    }
+  }, [deleteTargetId, removeScenario]);
 
   // Load scenario into main config
   const handleLoadScenario = useCallback((scenario: ComparisonScenario) => {
     setConfig(scenario.config);
     onScenarioLoad?.(scenario.config);
   }, [setConfig, onScenarioLoad]);
+
+  // Recalculate all scenarios (used when config may have changed)
+  const recalculateAll = useCallback(() => {
+    setIsCalculating(true);
+    setComparisonScenarios(prev =>
+      prev.map((scenario, index) => {
+        const configToRun = scenario.isCurrent ? config : scenario.config;
+        const results = runScenarioSimulation(configToRun);
+        return {
+          ...scenario,
+          config: scenario.isCurrent ? { ...config } : scenario.config,
+          results,
+          color: SCENARIO_COLORS[index % SCENARIO_COLORS.length].bg,
+        };
+      })
+    );
+    setLastCalcTimestamp(Date.now());
+    setIsCalculating(false);
+  }, [config]);
 
   // Recalculate results for a specific scenario
   const recalculateScenario = useCallback((scenarioId: string) => {
@@ -532,11 +587,16 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
         if (scenario.id === scenarioId) {
           const configToRun = scenario.isCurrent ? config : scenario.config;
           const results = runScenarioSimulation(configToRun);
-          return { ...scenario, results };
+          return {
+            ...scenario,
+            config: scenario.isCurrent ? { ...config } : scenario.config,
+            results,
+          };
         }
         return scenario;
       })
     );
+    setLastCalcTimestamp(Date.now());
   }, [config]);
 
   // Toggle section expansion
@@ -850,6 +910,12 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
                                 Live
                               </Badge>
                             )}
+                            {scenario.isCurrent && isCurrentPlanStale && (
+                              <Badge variant="outline" className="text-xs border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-950/30 dark:text-amber-400">
+                                <AlertTriangle className="h-3 w-3 mr-1" aria-hidden="true" />
+                                Stale
+                              </Badge>
+                            )}
                             {baseScenarioId === scenario.id && (
                               <Badge className={colors.badge}>
                                 Base
@@ -942,6 +1008,25 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
                 );
               })}
             </div>
+
+            {/* Stale Data Warning */}
+            {isCurrentPlanStale && (
+              <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-700 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
+                  <AlertTriangle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                  <span>Your plan configuration has changed since the last comparison calculation.</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-400 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-900/30 gap-1.5"
+                  onClick={recalculateAll}
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5", isCalculating && "animate-spin")} />
+                  Recalculate All
+                </Button>
+              </div>
+            )}
 
             {/* Metrics Comparison Section */}
             <div className="space-y-2">
@@ -1262,6 +1347,22 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
           retirement age, or investment returns. Save scenarios to track different planning options.
         </div>
       </CardContent>
+
+      {/* Delete Confirmation AlertDialog */}
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => { if (!open) setDeleteTargetId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Plan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this saved scenario. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteScenario}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

@@ -56,7 +56,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-        <h3 className="text-xl font-semibold">Optimizing Your Plan...</h3>
+        <h3 className="text-xl font-semibold">Analyzing Financial Freedom...</h3>
         <p className="text-muted-foreground text-center max-w-md">
           Crunching 10,000+ scenarios to find your freedom date, splurge capacity, and savings surplus.
         </p>
@@ -68,7 +68,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <XCircle className="h-12 w-12 text-red-600" />
-        <h3 className="text-xl font-semibold">Optimization Failed</h3>
+        <h3 className="text-xl font-semibold">Financial Freedom Analysis Failed</h3>
         <p className="text-muted-foreground">{error}</p>
       </div>
     );
@@ -95,60 +95,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
         </p>
       </div>
 
-      {/* Card A: Oversaving Assessment - HIDDEN (undermines generational wealth goal) */}
-      {/* <Card className="border-2 border-green-200 bg-green-50/50 dark:bg-green-950/20">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-green-600" />
-            <CardTitle className="text-2xl">The "Live a Little" Assessment</CardTitle>
-          </div>
-          <CardDescription>Your monthly savings surplus</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {result.surplusMonthly > 0 ? (
-            <>
-              <div className="text-center py-4">
-                <p className="text-lg mb-2">You are oversaving by</p>
-                <p className="text-5xl font-bold text-green-600">
-                  {formatCurrency(result.surplusMonthly)}<span className="text-2xl">/month</span>
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  ({formatCurrency(result.surplusAnnual)} annually)
-                </p>
-              </div>
-
-              <p className="text-center text-muted-foreground">
-                You can spend this amount guilt-free on lifestyle today and still hit your retirement targets with <strong>95% confidence</strong>.
-              </p>
-
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Required Savings</span>
-                  <span>Current Savings</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                  <div
-                    className="bg-green-600 h-4 rounded-full transition-all duration-1000"
-                    style={{ width: `${requiredSavingsPercent}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{requiredSavingsPercent.toFixed(0)}% needed</span>
-                  <span>100% currently saving</span>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-lg text-yellow-600">
-                Your current savings are optimized for your goals. Consider maintaining your current contribution level.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card> */}
-
-      {/* Card B: Splurge Capacity */}
+      {/* Splurge Capacity */}
       <Card className="border-2 border-purple-200 bg-purple-50/50 dark:bg-purple-950/20">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -186,7 +133,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
         </CardContent>
       </Card>
 
-      {/* Card C: Freedom Date */}
+      {/* Freedom Date */}
       <Card className="border-2 border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
         <CardHeader>
           <div className="flex items-center gap-2">

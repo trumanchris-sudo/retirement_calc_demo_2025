@@ -26,6 +26,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Save,
   FolderOpen,
   Copy,
@@ -43,6 +53,8 @@ export function ScenarioManager() {
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
   const [scenarioDescription, setScenarioDescription] = useState('');
+  const [loadTarget, setLoadTarget] = useState<SavedScenario | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SavedScenario | null>(null);
 
   const refreshScenarios = useCallback(() => {
     setScenarios(getAllScenarios());
@@ -72,10 +84,15 @@ export function ScenarioManager() {
   };
 
   const handleLoad = (scenario: SavedScenario) => {
-    if (confirm(`Load plan "${scenario.name}"? This will replace your current plan.`)) {
-      setConfig(scenario.config);
+    setLoadTarget(scenario);
+  };
+
+  const confirmLoad = () => {
+    if (loadTarget) {
+      setConfig(loadTarget.config);
       setShowLoadDialog(false);
-      toast.success(`Plan "${scenario.name}" loaded!`);
+      toast.success(`Plan "${loadTarget.name}" loaded!`);
+      setLoadTarget(null);
     }
   };
 
@@ -88,10 +105,15 @@ export function ScenarioManager() {
   };
 
   const handleDelete = (scenario: SavedScenario) => {
-    if (confirm(`Delete plan "${scenario.name}"? This cannot be undone.`)) {
-      deleteScenario(scenario.id);
+    setDeleteTarget(scenario);
+  };
+
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      deleteScenario(deleteTarget.id);
       refreshScenarios();
-      toast({ title: `Plan "${scenario.name}" deleted`, variant: 'default' });
+      toast({ title: `Plan "${deleteTarget.name}" deleted`, variant: 'default' });
+      setDeleteTarget(null);
     }
   };
 
@@ -348,6 +370,38 @@ export function ScenarioManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Load Confirmation AlertDialog */}
+      <AlertDialog open={!!loadTarget} onOpenChange={(open) => { if (!open) setLoadTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Load Plan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Loading &quot;{loadTarget?.name}&quot; will replace your current plan configuration. Any unsaved changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLoad}>Load Plan</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation AlertDialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Plan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete &quot;{deleteTarget?.name}&quot;. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

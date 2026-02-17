@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { Calculator, TrendingUp, ArrowLeft, Info } from "lucide-react";
@@ -132,36 +132,102 @@ export default function Income2026Page() {
   const p2LifeInsuranceAnnual = planConfig.annualLifeInsuranceP2 ?? 0;
 
   // ============================================================================
-  // PAGE-LOCAL STATE (not in PlanConfig)
+  // PAGE-LOCAL STATE (persisted to localStorage)
   // ============================================================================
 
-  // Person 1 page-local
-  const [p1OvertimeMonthly, setP1OvertimeMonthly] = useState(0);
-  const [p1PayFrequency, setP1PayFrequency] = useState<PayFrequency>("biweekly");
+  const LOCAL_STORAGE_KEY = 'income-2026-local-state';
 
-  // Person 1 Pre-tax Deductions (page-local)
-  const [p1PreTaxHealthInsurance, setP1PreTaxHealthInsurance] = useState(0);
-  const [p1PreTaxHSA, setP1PreTaxHSA] = useState(0);
-  const [p1PreTaxFSA, setP1PreTaxFSA] = useState(0);
+  interface LocalState {
+    p1OvertimeMonthly: number;
+    p1PayFrequency: PayFrequency;
+    p1PreTaxHealthInsurance: number;
+    p1PreTaxHSA: number;
+    p1PreTaxFSA: number;
+    p2Bonus: number;
+    p2BonusMonth: string;
+    p2OvertimeMonthly: number;
+    p2PayFrequency: PayFrequency;
+    p2FirstPayDate: string;
+    p2PreTaxHealthInsurance: number;
+    p2PreTaxHSA: number;
+    p2PreTaxFSA: number;
+    federalWithholdingExtra: number;
+    stateWithholdingExtra: number;
+    p1DisabilityInsurance: number;
+  }
 
-  // Person 2 page-local
-  const [p2Bonus, setP2Bonus] = useState(0);
-  const [p2BonusMonth, setP2BonusMonth] = useState("December");
-  const [p2OvertimeMonthly, setP2OvertimeMonthly] = useState(0);
-  const [p2PayFrequency, setP2PayFrequency] = useState<PayFrequency>("biweekly");
-  const [p2FirstPayDate, setP2FirstPayDate] = useState("2026-01-15");
+  const LOCAL_STATE_DEFAULTS: LocalState = {
+    p1OvertimeMonthly: 0,
+    p1PayFrequency: "biweekly",
+    p1PreTaxHealthInsurance: 0,
+    p1PreTaxHSA: 0,
+    p1PreTaxFSA: 0,
+    p2Bonus: 0,
+    p2BonusMonth: "December",
+    p2OvertimeMonthly: 0,
+    p2PayFrequency: "biweekly",
+    p2FirstPayDate: "2026-01-15",
+    p2PreTaxHealthInsurance: 0,
+    p2PreTaxHSA: 0,
+    p2PreTaxFSA: 0,
+    federalWithholdingExtra: 0,
+    stateWithholdingExtra: 0,
+    p1DisabilityInsurance: 0,
+  };
 
-  // Person 2 Pre-tax Deductions (page-local)
-  const [p2PreTaxHealthInsurance, setP2PreTaxHealthInsurance] = useState(0);
-  const [p2PreTaxHSA, setP2PreTaxHSA] = useState(0);
-  const [p2PreTaxFSA, setP2PreTaxFSA] = useState(0);
+  const [localState, setLocalState] = useState<LocalState>(() => {
+    if (typeof window === 'undefined') return LOCAL_STATE_DEFAULTS;
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      return saved ? { ...LOCAL_STATE_DEFAULTS, ...JSON.parse(saved) } : LOCAL_STATE_DEFAULTS;
+    } catch {
+      return LOCAL_STATE_DEFAULTS;
+    }
+  });
 
-  // Tax Settings (page-local)
-  const [federalWithholdingExtra] = useState(0);
-  const [stateWithholdingExtra] = useState(0);
+  // Persist local state to localStorage on change (debounced)
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localState));
+      } catch {
+        // localStorage may be full or unavailable; silently ignore
+      }
+    }, 300);
+    return () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    };
+  }, [localState]);
 
-  // Other deductions (page-local)
-  const [p1DisabilityInsurance] = useState(0);
+  // Convenience destructuring and setters for page-local fields
+  const {
+    p1OvertimeMonthly, p1PayFrequency,
+    p1PreTaxHealthInsurance, p1PreTaxHSA, p1PreTaxFSA,
+    p2Bonus, p2BonusMonth, p2OvertimeMonthly, p2PayFrequency, p2FirstPayDate,
+    p2PreTaxHealthInsurance, p2PreTaxHSA, p2PreTaxFSA,
+    federalWithholdingExtra, stateWithholdingExtra,
+    p1DisabilityInsurance,
+  } = localState;
+
+  const updateLocal = useCallback(<K extends keyof LocalState>(key: K, value: LocalState[K]) => {
+    setLocalState(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const setP1OvertimeMonthly = useCallback((v: number) => updateLocal('p1OvertimeMonthly', v), [updateLocal]);
+  const setP1PayFrequency = useCallback((v: PayFrequency) => updateLocal('p1PayFrequency', v), [updateLocal]);
+  const setP1PreTaxHealthInsurance = useCallback((v: number) => updateLocal('p1PreTaxHealthInsurance', v), [updateLocal]);
+  const setP1PreTaxHSA = useCallback((v: number) => updateLocal('p1PreTaxHSA', v), [updateLocal]);
+  const setP1PreTaxFSA = useCallback((v: number) => updateLocal('p1PreTaxFSA', v), [updateLocal]);
+  const setP2Bonus = useCallback((v: number) => updateLocal('p2Bonus', v), [updateLocal]);
+  const setP2BonusMonth = useCallback((v: string) => updateLocal('p2BonusMonth', v), [updateLocal]);
+  const setP2OvertimeMonthly = useCallback((v: number) => updateLocal('p2OvertimeMonthly', v), [updateLocal]);
+  const setP2PayFrequency = useCallback((v: PayFrequency) => updateLocal('p2PayFrequency', v), [updateLocal]);
+  const setP2FirstPayDate = useCallback((v: string) => updateLocal('p2FirstPayDate', v), [updateLocal]);
+  const setP2PreTaxHealthInsurance = useCallback((v: number) => updateLocal('p2PreTaxHealthInsurance', v), [updateLocal]);
+  const setP2PreTaxHSA = useCallback((v: number) => updateLocal('p2PreTaxHSA', v), [updateLocal]);
+  const setP2PreTaxFSA = useCallback((v: number) => updateLocal('p2PreTaxFSA', v), [updateLocal]);
 
   // Results state
   const [results, setResults] = useState<{
@@ -196,7 +262,7 @@ export default function Income2026Page() {
       setP2PreTaxHSA(0);
       setP2PreTaxFSA(0);
     }
-  }, [updatePlanConfig]);
+  }, [updatePlanConfig, setP2Bonus, setP2BonusMonth, setP2OvertimeMonthly, setP2PayFrequency, setP2FirstPayDate, setP2PreTaxHealthInsurance, setP2PreTaxHSA, setP2PreTaxFSA]);
 
   // ============================================================================
   // EFFECTS - Detect AI onboarding (no pre-population needed)
@@ -210,6 +276,19 @@ export default function Income2026Page() {
       setShowAIBanner(true);
     }
   }, [planConfig, updatePlanConfig]);
+
+  // ============================================================================
+  // NAVIGATION GUARD - warn about unsaved changes
+  // ============================================================================
+
+  useEffect(() => {
+    if (!calculationState.isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [calculationState.isDirty]);
 
   // ============================================================================
   // HANDLERS

@@ -39,6 +39,7 @@ import { AiInsightBox } from "@/components/calculator/AiInsightBox";
 import { PlanSummaryCard } from "@/components/calculator/PlanSummaryCard";
 import { NextStepsCard } from "@/components/calculator/NextStepsCard";
 import { fmt } from "@/lib/utils";
+import { SANKEY_COLORS, getTooltipStyles } from "@/lib/chartColors";
 import type { MainTabId } from "@/components/calculator/TabNavigation";
 import type { CalculationResult, SavedScenario } from "@/types/calculator";
 import type { BatchSummary, ReturnMode } from "@/types/planner";
@@ -108,7 +109,9 @@ export function ResultsSummaryPanel({
   retRate,
   inflationRate,
   wdRate,
-  isDarkMode,
+  // isDarkMode is accepted via props but no longer consumed here;
+  // chart colors now use CSS-variable tokens from chartColors.ts.
+  isDarkMode: _isDarkMode, // eslint-disable-line @typescript-eslint/no-unused-vars
   askExplainQuestion,
   aiInsight,
   aiError,
@@ -405,14 +408,14 @@ export function ResultsSummaryPanel({
                           className="h-6 px-2 text-xs print-hide"
                           onClick={(e) => {
                             e.stopPropagation();
-                            askExplainQuestion("How can I optimize my end-of-life wealth and estate planning?");
+                            askExplainQuestion("How can I optimize my net estate and estate planning?");
                           }}
                         >
                           What Does This Mean?
                         </Button>
                       </CardTitle>
                       <CardDescription className="flex items-center justify-between">
-                        <span>From end-of-life wealth to net inheritance (all values in today&apos;s dollars)</span>
+                        <span>From end-of-life balance to net inheritance (all values in today&apos;s dollars)</span>
                         {res.probRuin !== undefined && (
                           <span className="text-xs text-muted-foreground">
                             Risk of Outliving Savings: <span className="font-semibold">{(res.probRuin * 100).toFixed(0)}%</span>
@@ -447,13 +450,13 @@ export function ResultsSummaryPanel({
 
                             const links = [];
 
-                            // Taxable flows (soft orange)
+                            // Taxable flows
                             if (res.estateTax > 0 && res.eolAccounts.taxable > 0) {
                               links.push({
                                 source: 0,
                                 target: 3,
                                 value: res.eolAccounts.taxable * taxRatio,
-                                color: '#fb923c',
+                                color: SANKEY_COLORS.accounts.taxable,
                                 sourceName: 'Taxable',
                                 targetName: 'Estate Tax'
                               });
@@ -463,19 +466,19 @@ export function ResultsSummaryPanel({
                                 source: 0,
                                 target: 4,
                                 value: res.eolAccounts.taxable * heirRatio,
-                                color: '#fb923c',
+                                color: SANKEY_COLORS.accounts.taxable,
                                 sourceName: 'Taxable',
                                 targetName: 'Net to Heirs'
                               });
                             }
 
-                            // Pre-tax flows (soft blue)
+                            // Pre-tax flows
                             if (res.estateTax > 0 && res.eolAccounts.pretax > 0) {
                               links.push({
                                 source: 1,
                                 target: 3,
                                 value: res.eolAccounts.pretax * taxRatio,
-                                color: '#60a5fa',
+                                color: SANKEY_COLORS.accounts["401k"],
                                 sourceName: 'Pre-Tax',
                                 targetName: 'Estate Tax'
                               });
@@ -485,19 +488,19 @@ export function ResultsSummaryPanel({
                                 source: 1,
                                 target: 4,
                                 value: res.eolAccounts.pretax * heirRatio,
-                                color: '#60a5fa',
+                                color: SANKEY_COLORS.accounts["401k"],
                                 sourceName: 'Pre-Tax',
                                 targetName: 'Net to Heirs'
                               });
                             }
 
-                            // Roth flows (soft green)
+                            // Roth flows
                             if (res.estateTax > 0 && res.eolAccounts.roth > 0) {
                               links.push({
                                 source: 2,
                                 target: 3,
                                 value: res.eolAccounts.roth * taxRatio,
-                                color: '#4ade80',
+                                color: SANKEY_COLORS.accounts.roth,
                                 sourceName: 'Roth',
                                 targetName: 'Estate Tax'
                               });
@@ -507,7 +510,7 @@ export function ResultsSummaryPanel({
                                 source: 2,
                                 target: 4,
                                 value: res.eolAccounts.roth * heirRatio,
-                                color: '#4ade80',
+                                color: SANKEY_COLORS.accounts.roth,
                                 sourceName: 'Roth',
                                 targetName: 'Net to Heirs'
                               });
@@ -533,7 +536,7 @@ export function ResultsSummaryPanel({
                                   C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}
                                 `}
                                 fill="none"
-                                stroke={payload?.color || (isDarkMode ? '#64748b' : '#94a3b8')}
+                                stroke={payload?.color || SANKEY_COLORS.neutral}
                                 strokeWidth={linkWidth}
                                 strokeOpacity={0.6}
                                 style={{ transition: 'all 0.3s ease' }}
@@ -548,15 +551,15 @@ export function ResultsSummaryPanel({
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Reason: recharts Sankey node render prop has no public type export
                         node={(props: any) => {
                           const { x, y, width, height, index, payload } = props as { x: number; y: number; width: number; height: number; index: number; payload: { name?: string } };
-                          // Muted color palette
+                          // Theme-aware color palette from chartColors
                           const colors = [
-                            '#fb923c', // soft orange (Taxable)
-                            '#60a5fa', // soft blue (Pre-Tax)
-                            '#4ade80', // soft green (Roth)
-                            '#ef4444', // muted red (Estate Tax)
-                            '#10b981'  // blended green (Net to Heirs)
+                            SANKEY_COLORS.accounts.taxable,  // Taxable
+                            SANKEY_COLORS.accounts["401k"],  // Pre-Tax
+                            SANKEY_COLORS.accounts.roth,     // Roth
+                            SANKEY_COLORS.spending.healthcare, // Estate Tax (red)
+                            SANKEY_COLORS.income.salary,     // Net to Heirs (green)
                           ];
-                          const fill = colors[index] || (isDarkMode ? '#475569' : '#64748b');
+                          const fill = colors[index] || SANKEY_COLORS.neutral;
 
                           // Extract label and value from payload name
                           // Format is "Label — $Value"
@@ -582,7 +585,7 @@ export function ResultsSummaryPanel({
                                 y={textY - 8}
                                 textAnchor={index < 3 ? "end" : "start"}
                                 dominantBaseline="middle"
-                                fill={isDarkMode ? '#d1d5db' : '#374151'}
+                                fill="hsl(var(--foreground))"
                                 fontSize="13"
                                 fontWeight="600"
                               >
@@ -594,7 +597,7 @@ export function ResultsSummaryPanel({
                                 y={textY + 8}
                                 textAnchor={index < 3 ? "end" : "start"}
                                 dominantBaseline="middle"
-                                fill={isDarkMode ? '#9ca3af' : '#6b7280'}
+                                fill="hsl(var(--muted-foreground))"
                                 fontSize="12"
                                 fontWeight="500"
                               >
@@ -611,11 +614,7 @@ export function ResultsSummaryPanel({
                             const data = payload[0] as { payload?: { name?: string }; value?: number };
                             return (
                               <div style={{
-                                backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                                borderRadius: "8px",
-                                border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-                                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                                color: isDarkMode ? '#f3f4f6' : '#1f2937',
+                                ...getTooltipStyles().contentStyle,
                                 padding: '8px 12px'
                               }}>
                                 <p className="font-semibold">{data.payload?.name}</p>
@@ -767,14 +766,21 @@ export function ResultsSummaryPanel({
                 {showSensitivity && sensitivityData && (
                   <CardContent className="print:block">
                     <p className="text-sm text-muted-foreground mb-6">
-                      Variables ranked by impact on your end-of-life wealth. Focus your planning on the top factors.
+                      Variables ranked by impact on your net estate. Focus your planning on the top factors.
                     </p>
 
                     {/* Impact Ranking List */}
+                    {sensitivityData.variations.every((v: SensitivityVariation) => !v.range || isNaN(v.range)) ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p className="text-sm">All factors have equal impact. Try adjusting your inputs to see differentiated sensitivity results.</p>
+                      </div>
+                    ) : (
                     <div className="space-y-4">
                       {sensitivityData.variations.map((variation: SensitivityVariation, idx: number) => {
-                        const maxRange = sensitivityData.variations[0].range || 1;
-                        const impactScore = Math.min(5, Math.max(1, Math.round((variation.range / maxRange) * 5)));
+                        const safeRange = isNaN(variation.range) ? 0 : variation.range;
+                        const maxRange = sensitivityData.variations[0].range;
+                        const safeMaxRange = (!maxRange || isNaN(maxRange) || maxRange === 0) ? 1 : maxRange;
+                        const impactScore = Math.min(5, Math.max(1, Math.round((safeRange / safeMaxRange) * 5)));
 
                         return (
                           <div key={idx} className="space-y-2">
@@ -786,7 +792,7 @@ export function ResultsSummaryPanel({
                                 <div className="flex-1">
                                   <p className="text-sm font-semibold text-foreground">{variation.label}</p>
                                   <p className="text-xs text-muted-foreground">
-                                    Impact range: {fmt(variation.range)}
+                                    Impact range: {isNaN(safeRange) ? 'N/A' : fmt(safeRange)}
                                   </p>
                                 </div>
                               </div>
@@ -807,6 +813,7 @@ export function ResultsSummaryPanel({
                         );
                       })}
                     </div>
+                    )}
 
                     <div className="mt-6 p-4 bg-muted rounded-lg">
                       <h4 className="text-sm font-semibold mb-2">How to Use This</h4>
@@ -956,11 +963,14 @@ export function ResultsSummaryPanel({
                           <div className="comparison-chart mb-6 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 border-2 border-indigo-200 dark:border-indigo-800 rounded-lg print:border-gray-300">
                             <h4 className="font-semibold mb-4 text-indigo-900 dark:text-indigo-100">Visual Comparison</h4>
                             <div className="space-y-4">
-                              {/* EOL Wealth Comparison */}
+                              {/* Net Estate Comparison */}
                               <div>
-                                <div className="text-xs font-medium mb-2 text-muted-foreground">End-of-Life Wealth (Real, Inflation-Adjusted)</div>
-                                {selectedScenarioData.map((scenario) => {
-                                  const pct = maxEOL > 0 ? (scenario.results.eolReal / maxEOL) * 100 : 0;
+                                <div className="text-xs font-medium mb-2 text-muted-foreground">Net Estate (Real, Inflation-Adjusted)</div>
+                                {maxEOL === 0 ? (
+                                  <div className="text-xs text-muted-foreground py-2">N/A -- all scenarios have $0 net estate</div>
+                                ) : (
+                                selectedScenarioData.map((scenario) => {
+                                  const pct = (scenario.results.eolReal / maxEOL) * 100;
                                   return (
                                     <div key={scenario.id} className="mb-2">
                                       <div className="flex items-center justify-between text-xs mb-1">
@@ -979,14 +989,17 @@ export function ResultsSummaryPanel({
                                       </div>
                                     </div>
                                   );
-                                })}
+                                })
+                                )}
                               </div>
 
                               {/* Annual Income Comparison */}
                               <div>
                                 <div className="text-xs font-medium mb-2 text-muted-foreground">Annual Retirement Income (Real, Inflation-Adjusted)</div>
-                                {selectedScenarioData.map((scenario) => {
-                                  const pct = maxIncome > 0 ? (scenario.results.wdReal / maxIncome) * 100 : 0;
+                                {maxIncome === 0 ? (
+                                  <div className="text-xs text-muted-foreground py-2">N/A -- all scenarios have $0 retirement income</div>
+                                ) : selectedScenarioData.map((scenario) => {
+                                  const pct = (scenario.results.wdReal / maxIncome) * 100;
                                   return (
                                     <div key={scenario.id} className="mb-2">
                                       <div className="flex items-center justify-between text-xs mb-1">
@@ -1011,8 +1024,10 @@ export function ResultsSummaryPanel({
                               {/* Retirement Balance Comparison */}
                               <div>
                                 <div className="text-xs font-medium mb-2 text-muted-foreground">Balance at Retirement (Real, Inflation-Adjusted)</div>
-                                {selectedScenarioData.map((scenario) => {
-                                  const pct = maxBalance > 0 ? (scenario.results.finReal / maxBalance) * 100 : 0;
+                                {maxBalance === 0 ? (
+                                  <div className="text-xs text-muted-foreground py-2">N/A -- all scenarios have $0 retirement balance</div>
+                                ) : selectedScenarioData.map((scenario) => {
+                                  const pct = (scenario.results.finReal / maxBalance) * 100;
                                   return (
                                     <div key={scenario.id} className="mb-2">
                                       <div className="flex items-center justify-between text-xs mb-1">
@@ -1066,7 +1081,7 @@ export function ResultsSummaryPanel({
                                 <th className="text-right py-2 px-2 font-semibold">Retirement Age</th>
                                 <th className="text-right py-2 px-2 font-semibold">Balance @ Retirement</th>
                                 <th className="text-right py-2 px-2 font-semibold">Annual Income</th>
-                                <th className="text-right py-2 px-2 font-semibold">End-of-Life</th>
+                                <th className="text-right py-2 px-2 font-semibold">Net Estate</th>
                                 {savedScenarios.some(s => s.results.probRuin !== undefined) && (
                                   <th className="text-right py-2 px-2 font-semibold">Risk of Ruin</th>
                                 )}
@@ -1160,7 +1175,7 @@ export function ResultsSummaryPanel({
                                     <div className="flex items-start gap-2">
                                       <span className="text-green-600 dark:text-green-400">🏆</span>
                                       <div>
-                                        <strong>Highest end-of-life wealth:</strong> {bestEOL.name} ({fmt(bestEOL.results.eolReal)})
+                                        <strong>Highest net estate:</strong> {bestEOL.name} ({fmt(bestEOL.results.eolReal)})
                                       </div>
                                     </div>
                                     <div className="flex items-start gap-2">
@@ -1194,8 +1209,8 @@ export function ResultsSummaryPanel({
                 <AnimatedSection animation="fade-in" delay={200}>
                 <Card>
                   <CardHeader>
-                    <CardTitle>Wealth Projection</CardTitle>
-                    <CardDescription>Your projected wealth over time (inflation-adjusted)</CardDescription>
+                    <CardTitle>Portfolio Balance Projection</CardTitle>
+                    <CardDescription>Your projected portfolio balance over time (inflation-adjusted)</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Suspense fallback={<ChartLoadingFallback height="h-[400px]" />}>

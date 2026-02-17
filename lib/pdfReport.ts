@@ -561,10 +561,10 @@ function addCoverPage(doc: jsPDF, data: PDFReportData) {
   const boxWidth = (CONTENT_WIDTH - 20) / 4;
 
   const stats = [
-    { label: 'Current Portfolio', value: fmt(totalPortfolio) },
+    { label: 'Portfolio Balance', value: fmt(totalPortfolio) },
     { label: 'At Retirement', value: fmt(results.finReal) },
     { label: 'Success Rate', value: fmtPctRaw(successRate, 0) },
-    { label: 'Legacy Wealth', value: fmt(results.eolReal) },
+    { label: 'Net Estate', value: fmt(results.eolReal) },
   ];
 
   stats.forEach((stat, index) => {
@@ -642,10 +642,10 @@ function addExecutiveSummary(doc: jsPDF, data: PDFReportData, reportDate: string
 
   // Key numbers
   const keyMetrics = [
-    { label: 'Current Net Worth', value: fmtFull(totalPortfolio), color: COLORS.text },
+    { label: 'Portfolio Balance', value: fmtFull(totalPortfolio), color: COLORS.text },
     { label: 'Projected at Retirement', value: fmtFull(results.finReal), color: COLORS.text },
     { label: 'Monthly Retirement Income', value: fmtFull(results.wdReal / 12), color: COLORS.success },
-    { label: 'End of Life Wealth', value: fmtFull(results.eolReal), color: COLORS.text },
+    { label: 'Net Estate', value: fmtFull(results.eolReal), color: COLORS.text },
   ];
 
   keyMetrics.forEach(metric => {
@@ -778,7 +778,7 @@ function addPersonalFinancialProfile(doc: jsPDF, data: PDFReportData, reportDate
       ['Taxable Brokerage', fmtFull(inputs.taxableBalance), fmtPctRaw((inputs.taxableBalance / totalPortfolio) * 100, 1), 'Capital Gains'],
       ['Pre-Tax (401k/IRA)', fmtFull(inputs.pretaxBalance), fmtPctRaw((inputs.pretaxBalance / totalPortfolio) * 100, 1), 'Ordinary Income'],
       ['Roth IRA', fmtFull(inputs.rothBalance), fmtPctRaw((inputs.rothBalance / totalPortfolio) * 100, 1), 'Tax-Free'],
-      ['Total Portfolio', fmtFull(totalPortfolio), '100%', ''],
+      ['Total Portfolio Balance', fmtFull(totalPortfolio), '100%', ''],
     ],
     theme: 'striped',
     headStyles: {
@@ -1195,7 +1195,7 @@ function addRiskAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string) {
 
   const riskMetrics = [
     { label: 'Probability of Ruin', value: fmtPctRaw(results.probRuin ?? 5, 1) },
-    { label: 'Median End Wealth', value: fmtFull(results.eolReal) },
+    { label: 'Median Net Estate', value: fmtFull(results.eolReal) },
     { label: 'Planning Horizon', value: `${95 - inputs.retirementAge} years` },
   ];
 
@@ -1308,9 +1308,9 @@ function addEstateLegacyPlan(doc: jsPDF, data: PDFReportData, reportDate: string
   const estateAfterTax = results.netEstate;
 
   y = addHighlightBox(doc, [
-    { title: 'GROSS ESTATE', value: fmt(totalEstate), subtitle: 'Nominal value' },
+    { title: 'END-OF-LIFE BALANCE', value: fmt(totalEstate), subtitle: 'Nominal value' },
     { title: 'ESTATE TAX', value: results.estateTax > 0 ? fmt(results.estateTax) : '$0', subtitle: 'Federal only' },
-    { title: 'NET TO HEIRS', value: fmt(estateAfterTax), subtitle: 'After taxes' },
+    { title: 'NET ESTATE', value: fmt(estateAfterTax), subtitle: 'After taxes' },
   ], y, 'navy');
 
   y += 3;

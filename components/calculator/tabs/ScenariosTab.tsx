@@ -69,7 +69,7 @@ export function ScenariosTab({
               ? `Assumes constant ${retRate}% nominal annual return (before inflation)`
               : 'Based on historical market data (1928-2024)',
             successRate: res.probRuin !== undefined ? (1 - res.probRuin) * 100 : 100,
-            eolWealth: res.eolReal,
+            netEstate: res.eolReal,
             withdrawalAmount: res.wdReal
           }}
           showComparison={false}
@@ -95,6 +95,16 @@ export function ScenariosTab({
                 </Button>
               </div>
             </CardHeader>
+            {!showStressTests && (
+              <CardContent>
+                <div className="py-6 text-center text-muted-foreground">
+                  <p className="text-sm max-w-lg mx-auto leading-relaxed">
+                    Stress tests show how your plan performs under adverse conditions &mdash; market crashes, high inflation, or both.
+                    Click <strong>&quot;Show&quot;</strong> above to explore scenarios and see the impact on your retirement outlook.
+                  </p>
+                </div>
+              </CardContent>
+            )}
             {showStressTests && (
               <CardContent>
                 <Tabs defaultValue="bear" className="w-full">
@@ -108,10 +118,10 @@ export function ScenariosTab({
                   <TabsContent value="bear" className="space-y-4">
                     <div className="mb-4">
                       <h3 className="text-base font-semibold">Bear Market Stress Tests</h3>
-                      <p className="text-sm text-muted-foreground">Test your plan with actual historical returns from major market crashes</p>
+                      <p className="text-sm text-muted-foreground">Test your plan with actual historical returns from major market crashes (past performance does not guarantee future results)</p>
                     </div>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Test your plan against the worst bear markets in history. Each stress test uses <strong>actual sequential S&P 500 returns</strong> from that year forward.
+                      Test your plan against the worst bear markets in history. Each stress test uses <strong>actual sequential S&amp;P 500 returns</strong> from that year forward. <em className="not-italic text-muted-foreground">(past performance does not guarantee future results)</em>
                       {historicalYear && (
                         <span className="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100 rounded text-xs font-semibold">
                           Currently using {historicalYear} returns
@@ -184,7 +194,7 @@ export function ScenariosTab({
                       <h4 className="text-sm font-semibold mb-2">Understanding Sequence-of-Returns Risk</h4>
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         These stress tests show why <strong>when you retire matters</strong>. Retiring into a bear market can permanently damage your portfolio even if markets recover later.
-                        Click any stress test above to recalculate using actual historical returns from that year.
+                        Click any stress test above to recalculate using actual historical returns from that year. (Past performance does not guarantee future results.)
                       </p>
                     </div>
 
