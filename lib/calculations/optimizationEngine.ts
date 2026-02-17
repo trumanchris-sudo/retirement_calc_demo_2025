@@ -10,6 +10,7 @@
  * 3. Tax Bracket Arbitrage
  * 4. Social Security Optimization
  * 5. Withdrawal Strategy Preview
+ * 6. Legacy / Estate Planning
  */
 
 import {
@@ -23,12 +24,13 @@ import {
   calcPIA,
   calcSocialSecurity,
 } from "./shared/socialSecurity";
+import { ESTATE_TAX_EXEMPTION } from "@/lib/constants";
 
 // ===============================
 // Type Definitions
 // ===============================
 
-export type RecommendationCategory = 'roth' | 'contribution' | 'tax' | 'ss' | 'withdrawal';
+export type RecommendationCategory = 'roth' | 'contribution' | 'tax' | 'ss' | 'withdrawal' | 'legacy';
 export type RecommendationPriority = 'high' | 'medium' | 'low';
 
 /**
@@ -108,6 +110,10 @@ export interface OptimizationInputs {
   // Roth conversion settings
   enableRothConversions?: boolean;
   targetConversionBracket?: number;
+
+  // Legacy / Estate planning
+  projectedEstate?: number;
+  hasBeneficiaries?: boolean;
 }
 
 /**
@@ -745,6 +751,57 @@ function analyzeWithdrawalStrategy(inputs: OptimizationInputs): Recommendation[]
   return recommendations;
 }
 
+/**
+ * Analyze legacy and estate planning opportunities
+ */
+function analyzeLegacyPlanning(inputs: OptimizationInputs): Recommendation[] {
+  const recommendations: Recommendation[] = [];
+  const {
+    marital,
+    projectedEstate = 0,
+    hasBeneficiaries = false,
+  } = inputs;
+
+  if (projectedEstate <= 0) return recommendations;
+
+  // Check if estate exceeds the federal estate tax exemption
+  const exemption = ESTATE_TAX_EXEMPTION[marital];
+
+  if (projectedEstate > exemption) {
+    const taxableAmount = projectedEstate - exemption;
+    const estimatedTax = taxableAmount * 0.40;
+
+    recommendations.push({
+      id: 'legacy-estate-tax',
+      priority: 'high',
+      title: `Projected Estate Exceeds Federal Exemption by $${Math.round(taxableAmount / 1000).toLocaleString()}k`,
+      description: `Your projected estate of $${Math.round(projectedEstate / 1_000_000 * 10) / 10}M exceeds the federal exemption of $${Math.round(exemption / 1_000_000 * 10) / 10}M. Consider annual gifting or estate planning strategies.`,
+      impact: Math.round(estimatedTax),
+      action: `Work with an estate planning attorney. Consider: 1) Annual gift exclusion ($18k/person/year), 2) Irrevocable life insurance trusts (ILIT), 3) Grantor retained annuity trusts (GRATs), 4) Charitable remainder trusts to reduce the taxable estate.`,
+      category: 'legacy',
+      metadata: {
+        currentValue: projectedEstate,
+        recommendedValue: exemption,
+      },
+    });
+  }
+
+  // If estate has value but no beneficiaries are configured
+  if (projectedEstate > 0 && !hasBeneficiaries) {
+    recommendations.push({
+      id: 'legacy-no-beneficiaries',
+      priority: 'medium',
+      title: 'No Beneficiaries Configured for Wealth Transfer',
+      description: `You have estate value but no beneficiaries configured. Visit the Legacy tab to plan wealth transfer.`,
+      impact: 0,
+      action: `Go to the Legacy tab and add beneficiaries. Without a plan, your estate may go through costly probate. Consider naming beneficiaries on all retirement accounts and setting up a basic estate plan.`,
+      category: 'legacy',
+    });
+  }
+
+  return recommendations;
+}
+
 // ===============================
 // Main Analysis Function
 // ===============================
@@ -761,6 +818,7 @@ export function analyzeOptimizations(inputs: OptimizationInputs): OptimizationRe
   allRecommendations.push(...analyzeTaxBracketArbitrage(inputs));
   allRecommendations.push(...analyzeSocialSecurityOptimization(inputs));
   allRecommendations.push(...analyzeWithdrawalStrategy(inputs));
+  allRecommendations.push(...analyzeLegacyPlanning(inputs));
 
   // Sort by priority and impact
   const priorityOrder: Record<RecommendationPriority, number> = {

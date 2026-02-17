@@ -356,7 +356,7 @@ export function ScenariosTab({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
-                          <strong>Comparison Mode Active:</strong> Select a bear market and/or inflation shock above, then click &quot;Refresh Comparison&quot; to update the chart.
+                          <strong>Comparison Mode Active:</strong> Select a bear market and/or inflation shock above, then click &quot;Recalculate Comparison&quot; to update the chart.
                         </div>
                       </div>
                     </div>
@@ -429,7 +429,7 @@ export function ScenariosTab({
                         size="sm"
                         className="bg-blue-600 hover:bg-blue-700"
                       >
-                        Refresh Comparison
+                        Recalculate Comparison
                       </Button>
                       <Button
                         onClick={runRandomComparison}

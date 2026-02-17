@@ -16,6 +16,7 @@ import {
   Zap,
   Shield,
   Users,
+  Heart,
 } from "lucide-react";
 import {
   analyzeOptimizations,
@@ -105,6 +106,13 @@ const categoryConfig: Record<RecommendationCategory, {
     color: "text-teal-600 dark:text-teal-400",
     bgColor: "bg-teal-50 dark:bg-teal-950/30",
     borderColor: "border-teal-200 dark:border-teal-900",
+  },
+  legacy: {
+    icon: Heart,
+    label: "Legacy / Estate",
+    color: "text-rose-600 dark:text-rose-400",
+    bgColor: "bg-rose-50 dark:bg-rose-950/30",
+    borderColor: "border-rose-200 dark:border-rose-900",
   },
 };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, useMemo, useId } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useId, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -680,13 +680,21 @@ const ScenarioCard = React.memo(function ScenarioCard({
 
       <CardContent className="pb-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="secondary" className="text-xs">
-            {totalEvents} event{totalEvents !== 1 ? "s" : ""}
-          </Badge>
-          {recurringEvents > 0 && (
-            <Badge variant="outline" className="text-xs">
-              {recurringEvents} recurring
+          {totalEvents === 0 ? (
+            <Badge variant="secondary" className="text-xs">
+              No added events
             </Badge>
+          ) : (
+            <>
+              <Badge variant="secondary" className="text-xs">
+                {totalEvents} event{totalEvents !== 1 ? "s" : ""}
+              </Badge>
+              {recurringEvents > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {recurringEvents} recurring
+                </Badge>
+              )}
+            </>
           )}
         </div>
 
@@ -839,8 +847,8 @@ export function ScenarioBuilder({
   const [scenarios, setScenarios] = useState<Scenario[]>([
     {
       id: generateId(),
-      name: "Baseline",
-      description: "Your current financial trajectory without changes",
+      name: "Current Trajectory",
+      description: "Your current plan without additional life events",
       events: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -858,6 +866,18 @@ export function ScenarioBuilder({
   const [showComparisonChart, setShowComparisonChart] = useState(true);
   const [importData, setImportData] = useState("");
 
+  // Track the last-saved snapshot of each scenario's events to detect unsaved changes
+  const savedEventsSnapshotRef = useRef<Record<string, string>>({});
+
+  // Initialize snapshot for default scenario
+  useEffect(() => {
+    scenarios.forEach((s) => {
+      if (!(s.id in savedEventsSnapshotRef.current)) {
+        savedEventsSnapshotRef.current[s.id] = JSON.stringify(s.events);
+      }
+    });
+  }, [scenarios]);
+
   // Derived state
   const selectedScenario = useMemo(
     () => scenarios.find(s => s.id === selectedScenarioId) || scenarios[0],
@@ -868,6 +888,12 @@ export function ScenarioBuilder({
     () => scenarios.filter(s => s.isActive).slice(0, maxScenarios),
     [scenarios, maxScenarios]
   );
+
+  const hasUnsavedChanges = useMemo(() => {
+    const currentSnapshot = JSON.stringify(selectedScenario.events);
+    const savedSnapshot = savedEventsSnapshotRef.current[selectedScenario.id];
+    return savedSnapshot !== undefined && currentSnapshot !== savedSnapshot;
+  }, [selectedScenario.id, selectedScenario.events]);
 
   // Simulated comparison data (in real app, this would come from calculation engine)
   const comparisons = useMemo<Record<string, ScenarioComparison>>(() => {
@@ -1107,7 +1133,15 @@ export function ScenarioBuilder({
 
   // Effects
   useEffect(() => {
-    onScenariosChange?.(scenarios);
+    if (onScenariosChange) {
+      onScenariosChange(scenarios);
+      // Update saved snapshots after notifying parent
+      const updatedSnapshots: Record<string, string> = {};
+      scenarios.forEach((s) => {
+        updatedSnapshots[s.id] = JSON.stringify(s.events);
+      });
+      savedEventsSnapshotRef.current = updatedSnapshots;
+    }
   }, [scenarios, onScenariosChange]);
 
   // Check for shared scenario in URL
@@ -1527,6 +1561,11 @@ export function ScenarioBuilder({
       <CardFooter className="flex justify-between border-t pt-6">
         <div className="text-xs text-muted-foreground">
           Last updated: {selectedScenario.updatedAt.toLocaleDateString()}
+          {hasUnsavedChanges && (
+            <span className="ml-2 text-yellow-600 dark:text-yellow-400 font-medium">
+              (unsaved changes)
+            </span>
+          )}
         </div>
         <Button onClick={() => onCompare?.(activeScenarios)}>
           <BarChart3 className="w-4 h-4 mr-2" />

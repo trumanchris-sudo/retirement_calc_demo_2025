@@ -75,7 +75,7 @@ export default function SelfEmployed2026Page() {
   const DEFAULTS = useMemo(() => createDefaultPlanConfig(), []);
 
   // ============================================================================
-  // DERIVED STATE FROM PLANCONFIG (Single Source of Truth)
+  // SSOT Fields — derived from PlanConfig context, changes propagate globally
   // ============================================================================
 
   const filingStatus: SEFilingStatus = planConfig.marital === 'married' ? 'mfj' : 'single';
@@ -91,7 +91,7 @@ export default function SelfEmployed2026Page() {
   const guaranteedPayments = planConfig.primaryIncome ?? 0;
 
   // ============================================================================
-  // PAGE-LOCAL STATE (not in PlanConfig)
+  // Page-Local Fields — ephemeral state, not persisted to PlanConfig
   // ============================================================================
 
   // grossCompensation: user can set independently from guaranteedPayments

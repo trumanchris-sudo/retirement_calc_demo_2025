@@ -197,14 +197,14 @@ export function LegacyTab({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label="Children Per Person (Lifetime)"
+                label="Avg Children Per Adult"
                 value={totalFertilityRate}
                 setter={setTotalFertilityRate}
                 min={0}
                 max={5}
                 step={0.1}
                 isRate
-                tip="Average children per person. 2.1 = replacement rate"
+                tip="Average number of children per adult descendant, modeling population growth across generations. 2.1 = replacement rate."
                 onInputChange={onInputChange}
               />
               <Input

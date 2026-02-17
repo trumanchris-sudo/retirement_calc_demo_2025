@@ -897,7 +897,7 @@ function addRetirementIncomeProjection(doc: jsPDF, data: PDFReportData, reportDa
   const portfolioWithdrawal = results.wd;
   let ssIncome = 0;
   if (inputs.includeSS) {
-    // Estimate SS based on claim ages and income
+    // Estimate Social Security based on claim ages and income
     ssIncome = inputs.ssIncome * 0.4; // Rough PIA estimate
     if (inputs.marital === 'married') {
       ssIncome += inputs.ssIncome2 * 0.4;
@@ -935,7 +935,7 @@ function addRetirementIncomeProjection(doc: jsPDF, data: PDFReportData, reportDa
 
     y += 3;
 
-    // SS Strategy Note
+    // Social Security Strategy Note
     const ssNote = inputs.ssClaimAge >= 70
       ? 'Delaying to age 70 maximizes your benefit with an 8% annual increase from Full Retirement Age (67).'
       : inputs.ssClaimAge >= 67

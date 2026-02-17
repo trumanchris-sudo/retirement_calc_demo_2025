@@ -94,9 +94,11 @@ export function PrintReport({
           <h1 className="text-2xl font-bold tracking-tight text-black">
             Tax-Aware Retirement Plan Report
           </h1>
+          <p className="mt-2 text-base font-semibold text-gray-900 border-l-4 border-blue-600 pl-2">
+            {scenarioName ? `Scenario: ${scenarioName}` : 'Base Case Analysis'}
+          </p>
           <p className="text-xs text-gray-700 mt-1">
-            Generated on {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} -
-            {scenarioName ? ` Scenario: ${scenarioName}` : ' Base Case Analysis'} -
+            Generated on {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} &middot;
             {randomWalkSeries === 'trulyRandom' ? ' Monte Carlo Simulation (1,000 runs)' : ' Single Path Projection'}
           </p>
         </header>

@@ -24,8 +24,16 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Create a dedicated worker for optimization
-    const worker = new Worker('/monte-carlo-worker.js');
+    let worker: Worker;
+
+    try {
+      // Create a dedicated worker for optimization
+      worker = new Worker('/monte-carlo-worker.js');
+    } catch {
+      setError("Unable to load calculation engine. Please refresh the page.");
+      setLoading(false);
+      return;
+    }
 
     const handleMessage = (e: MessageEvent) => {
       if (e.data.type === 'optimize-complete') {

@@ -327,12 +327,16 @@ export function ConfigureTab({
                         unit="%"
                         description="Income tax rate"
                         onInputChange={onInputChange}
+                        tip="Your state income tax rate. Enter 0% for states with no income tax (TX, FL, WA, etc.)"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-2">
-                        <Label>Return Model</Label>
+                        <Label className="flex items-center gap-1.5">
+                          Return Model
+                          <Tip text="How investment returns are modeled. Fixed uses a constant rate; Historical simulates returns based on past S&P 500 data." />
+                        </Label>
                         <select
                           value={returnMode}
                           onChange={(e) => {
@@ -346,7 +350,7 @@ export function ConfigureTab({
                           className="flex h-11 md:h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
                         >
                           <option value="fixed">Fixed (single rate)</option>
-                          <option value="randomWalk">Random Walk (S&P bootstrap)</option>
+                          <option value="randomWalk">Historical Market Simulation (S&P bootstrap)</option>
                         </select>
                       </div>
                     </div>
@@ -360,7 +364,10 @@ export function ConfigureTab({
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Allocation Type</Label>
+                        <Label className="flex items-center gap-1.5">
+                          Allocation Type
+                          <Tip text="How your investments are divided between stocks, bonds, and other assets" />
+                        </Label>
                         <select
                           value={allocationStrategy}
                           onChange={(e) => {
@@ -532,6 +539,7 @@ export function ConfigureTab({
                         unit="%"
                         description="Annual spending rate"
                         onInputChange={onInputChange}
+                        tip="Percentage of your portfolio withdrawn annually in retirement. The 4% rule is a common starting point."
                       />
                       <div className="space-y-4">
                         <Input

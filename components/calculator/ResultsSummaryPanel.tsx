@@ -140,6 +140,24 @@ export function ResultsSummaryPanel({
   deleteScenario,
   loadScenario,
 }: ResultsSummaryPanelProps) {
+  // Pre-compute scenario comparison data to avoid recalculation on each render
+  const comparisonData = useMemo(() => {
+    if (!res || savedScenarios.length === 0) return null;
+
+    const selectedScenariosArray = Array.from(selectedScenarios);
+    const selectedScenarioData = selectedScenariosArray
+      .map(id => savedScenarios.find(s => s.id === id))
+      .filter((s): s is NonNullable<typeof s> => s !== undefined);
+
+    if (selectedScenarioData.length === 0) return null;
+
+    const maxEOL = Math.max(...selectedScenarioData.map(s => s.results.eolReal || 0));
+    const maxIncome = Math.max(...selectedScenarioData.map(s => s.results.wdReal || 0));
+    const maxBalance = Math.max(...selectedScenarioData.map(s => s.results.finReal || 0));
+
+    return { selectedScenarioData, maxEOL, maxIncome, maxBalance };
+  }, [savedScenarios, res, selectedScenarios]);
+
   const sankeyData = useMemo(() => {
     if (!res?.eolAccounts || !res.eol || res.eol <= 0) return null;
 
@@ -298,7 +316,7 @@ export function ResultsSummaryPanel({
               <FlippingStatCard
                 title="Projected Balance"
                 value={fmt(res.finNom)}
-                sub={`Estimated at age ${retirementAge} (nominal)`}
+                sub={`Estimated balance at age ${retirementAge} (nominal)`}
                 color="blue"
                 icon={DollarSignIcon}
                 backContent={
@@ -344,7 +362,7 @@ export function ResultsSummaryPanel({
               <FlippingStatCard
                 title="Today's Dollars"
                 value={fmt(res.finReal)}
-                sub={`At age ${retirementAge} (real)`}
+                sub={`Estimated value at age ${retirementAge} (real)`}
                 color="indigo"
                 icon={TrendingUpIcon}
                 backContent={
@@ -649,7 +667,7 @@ export function ResultsSummaryPanel({
                   </>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    <p className="text-sm">Wealth flow projection will appear after running a calculation. If this persists, try adjusting your withdrawal rate or retirement age.</p>
+                    <p className="text-sm">Wealth flow projection will appear after running a calculation. If this persists, try lowering your withdrawal rate or delaying retirement to build a larger end-of-life balance.</p>
                   </div>
                 )}
                     </CardContent>
@@ -950,29 +968,18 @@ export function ResultsSummaryPanel({
                         )}
 
                         {/* Comparison Chart */}
-                        {showComparison && selectedScenarios.size > 0 && (() => {
-                          // Pre-compute selected scenarios and max values once (O(n) instead of O(n^2))
-                          const selectedScenariosArray = Array.from(selectedScenarios);
-                          const selectedScenarioData = selectedScenariosArray
-                            .map(id => savedScenarios.find(s => s.id === id))
-                            .filter((s): s is NonNullable<typeof s> => s !== undefined);
-
-                          const maxEOL = Math.max(...selectedScenarioData.map(s => s.results.eolReal || 0));
-                          const maxIncome = Math.max(...selectedScenarioData.map(s => s.results.wdReal || 0));
-                          const maxBalance = Math.max(...selectedScenarioData.map(s => s.results.finReal || 0));
-
-                          return (
+                        {showComparison && comparisonData && (
                           <div className="comparison-chart mb-6 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 border-2 border-indigo-200 dark:border-indigo-800 rounded-lg print:border-gray-300">
                             <h4 className="font-semibold mb-4 text-indigo-900 dark:text-indigo-100">Visual Comparison</h4>
                             <div className="space-y-4">
                               {/* Net Estate Comparison */}
                               <div>
                                 <div className="text-xs font-medium mb-2 text-muted-foreground">Net Estate (Real, Inflation-Adjusted)</div>
-                                {maxEOL === 0 ? (
+                                {comparisonData.maxEOL === 0 ? (
                                   <div className="text-xs text-muted-foreground py-2">N/A -- all scenarios have $0 net estate</div>
                                 ) : (
-                                selectedScenarioData.map((scenario) => {
-                                  const pct = (scenario.results.eolReal / maxEOL) * 100;
+                                comparisonData.selectedScenarioData.map((scenario) => {
+                                  const pct = (scenario.results.eolReal / comparisonData.maxEOL) * 100;
                                   return (
                                     <div key={scenario.id} className="mb-2">
                                       <div className="flex items-center justify-between text-xs mb-1">
@@ -1003,10 +1010,10 @@ export function ResultsSummaryPanel({
                               {/* Annual Income Comparison */}
                               <div>
                                 <div className="text-xs font-medium mb-2 text-muted-foreground">Annual Retirement Income (Real, Inflation-Adjusted)</div>
-                                {maxIncome === 0 ? (
+                                {comparisonData.maxIncome === 0 ? (
                                   <div className="text-xs text-muted-foreground py-2">N/A -- all scenarios have $0 retirement income</div>
-                                ) : selectedScenarioData.map((scenario) => {
-                                  const pct = (scenario.results.wdReal / maxIncome) * 100;
+                                ) : comparisonData.selectedScenarioData.map((scenario) => {
+                                  const pct = (scenario.results.wdReal / comparisonData.maxIncome) * 100;
                                   return (
                                     <div key={scenario.id} className="mb-2">
                                       <div className="flex items-center justify-between text-xs mb-1">
@@ -1036,10 +1043,10 @@ export function ResultsSummaryPanel({
                               {/* Retirement Balance Comparison */}
                               <div>
                                 <div className="text-xs font-medium mb-2 text-muted-foreground">Balance at Retirement (Real, Inflation-Adjusted)</div>
-                                {maxBalance === 0 ? (
+                                {comparisonData.maxBalance === 0 ? (
                                   <div className="text-xs text-muted-foreground py-2">N/A -- all scenarios have $0 retirement balance</div>
-                                ) : selectedScenarioData.map((scenario) => {
-                                  const pct = (scenario.results.finReal / maxBalance) * 100;
+                                ) : comparisonData.selectedScenarioData.map((scenario) => {
+                                  const pct = (scenario.results.finReal / comparisonData.maxBalance) * 100;
                                   return (
                                     <div key={scenario.id} className="mb-2">
                                       <div className="flex items-center justify-between text-xs mb-1">
@@ -1067,8 +1074,7 @@ export function ResultsSummaryPanel({
                               </div>
                             </div>
                           </div>
-                          );
-                        })()}
+                        )}
 
                         {/* Print Header for Scenarios */}
                         <div className="print-only print-scenario-header">

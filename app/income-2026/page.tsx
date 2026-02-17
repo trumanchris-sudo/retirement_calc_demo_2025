@@ -115,7 +115,7 @@ export default function Income2026Page() {
   const DEFAULTS = React.useMemo(() => createDefaultPlanConfig(), []);
 
   // ============================================================================
-  // DERIVED STATE FROM PLANCONFIG (SSOT reads)
+  // SSOT Fields — derived from PlanConfig context, changes propagate globally
   // ============================================================================
 
   const maritalStatus = planConfig.marital ?? DEFAULTS.marital;
@@ -132,7 +132,7 @@ export default function Income2026Page() {
   const p2LifeInsuranceAnnual = planConfig.annualLifeInsuranceP2 ?? DEFAULTS.annualLifeInsuranceP2 ?? 0;
 
   // ============================================================================
-  // PAGE-LOCAL STATE (persisted to localStorage)
+  // Page-Local Fields — ephemeral state, not persisted to PlanConfig
   // ============================================================================
 
   const LOCAL_STORAGE_KEY = 'income-2026-local-state';
