@@ -166,16 +166,16 @@ export const RiskSummaryCard = React.memo(function RiskSummaryCard({
             <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
               <p className={`${TYPOGRAPHY.tableCellCompact} text-muted-foreground`}>
                 {difference < -10 && (
-                  <><strong>High Impact:</strong> This scenario significantly reduces your plan's success rate. Consider mitigation strategies.</>
+                  <><strong>High Impact:</strong> This scenario significantly reduces your plan&apos;s success rate. Consider mitigation strategies.</>
                 )}
                 {difference >= -10 && difference < -5 && (
-                  <><strong>Moderate Impact:</strong> This scenario has a noticeable effect on your plan's reliability.</>
+                  <><strong>Moderate Impact:</strong> This scenario has a noticeable effect on your plan&apos;s reliability.</>
                 )}
                 {difference >= -5 && difference < 5 && (
                   <><strong>Low Impact:</strong> Your plan remains relatively stable under this scenario.</>
                 )}
                 {difference >= 5 && (
-                  <><strong>Positive Impact:</strong> This scenario improves your plan's success rate.</>
+                  <><strong>Positive Impact:</strong> This scenario improves your plan&apos;s success rate.</>
                 )}
               </p>
             </div>

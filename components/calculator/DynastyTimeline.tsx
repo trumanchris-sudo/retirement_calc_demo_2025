@@ -51,7 +51,6 @@ function PersonAvatar({
   stage,
   className = "",
   size = 48,
-  gender: _gender = "neutral"
 }: {
   stage: AgeStage;
   className?: string;

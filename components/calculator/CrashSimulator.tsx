@@ -457,7 +457,7 @@ interface EmotionalPreparationProps {
   portfolioLoss: number
 }
 
-function EmotionalPreparation({ crashPercent: _crashPercent, portfolioLoss }: EmotionalPreparationProps) {
+function EmotionalPreparation({ portfolioLoss }: EmotionalPreparationProps) {
   return (
     <Card className="border-2 border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/20">
       <CardHeader>

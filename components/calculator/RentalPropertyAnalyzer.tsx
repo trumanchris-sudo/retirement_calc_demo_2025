@@ -1249,7 +1249,7 @@ export function RentalPropertyAnalyzer({
                   </div>
                   <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
                     When you sell, you can defer ALL capital gains taxes by
-                    exchanging into another "like-kind" property within 180
+                    exchanging into another &quot;like-kind&quot; property within 180
                     days. Many investors use this to:
                   </p>
                   <ul className="text-sm text-blue-800 dark:text-blue-200 list-disc list-inside space-y-1">

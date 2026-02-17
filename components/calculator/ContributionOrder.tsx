@@ -44,16 +44,6 @@ import {
 // TYPES & INTERFACES
 // ============================================================================
 
-interface EmployerBenefits {
-  has401k: boolean;
-  hasRoth401k: boolean;
-  hasAfterTax401k: boolean; // For mega backdoor Roth
-  hasInPlanConversion: boolean; // Can convert after-tax to Roth
-  matchPercent: number; // e.g., 100 = 100% match
-  matchLimit: number; // e.g., 6 = matches up to 6% of salary
-  vestingYears: number;
-}
-
 interface ContributionOrderProps {
   /** User's current age */
   age?: number;
@@ -221,7 +211,7 @@ function formatCurrency(value: number, compact: boolean = false): string {
 export const ContributionOrder = React.memo(function ContributionOrder({
   age = 35,
   income = 100000,
-  spouseIncome: _spouseIncome = 0,
+  // spouseIncome is accepted via props but not yet used in this component
   isMarried = false,
   cPre1 = 0,
   cPost1 = 0,
@@ -247,9 +237,6 @@ export const ContributionOrder = React.memo(function ContributionOrder({
     Math.round((cPre1 + cPost1 + cTax1 + cMatch1) / 12) || 2000
   );
   const [showAllocator, setShowAllocator] = useState(false);
-  const [_customAllocations, _setCustomAllocations] = useState<
-    Record<string, number>
-  >({});
 
   // ============================================================================
   // DERIVED VALUES
@@ -469,7 +456,6 @@ export const ContributionOrder = React.memo(function ContributionOrder({
     hasHDHP,
     income,
     isMarried,
-    age,
     cPre1,
     cPost1,
     cTax1,

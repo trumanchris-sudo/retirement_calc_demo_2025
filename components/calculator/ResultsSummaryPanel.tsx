@@ -237,7 +237,7 @@ export function ResultsSummaryPanel({
                           <span className="flip-card-list-value">{fmt(res.finNom)}</span>
                         </li>
                         <li>
-                          <span className="flip-card-list-label">In Today's Dollars</span>
+                          <span className="flip-card-list-label">In Today&apos;s Dollars</span>
                           <span className="flip-card-list-value">{fmt(res.finReal)}</span>
                         </li>
                         <li>
@@ -266,12 +266,12 @@ export function ResultsSummaryPanel({
                 backContent={
                   <>
                     <div className="flip-card-header">
-                      <span className="flip-card-title">Today's Dollars - Details</span>
+                      <span className="flip-card-title">Today&apos;s Dollars - Details</span>
                       <span className="flip-card-icon text-xs print-hide flip-hint">Click to flip back ↻</span>
                     </div>
                     <div className="flip-card-body-details">
                       <p className="mb-4">
-                        This is the nominal balance adjusted for inflation to show its value in today's purchasing power.
+                        This is the nominal balance adjusted for inflation to show its value in today&apos;s purchasing power.
                       </p>
                       <ul className="flip-card-list">
                         <li>
@@ -279,7 +279,7 @@ export function ResultsSummaryPanel({
                           <span className="flip-card-list-value">{fmt(res.finNom)}</span>
                         </li>
                         <li>
-                          <span className="flip-card-list-label">In Today's Dollars (Real)</span>
+                          <span className="flip-card-list-label">In Today&apos;s Dollars (Real)</span>
                           <span className="flip-card-list-value">{fmt(res.finReal)}</span>
                         </li>
                         <li>
@@ -294,7 +294,7 @@ export function ResultsSummaryPanel({
                       <p className="flip-card-details-text">
                         Formula: Real Value = Nominal Value ÷ (1 + {inflationRate/100})<sup>{res.yrsToRet}</sup>
                         <br/>
-                        This helps you understand what your retirement savings will actually buy in terms of today's purchasing power.
+                        This helps you understand what your retirement savings will actually buy in terms of today&apos;s purchasing power.
                       </p>
                     </div>
                   </>
@@ -354,7 +354,7 @@ export function ResultsSummaryPanel({
                     </div>
                     <div className="flip-card-body-details">
                       <p className="mb-4">
-                        This is your actual spendable income in today's dollars after paying {fmt(res.tax.tot)} in taxes on your {fmt(res.wd)} withdrawal.
+                        This is your actual spendable income in today&apos;s dollars after paying {fmt(res.tax.tot)} in taxes on your {fmt(res.wd)} withdrawal.
                       </p>
                       <ul className="flip-card-list">
                         <li>
@@ -412,7 +412,7 @@ export function ResultsSummaryPanel({
                         </Button>
                       </CardTitle>
                       <CardDescription className="flex items-center justify-between">
-                        <span>From end-of-life wealth to net inheritance (all values in today's dollars)</span>
+                        <span>From end-of-life wealth to net inheritance (all values in today&apos;s dollars)</span>
                         {res.probRuin !== undefined && (
                           <span className="text-xs text-muted-foreground">
                             Risk of Outliving Savings: <span className="font-semibold">{(res.probRuin * 100).toFixed(0)}%</span>
@@ -517,8 +517,9 @@ export function ResultsSummaryPanel({
                         nodeWidth={15}
                         nodePadding={15}
                         margin={{ top: 30, right: 80, bottom: 30, left: 80 }}
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Reason: recharts Sankey link render prop has no public type export
                         link={(props: any) => {
-                          const { sourceX, targetX, sourceY, targetY, sourceControlX, targetControlX, linkWidth, payload } = props;
+                          const { sourceX, targetX, sourceY, targetY, sourceControlX, targetControlX, linkWidth, payload } = props as { sourceX: number; targetX: number; sourceY: number; targetY: number; sourceControlX: number; targetControlX: number; linkWidth: number; payload: { color?: string; sourceName?: string; targetName?: string; value?: number } };
 
                           return (
                             <g>
@@ -540,8 +541,9 @@ export function ResultsSummaryPanel({
                             </g>
                           );
                         }}
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Reason: recharts Sankey node render prop has no public type export
                         node={(props: any) => {
-                          const { x, y, width, height, index, payload } = props;
+                          const { x, y, width, height, index, payload } = props as { x: number; y: number; width: number; height: number; index: number; payload: { name?: string } };
                           // Muted color palette
                           const colors = [
                             '#fb923c', // soft orange (Taxable)
@@ -554,7 +556,7 @@ export function ResultsSummaryPanel({
 
                           // Extract label and value from payload name
                           // Format is "Label — $Value"
-                          const fullName = payload?.name || '';
+                          const fullName = String(payload?.name || '');
                           const [label, value] = fullName.split(' — ');
 
                           // Position text - center vertically within node
@@ -599,9 +601,10 @@ export function ResultsSummaryPanel({
                         }}
                       >
                         <RTooltip
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Reason: recharts Tooltip content callback has no exported type for Sankey
                           content={({ payload }: any) => {
                             if (!payload || !payload.length) return null;
-                            const data = payload[0];
+                            const data = payload[0] as { payload?: { name?: string }; value?: number };
                             return (
                               <div style={{
                                 backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
@@ -612,7 +615,7 @@ export function ResultsSummaryPanel({
                                 padding: '8px 12px'
                               }}>
                                 <p className="font-semibold">{data.payload?.name}</p>
-                                <p className="text-sm">{fmt(data.value)}</p>
+                                <p className="text-sm">{fmt(data.value || 0)}</p>
                               </div>
                             );
                           }}

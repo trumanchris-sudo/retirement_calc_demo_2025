@@ -17,7 +17,7 @@ import {
 } from "recharts";
 import { fmt } from "@/lib/utils";
 import type { CalculatorInputs, FilingStatus } from "@/types/calculator";
-import { runSingleSimulation, calcOrdinaryTax } from "@/lib/calculations/retirementEngine";
+import { runSingleSimulation } from "@/lib/calculations/retirementEngine";
 import { LIFE_EXP } from "@/lib/constants";
 
 // ==================== Types ====================
@@ -171,8 +171,6 @@ function runScenario(
 
   const rothRatio = totalContrib > 0 ? (inputs.cPost1 + inputs.cPost2) / totalContrib : 0.33;
   const pretaxRatio = totalContrib > 0 ? (inputs.cPre1 + inputs.cPre2 + inputs.cMatch1 + inputs.cMatch2) / totalContrib : 0.34;
-  const taxableRatio = 1 - rothRatio - pretaxRatio;
-
   const rothBalance = inheritanceGross * rothRatio + inputs.rothBalance;
   const pretaxBalance = inheritanceGross * pretaxRatio + inputs.pretaxBalance;
   const taxableBalance = Math.max(0, inheritanceGross - rothBalance - pretaxBalance);
@@ -253,80 +251,6 @@ function runScenario(
 }
 
 // ==================== Sub-Components ====================
-
-interface ComparisonCardProps {
-  title: string;
-  subtitle: string;
-  currentValue: number;
-  rothValue: number;
-  isGain: boolean;
-  icon: React.ReactNode;
-  showTaxSavings?: boolean;
-}
-
-function ComparisonCard({
-  title,
-  subtitle,
-  currentValue,
-  rothValue,
-  isGain,
-  icon,
-  showTaxSavings = false
-}: ComparisonCardProps) {
-  const difference = rothValue - currentValue;
-  const percentChange = currentValue > 0 ? (difference / currentValue) * 100 : 0;
-  const isPositive = difference > 0;
-
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
-          {icon}
-        </div>
-        <div>
-          <h4 className="font-medium text-sm">{title}</h4>
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        {/* Current Path */}
-        <div className="space-y-1">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Current</p>
-          <p className="text-lg font-semibold">{fmt(currentValue)}</p>
-        </div>
-
-        {/* Roth-First */}
-        <div className="space-y-1">
-          <p className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Roth-First</p>
-          <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">{fmt(rothValue)}</p>
-        </div>
-      </div>
-
-      {/* Difference */}
-      {difference !== 0 && (
-        <div className={`mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between`}>
-          <span className="text-xs text-muted-foreground">Difference</span>
-          <div className={`flex items-center gap-1 ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
-            {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            <span className="font-medium text-sm">
-              {isPositive ? '+' : ''}{fmt(difference)}
-            </span>
-            <span className="text-xs">
-              ({isPositive ? '+' : ''}{percentChange.toFixed(1)}%)
-            </span>
-          </div>
-        </div>
-      )}
-
-      {showTaxSavings && difference > 0 && (
-        <div className="mt-2 p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded text-xs text-emerald-700 dark:text-emerald-300">
-          Tax savings passed to heirs
-        </div>
-      )}
-    </div>
-  );
-}
 
 interface TaxDragVisualizerProps {
   currentTaxDrag: number;
