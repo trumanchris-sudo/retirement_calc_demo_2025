@@ -40,7 +40,6 @@ import {
   Info,
   Car,
   Utensils,
-  Plane,
   Tv,
   Gift,
   DollarSign,
@@ -114,7 +113,7 @@ const CATEGORY_COLORS = {
 };
 
 // Icons for each category
-const CATEGORY_ICONS = {
+const _CATEGORY_ICONS = {
   housing: Home,
   healthcare: Heart,
   transportation: Car,
@@ -1092,7 +1091,7 @@ export const SpendingBreakdown = React.memo(function SpendingBreakdown({
   retirementSpending,
   preRetirementSpending,
   categories: customCategories,
-  showComparison = true,
+  showComparison: _showComparison = true,
   isLoading = false,
   onOptimize,
   annualIncome,

@@ -11,7 +11,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Slider } from "@/components/ui/slider"
 import {
   AlertCircle,
-  ArrowRight,
   Calendar,
   Calculator,
   CheckCircle2,
@@ -20,7 +19,6 @@ import {
   DollarSign,
   ExternalLink,
   Gift,
-  HelpCircle,
   Home,
   Info,
   Landmark,
@@ -34,7 +32,7 @@ import {
   Wallet,
   GraduationCap,
 } from "lucide-react"
-import { TYPOGRAPHY, METRIC_COLORS } from "@/lib/designTokens"
+import { TYPOGRAPHY } from "@/lib/designTokens"
 import { fmtFull, fmtPctRaw } from "@/lib/utils"
 
 // ==================== Types & Constants ====================
@@ -150,7 +148,7 @@ function calculateAfterTaxAdvantage(
   const ibondAfterTax = nominalYield * (1 - federalTaxBracket)
 
   // Taxable bond would pay both state and federal annually
-  const taxableAfterTax = nominalYield * (1 - federalTaxBracket - stateTaxRate)
+  const _taxableAfterTax = nominalYield * (1 - federalTaxBracket - stateTaxRate)
 
   // Tax-equivalent yield (what taxable bond would need to yield)
   const taxableEquivalent = ibondAfterTax / (1 - stateTaxRate)
@@ -783,7 +781,7 @@ export function IBondStrategy({
                   <p className="text-sm text-blue-800 dark:text-blue-200">
                     Instead of buying $10K in January, consider spreading purchases across the year
                     ($833/month). This dollar-cost averages your entry into different rate cycles
-                    and creates a "ladder" of redemption dates.
+                    and creates a &quot;ladder&quot; of redemption dates.
                   </p>
                 </div>
               </div>
@@ -798,7 +796,7 @@ export function IBondStrategy({
                 <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4 border border-purple-200 dark:border-purple-900">
                   <p className="text-sm text-purple-800 dark:text-purple-200 mb-4">
                     You can buy I-Bonds as gifts for others, even yourself! The purchase counts
-                    against YOUR limit, but the bond sits in your "gift box" until delivered.
+                    against YOUR limit, but the bond sits in your &quot;gift box&quot; until delivered.
                   </p>
 
                   <div className="space-y-4">
@@ -833,7 +831,7 @@ export function IBondStrategy({
                       <div>
                         <div className="font-medium">Deliver in January 2026</div>
                         <p className={TYPOGRAPHY.helperText}>
-                          Counts against spouse's 2026 limit, not 2025
+                          Counts against spouse&apos;s 2026 limit, not 2025
                         </p>
                       </div>
                     </div>

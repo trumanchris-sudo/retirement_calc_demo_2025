@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -33,7 +33,6 @@ import {
   TrendingUp,
   Calendar,
   Shield,
-  Wallet,
   Info,
   CheckCircle2,
   XCircle,
@@ -49,12 +48,10 @@ import {
   calculateHealthcareCosts,
   calculateEarlyRetirementHealthcareGap,
   calculateACASubsidyOptimization,
-  calculateHSAStrategy,
   getQuickHealthcareEstimate,
   type HealthcareCostInputs,
   type HealthcareCostResult,
   MEDICARE_PART_B,
-  ACA_SUBSIDIES_2024,
   LONG_TERM_CARE,
   HSA_CONSTANTS,
 } from "@/lib/calculations/healthcareEngine";
@@ -114,7 +111,7 @@ const StatCard: React.FC<{
   icon: React.ReactNode;
   color: "blue" | "green" | "yellow" | "red" | "purple" | "orange";
   trend?: "up" | "down" | "neutral";
-}> = ({ title, value, subtitle, icon, color, trend }) => {
+}> = ({ title, value, subtitle, icon, color, trend: _trend }) => {
   const colorClasses = {
     blue: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800",
     green: "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800",
@@ -227,7 +224,7 @@ export const HealthcarePlanner: React.FC<HealthcarePlannerProps> = ({
   }, [retirementAge, age, estimatedMAGI, maritalStatus]);
 
   // Quick estimate for header display
-  const quickEstimate = useMemo(() => {
+  const _quickEstimate = useMemo(() => {
     return getQuickHealthcareEstimate(age, maritalStatus, includeLTC);
   }, [age, maritalStatus, includeLTC]);
 
@@ -467,7 +464,7 @@ const PreMedicareSection: React.FC<{
   setCoverage: (v: "aca" | "cobra" | "spouse_employer" | "health_sharing" | "custom") => void;
   estimatedMAGI: number;
   setEstimatedMAGI: (v: number) => void;
-}> = ({ analysis, age, maritalStatus, coverage, setCoverage, estimatedMAGI, setEstimatedMAGI }) => {
+}> = ({ analysis, age, maritalStatus: _maritalStatus, coverage, setCoverage, estimatedMAGI, setEstimatedMAGI }) => {
   if (age >= 65) {
     return (
       <Card>
@@ -793,7 +790,7 @@ const LTCSection: React.FC<{
   strategy: "self_insure" | "ltc_insurance" | "hybrid" | "medicaid_planning";
   setStrategy: (v: "self_insure" | "ltc_insurance" | "hybrid" | "medicaid_planning") => void;
   age: number;
-}> = ({ analysis, includeLTC, setIncludeLTC, strategy, setStrategy, age }) => {
+}> = ({ analysis, includeLTC, setIncludeLTC, strategy, setStrategy, age: _age }) => {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       {/* LTC Stats */}

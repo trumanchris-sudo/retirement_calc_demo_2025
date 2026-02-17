@@ -146,24 +146,27 @@ const PHASE_COLORS = {
     border: "border-blue-400",
     text: "text-blue-600 dark:text-blue-400",
     glow: "shadow-blue-500/50",
-    line: "#3b82f6",
-    fill: "rgba(59, 130, 246, 0.1)",
+    line: "hsl(var(--chart-1))",
+    fill: "hsl(var(--chart-1) / 0.1)",
+    glowColor: "hsl(var(--chart-1) / 0.25)",
   },
   retirement: {
     bg: "bg-gradient-to-r from-emerald-500 to-green-500",
     border: "border-emerald-400",
     text: "text-emerald-600 dark:text-emerald-400",
     glow: "shadow-emerald-500/50",
-    line: "#10b981",
-    fill: "rgba(16, 185, 129, 0.1)",
+    line: "hsl(var(--chart-2))",
+    fill: "hsl(var(--chart-2) / 0.1)",
+    glowColor: "hsl(var(--chart-2) / 0.25)",
   },
   legacy: {
     bg: "bg-gradient-to-r from-purple-500 to-violet-500",
     border: "border-purple-400",
     text: "text-purple-600 dark:text-purple-400",
     glow: "shadow-purple-500/50",
-    line: "#8b5cf6",
-    fill: "rgba(139, 92, 246, 0.1)",
+    line: "hsl(var(--chart-3))",
+    fill: "hsl(var(--chart-3) / 0.1)",
+    glowColor: "hsl(var(--chart-3) / 0.25)",
   },
 };
 
@@ -268,7 +271,7 @@ const MilestoneNode = React.memo(function MilestoneNode({
               )}
               style={{
                 boxShadow: isHovered && point.isPast
-                  ? `0 0 20px ${PHASE_COLORS[point.milestone.phase].line}40`
+                  ? `0 0 20px ${PHASE_COLORS[point.milestone.phase].glowColor}`
                   : undefined,
               }}
             >
@@ -424,10 +427,15 @@ export const WealthTimeline = React.memo(function WealthTimeline({
 
   // Calculate timeline points from milestones
   const timelinePoints = useMemo<TimelinePoint[]>(() => {
+    if (data.length === 0) return [];
+
     const points: TimelinePoint[] = [];
-    const lastDataPoint = data[data.length - 1];
     const firstDataPoint = data[0];
+    const lastDataPoint = data[data.length - 1];
+    if (!firstDataPoint || !lastDataPoint) return [];
     const timelineSpan = lastDataPoint.year - firstDataPoint.year;
+
+    if (timelineSpan === 0) return [];
 
     // Process each milestone
     for (const milestone of WEALTH_MILESTONES) {
@@ -482,9 +490,14 @@ export const WealthTimeline = React.memo(function WealthTimeline({
 
   // Find current position on timeline
   const currentPositionPercent = useMemo(() => {
-    const firstYear = data[0]?.year ?? currentYear;
-    const lastYear = data[data.length - 1]?.year ?? currentYear + 40;
+    if (data.length === 0) return 0;
+    const firstPoint = data[0];
+    const lastPoint = data[data.length - 1];
+    if (!firstPoint || !lastPoint) return 0;
+    const firstYear = firstPoint.year;
+    const lastYear = lastPoint.year;
     const span = lastYear - firstYear;
+    if (span === 0) return 0;
     return ((currentYear - firstYear) / span) * 100;
   }, [data, currentYear]);
 
@@ -554,11 +567,41 @@ export const WealthTimeline = React.memo(function WealthTimeline({
 
   // Calculate split point for retirement (solid vs dashed)
   const retirementSplitPercent = useMemo(() => {
+    if (data.length === 0) return 50;
+    const firstPoint = data[0];
+    const lastPoint = data[data.length - 1];
+    if (!firstPoint || !lastPoint) return 50;
     const retirementYear = currentYear + (retirementAge - currentAge);
-    const firstYear = data[0]?.year ?? currentYear;
-    const lastYear = data[data.length - 1]?.year ?? currentYear + 40;
-    return ((retirementYear - firstYear) / (lastYear - firstYear)) * 100;
+    const firstYear = firstPoint.year;
+    const lastYear = lastPoint.year;
+    const span = lastYear - firstYear;
+    if (span === 0) return 50;
+    return ((retirementYear - firstYear) / span) * 100;
   }, [data, currentYear, currentAge, retirementAge]);
+
+  if (data.length === 0 || timelinePoints.length === 0) {
+    return (
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-primary" />
+            Your Wealth Story
+          </CardTitle>
+          <CardDescription>
+            Key milestones on your path to financial freedom
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <TrendingUp className="w-12 h-12 text-muted-foreground/30 mb-4" />
+            <p className="text-sm text-muted-foreground">
+              Run a calculation to see your wealth milestone timeline.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="overflow-hidden">

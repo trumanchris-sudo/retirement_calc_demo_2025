@@ -966,7 +966,7 @@ export const COMPONENT_REGISTRY = {
 // -----------------------------------------------------------------------------
 // /components/calculator/index.ts (NEEDS CREATION)
 // -----------------------------------------------------------------------------
-const calculatorIndexContent = `
+const _calculatorIndexContent = `
 // Calculator component exports
 export { default as CyberpunkSplash } from './CyberpunkSplash';
 export type { CyberpunkSplashHandle } from './CyberpunkSplash';
@@ -993,7 +993,7 @@ export { TimelineView } from './TimelineView';
 // -----------------------------------------------------------------------------
 // /components/ui/index.ts (NEEDS CREATION - custom components only)
 // -----------------------------------------------------------------------------
-const uiIndexContent = `
+const _uiIndexContent = `
 // Custom UI component exports (supplements shadcn/ui components)
 export { AnimatedSection } from './AnimatedSection';
 export { InfoTooltip, TOOLTIP_CONTENT } from './InfoTooltip';
@@ -1007,7 +1007,7 @@ export { ScrollIndicator } from './ScrollIndicator';
 // -----------------------------------------------------------------------------
 // /components/onboarding/index.ts (NEEDS CREATION)
 // -----------------------------------------------------------------------------
-const onboardingIndexContent = `
+const _onboardingIndexContent = `
 // Onboarding component exports
 export { ConsoleInput } from './ConsoleInput';
 export { MessageBubble } from './MessageBubble';
@@ -1018,7 +1018,7 @@ export { ReviewStep } from './steps/ReviewStep';
 // -----------------------------------------------------------------------------
 // /components/visualizations/index.ts (NEEDS CREATION)
 // -----------------------------------------------------------------------------
-const visualizationsIndexContent = `
+const _visualizationsIndexContent = `
 // Visualization component exports
 export { HeatmapCalendar } from './HeatmapCalendar';
 export type { DailyContribution, HeatmapCalendarProps } from './HeatmapCalendar';
@@ -1295,4 +1295,5 @@ export const TYPE_DEPENDENCIES = {
  * 4. Update this document as components evolve
  */
 
-export default null; // Prevent accidental default import
+const appIntegrationPlaceholder = null; // Prevent accidental default import
+export default appIntegrationPlaceholder;

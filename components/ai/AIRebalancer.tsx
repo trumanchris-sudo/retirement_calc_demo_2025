@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -33,9 +32,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  ResponsiveContainer,
-  Cell,
-  LineChart,
   Line,
   ReferenceLine,
   Legend,
@@ -51,15 +47,11 @@ import {
   Info,
   RefreshCw,
   Clock,
-  Zap,
-  Shield,
   DollarSign,
   PieChart,
-  ArrowRight,
   Sparkles,
   Calendar,
   Building2,
-  Wallet,
   ArrowUpDown,
   Calculator,
   BarChart3,
@@ -70,8 +62,7 @@ import {
   ChevronRight,
   Bot,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { fmt, fmtPercent, fmtPctRaw } from "@/lib/utils";
+import { cn, fmt } from "@/lib/utils";
 
 // ==================== Types ====================
 
@@ -195,7 +186,7 @@ const ACCOUNT_TYPE_COLORS: Record<AccountHolding["accountType"], string> = {
   hsa: "#EC4899",
 };
 
-const ASSET_COLORS = {
+const _ASSET_COLORS = {
   stocks: "#3B82F6",
   bonds: "#10B981",
   cash: "#F59E0B",
@@ -233,7 +224,7 @@ function calculateTargetAllocation(
 ): AssetAllocation {
   // Base stock allocation using age-based rule with risk tolerance adjustment
   const riskModifier = { conservative: -10, moderate: 0, aggressive: 10 };
-  let stockPct = Math.max(20, Math.min(95, 110 - age + riskModifier[riskTolerance]));
+  const stockPct = Math.max(20, Math.min(95, 110 - age + riskModifier[riskTolerance]));
 
   // Ensure minimum bond allocation for diversification
   const bondPct = Math.max(5, 100 - stockPct - 5);
@@ -927,7 +918,7 @@ export function AIRebalancer({
   accounts = DEFAULT_ACCOUNTS,
   targetAllocation: propTarget,
   currentAge = 45,
-  retirementAge = 65,
+  _retirementAge = 65,
   riskTolerance = "moderate",
   onRebalance,
 }: AIRebalancerProps) {

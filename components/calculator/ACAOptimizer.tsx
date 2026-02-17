@@ -665,10 +665,13 @@ export function ACAOptimizer({
   spouseAge,
   retirementAge = 60,
   householdSize = 1,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   estimatedMAGI = 50000,
   state = "DEFAULT",
   rothBalance = 0,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   pretaxBalance = 0,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   taxableBalance = 0,
 }: ACAOptimizerProps) {
   // State for inputs

@@ -573,7 +573,6 @@ interface PostFIREPlanningProps {
 
 function PostFIREPlanning({
   annualExpenses,
-  fireNumber,
   currentAge,
   yearsToFIRE,
 }: PostFIREPlanningProps) {

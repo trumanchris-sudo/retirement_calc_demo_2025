@@ -26,8 +26,6 @@ import {
   TrendingDown,
   Calculator,
   Shield,
-  Users,
-  Building2,
   AlertTriangle,
   Info,
   ChevronDown,

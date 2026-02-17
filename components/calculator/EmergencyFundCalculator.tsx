@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { TYPOGRAPHY, METRIC_COLORS, STATUS } from '@/lib/designTokens'
+import { TYPOGRAPHY, METRIC_COLORS } from '@/lib/designTokens'
 import { fmt, fmtFull } from '@/lib/utils'
 
 // ==================== Types ====================
@@ -190,7 +190,7 @@ function calculateTwoTierAllocation(
  */
 function generateWhereToKeepRecommendation(
   targetAmount: number,
-  currentAmount: number
+  _currentAmount: number
 ): WhereToKeepRecommendation {
   // Basic allocation strategy:
   // - First $10K: HYSA for immediate liquidity

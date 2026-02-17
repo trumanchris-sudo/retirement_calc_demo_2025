@@ -38,7 +38,6 @@ import {
   TAX_BRACKETS,
   RMD_START_AGE,
   RMD_DIVISORS,
-  ESTATE_TAX_RATE,
 } from "@/lib/constants";
 import { calcOrdinaryTax, calcRMD } from "@/lib/calculations/retirementEngine";
 import type { FilingStatus } from "@/types/calculator";
@@ -140,13 +139,9 @@ function formatCurrencyFull(value: number): string {
   }).format(value);
 }
 
-function formatPercent(value: number): string {
-  return `${value.toFixed(1)}%`;
-}
-
 function getBracketForIncome(income: number, status: FilingStatus): number {
   const brackets = TAX_BRACKETS[status];
-  let taxableIncome = Math.max(0, income - brackets.deduction);
+  const taxableIncome = Math.max(0, income - brackets.deduction);
 
   for (const bracket of brackets.rates) {
     if (taxableIncome <= bracket.limit) {
@@ -355,25 +350,19 @@ function projectLifetimeTaxes(props: LifetimeTaxDashboardProps): {
 
   // Calculate inheritance taxes (children inheriting Traditional IRA pay income tax)
   const finalTradPretax = tradPretax;
-  const finalRothRoth = rothRothBal;
-
   // Traditional: Heirs pay ~30% on inherited IRA distributions
   const inheritanceTaxTraditional = finalTradPretax * 0.3;
-
-  // Roth: Heirs pay $0 on Roth inheritance
-  const inheritanceTaxRoth = 0;
 
   return {
     yearlyData,
     traditionalTotalTax: tradCumulativeTax + inheritanceTaxTraditional,
-    rothTotalTax: rothCumulativeTax + inheritanceTaxRoth,
+    rothTotalTax: rothCumulativeTax,
     taxSavings:
       tradCumulativeTax +
       inheritanceTaxTraditional -
-      rothCumulativeTax -
-      inheritanceTaxRoth,
+      rothCumulativeTax,
     inheritanceTaxTraditional,
-    inheritanceTaxRoth,
+    inheritanceTaxRoth: 0,
   };
 }
 
@@ -704,7 +693,7 @@ const RMDProblemVisualization: React.FC<{
   data: YearlyTaxData[];
   pretaxBalance: number;
   maritalStatus: FilingStatus;
-}> = ({ data, pretaxBalance, maritalStatus }) => {
+}> = ({ data, pretaxBalance }) => {
   // Project RMDs at age 73, 80, 85, 90
   const rmdAges = [73, 80, 85, 90];
   const projectedRMDs = rmdAges.map((age) => {
@@ -807,10 +796,8 @@ export const LifetimeTaxDashboard: React.FC<LifetimeTaxDashboardProps> =
   React.memo(function LifetimeTaxDashboard(props) {
     const {
       currentAge,
-      retirementAge,
       maritalStatus,
       pretaxBalance,
-      lifeExpectancy = 95,
     } = props;
 
     // Calculate all projections

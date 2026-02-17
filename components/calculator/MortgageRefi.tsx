@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
 import { NumericInput } from "@/components/form/NumericInput";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
@@ -22,14 +21,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn, fmt, fmtFull, fmtPctRaw } from "@/lib/utils";
+import { cn, fmt, fmtFull } from "@/lib/utils";
 import {
   AlertTriangle,
   TrendingUp,
   TrendingDown,
   Scale,
   Home,
-  DollarSign,
   Calculator,
   Clock,
   CheckCircle2,
@@ -37,7 +35,6 @@ import {
   Lightbulb,
   Target,
   Wallet,
-  ArrowRight,
   Info,
   ChevronDown,
   ChevronUp,

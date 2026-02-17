@@ -67,7 +67,7 @@ const CyberpunkSplash = forwardRef<CyberpunkSplashHandle, CyberpunkSplashProps>(
   // Calculate bar positions based on phase
   // Note: animationPhase can't be "idle" here due to early return above
   const barsIn = animationPhase === "barsIn" || animationPhase === "logoVisible" || animationPhase === "logoFade";
-  const barsOut = animationPhase === "barsOut";
+  const _barsOut = animationPhase === "barsOut";
 
   // Logo opacity - show concurrent with bars
   const logoOpacity = (animationPhase === "barsIn" || animationPhase === "logoVisible") ? 1 : 0;

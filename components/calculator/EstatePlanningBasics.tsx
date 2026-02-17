@@ -390,7 +390,7 @@ export function EstatePlanningBasics({
           Estate Planning Basics
         </CardTitle>
         <CardDescription>
-          Don't leave a mess for your family. Everyone needs these documents, regardless of wealth.
+          Don&apos;t leave a mess for your family. Everyone needs these documents, regardless of wealth.
         </CardDescription>
       </CardHeader>
 
@@ -568,7 +568,7 @@ export function EstatePlanningBasics({
                         <li>- State law determines who inherits</li>
                         <li>- Your spouse may not get everything</li>
                         <li>- Unmarried partners get nothing</li>
-                        <li>- Court appoints administrator (may not be who you'd choose)</li>
+                        <li>- Court appoints administrator (may not be who you&apos;d choose)</li>
                         <li>- Court appoints guardian for children</li>
                         <li>- More expensive, longer process</li>
                       </ul>

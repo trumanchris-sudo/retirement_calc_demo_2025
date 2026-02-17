@@ -32,6 +32,8 @@ import {
   CalculationInputs,
   PerPeriodCashFlow,
   YearSummary,
+  SelfEmploymentTaxResult,
+  FederalTaxResult,
 } from "@/lib/calculations/selfEmployed2026";
 import {
   Tooltip,
@@ -132,9 +134,8 @@ export default function SelfEmployed2026Page() {
   const [results, setResults] = useState<{
     periods: PerPeriodCashFlow[];
     yearSummary: YearSummary;
-    // Reason: seTaxResult and federalTaxResult come from calculation engine with dynamic shape
-    seTaxResult: any;
-    federalTaxResult: any;
+    seTaxResult: SelfEmploymentTaxResult;
+    federalTaxResult: FederalTaxResult;
   } | null>(null);
 
   // AI Onboarding state
@@ -480,7 +481,7 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
             <div className="space-y-8">
               {(() => {
                 const chunkSize = 6;
-                const chunks: any[][] = [];
+                const chunks: PerPeriodCashFlow[][] = [];
                 for (let i = 0; i < results.periods.length; i += chunkSize) {
                   chunks.push(results.periods.slice(i, i + chunkSize));
                 }
@@ -802,7 +803,7 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <Label>Distribution Timing</Label>
-            <Select value={distributionTiming} onValueChange={(value: any) => { setDistributionTiming(value); calculationState.handleInputChange(); }}>
+            <Select value={distributionTiming} onValueChange={(value: typeof distributionTiming) => { setDistributionTiming(value); calculationState.handleInputChange(); }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="quarterly">Quarterly (Mar, Jun, Sep, Dec)</SelectItem>
@@ -1003,7 +1004,7 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <Label>Health Insurance Coverage</Label>
-            <Select value={healthInsuranceCoverage} onValueChange={(value: any) => { setHealthInsuranceCoverage(value); calculationState.handleInputChange(); }}>
+            <Select value={healthInsuranceCoverage} onValueChange={(value: typeof healthInsuranceCoverage) => { setHealthInsuranceCoverage(value); calculationState.handleInputChange(); }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="self">Self Only</SelectItem>
@@ -1061,7 +1062,7 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
           </div>
           <div>
             <Label>Withholding Method</Label>
-            <Select value={withholdingMethod} onValueChange={(value: any) => { setWithholdingMethod(value); calculationState.handleInputChange(); }}>
+            <Select value={withholdingMethod} onValueChange={(value: typeof withholdingMethod) => { setWithholdingMethod(value); calculationState.handleInputChange(); }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="partnership_withholds">Partnership Withholds (PTET)</SelectItem>

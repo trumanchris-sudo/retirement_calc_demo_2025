@@ -7,7 +7,7 @@ import { generatePDFReport, type PDFReportData, type PDFReportInputs } from '@/l
 import type { CalculationResult } from '@/types/calculator';
 import type { FilingStatus } from '@/lib/calculations/taxCalculations';
 import type { ReturnMode, WalkSeries } from '@/types/planner';
-import { Download, FileText, Loader2 } from 'lucide-react';
+import { FileText, Loader2 } from 'lucide-react';
 
 interface DownloadPDFButtonProps {
   // All calculator inputs

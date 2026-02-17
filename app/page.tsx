@@ -276,14 +276,13 @@ export default function App() {
     setRetRate, setInflationRate, setStateRate, setIncContrib, setIncRate, setWdRate,
     setIncludeSS, setSSIncome, setSSClaimAge, setSSIncome2, setSSClaimAge2,
     setIncludeMedicare, setMedicarePremium, setMedicalInflation,
-    setIrmaaThresholdSingle, setIrmaaThresholdMarried, setIrmaaSurcharge,
     setIncludeLTC, setLtcAnnualCost, setLtcProbability, setLtcDuration,
     setLtcOnsetAge, setLtcAgeRangeStart, setLtcAgeRangeEnd,
     setEnableRothConversions, setTargetConversionBracket,
-    setShowGen, setHypPerBen, setNumberOfBeneficiaries, setAdditionalChildrenExpected,
+    setShowGen, setHypPerBen, setAdditionalChildrenExpected,
     setTotalFertilityRate, setGenerationLength, setFertilityWindowStart, setFertilityWindowEnd,
     setHypDeathAge, setHypMinDistAge,
-    setReturnMode, setSeed, setRandomWalkSeries,
+    setReturnMode, setRandomWalkSeries,
     setAllocationStrategy, setBondStartPct, setBondEndPct, setBondStartAge, setBondEndAge, setGlidePathShape,
     setHistoricalYear, setInflationShockRate, setInflationShockDuration,
   } = usePlanConfigSetters(updatePlanConfig, markDirty, planConfig);
@@ -314,7 +313,6 @@ export default function App() {
 
   // Generational wealth parameters (improved demographic model)
   const hypPerBen = planConfig.hypPerBen ?? DEFAULTS.hypPerBen;
-  const numberOfBeneficiaries = planConfig.numberOfBeneficiaries ?? 2;
 
   // Beneficiary inputs - DERIVED from planConfig (no useEffect sync needed)
   // childrenCurrentAges and numberOfChildren are now computed directly from planConfig
@@ -376,39 +374,6 @@ export default function App() {
   // Note: numberOfBeneficiaries is still controlled via planConfig, but we ensure it stays in sync
   // by updating it atomically when children are modified (see consolidated update below)
 
-  // Legacy inputs (kept for backward compatibility with presets)
-  // parentAgeAtFirstChild and childSpacingYears are only used for preset calculations
-  const [parentAgeAtFirstChild, setParentAgeAtFirstChild] = useState(30);
-  const [childSpacingYears, setChildSpacingYears] = useState(3);
-
-  // Consolidated update function for children-related state
-  // This replaces the useEffect cascade with atomic updates
-  const updateChildrenConfig = useCallback((updates: {
-    numChildren?: number;
-    childrenAges?: number[];
-  }) => {
-    const newNumChildren = updates.numChildren ?? planConfig.numChildren ?? 0;
-    const newChildAges = updates.childrenAges ?? planConfig.childrenAges ?? [];
-
-    // Calculate numberOfBeneficiaries atomically with the children update
-    let newHypStartBens = planConfig.numberOfBeneficiaries ?? 2;
-    if (newChildAges.length > 0) {
-      newHypStartBens = newChildAges.length;
-    } else if (newNumChildren > 0) {
-      newHypStartBens = newNumChildren;
-    } else if (newNumChildren === 0 && newChildAges.length === 0) {
-      newHypStartBens = 0;
-    }
-
-    // Single atomic update to planConfig - no cascade needed
-    updatePlanConfig({
-      numChildren: newNumChildren,
-      childrenAges: newChildAges,
-      numberOfBeneficiaries: newHypStartBens,
-    }, 'user-entered');
-    markDirty();
-  }, [planConfig.numChildren, planConfig.childrenAges, planConfig.numberOfBeneficiaries, updatePlanConfig]);
-
   // Generational wealth demographic parameters - derived state reads from planConfig context
   const totalFertilityRate = planConfig.totalFertilityRate ?? DEFAULTS.totalFertilityRate; // Children per person (lifetime)
   const generationLength = planConfig.generationLength ?? DEFAULTS.generationLength; // Average age when having children
@@ -418,8 +383,8 @@ export default function App() {
   const hypMinDistAge = planConfig.hypMinDistAge ?? DEFAULTS.hypMinDistAge; // Minimum age to receive distributions
 
   // Legacy state variables for backward compatibility with old simulation
-  const [hypBirthMultiple, setHypBirthMultiple] = useState(1);
-  const [hypBirthInterval, setHypBirthInterval] = useState(30);
+  const [, setHypBirthMultiple] = useState(1);
+  const [, setHypBirthInterval] = useState(30);
 
   // Simulation Settings - derived state reads from context
   const returnMode = planConfig.returnMode ?? 'randomWalk';
@@ -438,7 +403,6 @@ export default function App() {
   // This eliminates the useEffect cascade that was causing unnecessary re-renders
 
   // Refs for legacy card image download
-  const legacyCardRefAllInOne = useRef<HTMLDivElement>(null!);
   const legacyCardRefLegacy = useRef<HTMLDivElement>(null!);
 
   // Build bond glide path configuration object
@@ -480,7 +444,7 @@ export default function App() {
   // Callback for tracking input changes
   const handleInputChange = useCallback(() => {
     setInputsModified(true);
-  }, []);
+  }, [setInputsModified]);
 
   // Fix #4: Input Consistency - Auto-update fertility windows when generation length changes
   const handleGenerationLengthChange = useCallback((newGenLen: number) => {
@@ -488,11 +452,10 @@ export default function App() {
     setFertilityWindowStart(newGenLen - 5);
     setFertilityWindowEnd(newGenLen + 5);
     handleInputChange(); // Mark inputs as modified
-  }, [handleInputChange]);
+  }, [handleInputChange, setGenerationLength, setFertilityWindowStart, setFertilityWindowEnd]);
 
   const resRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef<HTMLDivElement | null>(null);
-  const monteCarloRef = useRef<HTMLDivElement | null>(null);
   const tabGroupRef = useRef<TabGroupRef>(null);
   const splashRef = useRef<CyberpunkSplashHandle>(null);
 
@@ -502,8 +465,6 @@ export default function App() {
     calcProgress,
     guardrailsResult,
     setGuardrailsResult,
-    rothResult,
-    setRothResult,
     runMonteCarloViaWorker,
     runLegacyViaWorker,
     runGuardrailsAnalysis,
@@ -518,11 +479,7 @@ export default function App() {
     setIsLoadingAi,
     aiError,
     setAiError,
-    userQuestion,
-    setUserQuestion,
-    generateLocalInsight,
     fetchAiInsight,
-    handleAskQuestion,
     askExplainQuestion,
   } = useAiInsightEngine(res, resRef);
 
@@ -530,7 +487,6 @@ export default function App() {
   const {
     calc,
     calculateSensitivity,
-    calculateLegacyResult,
     applyGenerationalPreset,
   } = useCalculation({
     // Result state
@@ -567,7 +523,7 @@ export default function App() {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [setShowBackToTop]);
 
   const isMar = useIsMarried(planConfig);
   const total = useTotalBalance(planConfig);
@@ -761,7 +717,7 @@ export default function App() {
       console.log('[AI Doc Mode] Auto-running calculations...');
       setCalcPending(true);
     }
-  }, [isAIDocMode]);
+  }, [isAIDocMode, res]);
 
   // Show loading state while determining if wizard should be shown
   // This prevents hydration mismatch since localStorage is only available client-side

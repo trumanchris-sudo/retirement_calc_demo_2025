@@ -51,7 +51,7 @@ function PersonAvatar({
   stage,
   className = "",
   size = 48,
-  gender = "neutral"
+  gender: _gender = "neutral"
 }: {
   stage: AgeStage;
   className?: string;
@@ -593,39 +593,12 @@ export function DynastyTimeline({ generationData }: DynastyTimelineProps) {
     });
   }, [familyConfig, updateConfig]);
 
-  if (!generationData || generationData.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-rose-500" />
-            Your Family Legacy Timeline
-          </CardTitle>
-          <CardDescription>
-            See how your wealth creates opportunities for generations to come
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-12 text-muted-foreground">
-            <div className="flex justify-center mb-4">
-              <div className="flex -space-x-3">
-                <PersonAvatar stage="senior" size={48} />
-                <PersonAvatar stage="adult" size={48} />
-                <PersonAvatar stage="young" size={48} />
-                <PersonAvatar stage="child" size={48} />
-              </div>
-            </div>
-            <p className="text-sm">
-              No generation data available. Run a legacy calculation with a finite duration to see how wealth transfers across generations.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Calculate both scenarios
+  // Calculate both scenarios (must be before early return to avoid conditional hook call)
   const { directInheritanceData, dynastyTrustData } = useMemo(() => {
+    if (!generationData || generationData.length === 0) {
+      return { directInheritanceData: [], dynastyTrustData: [] };
+    }
+
     // Direct Inheritance: Estate tax at every generation
     const directData = generationData.map((gen) => ({
       generation: `Gen ${gen.generation}`,
@@ -666,6 +639,37 @@ export function DynastyTimeline({ generationData }: DynastyTimelineProps) {
 
     return { directInheritanceData: directData, dynastyTrustData: trustData };
   }, [generationData]);
+
+  if (!generationData || generationData.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Heart className="w-5 h-5 text-rose-500" />
+            Your Family Legacy Timeline
+          </CardTitle>
+          <CardDescription>
+            See how your wealth creates opportunities for generations to come
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-12 text-muted-foreground">
+            <div className="flex justify-center mb-4">
+              <div className="flex -space-x-3">
+                <PersonAvatar stage="senior" size={48} />
+                <PersonAvatar stage="adult" size={48} />
+                <PersonAvatar stage="young" size={48} />
+                <PersonAvatar stage="child" size={48} />
+              </div>
+            </div>
+            <p className="text-sm">
+              No generation data available. Run a legacy calculation with a finite duration to see how wealth transfers across generations.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Select data based on scenario
   const chartData = scenario === "direct" ? directInheritanceData : dynastyTrustData;

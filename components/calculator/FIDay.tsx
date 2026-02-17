@@ -19,10 +19,8 @@ import {
   Calendar,
   Target,
   TrendingUp,
-  Clock,
   DollarSign,
   Sparkles,
-  ChevronRight,
   PartyPopper,
   Rocket,
   Heart,
@@ -756,9 +754,9 @@ function CoastFIDisplay({ inputs }: CoastFIDisplayProps) {
   );
 }
 
-interface FIMindsetProps {}
+type FIMindsetProps = object
 
-function FIMindset({}: FIMindsetProps) {
+function FIMindset(_props: FIMindsetProps) {
   return (
     <Card>
       <CardHeader className="pb-4">

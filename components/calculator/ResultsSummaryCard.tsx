@@ -4,7 +4,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { TYPOGRAPHY, METRIC_COLORS, TRANSITIONS } from "@/lib/designTokens";
+import { TYPOGRAPHY, METRIC_COLORS } from "@/lib/designTokens";
 import { InfoTooltip, TOOLTIP_CONTENT } from "@/components/ui/InfoTooltip";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import type { CalculationResult } from "@/types/calculator";

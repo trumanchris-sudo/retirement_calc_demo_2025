@@ -5,7 +5,6 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import type { ExtractedData, AssumptionWithReasoning } from '@/types/ai-onboarding';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,

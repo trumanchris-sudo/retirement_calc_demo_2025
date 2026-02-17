@@ -38,7 +38,7 @@ export const GenerationalResultCard: React.FC<GenerationalResultCardProps> = ({
   percentile50,
   percentile90,
   probability,
-  explanationText,
+  explanationText: _explanationText,
 }) => {
   const isPerpetual = variant === "perpetual";
 

@@ -4,7 +4,6 @@ import React, { useState, useMemo, useCallback } from 'react'
 import {
   Home,
   TrendingUp,
-  TrendingDown,
   DollarSign,
   Calculator,
   Info,
@@ -19,17 +18,14 @@ import {
   Heart,
   Shield,
   FileText,
-  HelpCircle,
   ChevronRight,
   Percent,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
-import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
@@ -44,7 +40,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { TYPOGRAPHY, METRIC_COLORS, STATUS } from '@/lib/designTokens'
+import { TYPOGRAPHY } from '@/lib/designTokens'
 import { fmt, fmtFull } from '@/lib/utils'
 
 // ==================== Types ====================
@@ -222,11 +218,6 @@ function calculateDownsizeScenario(
   const netProceeds = grossProceeds - sellingCosts - inputs.mortgageBalance
   const netEquityReleased = netProceeds - inputs.newHomePrice - inputs.movingCosts
 
-  // Investment projection using compound interest
-  const monthlyReturn = inputs.expectedReturn / 100 / 12
-  const months10Year = 120
-  const months20Year = 240
-
   const investmentProjection10Year = netEquityReleased * Math.pow(1 + inputs.expectedReturn / 100, 10)
   const investmentProjection20Year = netEquityReleased * Math.pow(1 + inputs.expectedReturn / 100, 20)
 
@@ -297,7 +288,6 @@ function calculateMortgagePayoffComparison(
 
   // If investing returns > mortgage rate, math says invest
   // But include emotional value of debt-free
-  const netPayoff = totalInterest - 0 // No opportunity cost if you pay off
   const netInvest = investedGrowth - totalInterest
 
   const mathFavorsInvesting = expectedReturn > mortgageRate

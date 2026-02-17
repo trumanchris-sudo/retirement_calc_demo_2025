@@ -315,7 +315,7 @@ export function BackdoorRothGuide({
           Backdoor Roth IRA Guide
         </CardTitle>
         <CardDescription>
-          High earners can still contribute to Roth IRA through this legal "backdoor" strategy.
+          High earners can still contribute to Roth IRA through this legal &quot;backdoor&quot; strategy.
           Follow this step-by-step guide to maximize your tax-free retirement savings.
         </CardDescription>
       </CardHeader>
@@ -515,7 +515,7 @@ export function BackdoorRothGuide({
                   </h4>
                   <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
                     <p>
-                      The "backdoor" strategy lets high earners contribute to a Roth IRA even when
+                      The &quot;backdoor&quot; strategy lets high earners contribute to a Roth IRA even when
                       their income exceeds the limits:
                     </p>
                     <ol className="list-decimal list-inside space-y-1 pl-2">
@@ -543,7 +543,7 @@ export function BackdoorRothGuide({
                   </h4>
                   <p className="text-sm text-yellow-800 dark:text-yellow-200 mt-1">
                     If you have existing pre-tax Traditional IRA money, the IRS requires you to pay tax
-                    on a proportional amount of your conversion. This is called the "pro-rata rule."
+                    on a proportional amount of your conversion. This is called the &quot;pro-rata rule.&quot;
                   </p>
                 </div>
               </div>
@@ -665,7 +665,7 @@ export function BackdoorRothGuide({
                       Solution: Reverse Rollover
                     </h4>
                     <p className="text-sm text-purple-800 dark:text-purple-200 mb-3">
-                      Roll your Traditional IRA into your employer's 401(k) to eliminate the pro-rata issue:
+                      Roll your Traditional IRA into your employer&apos;s 401(k) to eliminate the pro-rata issue:
                     </p>
                     <ol className="text-sm text-purple-800 dark:text-purple-200 list-decimal list-inside space-y-1">
                       <li>Check if your 401(k) accepts incoming rollovers</li>
@@ -742,25 +742,25 @@ export function BackdoorRothGuide({
                 <li className="flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>Don't invest before converting:</strong> Keep funds in money market to avoid gains
+                    <strong>Don&apos;t invest before converting:</strong> Keep funds in money market to avoid gains
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>Don't convert same day:</strong> Wait for funds to settle (1-3 days)
+                    <strong>Don&apos;t convert same day:</strong> Wait for funds to settle (1-3 days)
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>Don't forget Form 8606:</strong> File with your tax return every year
+                    <strong>Don&apos;t forget Form 8606:</strong> File with your tax return every year
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>Don't leave money in Traditional IRA:</strong> Convert everything, even small gains
+                    <strong>Don&apos;t leave money in Traditional IRA:</strong> Convert everything, even small gains
                   </span>
                 </li>
               </ul>
@@ -842,9 +842,9 @@ export function BackdoorRothGuide({
                   </h4>
                   <ol className="text-sm text-blue-800 dark:text-blue-200 list-decimal list-inside space-y-1">
                     <li>Check your 401(k) Summary Plan Description (SPD)</li>
-                    <li>Search for "after-tax" and "in-service" or "in-plan conversion"</li>
+                    <li>Search for &quot;after-tax&quot; and &quot;in-service&quot; or &quot;in-plan conversion&quot;</li>
                     <li>Call your 401(k) provider and ask specifically</li>
-                    <li>Ask HR if they offer "mega backdoor Roth"</li>
+                    <li>Ask HR if they offer &quot;mega backdoor Roth&quot;</li>
                   </ol>
                 </div>
               </div>
@@ -1131,8 +1131,8 @@ export function BackdoorRothGuide({
                           <strong>Line 3:</strong> Add Lines 1 + 2 = Your total basis
                         </p>
                         <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded">
-                          <strong>Key point:</strong> This tracks your "basis" - the money you already paid taxes on.
-                          You don't pay tax again on this when you convert.
+                          <strong>Key point:</strong> This tracks your &quot;basis&quot; - the money you already paid taxes on.
+                          You don&apos;t pay tax again on this when you convert.
                         </div>
                       </div>
                     </AccordionContent>
@@ -1226,7 +1226,7 @@ export function BackdoorRothGuide({
                       <p className="text-sm">
                         <strong>Yes!</strong> File Form 8606 every year you make a nondeductible
                         Traditional IRA contribution OR convert to Roth. Even if you forget one
-                        year, file it late - there's a $50 penalty for not filing, and you need
+                        year, file it late - there&apos;s a $50 penalty for not filing, and you need
                         the paper trail.
                       </p>
                     </AccordionContent>
@@ -1240,6 +1240,17 @@ export function BackdoorRothGuide({
                         conversion in Box 1. Box 2a (taxable amount) might show the full amount
                         or be blank - either way, Form 8606 is where you calculate the actual
                         taxable amount.
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="faq3">
+                    <AccordionTrigger>What if I had gains before converting?</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm">
+                        Any gains between contribution and conversion are taxable. This is why
+                        we recommend converting quickly and keeping funds in money market.
+                        If you had $50 in gains, you&apos;ll pay tax on $50 (probably ~$12 at 24% bracket).
                       </p>
                     </AccordionContent>
                   </AccordionItem>

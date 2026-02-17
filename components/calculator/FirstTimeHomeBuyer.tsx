@@ -27,17 +27,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Home,
@@ -66,7 +57,7 @@ import {
   Percent,
   HelpCircle,
 } from "lucide-react";
-import { TYPOGRAPHY, METRIC_COLORS, STATUS } from "@/lib/designTokens";
+import { TYPOGRAPHY, STATUS } from "@/lib/designTokens";
 import { cn, fmt, fmtFull, fmtPctRaw } from "@/lib/utils";
 
 // ==================== Types ====================
@@ -586,30 +577,6 @@ function InputField({
             {suffix}
           </span>
         )}
-      </div>
-    </div>
-  );
-}
-
-interface MetricCardProps {
-  label: string;
-  value: string;
-  subtext?: string;
-  icon?: React.ElementType;
-  status?: "positive" | "negative" | "neutral" | "warning";
-}
-
-function MetricCard({ label, value, subtext, icon: Icon, status = "neutral" }: MetricCardProps) {
-  const colors = METRIC_COLORS[status];
-  return (
-    <div className={cn("rounded-lg p-4 border", colors.bg, colors.border)}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className={TYPOGRAPHY.metricLabel}>{label}</p>
-          <p className={cn(TYPOGRAPHY.metricMedium, colors.text)}>{value}</p>
-          {subtext && <p className={TYPOGRAPHY.helperText}>{subtext}</p>}
-        </div>
-        {Icon && <Icon className={cn("h-5 w-5", colors.text)} />}
       </div>
     </div>
   );
@@ -1540,11 +1507,11 @@ export function FirstTimeHomeBuyer({ compact = false }: FirstTimeHomeBuyerProps)
               {/* What is PMI */}
               <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
                 <h4 className={cn(TYPOGRAPHY.sectionHeader, "text-amber-700 dark:text-amber-300 mb-2")}>
-                  What You're Paying For
+                  What You&apos;re Paying For
                 </h4>
                 <p className={TYPOGRAPHY.body}>
                   PMI typically costs 0.5% - 1% of your loan amount annually. On a $300,000 loan,
-                  that's $125 - $250/month that provides zero benefit to you.
+                  that&apos;s $125 - $250/month that provides zero benefit to you.
                 </p>
               </div>
 

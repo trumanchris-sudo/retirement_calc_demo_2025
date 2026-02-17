@@ -564,6 +564,8 @@ const GrowthDriversChart: React.FC<{
       .filter(Boolean);
   }, [data]);
 
+  const baseYear = data[0]?.year ?? new Date().getFullYear();
+
   return (
     <Card>
       <CardHeader>
@@ -584,7 +586,7 @@ const GrowthDriversChart: React.FC<{
             <YAxis
               type="category"
               dataKey="year"
-              tickFormatter={(year) => `Year ${new Date().getFullYear() - data[0]?.year + year - data[0]?.year + 1}`}
+              tickFormatter={(year) => `Year ${year - baseYear + 1}`}
               width={80}
             />
             <ChartTooltip
@@ -841,6 +843,10 @@ const First100KCard: React.FC<{
   hundredKMilestones: HundredKMilestone[];
   currentNetWorth: number;
 }> = React.memo(({ hundredKMilestones, currentNetWorth }) => {
+  if (hundredKMilestones.length === 0) return null;
+
+  const maxYearsToReach = hundredKMilestones[0]?.yearsToReach || 1;
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900">
@@ -902,7 +908,7 @@ const First100KCard: React.FC<{
                           : "bg-slate-300 dark:bg-slate-700"
                       )}
                       style={{
-                        width: `${Math.min(100, (milestone.yearsToReach / hundredKMilestones[0].yearsToReach) * 100)}%`,
+                        width: `${Math.min(100, (milestone.yearsToReach / maxYearsToReach) * 100)}%`,
                       }}
                     >
                       <span className="text-xs font-mono text-white font-medium">

@@ -9,12 +9,6 @@ import "./LegacyResultCard.css";
 const fmtMoney = (n: number, currency = "USD") =>
   new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
 
-const kOrM = (n: number) => {
-  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return `${n.toFixed(0)}`;
-};
-
 /* Premium Icons - Minimal & Elegant */
 const IconCrown = () => (
   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden className="premium-icon">
@@ -61,7 +55,7 @@ export const LegacyResultCard: React.FC<LegacyProps> = ({
   isPerpetual = false,
   successRate = 0,
   currency = "USD",
-  label
+  label: _label
 }) => {
   // Determine variant based on success rate
   // 80-100%: excellent (navy/gold), 50-79%: good (slate/silver), 25-49%: concerning (purple/lavender), 0-24%: warning (burgundy/copper)

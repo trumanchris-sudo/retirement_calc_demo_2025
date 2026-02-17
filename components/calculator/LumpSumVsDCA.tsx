@@ -30,7 +30,6 @@ import {
   Tooltip as RTooltip,
   Legend,
   ResponsiveContainer,
-  Area,
   ReferenceLine,
   Bar,
   BarChart,
@@ -249,7 +248,7 @@ export default function LumpSumVsDCA() {
 
   // Chart data for selected year
   const chartData = useMemo(() => {
-    return selectedSimulation.map((r, i) => ({
+    return selectedSimulation.map((r) => ({
       month: r.month,
       "Lump Sum": Math.round(r.lumpSumValue),
       DCA: Math.round(r.dcaValue),

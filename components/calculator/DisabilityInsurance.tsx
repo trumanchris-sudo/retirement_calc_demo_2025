@@ -42,7 +42,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { TYPOGRAPHY, METRIC_COLORS, STATUS } from '@/lib/designTokens'
+import { TYPOGRAPHY, METRIC_COLORS } from '@/lib/designTokens'
 import { fmt, fmtFull } from '@/lib/utils'
 import { usePlanConfig } from '@/lib/plan-config-context'
 
@@ -880,7 +880,7 @@ export function DisabilityInsurance({
                     <li><ChevronRight className="h-3 w-3 inline mr-1" />Usually capped at $10-15K/month</li>
                     <li><ChevronRight className="h-3 w-3 inline mr-1" />Benefits are taxable if employer pays premium</li>
                     <li><ChevronRight className="h-3 w-3 inline mr-1" />Coverage ends when you leave the job</li>
-                    <li><ChevronRight className="h-3 w-3 inline mr-1" />Often uses restrictive "any occupation" definition</li>
+                    <li><ChevronRight className="h-3 w-3 inline mr-1" />Often uses restrictive &quot;any occupation&quot; definition</li>
                   </ul>
                 </div>
               </div>

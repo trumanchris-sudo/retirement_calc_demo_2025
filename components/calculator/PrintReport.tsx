@@ -10,7 +10,6 @@ import {
   Legend,
   ResponsiveContainer,
   Area,
-  Rectangle,
 } from "recharts";
 import { fmt } from "@/lib/utils";
 import {
@@ -28,11 +27,6 @@ const AreaChart = dynamic(
   () => import("recharts").then((mod) => ({ default: mod.AreaChart })),
   { ssr: false }
 );
-const Sankey = dynamic(
-  () => import("recharts").then((mod) => ({ default: mod.Sankey })),
-  { ssr: false }
-);
-
 // Chart loading fallback
 const ChartLoadingFallback = ({ height = "h-64" }: { height?: string }) => (
   <div className={`${height} animate-pulse bg-gray-100 rounded`} />
@@ -81,7 +75,7 @@ export function PrintReport({
   inflationShockRate,
   inflationShockDuration,
   comparisonMode,
-  comparisonData,
+  comparisonData: _comparisonData,
   aiInsight,
   age1,
   taxableBalance,

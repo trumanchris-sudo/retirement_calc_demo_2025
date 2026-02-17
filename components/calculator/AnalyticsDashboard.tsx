@@ -86,6 +86,7 @@ interface AnalyticsDashboardProps {
 // ==================== Storage Keys ====================
 
 const STORAGE_KEY = "retirement_calc_analytics";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SESSION_KEY = "retirement_calc_session";
 
 // ==================== Default Data ====================

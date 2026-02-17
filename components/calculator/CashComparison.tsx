@@ -21,7 +21,6 @@ import {
   Clock,
   Info,
   AlertTriangle,
-  ExternalLink,
   ArrowUpDown,
   CheckCircle2,
   Calculator,
@@ -457,7 +456,7 @@ export default function CashComparison({
 
   // Sort and filter vehicles
   const sortedVehicles = useMemo(() => {
-    let filtered =
+    const filtered =
       filterCategory === "all"
         ? CASH_VEHICLES
         : CASH_VEHICLES.filter((v) => v.category === filterCategory);

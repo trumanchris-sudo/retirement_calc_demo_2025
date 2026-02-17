@@ -1,0 +1,300 @@
+{
+  "timestamp": "2026-02-13T19:35:03.659Z",
+  "duration": 44353,
+  "url": "http://localhost:3000",
+  "findings": [
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "all",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "tab": "all",
+      "description": "20 input(s) without associated labels"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "configure",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "tab": "configure",
+      "description": "1 input(s) without associated labels"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "ssot",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "results",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "stress",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "legacy",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "tab": "legacy",
+      "description": "1 input(s) without associated labels"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "optimize",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "tools",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "tab": "tools",
+      "description": "20 input(s) without associated labels"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "checkUs",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "math",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-all",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-all",
+      "description": "Page has horizontal overflow (content wider than viewport)"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "tab": "mobile-all",
+      "description": "20 input(s) without associated labels"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-configure",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-configure",
+      "description": "Page has horizontal overflow (content wider than viewport)"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "tab": "mobile-configure",
+      "description": "1 input(s) without associated labels"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-ssot",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-ssot",
+      "description": "Page has horizontal overflow (content wider than viewport)"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-results",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-results",
+      "description": "Page has horizontal overflow (content wider than viewport)"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-stress",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-stress",
+      "description": "Page has horizontal overflow (content wider than viewport)"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-legacy",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-legacy",
+      "description": "Page has horizontal overflow (content wider than viewport)"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "tab": "mobile-legacy",
+      "description": "1 input(s) without associated labels"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-optimize",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-optimize",
+      "description": "Page has horizontal overflow (content wider than viewport)"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-tools",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-tools",
+      "description": "Page has horizontal overflow (content wider than viewport)"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "tab": "mobile-tools",
+      "description": "20 input(s) without associated labels"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-checkUs",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-checkUs",
+      "description": "Page has horizontal overflow (content wider than viewport)"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-math",
+      "description": "Collapsed chart container DIV.recharts-wrapper (0x0px)",
+      "selector": "DIV.recharts-wrapper"
+    },
+    {
+      "severity": "medium",
+      "category": "visual",
+      "tab": "mobile-math",
+      "description": "Page has horizontal overflow (content wider than viewport)"
+    }
+  ],
+  "tabsVisited": [
+    "all",
+    "configure",
+    "ssot",
+    "results",
+    "stress",
+    "legacy",
+    "optimize",
+    "tools",
+    "checkUs",
+    "math"
+  ],
+  "screenshotsTaken": [
+    "qa-results/00-initial.png",
+    "qa-results/01-post-wizard.png",
+    "qa-results/02-post-calc.png",
+    "qa-results/all.png",
+    "qa-results/configure.png",
+    "qa-results/ssot.png",
+    "qa-results/results.png",
+    "qa-results/stress.png",
+    "qa-results/legacy.png",
+    "qa-results/optimize.png",
+    "qa-results/tools.png",
+    "qa-results/checkUs.png",
+    "qa-results/math.png",
+    "qa-results/mobile-all.png",
+    "qa-results/mobile-configure.png",
+    "qa-results/mobile-ssot.png",
+    "qa-results/mobile-results.png",
+    "qa-results/mobile-stress.png",
+    "qa-results/mobile-legacy.png",
+    "qa-results/mobile-optimize.png",
+    "qa-results/mobile-tools.png",
+    "qa-results/mobile-checkUs.png",
+    "qa-results/mobile-math.png"
+  ],
+  "consoleErrors": [],
+  "summary": {
+    "critical": 0,
+    "high": 0,
+    "medium": 30,
+    "low": 8,
+    "info": 0
+  }
+}

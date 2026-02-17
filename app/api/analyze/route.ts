@@ -78,9 +78,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Build account breakdown text
-    let accountBreakdown = '';
+    let _accountBreakdown = '';
     if (eolAccounts) {
-      accountBreakdown = `
+      _accountBreakdown = `
 End-of-Life Account Balances:
 - Taxable Brokerage: $${eolAccounts.taxable.toLocaleString()}
 - Pre-tax (Traditional IRA/401k): $${eolAccounts.pretax.toLocaleString()}
@@ -88,13 +88,13 @@ End-of-Life Account Balances:
     }
 
     // Build RMD analysis
-    const rmdAnalysis = totalRMDs > 0 ? `
+    const _rmdAnalysis = totalRMDs > 0 ? `
 Required Minimum Distributions (Age 73+):
 - Total RMDs Over Retirement: $${totalRMDs.toLocaleString()}
 - These mandatory withdrawals from pre-tax accounts may push you into higher tax brackets` : '';
 
     // Build estate tax analysis
-    const estateAnalysis = estateTax > 0 ? `
+    const _estateAnalysis = estateTax > 0 ? `
 Estate Tax Impact:
 - Gross Estate: $${endOfLifeWealth.toLocaleString()}
 - Estate Tax (40% over exemption, $${maritalStatus === 'married' ? '30M married' : '15M single'}): $${estateTax.toLocaleString()}
@@ -102,7 +102,7 @@ Estate Tax Impact:
 - Effective Tax Rate on Estate: ${((estateTax / endOfLifeWealth) * 100).toFixed(1)}%` : '';
 
     // Build Social Security analysis
-    const ssAnalysis = includeSS ? `
+    const _ssAnalysis = includeSS ? `
 Social Security Benefits:
 - Average Career Earnings: $${ssIncome.toLocaleString()}/year
 - Claiming Age: ${ssClaimAge}

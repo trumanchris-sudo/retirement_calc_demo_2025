@@ -101,7 +101,6 @@ function formatCurrencyWithCents(value: number): string {
 function getMonthsUntil65(currentAge: number, birthMonth?: number): number {
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
 
   // Calculate years until 65
   const yearsUntil65 = 65 - currentAge;
@@ -458,7 +457,7 @@ const MedicarePartsExplainer: React.FC = () => {
 const MedicareVsAdvantage: React.FC<{
   hasEmployerCoverage?: boolean;
   estimatedMAGI?: number;
-}> = ({ hasEmployerCoverage, estimatedMAGI }) => {
+}> = () => {
   const [preference, setPreference] = useState<"original" | "advantage" | null>(null);
 
   const questions = [
@@ -989,7 +988,7 @@ const IRMAASurcharges: React.FC<{
 const WorkingPast65: React.FC<{
   hasEmployerCoverage?: boolean;
   employerSize?: "small" | "large";
-}> = ({ hasEmployerCoverage, employerSize }) => {
+}> = ({ employerSize }) => {
   return (
     <div className="space-y-6">
       {/* Overview */}
@@ -1306,12 +1305,10 @@ const EnrollmentChecklist: React.FC<{
 export const MedicareGuide: React.FC<MedicareGuideProps> = ({
   currentAge,
   birthMonth,
-  birthYear,
   isMarried = false,
   estimatedMAGI,
   hasEmployerCoverage = false,
   employerSize,
-  spouseAge,
 }) => {
   const [activeTab, setActiveTab] = useState("overview");
 

@@ -6,8 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Lightbulb,
   TrendingUp,
-  DollarSign,
-  Calendar,
   PiggyBank,
   Target,
   ChevronDown,
@@ -422,7 +420,7 @@ export function OptimizationPanel({
                 Your plan looks optimized!
               </h4>
               <p className="text-sm text-green-700 dark:text-green-300">
-                Based on your current inputs, we don't have specific optimization recommendations.
+                Based on your current inputs, we don&apos;t have specific optimization recommendations.
                 Continue monitoring as your situation changes.
               </p>
             </div>

@@ -215,7 +215,7 @@ function generateEmployerMatchNudge(profile: UserFinancialProfile): Nudge | null
 }
 
 function generateSocialProofNudge(profile: UserFinancialProfile): Nudge | null {
-  const { age, currentSavingsRate, incomePercentile } = profile
+  const { age, currentSavingsRate, incomePercentile: _incomePercentile } = profile
   const { average, recommended } = getAgeBasedSavingsRate(age)
 
   // Only show if they're below average
@@ -379,7 +379,7 @@ function generateLossAversionNudge(profile: UserFinancialProfile): Nudge | null 
 }
 
 function generateFutureSelfNudge(profile: UserFinancialProfile): Nudge | null {
-  const { age, retirementAge, totalBalance, monthlyContribution, retirementGoal, annualIncome } = profile
+  const { age, retirementAge, totalBalance, monthlyContribution, retirementGoal: _retirementGoal, annualIncome } = profile
   const yearsToRetirement = retirementAge - age
 
   if (yearsToRetirement <= 0) return null
@@ -663,7 +663,7 @@ export function Nudges({
 export function CommitmentDeviceCard({
   commitments,
   onCreateCommitment,
-  onUpdateCommitment,
+  onUpdateCommitment: _onUpdateCommitment,
   className,
 }: CommitmentDeviceProps) {
   const activeCommitments = commitments.filter(c => c.status === 'active')

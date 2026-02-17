@@ -21,9 +21,8 @@ import { NextRequest } from 'next/server';
  * Type for update_extracted_data tool input
  * Matches the schema defined in the tools array
  */
-interface UpdateExtractedDataInput extends Partial<ExtractedData> {
-  // All fields are optional and match ExtractedData keys
-}
+// All fields are optional and match ExtractedData keys
+type UpdateExtractedDataInput = Partial<ExtractedData>;
 
 /**
  * Type for add_assumption tool input
@@ -310,8 +309,8 @@ export async function POST(request: NextRequest) {
             stream: true,
           });
 
-          let currentText = '';
-          let currentPhase = phase;
+          let _currentText = '';
+          let _currentPhase = phase;
           const updatedData = { ...extractedData };
           const updatedAssumptions = [...assumptions];
 
@@ -320,7 +319,7 @@ export async function POST(request: NextRequest) {
             if (event.type === 'content_block_start') {
               if (event.content_block.type === 'text') {
                 // Start of text block
-                currentText = '';
+                _currentText = '';
               }
             }
 
@@ -328,7 +327,7 @@ export async function POST(request: NextRequest) {
               if (event.delta.type === 'text_delta') {
                 // Stream text delta
                 const delta = event.delta.text;
-                currentText += delta;
+                _currentText += delta;
 
                 sendEvent({
                   type: 'message_delta',
@@ -408,7 +407,7 @@ export async function POST(request: NextRequest) {
                 }
 
                 if (toolName === 'transition_phase' && isTransitionPhaseInput(toolInput)) {
-                  currentPhase = toolInput.newPhase;
+                  _currentPhase = toolInput.newPhase;
 
                   sendEvent({
                     type: 'phase_transition',

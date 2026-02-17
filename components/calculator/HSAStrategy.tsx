@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/accordion";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
-  Heart,
   Shield,
   TrendingUp,
   CheckCircle2,
@@ -27,9 +26,7 @@ import {
   PiggyBank,
   Calendar,
   HelpCircle,
-  ArrowRight,
   Trophy,
-  Banknote,
   Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";

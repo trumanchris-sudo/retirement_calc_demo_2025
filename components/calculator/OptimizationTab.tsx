@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, TrendingUp, Calendar, DollarSign, Loader2 } from "lucide-react";
+import { XCircle, Calendar, DollarSign, Loader2 } from "lucide-react";
 
 interface OptimizationResult {
   surplusAnnual: number;
@@ -14,7 +13,7 @@ interface OptimizationResult {
 }
 
 interface OptimizationTabProps {
-  inputs: any;
+  inputs: Record<string, unknown>; // Reason: Dynamic calculator inputs with varying shape
   currentAge: number;
   plannedRetirementAge: number;
 }
@@ -86,11 +85,6 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
     }).format(value);
   };
 
-  const requiredSavingsPercent = result.surplusAnnual > 0
-    ? ((inputs.cTax1 + inputs.cPre1 + inputs.cPost1 + inputs.cTax2 + inputs.cPre2 + inputs.cPost2 + inputs.cMatch1 + inputs.cMatch2 - result.surplusAnnual) /
-       (inputs.cTax1 + inputs.cPre1 + inputs.cPost1 + inputs.cTax2 + inputs.cPre2 + inputs.cPost2 + inputs.cMatch1 + inputs.cMatch2)) * 100
-    : 100;
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -159,7 +153,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
         <CardHeader>
           <div className="flex items-center gap-2">
             <DollarSign className="h-6 w-6 text-purple-600" />
-            <CardTitle className="text-2xl">The "Splurge Menu"</CardTitle>
+            <CardTitle className="text-2xl">The &quot;Splurge Menu&quot;</CardTitle>
           </div>
           <CardDescription>Your one-time spending capacity (Years 1-5)</CardDescription>
         </CardHeader>
@@ -180,13 +174,13 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
             <p className="text-xs text-muted-foreground leading-relaxed">
               This represents the maximum one-time expense you could afford in the first 5 years of retirement
               while still maintaining a <strong>95% success rate</strong> across 1,000 Monte Carlo simulations.
-              We tested scenarios with increasing splurge amounts and found the highest value that doesn't
+              We tested scenarios with increasing splurge amounts and found the highest value that doesn&apos;t
               compromise your long-term financial security.
             </p>
           </div>
 
           <p className="text-xs text-muted-foreground text-center italic">
-            Whether it's a dream vacation, home renovation, or luxury purchase—this is your safe spending limit
+            Whether it&apos;s a dream vacation, home renovation, or luxury purchase—this is your safe spending limit
             without jeopardizing your retirement plan.
           </p>
         </CardContent>
@@ -197,7 +191,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
         <CardHeader>
           <div className="flex items-center gap-2">
             <Calendar className="h-6 w-6 text-blue-600" />
-            <CardTitle className="text-2xl">The "Freedom Date"</CardTitle>
+            <CardTitle className="text-2xl">The &quot;Freedom Date&quot;</CardTitle>
           </div>
           <CardDescription>When you reach work-optional status</CardDescription>
         </CardHeader>
@@ -210,7 +204,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
                   {result.earliestRetirementAge}
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  That's <strong>{result.yearsEarlier} year{result.yearsEarlier > 1 ? 's' : ''}</strong> earlier than your planned retirement!
+                  That&apos;s <strong>{result.yearsEarlier} year{result.yearsEarlier > 1 ? 's' : ''}</strong> earlier than your planned retirement!
                 </p>
               </div>
 
@@ -254,7 +248,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
               </div>
 
               <p className="text-center text-muted-foreground text-sm">
-                Based on your current trajectory, you reach "Work Optional" status earlier than expected while maintaining a <strong>95% success rate</strong>.
+                Based on your current trajectory, you reach &quot;Work Optional&quot; status earlier than expected while maintaining a <strong>95% success rate</strong>.
               </p>
             </>
           ) : (

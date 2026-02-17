@@ -16,12 +16,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import {
   DollarSign,
-  TrendingUp,
   Calculator,
   AlertTriangle,
   CheckCircle2,
   Scale,
-  Users,
   BookOpen,
   Shield,
   HelpCircle,
@@ -29,14 +27,13 @@ import {
   ChevronRight,
   Clock,
   Percent,
-  PiggyBank,
   Zap,
   Target,
   XCircle,
   Info,
 } from 'lucide-react';
-import { TYPOGRAPHY, METRIC_COLORS, STATUS } from '@/lib/designTokens';
-import { fmt, fmtFull, cn } from '@/lib/utils';
+import { TYPOGRAPHY, STATUS } from '@/lib/designTokens';
+import { fmtFull, cn } from '@/lib/utils';
 
 // =============================================================================
 // Types and Constants
@@ -52,16 +49,6 @@ interface AdvisorFeeInputs {
   hoursPerYear: number;
   expectedReturn: number;
   investmentYears: number;
-}
-
-interface FeeComparison {
-  model: FeeModel;
-  name: string;
-  annualFee: number;
-  tenYearFee: number;
-  thirtyYearFee: number;
-  opportunityCost: number;
-  description: string;
 }
 
 // Fee model configurations
@@ -466,6 +453,7 @@ export function AdvisorFees({ initialPortfolioSize = 500000 }: AdvisorFeesProps)
     };
   }, [inputs.flatFeeAnnual, inputs.expectedReturn, inputs.investmentYears]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const hourlyCalculation = useMemo(() => {
     const annual = inputs.hourlyRate * inputs.hoursPerYear;
     const tenYear = calculateFlatFeeWithGrowth(annual, 10, inputs.expectedReturn);

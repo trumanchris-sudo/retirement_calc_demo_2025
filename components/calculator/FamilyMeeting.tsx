@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react'
 import {
   Heart,
-  Calendar,
   PiggyBank,
   TrendingUp,
   GraduationCap,
@@ -14,14 +13,11 @@ import {
   Printer,
   ChevronRight,
   Target,
-  DollarSign,
   Clock,
   Sparkles,
   BookOpen,
   Home,
-  CreditCard,
   Landmark,
-  Scale,
   Shield,
   MessageCircle,
   Star,
@@ -29,12 +25,8 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
+
+
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { cn, fmt } from '@/lib/utils'
@@ -630,7 +622,7 @@ function RothIRAGift() {
           {/* Teen Age Slider */}
           <div className="space-y-3">
             <div className="flex justify-between">
-              <label className="text-sm font-medium">Teen's Current Age</label>
+              <label className="text-sm font-medium">Teen&apos;s Current Age</label>
               <span className="text-sm font-semibold text-emerald-600">{teenAge} years old</span>
             </div>
             <Slider
@@ -719,7 +711,7 @@ function RothIRAGift() {
               <li>Teen must have earned income (job, babysitting, etc.)</li>
               <li>Open a custodial Roth IRA at Fidelity, Schwab, or Vanguard</li>
               <li>You can contribute up to their earned income amount</li>
-              <li>They technically "own" it - you're just funding it</li>
+              <li>They technically &quot;own&quot; it - you&apos;re just funding it</li>
               <li>When they turn 18/21, it transfers to their full control</li>
             </ol>
           </div>
@@ -806,7 +798,7 @@ function CompoundGrowthVisualizer() {
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-center">Watch Your Money Grow</h4>
             <div className="h-48 flex items-end gap-1 overflow-x-auto pb-2">
-              {yearlyData.map((d, i) => {
+              {yearlyData.map((d) => {
                 const height = (d.total / maxValue) * 100
                 const contributionHeight = (d.contributed / maxValue) * 100
                 return (
@@ -876,8 +868,8 @@ function CompoundGrowthVisualizer() {
             <p className="text-muted-foreground">
               If you save <span className="font-bold text-violet-600">{fmt(monthlyAmount)}</span> every month
               starting at age <span className="font-bold text-violet-600">{startingAge}</span>,
-              you'll have <span className="font-bold text-emerald-600">{fmt(finalTotal)}</span> by age 65.
-              That's <span className="font-bold">{(finalTotal / totalContributed).toFixed(0)}x</span> what you put in!
+              you&apos;ll have <span className="font-bold text-emerald-600">{fmt(finalTotal)}</span> by age 65.
+              That&apos;s <span className="font-bold">{(finalTotal / totalContributed).toFixed(0)}x</span> what you put in!
             </p>
           </div>
         </CardContent>
@@ -895,7 +887,7 @@ function EstateConversation() {
           <h2 className="text-2xl font-bold">The Estate Conversation</h2>
         </div>
         <p className="text-muted-foreground max-w-xl mx-auto">
-          "Your parents need to talk to you about..." - Start the conversation
+          &quot;Your parents need to talk to you about...&quot; - Start the conversation
           that could save your family stress and confusion.
         </p>
       </div>
@@ -931,23 +923,23 @@ function EstateConversation() {
         <CardContent className="p-6">
           <h4 className="font-semibold mb-4 flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-amber-500" />
-            Tips for Having "The Talk"
+            Tips for Having &quot;The Talk&quot;
           </h4>
           <div className="grid md:grid-cols-2 gap-4 text-sm">
             <div>
               <p className="font-medium mb-2">For Parents Starting the Conversation:</p>
               <ul className="space-y-1 text-muted-foreground">
                 <li>- Pick a calm, private time - not during a crisis</li>
-                <li>- Start with "I want to make things easier for you someday"</li>
+                <li>- Start with &quot;I want to make things easier for you someday&quot;</li>
                 <li>- Focus on logistics, not dollar amounts</li>
-                <li>- It's okay to do this in multiple conversations</li>
+                <li>- It&apos;s okay to do this in multiple conversations</li>
               </ul>
             </div>
             <div>
               <p className="font-medium mb-2">For Adult Children Asking:</p>
               <ul className="space-y-1 text-muted-foreground">
                 <li>- Lead with love, not money</li>
-                <li>- "I want to be able to help if something happens"</li>
+                <li>- &quot;I want to be able to help if something happens&quot;</li>
                 <li>- Offer to help organize documents</li>
                 <li>- Respect their boundaries and timing</li>
               </ul>
@@ -968,7 +960,7 @@ function MultiGenerationalPlan() {
           <h2 className="text-2xl font-bold">The 100-Year Plan</h2>
         </div>
         <p className="text-muted-foreground max-w-xl mx-auto">
-          "You're part of something bigger" - Building generational wealth is a team effort
+          &quot;You&apos;re part of something bigger&quot; - Building generational wealth is a team effort
           across generations.
         </p>
       </div>
@@ -1049,11 +1041,11 @@ function MultiGenerationalPlan() {
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-indigo-500 mt-0.5 flex-shrink-0" />
-                <span><strong>No RMDs for owner</strong> - Let it grow your entire life if you don't need it</span>
+                <span><strong>No RMDs for owner</strong> - Let it grow your entire life if you don&apos;t need it</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-indigo-500 mt-0.5 flex-shrink-0" />
-                <span><strong>Hedge against tax increases</strong> - Locked in at today's rates</span>
+                <span><strong>Hedge against tax increases</strong> - Locked in at today&apos;s rates</span>
               </li>
             </ul>
           </div>
@@ -1078,7 +1070,7 @@ function MultiGenerationalPlan() {
 }
 
 function PrintableMaterials() {
-  const handlePrint = (guideId: string) => {
+  const handlePrint = (_guideId: string) => {
     // In a real implementation, this would trigger printing of specific content
     window.print()
   }

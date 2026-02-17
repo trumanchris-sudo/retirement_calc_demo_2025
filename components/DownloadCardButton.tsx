@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { toPng } from "html-to-image";
 import { Download } from "lucide-react";
 

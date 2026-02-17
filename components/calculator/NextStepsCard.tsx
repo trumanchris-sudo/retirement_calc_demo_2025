@@ -11,7 +11,7 @@ interface NextStepsCardProps {
 }
 
 interface Suggestion {
-  icon: React.ComponentType<any>
+  icon: React.ComponentType<{ className?: string }> // Reason: Lucide icon props vary by icon
   text: string
   color: string
 }
