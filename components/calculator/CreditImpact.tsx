@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useCallback } from 'react'
 import {
   CreditCard,
-  TrendingUp,
   TrendingDown,
   AlertTriangle,
   CheckCircle2,
@@ -30,7 +29,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TYPOGRAPHY, METRIC_COLORS, STATUS } from '@/lib/designTokens'
+import { TYPOGRAPHY } from '@/lib/designTokens'
 import { cn } from '@/lib/utils'
 
 // ==================== Types ====================
@@ -43,13 +42,6 @@ interface CreditScoreData {
   rateAdjustment: number
   color: string
   label: string
-}
-
-interface LoanScenario {
-  loanType: 'mortgage' | 'auto' | 'creditCard'
-  principal: number
-  termYears: number
-  baseRate: number
 }
 
 // ==================== Constants ====================
@@ -420,8 +412,6 @@ export function CreditImpact({
   // Calculate lifetime costs
   const mortgageBaseRate = 6.5
   const autoBaseRate = 7.0
-  const creditCardBaseRate = 20.0
-
   const mortgageCostAtExcellent = calculateTotalCost(mortgageAmount, mortgageBaseRate, 30)
   const mortgageCostAtCurrent = calculateTotalCost(mortgageAmount, mortgageBaseRate + rateAdjustment, 30)
   const mortgageDifference = mortgageCostAtCurrent - mortgageCostAtExcellent
@@ -879,7 +869,7 @@ export function CreditImpact({
                   Free Credit Monitoring Options
                 </CardTitle>
                 <CardDescription>
-                  Check your score regularly - it's free and doesn't hurt your credit
+                  Check your score regularly - it&apos;s free and doesn&apos;t hurt your credit
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -979,7 +969,7 @@ export function CreditImpact({
                   Your Path to 800+
                 </CardTitle>
                 <CardDescription>
-                  From {creditScore} to 800+ - here's your roadmap
+                  From {creditScore} to 800+ - here&apos;s your roadmap
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1013,7 +1003,7 @@ export function CreditImpact({
                     <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 text-center">
                       <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-2" />
                       <div className="font-semibold text-green-800 dark:text-green-200">
-                        Congratulations! You've achieved excellent credit.
+                        Congratulations! You&apos;ve achieved excellent credit.
                       </div>
                       <p className="text-sm text-green-700 dark:text-green-300 mt-1">
                         You qualify for the best rates on everything. Keep up the good habits!
@@ -1148,7 +1138,7 @@ export function CreditImpact({
                   <CreditCard className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="text-xl font-bold text-blue-900 dark:text-blue-100">
-                  "Credit is a tool, not a trap."
+                  &quot;Credit is a tool, not a trap.&quot;
                 </div>
                 <p className={cn(TYPOGRAPHY.bodyMuted, 'max-w-lg mx-auto')}>
                   Good credit unlocks the best rates on mortgages, auto loans, and credit cards.
@@ -1174,7 +1164,7 @@ export function CreditImpact({
                 <li>A 760+ score gets you the best rates on everything</li>
                 <li>The difference between 660 and 760 can cost $100,000+ on a mortgage</li>
                 <li>65% of your score is just: pay on time + keep utilization low</li>
-                <li>Check your score monthly for free - it doesn't hurt your credit</li>
+                <li>Check your score monthly for free - it doesn&apos;t hurt your credit</li>
                 <li>Dispute errors - 79% of reports have them</li>
               </ul>
             </div>

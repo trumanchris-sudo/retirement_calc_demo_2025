@@ -72,7 +72,7 @@ interface InflationImpactProps {
 }
 
 // Historical inflation data for context
-const HISTORICAL_INFLATION = {
+const _HISTORICAL_INFLATION = {
   average1900to2024: 3.2,
   average1970s: 7.1,
   peak1980: 13.5,
@@ -156,7 +156,7 @@ export const InflationImpact = React.memo(function InflationImpact({
   nominalReturnRate = 8.0,
   currentYear = new Date().getFullYear(),
   isDarkMode = false,
-  yearsToRetirement = 20,
+  yearsToRetirement: _yearsToRetirement = 20,
   socialSecurityMonthly = 2500,
   pensionMonthly = 0,
 }: InflationImpactProps) {
@@ -220,7 +220,7 @@ export const InflationImpact = React.memo(function InflationImpact({
   ]);
 
   // Expense inflation timeline data
-  const expenseTimelineData = useMemo(() => {
+  const _expenseTimelineData = useMemo(() => {
     const baseCosts = {
       groceries: 800,
       healthcare: 500,
@@ -300,7 +300,7 @@ export const InflationImpact = React.memo(function InflationImpact({
           </CardTitle>
           <CardDescription className="text-red-800 dark:text-red-200 text-base">
             <span className="font-semibold italic">
-              "A number isn't a plan. Purchasing power is the plan."
+              &quot;A number isn&apos;t a plan. Purchasing power is the plan.&quot;
             </span>
           </CardDescription>
         </CardHeader>
@@ -314,7 +314,7 @@ export const InflationImpact = React.memo(function InflationImpact({
                 = {formatCurrency(purchasingPowerData[purchasingPowerData.length - 1]?.real || 0)}
               </div>
               <div className="text-sm text-muted-foreground">
-                in {timeHorizon} years (today's dollars)
+                in {timeHorizon} years (today&apos;s dollars)
               </div>
             </div>
             <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
@@ -384,7 +384,7 @@ export const InflationImpact = React.memo(function InflationImpact({
                 Purchasing Power Erosion
               </CardTitle>
               <CardDescription>
-                Watch your money's real value shrink over time
+                Watch your money&apos;s real value shrink over time
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -552,7 +552,7 @@ export const InflationImpact = React.memo(function InflationImpact({
                       At {inflationRate}% inflation, your money loses half its
                       purchasing power every{" "}
                       {Math.round(72 / inflationRate)} years (the Rule of 72).
-                      This isn't a theoretical risk - it's happening right now.
+                      This isn&apos;t a theoretical risk - it&apos;s happening right now.
                     </p>
                   </div>
                 </div>
@@ -1020,17 +1020,17 @@ export const InflationImpact = React.memo(function InflationImpact({
                   <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
                   <div>
                     <div className="font-semibold text-red-900 dark:text-red-100">
-                      The Math Doesn't Lie
+                      The Math Doesn&apos;t Lie
                     </div>
                     <p className="text-sm text-red-800 dark:text-red-200">
-                      If you're planning to retire on $5,000/month in today's
-                      dollars, you'll need{" "}
+                      If you&apos;re planning to retire on $5,000/month in today&apos;s
+                      dollars, you&apos;ll need{" "}
                       <strong>
                         ${Math.round(5000 * inflationMultiplier2026to2046).toLocaleString()}
                         /month
                       </strong>{" "}
-                      in 20 years just to maintain the same lifestyle. That's
-                      not a raise - that's breaking even.
+                      in 20 years just to maintain the same lifestyle. That&apos;s
+                      not a raise - that&apos;s breaking even.
                     </p>
                   </div>
                 </div>
@@ -1343,7 +1343,7 @@ export const InflationImpact = React.memo(function InflationImpact({
                         {formatCurrencyFull(
                           scenarioData[scenarioData.length - 1]?.scenario || 0
                         )}
-                        . That's{" "}
+                        . That&apos;s{" "}
                         {formatCurrencyFull(
                           (scenarioData[scenarioData.length - 1]?.normal || 0) -
                             (scenarioData[scenarioData.length - 1]?.scenario ||
@@ -1456,7 +1456,7 @@ export const InflationImpact = React.memo(function InflationImpact({
                       <span className="font-medium">How they work:</span>
                       <p className="text-muted-foreground mt-1">
                         Composite rate = fixed rate + inflation rate. Interest
-                        compounds semi-annually. Can't redeem for 1 year; 3-month
+                        compounds semi-annually. Can&apos;t redeem for 1 year; 3-month
                         interest penalty if redeemed before 5 years.
                       </p>
                     </div>
@@ -1494,8 +1494,8 @@ export const InflationImpact = React.memo(function InflationImpact({
                     </div>
                     <p className="text-sm text-purple-800 dark:text-purple-200 mt-2">
                       Consider allocating 10-25% of your bond allocation to
-                      inflation-protected securities. This creates a "purchasing
-                      power floor" that rises with inflation, reducing sequence
+                      inflation-protected securities. This creates a &quot;purchasing
+                      power floor&quot; that rises with inflation, reducing sequence
                       risk.
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
@@ -1557,7 +1557,7 @@ export const InflationImpact = React.memo(function InflationImpact({
                     <tr className="border-b">
                       <td className="py-2 px-3 font-medium">Deflation protection</td>
                       <td className="py-2 px-3">Principal floor at par</td>
-                      <td className="py-2 px-3">Rate can't go below 0%</td>
+                      <td className="py-2 px-3">Rate can&apos;t go below 0%</td>
                     </tr>
                     <tr>
                       <td className="py-2 px-3 font-medium">Best use</td>

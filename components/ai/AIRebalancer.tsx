@@ -186,7 +186,9 @@ const ACCOUNT_TYPE_COLORS: Record<AccountHolding["accountType"], string> = {
   hsa: "#EC4899",
 };
 
-const _ASSET_COLORS = {
+// Reason: Reserved for future per-asset coloring in allocation charts
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const ASSET_COLORS = {
   stocks: "#3B82F6",
   bonds: "#10B981",
   cash: "#F59E0B",
@@ -918,7 +920,8 @@ export function AIRebalancer({
   accounts = DEFAULT_ACCOUNTS,
   targetAllocation: propTarget,
   currentAge = 45,
-  _retirementAge = 65,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  retirementAge: _retirementAge = 65,
   riskTolerance = "moderate",
   onRebalance,
 }: AIRebalancerProps) {

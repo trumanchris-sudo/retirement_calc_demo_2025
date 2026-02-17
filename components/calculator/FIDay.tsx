@@ -68,12 +68,6 @@ interface WhatIfScenario {
   };
 }
 
-interface CoastFIResult {
-  targetAge: number;
-  coastNumber: number;
-  isCoasting: boolean;
-}
-
 interface CelebrationIdea {
   id: string;
   text: string;
@@ -373,7 +367,7 @@ function FIDateDisplay({ fiDate, yearsToFI, currentAge }: FIDateDisplayProps) {
           <div className="text-center space-y-4">
             <PartyPopper className="h-16 w-16 mx-auto text-green-500 animate-bounce" />
             <h3 className="text-3xl font-bold text-green-600 dark:text-green-400">
-              You've Reached FI!
+              You&apos;ve Reached FI!
             </h3>
             <p className="text-muted-foreground">
               Congratulations! Work is now optional. Your FI Day is TODAY!
@@ -432,7 +426,7 @@ function FIDateDisplay({ fiDate, yearsToFI, currentAge }: FIDateDisplayProps) {
           <Timer className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-sm italic">
-              "Every day you're getting closer. Every dollar saved is another step toward freedom."
+              &quot;Every day you&apos;re getting closer. Every dollar saved is another step toward freedom.&quot;
             </p>
           </div>
         </div>
@@ -448,7 +442,7 @@ interface WhatIfSlidersProps {
   onScenarioChange?: (yearsChange: number) => void;
 }
 
-function WhatIfSliders({ inputs, baseYearsToFI, baseFIDate }: WhatIfSlidersProps) {
+function WhatIfSliders({ inputs, baseYearsToFI }: WhatIfSlidersProps) {
   const [additionalSavings, setAdditionalSavings] = useState(0);
   const [reducedExpenses, setReducedExpenses] = useState(0);
 
@@ -674,10 +668,10 @@ function CoastFIDisplay({ inputs }: CoastFIDisplayProps) {
               </div>
               <div>
                 <p className="font-semibold text-green-700 dark:text-green-300">
-                  You've already hit Coast FI!
+                  You&apos;ve already hit Coast FI!
                 </p>
                 <p className="text-sm text-green-600 dark:text-green-400">
-                  Stop saving now and you'll still reach FI by age {currentCoastStatus.targetAge}
+                  Stop saving now and you&apos;ll still reach FI by age {currentCoastStatus.targetAge}
                 </p>
               </div>
             </div>
@@ -685,7 +679,7 @@ function CoastFIDisplay({ inputs }: CoastFIDisplayProps) {
         ) : (
           <div className="p-4 rounded-lg bg-muted/50 border">
             <p className="text-sm text-muted-foreground">
-              You haven't reached Coast FI yet. Keep saving!
+              You haven&apos;t reached Coast FI yet. Keep saving!
             </p>
           </div>
         )}
@@ -754,9 +748,7 @@ function CoastFIDisplay({ inputs }: CoastFIDisplayProps) {
   );
 }
 
-type FIMindsetProps = object
-
-function FIMindset(_props: FIMindsetProps) {
+function FIMindset() {
   return (
     <Card>
       <CardHeader className="pb-4">
@@ -777,7 +769,7 @@ function FIMindset(_props: FIMindsetProps) {
             <div>
               <h4 className="font-semibold text-blue-700 dark:text-blue-300">FI means work is OPTIONAL</h4>
               <p className="text-sm text-muted-foreground mt-1">
-                You might keep working... but now it's on YOUR terms. No more golden handcuffs.
+                You might keep working... but now it&apos;s on YOUR terms. No more golden handcuffs.
               </p>
             </div>
           </div>
@@ -801,7 +793,7 @@ function FIMindset(_props: FIMindsetProps) {
             <div>
               <h4 className="font-semibold text-green-700 dark:text-green-300">Negotiate from strength</h4>
               <p className="text-sm text-muted-foreground mt-1">
-                When you don't need the paycheck, you can ask for what you deserve - or walk away.
+                When you don&apos;t need the paycheck, you can ask for what you deserve - or walk away.
               </p>
             </div>
           </div>
@@ -820,7 +812,7 @@ function FIMindset(_props: FIMindsetProps) {
         </div>
 
         <blockquote className="border-l-4 border-primary/50 pl-4 italic text-muted-foreground">
-          "Financial Independence isn't about not working - it's about having the freedom to choose work that matters to you."
+          &quot;Financial Independence isn&apos;t about not working - it&apos;s about having the freedom to choose work that matters to you.&quot;
         </blockquote>
       </CardContent>
     </Card>
@@ -989,7 +981,7 @@ function CelebrationPlanner({ fiDate, currentAge, yearsToFI }: CelebrationPlanne
             className="min-h-[100px] resize-none"
           />
           <p className="text-xs text-muted-foreground">
-            Visualizing your future helps make it real. Write about the life you're building toward.
+            Visualizing your future helps make it real. Write about the life you&apos;re building toward.
           </p>
         </div>
       </CardContent>
@@ -1066,8 +1058,8 @@ export function FIDay({
           Financial Independence Calculator
         </h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Calculate your FI number, see when you'll reach it, and explore what-if scenarios.
-          FI is not just a number - it's the day work becomes optional.
+          Calculate your FI number, see when you&apos;ll reach it, and explore what-if scenarios.
+          FI is not just a number - it&apos;s the day work becomes optional.
         </p>
       </div>
 
@@ -1293,8 +1285,8 @@ export function FIDay({
             <Rocket className="h-10 w-10 mx-auto text-primary" />
             <h3 className="text-xl font-semibold">Every Day Gets You Closer</h3>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Financial Independence isn't just about the destination - it's about the freedom
-              you're building with every dollar saved. Your FI Day is coming. Keep going.
+              Financial Independence isn&apos;t just about the destination - it&apos;s about the freedom
+              you&apos;re building with every dollar saved. Your FI Day is coming. Keep going.
             </p>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <CalendarDays className="h-4 w-4" />

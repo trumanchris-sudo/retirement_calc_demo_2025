@@ -25,7 +25,7 @@ interface PlanStatusData {
   label: string
   message: string
   color: 'green' | 'yellow' | 'red'
-  icon: React.ComponentType<any>
+  icon: React.ComponentType<{ className?: string }> // Reason: Lucide icon props vary by icon
 }
 
 /**

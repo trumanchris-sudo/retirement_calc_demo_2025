@@ -16,7 +16,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { AnimatedSection } from '@/components/ui/AnimatedSection'
 import { TYPOGRAPHY, METRIC_COLORS, STATUS } from '@/lib/designTokens'
@@ -24,7 +23,6 @@ import { fmt } from '@/lib/utils'
 import {
   calculateBenchmarkResult,
   getComparisonMessage,
-  SAVINGS_RATE_BENCHMARKS,
   type BenchmarkResult,
   type BenchmarkPanelProps,
 } from '@/lib/benchmarks'
@@ -171,7 +169,6 @@ function UsageCounterDisplay({
   useEffect(() => {
     const duration = 2000
     const steps = 50
-    const increment = (totalCalculations - displayCount) / steps
     const interval = duration / steps
 
     let currentStep = 0
@@ -181,7 +178,10 @@ function UsageCounterDisplay({
         setDisplayCount(totalCalculations)
         clearInterval(timer)
       } else {
-        setDisplayCount((prev) => Math.floor(prev + increment))
+        setDisplayCount((prev) => {
+          const increment = (totalCalculations - prev) / (steps - currentStep)
+          return Math.floor(prev + increment)
+        })
       }
     }, interval)
 
@@ -245,7 +245,7 @@ function SavingsRateCard({
         <div className="mt-3 flex items-center gap-1 text-sm">
           <TrendingUp className={`w-4 h-4 ${METRIC_COLORS.positive.text}`} />
           <span className={METRIC_COLORS.positive.text}>
-            You're saving {multiple}x the national average
+            You&apos;re saving {multiple}x the national average
           </span>
         </div>
       )}

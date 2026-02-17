@@ -9,12 +9,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
   AreaChart,
@@ -22,9 +18,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  ResponsiveContainer,
   ReferenceLine,
-  Legend,
 } from "recharts";
 import {
   ChartContainer,
@@ -45,7 +39,6 @@ import {
   X,
   AlertTriangle,
   Info,
-  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fmt } from "@/lib/utils";
@@ -970,6 +963,7 @@ function IncomeFloorViz({
 // Main Component
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const IncomeReplacementViz = React.memo(function IncomeReplacementViz({
   portfolioAtRetirement,
   withdrawalRate,

@@ -509,7 +509,7 @@ export const PensionCalculator = React.memo(function PensionCalculator({
           Pension Valuation Calculator
         </CardTitle>
         <CardDescription>
-          Understand your pension's true value as part of your total net worth
+          Understand your pension&apos;s true value as part of your total net worth
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -517,7 +517,7 @@ export const PensionCalculator = React.memo(function PensionCalculator({
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg p-6 border border-blue-200 dark:border-blue-900">
           <div className="text-center space-y-2">
             <div className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-              Your Pension's Lump Sum Value
+              Your Pension&apos;s Lump Sum Value
             </div>
             <div className="text-5xl font-bold text-blue-900 dark:text-blue-100">
               {formatLargeCurrency(
@@ -760,7 +760,7 @@ export const PensionCalculator = React.memo(function PensionCalculator({
                           {formatLargeCurrency(valuation.colaValueAdded)}
                         </strong>{" "}
                         ({valuation.colaValuePercent.toFixed(0)}% more) to your
-                        pension's present value. This protects against inflation
+                        pension&apos;s present value. This protects against inflation
                         eroding your purchasing power over{" "}
                         {Math.max(0, inputs.lifeExpectancy - inputs.pensionStartAge)}{" "}
                         years of retirement.
@@ -792,7 +792,7 @@ export const PensionCalculator = React.memo(function PensionCalculator({
                             )
                         )}
                       </strong>{" "}
-                      in today's dollars at age {inputs.lifeExpectancy}{" "}
+                      in today&apos;s dollars at age {inputs.lifeExpectancy}{" "}
                       (assuming 2.5% inflation).
                     </p>
                   </div>
@@ -859,7 +859,7 @@ export const PensionCalculator = React.memo(function PensionCalculator({
                   {inputs.survivorOption !== "single_life" && (
                     <>
                       <div className="space-y-2">
-                        <Label htmlFor="spouseAge">Spouse's Current Age</Label>
+                        <Label htmlFor="spouseAge">Spouse&apos;s Current Age</Label>
                         <Input
                           id="spouseAge"
                           type="number"
@@ -873,7 +873,7 @@ export const PensionCalculator = React.memo(function PensionCalculator({
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="spouseLifeExpectancy">
-                          Spouse's Life Expectancy
+                          Spouse&apos;s Life Expectancy
                         </Label>
                         <Input
                           id="spouseLifeExpectancy"
@@ -1115,7 +1115,7 @@ export const PensionCalculator = React.memo(function PensionCalculator({
                             {(valuation.buyoutDifference || 0) > 0
                               ? "more"
                               : "less"}{" "}
-                            than the pension's present value. Consider: your
+                            than the pension&apos;s present value. Consider: your
                             investment skills, need for guaranteed income,
                             health status, and inflation protection needs.
                           </p>
@@ -1317,7 +1317,7 @@ export const PensionCalculator = React.memo(function PensionCalculator({
             </li>
             <li>
               <strong>COLA Impact:</strong> Cost-of-living adjustments protect
-              against inflation and can add 30-50% to a pension's value over a
+              against inflation and can add 30-50% to a pension&apos;s value over a
               long retirement.
             </li>
             <li>

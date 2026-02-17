@@ -1110,7 +1110,7 @@ function HistoricalView({ snapshots, onLoadYear, onDeleteYear }: HistoricalViewP
 
 export function AnnualCheckup() {
   const { config } = usePlanConfig();
-  const D = createDefaultPlanConfig();
+  const D = useMemo(() => createDefaultPlanConfig(), []);
   const [checkupData, setCheckupData] = useState<AnnualCheckupData>({ snapshots: [], lastUpdated: Date.now() });
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -1181,7 +1181,7 @@ export function AnnualCheckup() {
     }
 
     setIsLoaded(true);
-  }, [config, currentYear]);
+  }, [config, currentYear, D]);
 
   // Track unsaved changes
   useEffect(() => {
@@ -1206,7 +1206,7 @@ export function AnnualCheckup() {
       projectedRetirementAge: config.retirementAge ?? D.retirementAge,
       onTrack: true, // Could be calculated based on projections
     };
-  }, [balances, contributions, checklist, keyQuestions, notes, investmentReturns, currentYear, config, isLoaded]);
+  }, [balances, contributions, checklist, keyQuestions, notes, investmentReturns, currentYear, config, isLoaded, D]);
 
   const previousSnapshot = useMemo(() => {
     return checkupData.snapshots.find((s) => s.year === currentYear - 1) || null;

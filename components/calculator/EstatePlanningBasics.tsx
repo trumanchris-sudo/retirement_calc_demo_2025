@@ -736,7 +736,7 @@ export function EstatePlanningBasics({
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription className="text-sm">
-                  <strong>Critical:</strong> A trust only works if you actually transfer your assets into it. An empty trust does nothing. Work with your attorney to "fund" your trust by retitling assets.
+                  <strong>Critical:</strong> A trust only works if you actually transfer your assets into it. An empty trust does nothing. Work with your attorney to &quot;fund&quot; your trust by retitling assets.
                 </AlertDescription>
               </Alert>
             </AccordionContent>
@@ -827,7 +827,7 @@ export function EstatePlanningBasics({
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5" />
-                    Use specific names and SSNs, not just "my children"
+                    Use specific names and SSNs, not just &quot;my children&quot;
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5" />
@@ -835,7 +835,7 @@ export function EstatePlanningBasics({
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5" />
-                    Consider "per stirpes" for multi-generational planning
+                    Consider &quot;per stirpes&quot; for multi-generational planning
                   </li>
                 </ul>
               </div>
@@ -956,7 +956,7 @@ export function EstatePlanningBasics({
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription className="text-sm">
-                  Note: Even with good probate avoidance planning, you still need a will as a "safety net" for any assets not covered by other transfer mechanisms.
+                  Note: Even with good probate avoidance planning, you still need a will as a &quot;safety net&quot; for any assets not covered by other transfer mechanisms.
                 </AlertDescription>
               </Alert>
             </AccordionContent>
@@ -1269,7 +1269,7 @@ export function EstatePlanningBasics({
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <AlertTitle>Excellent work!</AlertTitle>
                   <AlertDescription>
-                    You've completed all essential estate planning tasks. Remember to review annually and after major life events.
+                    You&apos;ve completed all essential estate planning tasks. Remember to review annually and after major life events.
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -1296,7 +1296,7 @@ export function EstatePlanningBasics({
         {/* Disclaimer */}
         <div className="pt-4 border-t">
           <p className="text-xs text-muted-foreground italic">
-            This guide provides general educational information about estate planning, not legal or financial advice. Estate planning laws vary significantly by state and individual circumstances. For advice specific to your situation, consult with a qualified estate planning attorney in your state. Don't leave a mess for your family.
+            This guide provides general educational information about estate planning, not legal or financial advice. Estate planning laws vary significantly by state and individual circumstances. For advice specific to your situation, consult with a qualified estate planning attorney in your state. Don&apos;t leave a mess for your family.
           </p>
         </div>
       </CardContent>

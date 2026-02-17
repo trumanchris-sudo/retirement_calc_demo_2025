@@ -39,7 +39,6 @@ import {
   UtensilsCrossed,
   Sparkles,
   FileText,
-  Clock,
   Award,
   Info,
   ArrowRight,
@@ -54,8 +53,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -76,14 +73,8 @@ import {
   AlertDescription,
   AlertTitle,
 } from '@/components/ui/alert';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { TYPOGRAPHY, METRIC_COLORS } from '@/lib/designTokens';
+import { TYPOGRAPHY } from '@/lib/designTokens';
 import { fmt } from '@/lib/utils';
 
 // ==================== Types ====================

@@ -159,15 +159,6 @@ function formatCurrency(value: number, compact: boolean = false): string {
   }).format(value);
 }
 
-function calculateFutureValue(
-  annualContribution: number,
-  years: number,
-  rate: number = DEFAULT_RETURN
-): number {
-  if (rate === 0 || years <= 0) return annualContribution * Math.max(years, 0);
-  return annualContribution * ((Math.pow(1 + rate, years) - 1) / rate) * (1 + rate);
-}
-
 function getYearsUntil(currentAge: number, targetAge: number): number {
   return Math.max(0, targetAge - currentAge);
 }
@@ -508,6 +499,7 @@ const ImpactCalculator: React.FC<ImpactCalculatorProps> = ({
   retirementAge,
   hasSIMPLE,
   hasHSA,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isMarried,
   expectedReturn,
 }) => {
@@ -673,7 +665,7 @@ const ImpactCalculator: React.FC<ImpactCalculatorProps> = ({
         <div className="p-4 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
           <p className="text-sm text-emerald-800 dark:text-emerald-200 text-center">
             <Sparkles className="inline h-4 w-4 mr-1" />
-            That's <strong>{formatCurrency(impact.totalAtRetirement / (retirementAge - 65 + 20))}/year</strong> extra
+            That&apos;s <strong>{formatCurrency(impact.totalAtRetirement / (retirementAge - 65 + 20))}/year</strong> extra
             in retirement income (assuming 20 years of withdrawals)!
           </p>
         </div>
@@ -825,12 +817,16 @@ export const CatchUpContributions = React.memo(function CatchUpContributions({
   income = 100000,
   isMarried = false,
   hasHSA = false,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   current401k = 0,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   currentIRA = 0,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   currentHSA = 0,
   hasSIMPLE = false,
   expectedReturn = DEFAULT_RETURN,
   retirementAge = 65,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onSettingsChange,
 }: CatchUpContributionsProps) {
   const [expandedMilestones, setExpandedMilestones] = useState(true);
@@ -936,7 +932,7 @@ export const CatchUpContributions = React.memo(function CatchUpContributions({
                 <div className="flex items-center gap-2">
                   <PartyPopper className="h-5 w-5 text-emerald-600" />
                   <span className="font-semibold text-emerald-700 dark:text-emerald-300">
-                    You're Catch-Up Eligible!
+                    You&apos;re Catch-Up Eligible!
                   </span>
                 </div>
                 <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-lg px-3">

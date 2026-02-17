@@ -184,14 +184,14 @@ export default function HSAStrategy({
           </div>
           <CardTitle className="text-2xl sm:text-3xl flex items-center gap-2">
             <Shield className="h-7 w-7 text-emerald-600" />
-            The HSA: America's Most Underutilized Retirement Account
+            The HSA: America&apos;s Most Underutilized Retirement Account
           </CardTitle>
           <CardDescription className="text-base">
             Forget Traditional vs Roth debates. The HSA is the ONLY account with a{" "}
             <span className="font-bold text-emerald-700 dark:text-emerald-400">
               triple tax advantage
             </span>
-            . Most people don't even know it exists.
+            . Most people don&apos;t even know it exists.
           </CardDescription>
         </CardHeader>
 
@@ -388,7 +388,7 @@ export default function HSAStrategy({
           </div>
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5 text-purple-600" />
-            The "Stealth IRA" Receipt Strategy
+            The &quot;Stealth IRA&quot; Receipt Strategy
           </CardTitle>
           <CardDescription>
             The most powerful HSA hack that almost nobody uses
@@ -407,7 +407,7 @@ export default function HSAStrategy({
                 <div>
                   <p className="font-medium">Pay medical expenses out of pocket today</p>
                   <p className="text-sm text-muted-foreground">
-                    Don't touch your HSA for current medical bills
+                    Don&apos;t touch your HSA for current medical bills
                   </p>
                 </div>
               </li>
@@ -418,7 +418,7 @@ export default function HSAStrategy({
                 <div>
                   <p className="font-medium">Save all your medical receipts</p>
                   <p className="text-sm text-muted-foreground">
-                    Store them digitally - there's NO time limit to claim reimbursement
+                    Store them digitally - there&apos;s NO time limit to claim reimbursement
                   </p>
                 </div>
               </li>
@@ -466,7 +466,7 @@ export default function HSAStrategy({
               </h5>
               <p className="text-sm text-muted-foreground">
                 A $1,000 medical expense paid out of pocket today could let that $1,000 grow
-                tax-free in your HSA for 30 years. At 7% returns, that's $7,612 you can
+                tax-free in your HSA for 30 years. At 7% returns, that&apos;s $7,612 you can
                 withdraw tax-free!
               </p>
             </div>
@@ -698,7 +698,7 @@ export default function HSAStrategy({
                 <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0" />
                 <div>
                   <p className="font-semibold text-emerald-700 dark:text-emerald-300">
-                    You're Eligible for an HSA!
+                    You&apos;re Eligible for an HSA!
                   </p>
                   <p className="text-sm text-emerald-600 dark:text-emerald-400">
                     Your {new Date().getFullYear()} contribution limit:{" "}
@@ -795,7 +795,7 @@ export default function HSAStrategy({
           </div>
           <CardTitle className="flex items-center gap-2">
             <PiggyBank className="h-5 w-5 text-orange-600" />
-            Don't Leave Your HSA in Cash!
+            Don&apos;t Leave Your HSA in Cash!
           </CardTitle>
           <CardDescription>
             The #1 mistake HSA holders make - and it costs them thousands
@@ -847,7 +847,7 @@ export default function HSAStrategy({
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
                     <span>
-                      <strong>Check your HSA provider's investment options</strong> - Many now offer
+                      <strong>Check your HSA provider&apos;s investment options</strong> - Many now offer
                       low-cost index funds similar to your 401(k)
                     </span>
                   </li>
@@ -902,7 +902,7 @@ export default function HSAStrategy({
             <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
               <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
                 <XCircle className="w-4 h-4" />
-                What You CAN'T Do
+                What You CAN&apos;T Do
               </h4>
               <ul className="space-y-1 text-sm text-red-700 dark:text-red-300">
                 <li>- Contribute to HSA after Medicare enrollment</li>
@@ -929,7 +929,7 @@ export default function HSAStrategy({
               Planning Tip: Stop HSA Contributions 6 Months Before Medicare
             </h4>
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              Medicare Part A is retroactive up to 6 months. If you're still working at 65 and want
+              Medicare Part A is retroactive up to 6 months. If you&apos;re still working at 65 and want
               to keep contributing to your HSA, you can delay Medicare. But once you enroll, stop
               contributions 6 months before your enrollment date to avoid tax penalties.
             </p>
@@ -1105,9 +1105,9 @@ export default function HSAStrategy({
               </AccordionTrigger>
               <AccordionContent>
                 <p className="text-muted-foreground">
-                  Your HSA is yours forever - it's not tied to your employer. You can keep the same
+                  Your HSA is yours forever - it&apos;s not tied to your employer. You can keep the same
                   HSA when you change jobs, or transfer/rollover to a new HSA custodian with better
-                  investment options. There are no "use it or lose it" rules like FSAs.
+                  investment options. There are no &quot;use it or lose it&quot; rules like FSAs.
                 </p>
               </AccordionContent>
             </AccordionItem>
@@ -1119,7 +1119,7 @@ export default function HSAStrategy({
               <AccordionContent>
                 <p className="text-muted-foreground">
                   Yes! You can use your HSA to pay for qualified medical expenses for your spouse
-                  and tax dependents, even if they're not covered by your HDHP. This is true even
+                  and tax dependents, even if they&apos;re not covered by your HDHP. This is true even
                   for self-only HSA coverage.
                 </p>
               </AccordionContent>
@@ -1131,7 +1131,7 @@ export default function HSAStrategy({
               </AccordionTrigger>
               <AccordionContent>
                 <p className="text-muted-foreground">
-                  Before age 65: You'll pay income tax plus a 20% penalty on non-qualified
+                  Before age 65: You&apos;ll pay income tax plus a 20% penalty on non-qualified
                   withdrawals. After age 65: The 20% penalty disappears, and you only pay regular
                   income tax - making your HSA work just like a traditional IRA for non-medical
                   expenses.
@@ -1146,7 +1146,7 @@ export default function HSAStrategy({
               <AccordionContent>
                 <p className="text-muted-foreground">
                   A common strategy is: (1) Contribute enough to 401(k) to get full employer match,
-                  (2) Max out HSA, (3) Then max out 401(k)/IRA. The HSA's triple tax advantage often
+                  (2) Max out HSA, (3) Then max out 401(k)/IRA. The HSA&apos;s triple tax advantage often
                   makes it more valuable than additional 401(k) contributions, especially if you
                   expect healthcare costs in retirement.
                 </p>
@@ -1155,7 +1155,7 @@ export default function HSAStrategy({
 
             <AccordionItem value="faq-6">
               <AccordionTrigger>
-                How do I save receipts for the "Stealth IRA" strategy?
+                How do I save receipts for the &quot;Stealth IRA&quot; strategy?
               </AccordionTrigger>
               <AccordionContent>
                 <p className="text-muted-foreground mb-2">
@@ -1167,7 +1167,7 @@ export default function HSAStrategy({
                   <li>Note the date the expense occurred</li>
                   <li>Keep proof of payment (credit card statement, check copy)</li>
                   <li>
-                    Consider apps like "HSA Store" or a simple spreadsheet to track totals
+                    Consider apps like &quot;HSA Store&quot; or a simple spreadsheet to track totals
                   </li>
                 </ul>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -1188,8 +1188,8 @@ export default function HSAStrategy({
             </h3>
             <p className="text-emerald-700 dark:text-emerald-300 max-w-2xl mx-auto">
               The HSA is the most powerful retirement account available to Americans - yet most
-              people either don't know about it, don't contribute enough, or leave the money
-              uninvested. If you're eligible, maximize this account first.
+              people either don&apos;t know about it, don&apos;t contribute enough, or leave the money
+              uninvested. If you&apos;re eligible, maximize this account first.
             </p>
             <div className="flex flex-wrap justify-center gap-2 pt-2">
               <Badge className="bg-emerald-600 text-white">Triple Tax Advantage</Badge>

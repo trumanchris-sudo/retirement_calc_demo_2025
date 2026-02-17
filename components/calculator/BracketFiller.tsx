@@ -33,8 +33,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  ReferenceLine,
-  LabelList,
 } from "recharts";
 import {
   TAX_BRACKETS,
@@ -259,7 +257,6 @@ function projectYearlyOpportunities(
     }
 
     // Calculate recommended conversion
-    const yearsOfGrowth = Math.max(0, retirementAge - currentAge);
     const projectedPretax = pretaxBalance * Math.pow(growthRate, age - currentAge);
     const recommendedConversion = Math.min(bracketRoom, projectedPretax * 0.1);
 
@@ -301,7 +298,7 @@ function generateActionItems(
   props: BracketFillerProps
 ): ActionItem[] {
   const actions: ActionItem[] = [];
-  const { taxableUnrealizedGains = 0, stateRate = 0 } = props;
+  const { taxableUnrealizedGains = 0, stateRate: _stateRate = 0 } = props;
 
   // Find prime years and generate actions
   const primeYears = opportunities.filter((o) => o.isPrimeYear);
@@ -362,13 +359,12 @@ const BracketVisualization: React.FC<{
   income: number;
   status: FilingStatus;
 }> = ({ income, status }) => {
-  const { brackets, currentBracketIndex, taxableIncome } = analyzeBrackets(income, status);
-  const deduction = TAX_BRACKETS[status].deduction;
+  const { brackets, currentBracketIndex } = analyzeBrackets(income, status);
 
   // Only show brackets up to 32% for clarity
   const visibleBrackets = brackets.slice(0, 5);
 
-  const chartData = visibleBrackets.map((bracket, index) => ({
+  const chartData = visibleBrackets.map((bracket) => ({
     name: `${bracket.rate}%`,
     rate: bracket.rate,
     filled: bracket.spaceUsed,
@@ -455,7 +451,6 @@ const BracketVisualization: React.FC<{
 
 const OpportunityStrategies: React.FC<{ status: FilingStatus }> = ({ status }) => {
   const ltcgZeroLimit = getLTCGZeroBracketLimit(status);
-  const brackets = TAX_BRACKETS[status];
 
   const strategies = [
     {
@@ -527,7 +522,6 @@ const ConversionCorridorTimeline: React.FC<{
   retirementAge: number;
   ssClaimAge: number;
 }> = ({ currentAge, retirementAge, ssClaimAge }) => {
-  const currentYear = getCurrYear();
   const phases = [
     {
       label: "Working",
@@ -927,7 +921,7 @@ export const BracketFiller: React.FC<BracketFillerProps> = React.memo(
       retirementAge,
       maritalStatus,
       currentIncome,
-      socialSecurityIncome = 0,
+      socialSecurityIncome: _socialSecurityIncome = 0,
       ssClaimAge = 67,
       taxableUnrealizedGains = 0,
     } = props;

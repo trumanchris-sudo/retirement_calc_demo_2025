@@ -148,7 +148,8 @@ function calculateAfterTaxAdvantage(
   const ibondAfterTax = nominalYield * (1 - federalTaxBracket)
 
   // Taxable bond would pay both state and federal annually
-  const _taxableAfterTax = nominalYield * (1 - federalTaxBracket - stateTaxRate)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const taxableAfterTax = nominalYield * (1 - federalTaxBracket - stateTaxRate)
 
   // Tax-equivalent yield (what taxable bond would need to yield)
   const taxableEquivalent = ibondAfterTax / (1 - stateTaxRate)
@@ -1416,11 +1417,11 @@ export function IBondStrategy({
                   </li>
                   <li className="flex items-start gap-2">
                     <ChevronRight className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    Create a "Custom Security Question" - write it down!
+                    Create a &quot;Custom Security Question&quot; - write it down!
                   </li>
                   <li className="flex items-start gap-2">
                     <ChevronRight className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    Choose "BuyDirect" then "Series I" to purchase
+                    Choose &quot;BuyDirect&quot; then &quot;Series I&quot; to purchase
                   </li>
                 </ul>
               </div>

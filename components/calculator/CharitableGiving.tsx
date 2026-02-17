@@ -1,9 +1,8 @@
 "use client"
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -23,9 +22,8 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
-import { Input, Tip } from "./InputHelpers";
-import { calcOrdinaryTax, calcLTCGTax } from "@/lib/calculations/shared/taxCalculations";
-import { TAX_BRACKETS, RMD_DIVISORS, RMD_START_AGE } from "@/lib/calculations/shared/constants";
+import { Input } from "./InputHelpers";
+import { RMD_DIVISORS, RMD_START_AGE } from "@/lib/calculations/shared/constants";
 import type { FilingStatus } from "@/types/planner";
 
 // ==================== Types ====================
@@ -81,7 +79,6 @@ const QCD_LIMIT_2024 = 105000;
 const QCD_ELIGIBLE_AGE = 70.5;
 const STANDARD_DEDUCTION_SINGLE_2024 = 14600;
 const STANDARD_DEDUCTION_MARRIED_2024 = 29200;
-const CHARITABLE_DEDUCTION_LIMIT_AGI = 0.60; // 60% of AGI for cash donations
 
 // ==================== Helper Functions ====================
 
@@ -267,7 +264,6 @@ export const CharitableGiving = React.memo(function CharitableGiving({
     const deductionValue = localStockValue * 0.24;
 
     const totalBenefit = taxOnGains + deductionValue;
-    const cashEquivalent = localStockValue * 0.24; // Just the deduction
 
     return {
       capitalGainsAvoided: capitalGain,
@@ -669,7 +665,7 @@ export const CharitableGiving = React.memo(function CharitableGiving({
                 <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
                   <div className="text-sm text-amber-800 dark:text-amber-200">
                     <strong>Example:</strong> If you must take a {formatCurrency(qcdAnalysis.rmdAmount)} RMD
-                    and you're in the {formatPercent(qcdAnalysis.effectiveSavingsRate)} combined bracket,
+                    and you&apos;re in the {formatPercent(qcdAnalysis.effectiveSavingsRate)} combined bracket,
                     a QCD saves you {formatCurrency(Math.min(givingAmount, qcdAnalysis.rmdAmount) * qcdAnalysis.effectiveSavingsRate)} in taxes
                     vs. taking the RMD and donating cash.
                   </div>
@@ -684,7 +680,7 @@ export const CharitableGiving = React.memo(function CharitableGiving({
                   QCD Available at Age 70.5
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  You'll be eligible in {(QCD_ELIGIBLE_AGE - age).toFixed(1)} years
+                  You&apos;ll be eligible in {(QCD_ELIGIBLE_AGE - age).toFixed(1)} years
                 </div>
               </div>
             )}
@@ -765,7 +761,7 @@ export const CharitableGiving = React.memo(function CharitableGiving({
                     <span className="font-medium text-red-600">$0</span>
                   </div>
                   <div className="text-xs italic">
-                    Donation doesn't exceed standard deduction, so no extra tax benefit
+                    Donation doesn&apos;t exceed standard deduction, so no extra tax benefit
                   </div>
                 </div>
               </div>

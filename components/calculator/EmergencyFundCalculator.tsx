@@ -189,8 +189,7 @@ function calculateTwoTierAllocation(
  * Generate where to keep recommendations
  */
 function generateWhereToKeepRecommendation(
-  targetAmount: number,
-  _currentAmount: number
+  targetAmount: number
 ): WhereToKeepRecommendation {
   // Basic allocation strategy:
   // - First $10K: HYSA for immediate liquidity
@@ -405,8 +404,8 @@ export function EmergencyFundCalculator({
   )
 
   const whereToKeep = useMemo(
-    () => generateWhereToKeepRecommendation(totalTarget, currentTotal),
-    [totalTarget, currentTotal]
+    () => generateWhereToKeepRecommendation(totalTarget),
+    [totalTarget]
   )
 
   const buildUpPlan = useMemo(
@@ -425,7 +424,6 @@ export function EmergencyFundCalculator({
   }
 
   const status = getStatus()
-  const StatusIcon = status.icon
   const colors = METRIC_COLORS[status.color]
 
   return (

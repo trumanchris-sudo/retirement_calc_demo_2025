@@ -25,18 +25,14 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
-  ResponsiveContainer,
   AreaChart,
   Area,
   BarChart,
   Bar,
   ReferenceLine,
-  Legend,
 } from "recharts";
 import {
   TrendingDown,

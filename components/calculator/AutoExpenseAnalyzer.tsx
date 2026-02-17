@@ -4,20 +4,14 @@ import React, { useState, useMemo, useCallback } from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import { NumericInput } from "@/components/form/NumericInput";
-import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { cn, fmt, fmtPctRaw } from "@/lib/utils";
-import { TYPOGRAPHY, METRIC_COLORS } from "@/lib/designTokens";
+import { TYPOGRAPHY } from "@/lib/designTokens";
 import {
   Car,
   AlertTriangle,
@@ -296,7 +290,9 @@ export default function AutoExpenseAnalyzer() {
   // ========== STATE ==========
 
   // Acquisition method
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [acquisitionMethod, setAcquisitionMethod] = useState<AcquisitionMethod>("buy-new");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [usedCarAge, setUsedCarAge] = useState(3);
 
   // Ownership costs
@@ -341,6 +337,7 @@ export default function AutoExpenseAnalyzer() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(["true-cost", "affordability"])
   );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // ========== CALCULATIONS ==========

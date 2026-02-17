@@ -1592,7 +1592,7 @@ export function FirstTimeHomeBuyer({ compact = false }: FirstTimeHomeBuyerProps)
                 </div>
                 {trueCostResult.pmi > 0 && (
                   <p className={cn(TYPOGRAPHY.bodyMuted, "mt-4")}>
-                    You're paying {fmtFull(trueCostResult.pmi * 12)}/year in PMI.
+                    You&apos;re paying {fmtFull(trueCostResult.pmi * 12)}/year in PMI.
                     To eliminate PMI, you need 20% equity ({fmtFull(costs.homePrice * 0.2)}).
                   </p>
                 )}

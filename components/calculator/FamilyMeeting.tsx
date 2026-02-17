@@ -1060,8 +1060,8 @@ function MultiGenerationalPlan() {
             Gather your family and say:
           </p>
           <blockquote className="text-lg italic border-l-4 border-indigo-500 pl-4 text-left">
-            "We're not just saving for retirement. We're building something that will
-            last beyond us. You're part of a 100-year plan, and here's how..."
+            &quot;We&apos;re not just saving for retirement. We&apos;re building something that will
+            last beyond us. You&apos;re part of a 100-year plan, and here&apos;s how...&quot;
           </blockquote>
         </CardContent>
       </Card>
@@ -1070,7 +1070,7 @@ function MultiGenerationalPlan() {
 }
 
 function PrintableMaterials() {
-  const handlePrint = (_guideId: string) => {
+  const handlePrint = () => {
     // In a real implementation, this would trigger printing of specific content
     window.print()
   }
@@ -1095,7 +1095,7 @@ function PrintableMaterials() {
             <Card
               key={guide.id}
               className="hover:shadow-md transition-all hover:border-blue-300 cursor-pointer group"
-              onClick={() => handlePrint(guide.id)}
+              onClick={() => handlePrint()}
             >
               <CardContent className="p-4 flex items-start gap-4">
                 <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900 transition-colors">
@@ -1234,8 +1234,8 @@ export function FamilyMeeting() {
       <Card className="bg-muted/50">
         <CardContent className="p-4 text-center">
           <p className="text-sm text-muted-foreground">
-            <strong>Remember:</strong> The goal isn't to raise rich kids.
-            It's to raise kids who understand money, value hard work,
+            <strong>Remember:</strong> The goal isn&apos;t to raise rich kids.
+            It&apos;s to raise kids who understand money, value hard work,
             and know how to build wealth responsibly.
           </p>
         </CardContent>

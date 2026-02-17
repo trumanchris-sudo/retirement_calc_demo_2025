@@ -75,7 +75,6 @@ export function PrintReport({
   inflationShockRate,
   inflationShockDuration,
   comparisonMode,
-  comparisonData: _comparisonData,
   aiInsight,
   age1,
   taxableBalance,
@@ -485,7 +484,7 @@ export function PrintReport({
       <section className="print-section print-page-break-after">
         <header className="mb-4 border-b-2 border-gray-900 pb-3">
           <h2 className="text-xl font-bold text-black">Real Lifetime Wealth Flow Chart</h2>
-          <p className="text-xs text-gray-700 mt-1">From end-of-life wealth to net inheritance (all values in today's dollars)</p>
+          <p className="text-xs text-gray-700 mt-1">From end-of-life wealth to net inheritance (all values in today&apos;s dollars)</p>
         </header>
 
         {res.eolAccounts && res.eol > 0 ? (

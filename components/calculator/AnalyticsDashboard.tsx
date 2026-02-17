@@ -611,6 +611,7 @@ function ParameterBar({ parameter, count, maxCount }: ParameterBarProps) {
 export function AnalyticsDashboard({
   onCalculationRun,
   onParameterChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onScenarioSave,
   currentSuccessRate,
   currentEndOfLifeWealth,
@@ -621,6 +622,7 @@ export function AnalyticsDashboard({
     data,
     isLoaded,
     recordCalculation,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     recordParameterChange,
     recordScenario,
     checkGoals,
@@ -633,7 +635,7 @@ export function AnalyticsDashboard({
       recordCalculation();
       checkGoals();
     }
-  }, [onCalculationRun]);
+  }, [onCalculationRun, recordCalculation, checkGoals]);
 
   useEffect(() => {
     if (onParameterChange) {
@@ -657,7 +659,7 @@ export function AnalyticsDashboard({
       );
       checkGoals();
     }
-  }, [currentSuccessRate, currentEndOfLifeWealth, retirementAge, withdrawalRate]);
+  }, [currentSuccessRate, currentEndOfLifeWealth, retirementAge, withdrawalRate, recordScenario, checkGoals]);
 
   // Calculate derived metrics
   const metrics = useMemo(() => {
@@ -683,10 +685,9 @@ export function AnalyticsDashboard({
     };
 
     // Calculate planning streak
-    const sortedDays = Array.from(uniqueDays).sort().reverse();
     let streak = 0;
     const today = new Date().toISOString().split("T")[0];
-    let checkDate = new Date();
+    const checkDate = new Date();
 
     for (let i = 0; i < 30; i++) {
       const dateStr = checkDate.toISOString().split("T")[0];
@@ -908,7 +909,7 @@ export function AnalyticsDashboard({
                 <p className="text-sm text-muted-foreground">
                   {data.improvementFromStart >= 0 ? (
                     <>
-                      You've improved your success rate by{" "}
+                      You&apos;ve improved your success rate by{" "}
                       <span className="font-semibold text-green-600 dark:text-green-400">
                         {data.improvementFromStart.toFixed(1)} percentage points
                       </span>{" "}

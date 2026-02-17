@@ -22,7 +22,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ComposedChart,
 } from "recharts";
 import { cn } from "@/lib/utils";
 

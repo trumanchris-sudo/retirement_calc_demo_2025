@@ -23,7 +23,6 @@ import {
   TrendingDown,
   Scale,
   Heart,
-  DollarSign,
   PiggyBank,
   Banknote,
   ChevronDown,
@@ -66,7 +65,6 @@ type PayoffStrategy = "avalanche" | "snowball";
 // ==================== CONSTANTS ====================
 
 const TIMELINE_YEARS = 10;
-const DEFAULT_INFLATION_RATE = 2.5;
 const LONG_TERM_CAP_GAINS_RATE = 15; // 15% federal for most filers
 const INVESTMENT_TURNOVER_DRAG = 1; // ~1% annual tax drag from turnover
 

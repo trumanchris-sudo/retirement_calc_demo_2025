@@ -5,12 +5,9 @@ import {
   TrendingDown,
   TrendingUp,
   AlertTriangle,
-  Shield,
   Clock,
-  DollarSign,
   Wallet,
   RefreshCcw,
-  Users,
   Brain,
   Target,
   ChevronRight,
@@ -118,33 +115,6 @@ const HISTORICAL_CRASHES: HistoricalCrash[] = [
  */
 function calculatePostCrashValue(currentValue: number, crashPercent: number): number {
   return currentValue * (1 + crashPercent / 100)
-}
-
-/**
- * Calculate recovery trajectory with DCA
- */
-function calculateRecoveryWithDCA(
-  postCrashValue: number,
-  monthlyContribution: number,
-  recoveryYears: number,
-  annualReturn: number = 10 // Historical average post-crash returns are often higher
-): { month: number; value: number; contributions: number }[] {
-  const months = Math.ceil(recoveryYears * 12)
-  const monthlyReturn = (1 + annualReturn / 100) ** (1 / 12) - 1
-  const trajectory: { month: number; value: number; contributions: number }[] = []
-
-  let value = postCrashValue
-  let totalContributions = 0
-
-  for (let m = 0; m <= months; m++) {
-    trajectory.push({ month: m, value, contributions: totalContributions })
-    if (m < months) {
-      value = value * (1 + monthlyReturn) + monthlyContribution
-      totalContributions += monthlyContribution
-    }
-  }
-
-  return trajectory
 }
 
 /**
@@ -473,7 +443,7 @@ function SequenceRiskCard({ portfolioValue, withdrawalRate, crashPercent, curren
         <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <p className={`${TYPOGRAPHY.body} text-blue-800 dark:text-blue-200`}>
             <strong>Recommendation:</strong> Reduce spending by 10-20% during downturns.
-            Have a "floor" lifestyle you can sustain. The first 5 years of retirement
+            Have a &quot;floor&quot; lifestyle you can sustain. The first 5 years of retirement
             are the most vulnerable to sequence risk.
           </p>
         </div>
@@ -487,7 +457,7 @@ interface EmotionalPreparationProps {
   portfolioLoss: number
 }
 
-function EmotionalPreparation({ crashPercent, portfolioLoss }: EmotionalPreparationProps) {
+function EmotionalPreparation({ crashPercent: _crashPercent, portfolioLoss }: EmotionalPreparationProps) {
   return (
     <Card className="border-2 border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/20">
       <CardHeader>
@@ -509,7 +479,7 @@ function EmotionalPreparation({ crashPercent, portfolioLoss }: EmotionalPreparat
           </div>
           <p className={`${TYPOGRAPHY.body} text-red-800 dark:text-red-200`}>
             You are reading this with a clear head. When you see -{fmt(portfolioLoss)} on your screen,
-            you will feel panic. Your brain will scream "SELL BEFORE IT GETS WORSE!"
+            you will feel panic. Your brain will scream &quot;SELL BEFORE IT GETS WORSE!&quot;
           </p>
           <p className={`${TYPOGRAPHY.body} text-red-800 dark:text-red-200 mt-2 font-semibold`}>
             That is exactly when you must NOT sell. History shows that panic-selling

@@ -113,7 +113,9 @@ const CATEGORY_COLORS = {
 };
 
 // Icons for each category
-const _CATEGORY_ICONS = {
+// Reason: Reserved for future icon-by-category rendering
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const CATEGORY_ICONS = {
   housing: Home,
   healthcare: Heart,
   transportation: Car,
@@ -1091,7 +1093,8 @@ export const SpendingBreakdown = React.memo(function SpendingBreakdown({
   retirementSpending,
   preRetirementSpending,
   categories: customCategories,
-  showComparison: _showComparison = true,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  showComparison = true,
   isLoading = false,
   onOptimize,
   annualIncome,

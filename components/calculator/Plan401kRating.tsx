@@ -1,9 +1,8 @@
 "use client"
 
-import React, { useState, useMemo, useCallback } from "react"
+import React, { useState, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -30,7 +29,6 @@ import {
   Info,
   AlertCircle,
   CheckCircle2,
-  XCircle,
   Search,
   Award,
 } from "lucide-react"
@@ -322,9 +320,6 @@ export function Plan401kRating({ className }: Plan401kRatingProps) {
   // Vesting State
   const [vestingType, setVestingType] = useState<VestingType>("graded-6")
 
-  // Employer Name (for future plan lookup)
-  const [employerName, setEmployerName] = useState("")
-
   // Calculate ratings
   const ratings = useMemo(() => {
     return calculateOverallRatings(
@@ -429,7 +424,7 @@ export function Plan401kRating({ className }: Plan401kRatingProps) {
           401(k) Plan Rating Tool
         </CardTitle>
         <CardDescription>
-          Rate your employer's 401(k) plan to understand its quality and optimize your strategy
+          Rate your employer&apos;s 401(k) plan to understand its quality and optimize your strategy
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">

@@ -19,7 +19,6 @@ import {
   Lightbulb,
   Shield,
 } from "lucide-react";
-import { calcRMD } from "@/lib/calculations/shared/rmd";
 import { RMD_START_AGE, RMD_DIVISORS, TAX_BRACKETS } from "@/lib/calculations/shared/constants";
 import type { FilingStatus } from "@/types/planner";
 
@@ -76,20 +75,10 @@ function getTaxBracket(income: number, filingStatus: FilingStatus): { rate: numb
   return { rate: 0.37, bracket: "37%" };
 }
 
-function calculateProjectedBalance(
-  currentBalance: number,
-  currentAge: number,
-  targetAge: number,
-  annualReturn: number
-): number {
-  const years = targetAge - currentAge;
-  if (years <= 0) return currentBalance;
-  return currentBalance * Math.pow(1 + annualReturn, years);
-}
-
 export const RMDPlanner = React.memo(function RMDPlanner({
   currentAge,
   pretaxBalance,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   retirementAge,
   expectedReturn = 0.06,
   filingStatus = "married",
@@ -423,7 +412,7 @@ export const RMDPlanner = React.memo(function RMDPlanner({
                     <li>Medicare premiums spike (IRMAA surcharges)</li>
                     <li>May trigger Net Investment Income Tax (3.8%)</li>
                     <li>State taxes add another layer</li>
-                    <li>Heirs inherit the tax problem if you don't spend it</li>
+                    <li>Heirs inherit the tax problem if you don&apos;t spend it</li>
                   </ul>
                 </div>
               </div>
@@ -461,13 +450,13 @@ export const RMDPlanner = React.memo(function RMDPlanner({
                 <AccordionContent className="pt-2 pb-4">
                   <div className="space-y-4 pl-11">
                     <p className="text-sm">
-                      Convert Traditional IRA money to Roth each year, paying taxes at today's lower rates to avoid
+                      Convert Traditional IRA money to Roth each year, paying taxes at today&apos;s lower rates to avoid
                       forced higher-bracket RMDs later.
                     </p>
                     <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4">
                       <h5 className="font-medium mb-2">The Strategy:</h5>
                       <ul className="text-sm space-y-1 list-disc list-inside">
-                        <li>"Fill the bracket" - Convert up to the top of your current bracket each year</li>
+                        <li>&quot;Fill the bracket&quot; - Convert up to the top of your current bracket each year</li>
                         <li>Pay taxes now at 12-22% instead of 24-32% later</li>
                         <li>Reduces future RMDs (Roth has NO RMDs during your lifetime)</li>
                         <li>Tax-free growth forever in Roth</li>
@@ -497,8 +486,8 @@ export const RMDPlanner = React.memo(function RMDPlanner({
                 <AccordionContent className="pt-2 pb-4">
                   <div className="space-y-4 pl-11">
                     <p className="text-sm">
-                      If you're 70 1/2 or older, donate directly from your IRA to charity. The donation counts toward
-                      your RMD but isn't included in taxable income!
+                      If you&apos;re 70 1/2 or older, donate directly from your IRA to charity. The donation counts toward
+                      your RMD but isn&apos;t included in taxable income!
                     </p>
                     <div className="bg-pink-50 dark:bg-pink-950/20 rounded-lg p-4">
                       <h5 className="font-medium mb-2">QCD Benefits:</h5>
@@ -535,7 +524,7 @@ export const RMDPlanner = React.memo(function RMDPlanner({
                   <div className="space-y-4 pl-11">
                     <p className="text-sm">
                       If you have low-income years before RMDs start (early retirement, gap year), take voluntary
-                      distributions to "use up" lower brackets.
+                      distributions to &quot;use up&quot; lower brackets.
                     </p>
                     <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4">
                       <h5 className="font-medium mb-2">The Math:</h5>
@@ -550,11 +539,11 @@ export const RMDPlanner = React.memo(function RMDPlanner({
                         </div>
                       </div>
                       <div className="mt-3 text-sm">
-                        <strong>Savings:</strong> 12-20 cents per dollar - that's real money!
+                        <strong>Savings:</strong> 12-20 cents per dollar - that&apos;s real money!
                       </div>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      This is especially valuable in the "gap years" between retirement and RMDs/Social Security.
+                      This is especially valuable in the &quot;gap years&quot; between retirement and RMDs/Social Security.
                     </div>
                   </div>
                 </AccordionContent>

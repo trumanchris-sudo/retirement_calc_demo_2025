@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -46,8 +45,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fmt } from '@/lib/utils';
-import { calcOrdinaryTax, type FilingStatus } from '@/lib/calculations/taxCalculations';
-import { TAX_BRACKETS } from '@/lib/constants';
+import { type FilingStatus } from '@/lib/calculations/taxCalculations';
 
 const MotionDiv = dynamic(
   () => import('framer-motion').then((m) => m.motion.div),
@@ -57,13 +55,6 @@ const MotionDiv = dynamic(
 // ===============================
 // Types
 // ===============================
-
-interface InheritedAsset {
-  type: 'cash' | 'taxable_investments' | 'traditional_ira' | 'roth_ira' | 'real_estate' | 'life_insurance';
-  amount: number;
-  costBasis?: number; // For investments/real estate
-  valueAtDeath?: number; // For step-up basis calculation
-}
 
 interface InheritanceCalculatorInputs {
   inheritedTraditionalIRA: number;
@@ -212,7 +203,7 @@ const COMMON_MISTAKES = [
 // Helper Functions
 // ===============================
 
-function calculateStepUpSavings(
+function _calculateStepUpSavings(
   originalBasis: number,
   valueAtDeath: number,
   taxRate: number = 0.15
@@ -346,7 +337,7 @@ const StepUpExplainer = React.memo(function StepUpExplainer({
         <div className="grid gap-6 md:grid-cols-2">
           <div className="space-y-3">
             <Label className="text-sm font-medium">
-              Original Purchase Price (Parent's Basis)
+              Original Purchase Price (Parent&apos;s Basis)
             </Label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -464,7 +455,7 @@ const StepUpExplainer = React.memo(function StepUpExplainer({
           <Lightbulb className="h-4 w-4 text-blue-600" />
           <AlertTitle>The Key Insight</AlertTitle>
           <AlertDescription className="text-sm">
-            All appreciation during the decedent's lifetime is <strong>never taxed</strong>.
+            All appreciation during the decedent&apos;s lifetime is <strong>never taxed</strong>.
             This is why wealthy families often hold appreciated assets until death rather than
             selling. The step-up in basis effectively erases the tax liability.
           </AlertDescription>
@@ -494,8 +485,8 @@ const InheritedIRACalculator = React.memo(function InheritedIRACalculator({
   );
 
   const totalTraditionalTax = schedule.reduce((sum, y) => sum + y.traditionalTax, 0);
-  const totalTraditionalWithdrawn = schedule.reduce((sum, y) => sum + y.traditionalWithdrawal, 0);
-  const totalRothWithdrawn = schedule.reduce((sum, y) => sum + y.rothWithdrawal, 0);
+  const _totalTraditionalWithdrawn = schedule.reduce((sum, y) => sum + y.traditionalWithdrawal, 0);
+  const _totalRothWithdrawn = schedule.reduce((sum, y) => sum + y.rothWithdrawal, 0);
 
   // Calculate optimal vs worst-case for traditional
   const worstCaseTax = inputs.inheritedTraditionalIRA * 0.37; // If cashed out all at once in top bracket
@@ -648,8 +639,8 @@ const InheritedIRACalculator = React.memo(function InheritedIRACalculator({
           <AlertTitle>Inherited Roth Strategy</AlertTitle>
           <AlertDescription className="text-sm">
             <strong>Let the Roth grow until year 10, then withdraw everything tax-free.</strong> This
-            maximizes the value of tax-free compounding. There's no benefit to withdrawing early since
-            there's no tax anyway - let it grow!
+            maximizes the value of tax-free compounding. There&apos;s no benefit to withdrawing early since
+            there&apos;s no tax anyway - let it grow!
           </AlertDescription>
         </Alert>
 
@@ -894,7 +885,7 @@ export function InheritanceGuide({
               <Info className="h-4 w-4 text-blue-600" />
               <AlertTitle>Exceptions to the 10-Year Rule</AlertTitle>
               <AlertDescription className="text-sm">
-                These "Eligible Designated Beneficiaries" can still stretch over their lifetime:
+                These &quot;Eligible Designated Beneficiaries&quot; can still stretch over their lifetime:
                 <ul className="mt-2 space-y-1 list-disc list-inside">
                   <li>Surviving spouse</li>
                   <li>Disabled or chronically ill individuals</li>
@@ -947,7 +938,7 @@ export function InheritanceGuide({
                   </div>
                   <div>
                     <p className="font-medium">Let it grow until year 10, then withdraw all</p>
-                    <p className="text-muted-foreground">Maximize tax-free compounding - there's no benefit to withdrawing early</p>
+                    <p className="text-muted-foreground">Maximize tax-free compounding - there&apos;s no benefit to withdrawing early</p>
                   </div>
                 </div>
               </div>

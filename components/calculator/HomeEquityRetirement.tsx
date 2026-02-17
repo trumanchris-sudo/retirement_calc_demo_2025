@@ -1004,7 +1004,7 @@ export function HomeEquityRetirement({
                     <AccordionContent>
                       <p className={TYPOGRAPHY.body}>
                         <strong>You can, but you never have to pay the difference.</strong> HECM loans
-                        are "non-recourse" - if the loan balance exceeds the home value when you die or
+                        are &quot;non-recourse&quot; - if the loan balance exceeds the home value when you die or
                         sell, FHA insurance covers the difference. Your heirs are protected.
                       </p>
                     </AccordionContent>
@@ -1317,7 +1317,7 @@ export function HomeEquityRetirement({
                         <h4 className="font-medium">Check Your State</h4>
                         <p className={TYPOGRAPHY.body}>
                           Most states offer some form of property tax relief for seniors.
-                          Contact your local tax assessor's office to learn about available programs.
+                          Contact your local tax assessor&apos;s office to learn about available programs.
                         </p>
                       </div>
                     </div>
@@ -1356,7 +1356,7 @@ export function HomeEquityRetirement({
                     Prop 13-Style Protections
                   </h4>
                   <p className={TYPOGRAPHY.body}>
-                    California's Proposition 13 (and similar laws in other states) caps annual
+                    California&apos;s Proposition 13 (and similar laws in other states) caps annual
                     property tax increases at 1-2%. This means your property taxes cannot spike
                     even if your home value increases dramatically. If you have owned your home
                     for decades, your tax basis may be far below market value.
@@ -1480,9 +1480,9 @@ export function HomeEquityRetirement({
               {/* Summary Quote */}
               <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
                 <p className={`${TYPOGRAPHY.body} italic`}>
-                  "The best inheritance you can leave your children is to not be a financial burden
+                  &quot;The best inheritance you can leave your children is to not be a financial burden
                   to them in your old age. Do not feel guilty about using your home equity for
-                  your own retirement."
+                  your own retirement.&quot;
                 </p>
               </div>
             </CardContent>

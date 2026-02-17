@@ -22,10 +22,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Progress } from "@/components/ui/progress";
 import {
   AlertTriangle,
-  ArrowRight,
   Award,
   Building2,
   CheckCircle2,
@@ -41,7 +39,6 @@ import {
   Phone,
   PiggyBank,
   Shield,
-  Smartphone,
   Sparkles,
   Star,
   TrendingUp,
@@ -565,9 +562,6 @@ function BrokerageCard({ brokerage }: { brokerage: BrokerageInfo }) {
 
 export const BrokerageComparison = React.memo(function BrokerageComparison() {
   const [activeTab, setActiveTab] = useState("overview");
-  const [selectedBrokerage, setSelectedBrokerage] = useState<string | null>(
-    null
-  );
 
   // Feature categories for filtering
   const categories = useMemo(() => {
@@ -581,25 +575,6 @@ export const BrokerageComparison = React.memo(function BrokerageComparison() {
     if (selectedCategory === "all") return COMPARISON_FEATURES;
     return COMPARISON_FEATURES.filter((f) => f.category === selectedCategory);
   }, [selectedCategory]);
-
-  // Account links
-  const ACCOUNT_LINKS = {
-    fidelity: {
-      taxable: "https://www.fidelity.com/open-account/overview",
-      ira: "https://www.fidelity.com/retirement-ira/overview",
-      roth: "https://www.fidelity.com/retirement-ira/roth-ira",
-    },
-    vanguard: {
-      taxable: "https://investor.vanguard.com/client-benefits/open-account",
-      ira: "https://investor.vanguard.com/accounts-plans/iras",
-      roth: "https://investor.vanguard.com/accounts-plans/iras/roth-ira",
-    },
-    schwab: {
-      taxable: "https://www.schwab.com/brokerage",
-      ira: "https://www.schwab.com/ira",
-      roth: "https://www.schwab.com/ira/roth-ira",
-    },
-  };
 
   return (
     <Card className="w-full">
@@ -659,7 +634,7 @@ export const BrokerageComparison = React.memo(function BrokerageComparison() {
                     Quick Recommendation
                   </h4>
                   <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
-                    <strong>Can't decide?</strong> Open with{" "}
+                    <strong>Can&apos;t decide?</strong> Open with{" "}
                     <strong>Fidelity</strong>. They have no minimums, excellent
                     service, a great app, and zero-fee index funds. You can
                     always open accounts at multiple brokerages later.
@@ -681,10 +656,10 @@ export const BrokerageComparison = React.memo(function BrokerageComparison() {
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
                 <div>
                   <h4 className="font-semibold text-green-900 dark:text-green-100">
-                    You Can't Go Wrong
+                    You Can&apos;t Go Wrong
                   </h4>
                   <p className="text-sm text-green-800 dark:text-green-200 mt-1">
-                    All three brokerages are excellent choices. They're all
+                    All three brokerages are excellent choices. They&apos;re all
                     well-regulated, financially stable, and offer SIPC
                     protection. The differences are in the details - pick the
                     one that fits your style.
@@ -800,7 +775,7 @@ export const BrokerageComparison = React.memo(function BrokerageComparison() {
           {/* Tab 3: Account Types */}
           <TabsContent value="accounts" className="space-y-6 mt-6">
             <p className="text-sm text-muted-foreground">
-              All three brokerages offer the most common account types. Here's a
+              All three brokerages offer the most common account types. Here&apos;s a
               quick reference:
             </p>
 
@@ -863,7 +838,7 @@ export const BrokerageComparison = React.memo(function BrokerageComparison() {
                     About HSAs
                   </h4>
                   <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
-                    While Vanguard doesn't offer HSA accounts directly, you can
+                    While Vanguard doesn&apos;t offer HSA accounts directly, you can
                     open an HSA at Fidelity (no fees, great investment options)
                     and keep the rest of your accounts at Vanguard if you
                     prefer.
@@ -890,7 +865,7 @@ export const BrokerageComparison = React.memo(function BrokerageComparison() {
                         <Badge variant="outline" className="bg-green-50">
                           Beginner
                         </Badge>
-                        I'm new to investing
+                        I&apos;m new to investing
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
@@ -954,7 +929,7 @@ export const BrokerageComparison = React.memo(function BrokerageComparison() {
                           </li>
                           <li className="flex items-start gap-2">
                             <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                            Note: Fidelity's zero-fee funds match/beat Vanguard
+                            Note: Fidelity&apos;s zero-fee funds match/beat Vanguard
                             on cost
                           </li>
                         </ul>
@@ -1216,7 +1191,7 @@ export const BrokerageComparison = React.memo(function BrokerageComparison() {
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                      401k from current employer usually can't transfer
+                      401k from current employer usually can&apos;t transfer
                     </li>
                   </ul>
                 </CardContent>

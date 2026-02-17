@@ -4,7 +4,6 @@ import React, { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
   Select,
@@ -19,7 +18,6 @@ import {
   GraduationCap,
   DollarSign,
   TrendingUp,
-  Calendar,
   Info,
   AlertCircle,
   CheckCircle2,
@@ -204,6 +202,7 @@ interface ChildCardProps {
   stateCode: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ChildCard: React.FC<ChildCardProps> = ({ child, onUpdate, onRemove, stateCode }) => {
   const yearsUntilCollege = Math.max(0, COLLEGE_START_AGE - child.age);
   const costProjection = calculateCollegeCost(child.schoolType, yearsUntilCollege);
@@ -230,7 +229,7 @@ const ChildCard: React.FC<ChildCardProps> = ({ child, onUpdate, onRemove, stateC
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Child's Name</Label>
+          <Label>Child&apos;s Name</Label>
           <input
             type="text"
             value={child.name}
@@ -325,7 +324,9 @@ const ChildCard: React.FC<ChildCardProps> = ({ child, onUpdate, onRemove, stateC
 // ==================== Main Component ====================
 
 export const CollegePlanner = React.memo(function CollegePlanner() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { config, updateConfig } = usePlanConfig();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { childrenAges, numChildren } = usePersonalInfo();
 
   // Local state
@@ -347,6 +348,7 @@ export const CollegePlanner = React.memo(function CollegePlanner() {
 
   const [collegeInflationRate, setCollegeInflationRate] = useState(5.5);
   const [expectedReturnRate, setExpectedReturnRate] = useState(7.0);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [showRothRollover, setShowRothRollover] = useState(false);
   const [show529ToRothDetails, setShow529ToRothDetails] = useState(false);
 
@@ -588,9 +590,9 @@ export const CollegePlanner = React.memo(function CollegePlanner() {
                       </>
                     ) : (
                       <>
-                        <strong>Don't sacrifice retirement for college.</strong> College savings ({formatCurrency(totalMonthlyNeeded)}/mo)
+                        <strong>Don&apos;t sacrifice retirement for college.</strong> College savings ({formatCurrency(totalMonthlyNeeded)}/mo)
                         are {retirementImpact.collegeVsRetirementRatio.toFixed(0)}% of retirement contributions.
-                        Your child can get loans or scholarships - you can't borrow for retirement.
+                        Your child can get loans or scholarships - you can&apos;t borrow for retirement.
                       </>
                     )}
                   </p>
@@ -881,7 +883,7 @@ export const CollegePlanner = React.memo(function CollegePlanner() {
                   <ul className="text-sm space-y-2 list-disc list-inside">
                     <li>The 529 account must have been open for at least <strong>15 years</strong></li>
                     <li>Contributions made in the last 5 years (and their earnings) are <strong>not eligible</strong></li>
-                    <li>Rollovers count against the beneficiary's <strong>annual Roth IRA contribution limit</strong></li>
+                    <li>Rollovers count against the beneficiary&apos;s <strong>annual Roth IRA contribution limit</strong></li>
                     <li>The beneficiary must have <strong>earned income</strong> equal to or greater than the rollover amount</li>
                     <li><strong>Lifetime cap of $35,000</strong> per beneficiary (not indexed for inflation)</li>
                     <li>Rollover must be done as a <strong>trustee-to-trustee transfer</strong></li>
@@ -954,7 +956,7 @@ export const CollegePlanner = React.memo(function CollegePlanner() {
                 <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
                 <div>
                   <div className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
-                    Don't Sacrifice Retirement for College
+                    Don&apos;t Sacrifice Retirement for College
                   </div>
                   <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
                     This is the #1 financial mistake parents make. Your children can:

@@ -1255,17 +1255,6 @@ export function BackdoorRothGuide({
                     </AccordionContent>
                   </AccordionItem>
 
-                  <AccordionItem value="faq3">
-                    <AccordionTrigger>What if I had gains before converting?</AccordionTrigger>
-                    <AccordionContent>
-                      <p className="text-sm">
-                        Any gains between contribution and conversion are taxable. This is why
-                        we recommend converting quickly and keeping funds in money market.
-                        If you had $50 in gains, you'll pay tax on $50 (probably ~$12 at 24% bracket).
-                      </p>
-                    </AccordionContent>
-                  </AccordionItem>
-
                   <AccordionItem value="faq4">
                     <AccordionTrigger>Do I need a tax professional?</AccordionTrigger>
                     <AccordionContent>
@@ -1293,7 +1282,7 @@ export function BackdoorRothGuide({
                           challenged a properly executed Backdoor Roth.
                         </p>
                         <p>
-                          The "step transaction doctrine" concern has been discussed but never applied.
+                          The &quot;step transaction doctrine&quot; concern has been discussed but never applied.
                           Multiple IRS and Treasury officials have acknowledged this strategy is valid.
                         </p>
                       </div>
@@ -1311,14 +1300,14 @@ export function BackdoorRothGuide({
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-purple-600" />
                       <span>
-                        <strong>TurboTax:</strong> Use "Deductions & Credits" then "Retirement Savings."
-                        Answer "No" when asked if your contribution was deductible.
+                        <strong>TurboTax:</strong> Use &quot;Deductions &amp; Credits&quot; then &quot;Retirement Savings.&quot;
+                        Answer &quot;No&quot; when asked if your contribution was deductible.
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-purple-600" />
                       <span>
-                        <strong>H&R Block:</strong> Look for "IRA Contributions" and "IRA Conversions"
+                        <strong>H&amp;R Block:</strong> Look for &quot;IRA Contributions&quot; and &quot;IRA Conversions&quot;
                         in the Retirement section.
                       </span>
                     </li>

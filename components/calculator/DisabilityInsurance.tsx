@@ -1227,7 +1227,7 @@ export function DisabilityInsurance({
                         </span>
                       </div>
                       <p className={`${TYPOGRAPHY.bodyMuted} mb-2`}>
-                        "Unable to perform the duties of YOUR specific occupation."
+                        &quot;Unable to perform the duties of YOUR specific occupation.&quot;
                       </p>
                       <p className={TYPOGRAPHY.helperText}>
                         <strong>Example:</strong> A surgeon who loses fine motor skills qualifies,
@@ -1244,7 +1244,7 @@ export function DisabilityInsurance({
                         </span>
                       </div>
                       <p className={`${TYPOGRAPHY.bodyMuted} mb-2`}>
-                        "Own-occupation for first 2-5 years, then transitions to any-occupation."
+                        &quot;Own-occupation for first 2-5 years, then transitions to any-occupation.&quot;
                       </p>
                       <p className={TYPOGRAPHY.helperText}>
                         <strong>Good balance:</strong> Covers most disabilities while keeping premiums
@@ -1261,11 +1261,11 @@ export function DisabilityInsurance({
                         </span>
                       </div>
                       <p className={`${TYPOGRAPHY.bodyMuted} mb-2`}>
-                        "Unable to perform ANY job for which you are reasonably suited."
+                        &quot;Unable to perform ANY job for which you are reasonably suited.&quot;
                       </p>
                       <p className={TYPOGRAPHY.helperText}>
                         <strong>Warning:</strong> Very hard to qualify. The surgeon example would be
-                        denied because they could "reasonably" work another job.
+                        denied because they could &quot;reasonably&quot; work another job.
                       </p>
                       <Badge className="mt-2 bg-amber-100 text-amber-800">Buyer Beware</Badge>
                     </div>
@@ -1309,7 +1309,7 @@ export function DisabilityInsurance({
                     </li>
                     <li className="flex items-start gap-2">
                       <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                      <span>Strict "any occupation" definition</span>
+                      <span>Strict &quot;any occupation&quot; definition</span>
                     </li>
                   </ul>
                   <div className="mt-3 p-2 rounded bg-red-50 dark:bg-red-950/30">
@@ -1325,7 +1325,7 @@ export function DisabilityInsurance({
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Briefcase className="h-4 w-4" />
-                    Workers' Compensation
+                    Workers&apos; Compensation
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

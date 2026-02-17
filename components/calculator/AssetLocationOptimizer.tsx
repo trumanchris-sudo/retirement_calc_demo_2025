@@ -21,7 +21,6 @@ import {
 import {
   AlertCircle,
   ArrowRight,
-  ArrowDown,
   CheckCircle2,
   DollarSign,
   TrendingUp,
@@ -662,7 +661,7 @@ export const AssetLocationOptimizer = React.memo(
             <span className="font-semibold text-emerald-600">
               0.5-1% annually
             </span>{" "}
-            to your after-tax returns - that's{" "}
+            to your after-tax returns - that&apos;s{" "}
             <span className="font-semibold text-emerald-600">
               15-30% more wealth
             </span>{" "}
@@ -852,7 +851,7 @@ export const AssetLocationOptimizer = React.memo(
                       portfolio, proper asset location can add $
                       {((totalValue * 0.005) / 1000).toFixed(0)}k-$
                       {((totalValue * 0.01) / 1000).toFixed(0)}k per year in
-                      after-tax returns. Over 30 years at 7% growth, that's{" "}
+                      after-tax returns. Over 30 years at 7% growth, that&apos;s{" "}
                       <strong>
                         $
                         {(
@@ -861,7 +860,7 @@ export const AssetLocationOptimizer = React.memo(
                         ).toFixed(1)}
                         x your 20-year impact
                       </strong>
-                      . This is one of the few "free lunches" in investing.
+                      . This is one of the few &quot;free lunches&quot; in investing.
                     </p>
                   </div>
                 </div>

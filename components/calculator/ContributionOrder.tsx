@@ -35,7 +35,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
-import { IRS_LIMITS_2026 } from "@/types/onboarding";
 import {
   HSA_LIMITS_2026,
   RETIREMENT_LIMITS_2026,
@@ -53,24 +52,6 @@ interface EmployerBenefits {
   matchPercent: number; // e.g., 100 = 100% match
   matchLimit: number; // e.g., 6 = matches up to 6% of salary
   vestingYears: number;
-}
-
-interface UserSituation {
-  age: number;
-  income: number;
-  spouseIncome: number;
-  isMarried: boolean;
-  hasHDHP: boolean; // High Deductible Health Plan (HSA eligible)
-  employerBenefits: EmployerBenefits;
-}
-
-interface CurrentContributions {
-  traditional401k: number;
-  roth401k: number;
-  afterTax401k: number;
-  rothIRA: number;
-  hsa: number;
-  taxable: number;
 }
 
 interface ContributionOrderProps {
@@ -146,7 +127,6 @@ const IRA_CATCHUP_2026 = 1100;
 
 // Expected annual growth rates for comparison
 const EXPECTED_RETURN = 0.07; // 7% real return
-const YEARS_TO_RETIREMENT = 30;
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -241,7 +221,7 @@ function formatCurrency(value: number, compact: boolean = false): string {
 export const ContributionOrder = React.memo(function ContributionOrder({
   age = 35,
   income = 100000,
-  spouseIncome = 0,
+  spouseIncome: _spouseIncome = 0,
   isMarried = false,
   cPre1 = 0,
   cPost1 = 0,
@@ -267,7 +247,7 @@ export const ContributionOrder = React.memo(function ContributionOrder({
     Math.round((cPre1 + cPost1 + cTax1 + cMatch1) / 12) || 2000
   );
   const [showAllocator, setShowAllocator] = useState(false);
-  const [customAllocations, setCustomAllocations] = useState<
+  const [_customAllocations, _setCustomAllocations] = useState<
     Record<string, number>
   >({});
 
@@ -281,12 +261,6 @@ export const ContributionOrder = React.memo(function ContributionOrder({
   const yearsToRetirement = useMemo(
     () => Math.max(65 - age, 10),
     [age]
-  );
-
-  // Calculate current total savings
-  const currentTotalSavings = useMemo(
-    () => cPre1 + cPost1 + cTax1,
-    [cPre1, cPost1, cTax1]
   );
 
   // Calculate maximum possible employer match
@@ -1348,8 +1322,8 @@ export const ContributionOrder = React.memo(function ContributionOrder({
             )}
           </div>
           <CardDescription>
-            "I have ${monthlyBudget.toLocaleString()}/month to save - show me
-            the optimal distribution"
+            &quot;I have ${monthlyBudget.toLocaleString()}/month to save - show me
+            the optimal distribution&quot;
           </CardDescription>
         </CardHeader>
         {showAllocator && (
@@ -1565,7 +1539,7 @@ export const ContributionOrder = React.memo(function ContributionOrder({
           {actionItems.length === 0 && (
             <div className="text-center py-8">
               <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
-              <p className="font-semibold text-lg">You're Optimized!</p>
+              <p className="font-semibold text-lg">You&apos;re Optimized!</p>
               <p className="text-muted-foreground">
                 Your current contribution order follows best practices.
               </p>

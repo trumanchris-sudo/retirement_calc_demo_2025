@@ -48,7 +48,6 @@ import {
   calculateHealthcareCosts,
   calculateEarlyRetirementHealthcareGap,
   calculateACASubsidyOptimization,
-  getQuickHealthcareEstimate,
   type HealthcareCostInputs,
   type HealthcareCostResult,
   MEDICARE_PART_B,
@@ -111,7 +110,7 @@ const StatCard: React.FC<{
   icon: React.ReactNode;
   color: "blue" | "green" | "yellow" | "red" | "purple" | "orange";
   trend?: "up" | "down" | "neutral";
-}> = ({ title, value, subtitle, icon, color, trend: _trend }) => {
+}> = ({ title, value, subtitle, icon, color }) => {
   const colorClasses = {
     blue: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800",
     green: "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800",
@@ -223,11 +222,6 @@ export const HealthcarePlanner: React.FC<HealthcarePlannerProps> = ({
     );
   }, [retirementAge, age, estimatedMAGI, maritalStatus]);
 
-  // Quick estimate for header display
-  const _quickEstimate = useMemo(() => {
-    return getQuickHealthcareEstimate(age, maritalStatus, includeLTC);
-  }, [age, maritalStatus, includeLTC]);
-
   // Notify parent of cost changes
   React.useEffect(() => {
     if (onHealthcareCostChange) {
@@ -254,7 +248,7 @@ export const HealthcarePlanner: React.FC<HealthcarePlannerProps> = ({
               <div>
                 <CardTitle className="text-2xl">Healthcare Cost Planner</CardTitle>
                 <CardDescription>
-                  Healthcare is the #1 fear in retirement. Let's make it manageable.
+                  Healthcare is the #1 fear in retirement. Let&apos;s make it manageable.
                 </CardDescription>
               </div>
             </div>
@@ -464,13 +458,13 @@ const PreMedicareSection: React.FC<{
   setCoverage: (v: "aca" | "cobra" | "spouse_employer" | "health_sharing" | "custom") => void;
   estimatedMAGI: number;
   setEstimatedMAGI: (v: number) => void;
-}> = ({ analysis, age, maritalStatus: _maritalStatus, coverage, setCoverage, estimatedMAGI, setEstimatedMAGI }) => {
+}> = ({ analysis, age, coverage, setCoverage, estimatedMAGI, setEstimatedMAGI }) => {
   if (age >= 65) {
     return (
       <Card>
         <CardContent className="py-8 text-center">
           <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-4" />
-          <p className="text-lg font-semibold">You're Medicare-eligible!</p>
+          <p className="text-lg font-semibold">You&apos;re Medicare-eligible!</p>
           <p className="text-muted-foreground">
             No pre-Medicare planning needed. See the Medicare tab for your costs.
           </p>
@@ -502,7 +496,7 @@ const PreMedicareSection: React.FC<{
               <SelectContent>
                 <SelectItem value="aca">ACA Marketplace</SelectItem>
                 <SelectItem value="cobra">COBRA (from employer)</SelectItem>
-                <SelectItem value="spouse_employer">Spouse's Employer Plan</SelectItem>
+                <SelectItem value="spouse_employer">Spouse&apos;s Employer Plan</SelectItem>
                 <SelectItem value="health_sharing">Health Sharing Ministry</SelectItem>
                 <SelectItem value="custom">Custom/Other</SelectItem>
               </SelectContent>
@@ -790,7 +784,7 @@ const LTCSection: React.FC<{
   strategy: "self_insure" | "ltc_insurance" | "hybrid" | "medicaid_planning";
   setStrategy: (v: "self_insure" | "ltc_insurance" | "hybrid" | "medicaid_planning") => void;
   age: number;
-}> = ({ analysis, includeLTC, setIncludeLTC, strategy, setStrategy, age: _age }) => {
+}> = ({ analysis, includeLTC, setIncludeLTC, strategy, setStrategy }) => {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       {/* LTC Stats */}

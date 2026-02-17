@@ -813,7 +813,7 @@ export const LifetimeTaxDashboard: React.FC<LifetimeTaxDashboardProps> =
       rothTotalTax,
       taxSavings,
       inheritanceTaxTraditional,
-      inheritanceTaxRoth,
+      inheritanceTaxRoth: _inheritanceTaxRoth,
       decadeSummary,
     } = projections;
 
