@@ -19,7 +19,6 @@ import {
 import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
 import { createDefaultPlanConfig } from "@/types/plan-config";
-import { loadSharedIncomeData, hasRecentIncomeData } from "@/lib/sharedIncomeData";
 import {
   FilingStatus as SEFilingStatus,
   PayFrequency,
@@ -119,7 +118,7 @@ export default function SelfEmployed2026Page() {
   const [dentalVisionPremium, setDentalVisionPremium] = useState(80 * 12);
   const [hsaContribution, setHsaContribution] = useState(4400);
   const [dependentCareFSA, setDependentCareFSA] = useState(5000);
-  const [healthFSA, setHealthFSA] = useState(0);
+  const [healthFSA] = useState(0);
 
   // State tax local-only fields
   const [withholdingMethod, setWithholdingMethod] = useState<'partnership_withholds' | 'quarterly_estimates'>('partnership_withholds');
@@ -235,29 +234,6 @@ export default function SelfEmployed2026Page() {
     if (hasAISuggestedFields) {
       setIsFromAIOnboarding(true);
       setShowAIBanner(true);
-    }
-
-    // Legacy sharedIncomeData fallback
-    if (!hasAISuggestedFields && (!isSelfEmployed || !planConfig.primaryIncome)) {
-      if (hasRecentIncomeData()) {
-        const sharedData = loadSharedIncomeData();
-        if (
-          sharedData &&
-          sharedData.source === 'ai-onboarding' &&
-          (sharedData.employmentType1 === 'self-employed' || sharedData.employmentType1 === 'both')
-        ) {
-          // Write to PlanConfig SSOT instead of local state
-          updatePlanConfig({ primaryIncome: sharedData.primaryIncome }, 'imported');
-          setGrossCompensation(Math.round(sharedData.primaryIncome * 1.3));
-
-          if (sharedData.maritalStatus === 'married' && sharedData.spouseIncome) {
-            updatePlanConfig({ spouseIncome: sharedData.spouseIncome }, 'imported');
-          }
-
-          setIsFromAIOnboarding(true);
-          setShowAIBanner(true);
-        }
-      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

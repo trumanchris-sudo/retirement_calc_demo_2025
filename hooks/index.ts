@@ -89,3 +89,11 @@ export {
   useSessionStorage,
   useLocalStorageManual,
 } from './useLocalStorage';
+
+// Scenario comparison
+export { useComparison } from './useComparison';
+export type { ComparisonOverrides, UseComparisonParams, UseComparisonReturn } from './useComparison';
+
+// PlanConfig setter generation
+export { usePlanConfigSetters } from './usePlanConfigSetters';
+export type { PlanConfigSetters } from './usePlanConfigSetters';

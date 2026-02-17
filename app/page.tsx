@@ -2,110 +2,37 @@
 
 import React, { useState, useCallback, useRef, useMemo, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { AlertTriangle, RefreshCw } from "lucide-react";
-// Static imports for lightweight recharts components used everywhere
-import {
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RTooltip,
-  Legend,
-  ResponsiveContainer,
-  Area,
-  Pie,
-  Cell,
-  Rectangle,
-} from "recharts";
-
-// Lazy load heavy chart components
-const LineChart = dynamic(
-  () => import("recharts").then((mod) => ({ default: mod.LineChart })),
-  { ssr: false }
-);
-const AreaChart = dynamic(
-  () => import("recharts").then((mod) => ({ default: mod.AreaChart })),
-  { ssr: false }
-);
-const ComposedChart = dynamic(
-  () => import("recharts").then((mod) => ({ default: mod.ComposedChart })),
-  { ssr: false }
-);
-const PieChart = dynamic(
-  () => import("recharts").then((mod) => ({ default: mod.PieChart })),
-  { ssr: false }
-);
-const Sankey = dynamic(
-  () => import("recharts").then((mod) => ({ default: mod.Sankey })),
-  { ssr: false }
-);
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertTriangle } from "lucide-react";
+// recharts components are consumed by extracted chart components (B3)
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input as UIInput } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { FlippingCard } from "@/components/FlippingCard";
-import { GenerationalResultCard } from "@/components/GenerationalResultCard";
-import { LegacyResultCard } from "@/components/LegacyResultCard";
-// Lazy load DynastyTimeline - only needed in generational wealth section
-const DynastyTimeline = dynamic(
-  () => import("@/components/calculator/DynastyTimeline").then((mod) => ({ default: mod.DynastyTimeline })),
-  {
-    ssr: false,
-    loading: () => <div className="h-64 animate-pulse bg-gray-100 dark:bg-gray-800 rounded" />,
-  }
-);
-import AddToWalletButton from "@/components/AddToWalletButton";
-import DownloadCardButton from "@/components/DownloadCardButton";
-import DownloadPDFButton from "@/components/DownloadPDFButton";
+// ToggleGroup, Accordion, FlippingCard, GenerationalResultCard, LegacyResultCard
+// are consumed by extracted tab components
+// DynastyTimeline lazy-loaded by LegacyTab
+// AddToWalletButton, DownloadCardButton, DownloadPDFButton consumed by extracted tabs
 // LegacyResult type is managed by useCalculatorResults hook
 import UserInputsPrintSummary from "@/components/UserInputsPrintSummary";
 import { TopBanner } from "@/components/layout/TopBanner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
-import { SliderInput } from "@/components/form/SliderInput";
-import { BrandLoader } from "@/components/BrandLoader";
-import { TabGroup, type TabGroupRef } from "@/components/ui/TabGroup";
-import { Input, Spinner, Tip, TrendingUpIcon } from "@/components/calculator/InputHelpers";
+import { type TabGroupRef } from "@/components/ui/TabGroup";
 import { TabNavigation, type MainTabId, isMainTabId } from "@/components/calculator/TabNavigation";
 import { useBondGlidePathDerived, useBeneficiaryAgesDerived, useIsMarried, useTotalBalance } from "@/hooks/useCalculatorDerivedState";
 import { TabPanel } from "@/components/calculator/TabPanel";
 import { LastCalculatedBadge } from "@/components/calculator/LastCalculatedBadge";
-import { RecalculateButton } from "@/components/calculator/RecalculateButton";
-// Extracted modules (Phase 1 B1-B4)
-import { InfoIcon, DollarSignIcon, UsersIcon, CalendarIcon, HourglassIcon, SparkleIcon } from "@/components/ui/InlineIcons";
-import { toTitleCase, formatInsight } from "@/lib/formatUtils";
-import { AiInsightBox } from "@/components/calculator/AiInsightBox";
-import { StatCard, FlippingStatCard, CollapsibleSection, type IconComponentProps } from "@/components/calculator/StatCards";
-import { WealthAccumulationChart } from "@/components/calculator/charts/WealthAccumulationChart";
-
 import { URLTabSync } from "@/components/calculator/URLTabSync";
-import { GenerationalWealthVisual } from "@/components/calculator/GenerationalWealthVisual";
-import { simulateYearsChunk, checkPerpetualViability, simulateRealPerBeneficiaryPayout, type Cohort } from "@/lib/calculations/generationalWealth";
 import { useWorkerSimulations } from "@/hooks/useWorkerSimulations";
 import { useAiInsightEngine } from "@/hooks/useAiInsightEngine";
-import { useCalculation, type SensitivityAnalysisData, type SensitivityVariation } from "@/hooks/useCalculation";
+import { useCalculation, type SensitivityAnalysisData } from "@/hooks/useCalculation";
 import { useCalculatorResults, useUIToggles, useSavedScenarios } from "@/hooks/useCalculatorResults";
+import { usePlanConfigSetters } from "@/hooks/usePlanConfigSetters";
+import { useComparison } from "@/hooks/useComparison";
 
-import { TimelineView } from "@/components/calculator/TimelineView";
-import { PlanSummaryCard } from "@/components/calculator/PlanSummaryCard";
-import { NextStepsCard } from "@/components/calculator/NextStepsCard";
+// PlanSummaryCard, NextStepsCard consumed by extracted tabs
 import { ResultsSummaryPanel } from "@/components/calculator/ResultsSummaryPanel";
-// Lazy load MonteCarloVisualizer - only needed in results section
-const MonteCarloVisualizer = dynamic(
-  () => import("@/components/calculator/MonteCarloVisualizerWrapper").then((mod) => ({ default: mod.MonteCarloVisualizer })),
-  {
-    ssr: false,
-    loading: () => <div className="h-64 animate-pulse bg-gray-100 dark:bg-gray-800 rounded" />,
-  }
-);
+import { AIDocMode } from "@/components/calculator/AIDocMode";
+// MonteCarloVisualizer lazy-loaded by ResultsTab
 import CyberpunkSplash, { type CyberpunkSplashHandle } from "@/components/calculator/CyberpunkSplash";
 import { CheckUsTab } from "@/components/calculator/CheckUsTab";
 import OptimizationTab from "@/components/calculator/OptimizationTab";
@@ -120,16 +47,8 @@ import {
   ResultsTab,
   MathTab,
 } from "@/components/calculator/tabs";
-import { SequenceRiskChart } from "@/components/calculator/SequenceRiskChart";
-import { SpendingFlexibilityChart } from "@/components/calculator/SpendingFlexibilityChart";
-// Lazy load RothConversionOptimizer - only needed in advanced section
-const RothConversionOptimizer = dynamic(
-  () => import("@/components/calculator/RothConversionOptimizer").then((mod) => ({ default: mod.RothConversionOptimizer })),
-  {
-    ssr: false,
-    loading: () => <div className="h-64 animate-pulse bg-gray-100 dark:bg-gray-800 rounded" />,
-  }
-);
+// SequenceRiskChart, SpendingFlexibilityChart consumed by ResultsTab
+// RothConversionOptimizer lazy-loaded by OptimizationTab
 // Lazy load Planning Tools - only needed in tools tab
 const StudentLoanOptimizer = dynamic(
   () => import("@/components/calculator/StudentLoanOptimizer"),
@@ -205,73 +124,12 @@ import { useOnboarding } from "@/hooks/useOnboarding";
 import { useTheme } from "@/lib/theme-context";
 
 // Import types
-import type { CalculationResult, ChartDataPoint, SavedScenario, ComparisonData, GenerationalPayout, CalculationProgress, BondGlidePath } from "@/types/calculator";
+import type { SavedScenario } from "@/types/calculator";
 
-// Import from new modules
-import {
-  MAX_GENS,
-  YEARS_PER_GEN,
-  LIFE_EXP,
-  getCurrYear,
-  RMD_START_AGE,
-  SS_BEND_POINTS,
-  ESTATE_TAX_EXEMPTION,
-  ESTATE_TAX_RATE,
-  TAX_BRACKETS,
-  LTCG_BRACKETS,
-  NIIT_THRESHOLD,
-  COLOR,
-  type ColorKey,
-} from "@/lib/constants";
-
-import {
-  fmt,
-} from "@/lib/utils";
-
-import {
-  calculateBondAllocation,
-  calculateBlendedReturn,
-  GLIDE_PATH_PRESETS,
-} from "@/lib/bondAllocation";
-
-import { MONTE_CARLO_PATHS } from "@/lib/constants";
-
-import type { ReturnMode, WalkSeries, BatchSummary, GuardrailsResult, RothConversionResult } from "@/types/planner";
-
-// Import calculation modules
-import {
-  type FilingStatus,
-} from "@/lib/calculations/taxCalculations";
-
-// Import retirement engine
-import {
-  runSingleSimulation,
-  type SimulationInputs,
-} from "@/lib/calculations/retirementEngine";
-
-// Import simulation modules
-import {
-  getBearReturns,
-  BEAR_MARKET_SCENARIOS,
-  type BearMarketScenario,
-} from "@/lib/simulation/bearMarkets";
-
-import {
-  getEffectiveInflation,
-  INFLATION_SHOCK_SCENARIOS,
-  type InflationShockScenario,
-} from "@/lib/simulation/inflationShocks";
-
-// Validation utilities - used by ConfigureTab and input forms
-import {
-  validateAge,
-  validateRetirementAge,
-  validateBalance,
-  validate401kContribution,
-  validateIRAContribution,
-  validateRate,
-  validateWithdrawalRate
-} from "@/lib/fieldValidation";
+// Constants, utils, bondAllocation, validation — consumed by extracted hooks/components
+import { fmt } from "@/lib/utils";
+import type { ReturnMode, WalkSeries, BatchSummary } from "@/types/planner";
+import type { SimulationInputs } from "@/lib/calculations/retirementEngine";
 
 // Re-export types for compatibility
 export type { ReturnMode, WalkSeries, BatchSummary };
@@ -285,7 +143,7 @@ export type Inputs = SimulationInputs;
 
 export default function App() {
   const { setImplied } = useBudget();
-  const { config: planConfig, updateConfig: updatePlanConfig, isDirty: configIsDirty } = usePlanConfig();
+  const { config: planConfig, updateConfig: updatePlanConfig } = usePlanConfig();
 
   // Canonical defaults — used as ?? fallbacks to ensure page.tsx never diverges
   // from createDefaultPlanConfig(). This eliminates the bug where hardcoded fallback
@@ -299,27 +157,26 @@ export default function App() {
     result: res, setResult: setRes,
     error: err, setError: setErr,
     isRunning, setIsRunning,
-    isDirty, setIsDirty, markDirty: markResultsDirty, markClean,
+    isDirty, setIsDirty, markDirty: markResultsDirty,
     batchSummary, setBatchSummary,
     legacyResult, setLegacyResult,
     comparisonData, setComparisonData,
     comparisonMode, setComparisonMode,
     lastCalculated, setLastCalculated,
     inputsModified, setInputsModified,
-    clearResults, hasResults,
   } = useCalculatorResults();
 
   // UI toggles hook (owns visibility states + localStorage for resultsViewMode)
   const {
     showSensitivity, setShowSensitivity,
-    showBearMarket, setShowBearMarket,
-    showInflationShock, setShowInflationShock,
+    setShowBearMarket,
+    setShowInflationShock,
     showStressTests, setShowStressTests,
     showP10, setShowP10,
     showP90, setShowP90,
     showBackToTop, setShowBackToTop,
     aiReviewOpen, setAiReviewOpen,
-    assumeTaxCutsExtended, setAssumeTaxCutsExtended,
+    assumeTaxCutsExtended,
     resultsViewMode, setResultsViewMode,
   } = useUIToggles();
 
@@ -332,7 +189,6 @@ export default function App() {
     showComparison, setShowComparison,
     saveScenario: hookSaveScenario,
     deleteScenario,
-    toggleScenarioSelection,
   } = useSavedScenarios();
 
   // Onboarding wizard state - validate both flag AND config data
@@ -407,64 +263,32 @@ export default function App() {
 
   // Family & Children - read from context (synced with wizard)
   const numChildren = planConfig.numChildren ?? DEFAULTS.numChildren;
-  const childrenAges = planConfig.childrenAges ?? [];
 
-  // Helper setter functions - now using updatePlanConfig
-  // markDirty delegates to useCalculatorResults hook
+  // Memoized setter functions — generated by usePlanConfigSetters hook.
+  // markDirty delegates to useCalculatorResults hook.
   const markDirty = markResultsDirty;
 
-  const setMarital = (value: FilingStatus) => { updatePlanConfig({ marital: value }, 'user-entered'); markDirty(); };
-  // setAge1 atomically updates bondStartAge when it follows age1 (not explicitly overridden)
-  // This eliminates the useEffect cascade that was syncing bondStartAge with age1
-  const setAge1 = (value: number) => {
-    const currentBondStartAge = planConfig.bondStartAge;
-    const currentAge1 = planConfig.age1 ?? DEFAULTS.age1;
-    // If bondStartAge was tracking age1 (not user-overridden), keep it in sync atomically
-    const bondStartAgeFollowsAge = currentBondStartAge === undefined || currentBondStartAge === currentAge1;
-    const updates: Partial<typeof planConfig> = { age1: value };
-    if (bondStartAgeFollowsAge) {
-      updates.bondStartAge = value;
-    }
-    updatePlanConfig(updates, 'user-entered');
-    markDirty();
-  };
-  const setAge2 = (value: number) => { updatePlanConfig({ age2: value }, 'user-entered'); markDirty(); };
-  const setRetirementAge = (value: number) => { updatePlanConfig({ retirementAge: value }, 'user-entered'); markDirty(); };
+  const {
+    setMarital, setAge1, setAge2, setRetirementAge,
+    setTaxableBalance, setPretaxBalance, setRothBalance,
+    setCTax1, setCPre1, setCPost1, setCMatch1,
+    setCTax2, setCPre2, setCPost2, setCMatch2,
+    setRetRate, setInflationRate, setStateRate, setIncContrib, setIncRate, setWdRate,
+    setIncludeSS, setSSIncome, setSSClaimAge, setSSIncome2, setSSClaimAge2,
+    setIncludeMedicare, setMedicarePremium, setMedicalInflation,
+    setIrmaaThresholdSingle, setIrmaaThresholdMarried, setIrmaaSurcharge,
+    setIncludeLTC, setLtcAnnualCost, setLtcProbability, setLtcDuration,
+    setLtcOnsetAge, setLtcAgeRangeStart, setLtcAgeRangeEnd,
+    setEnableRothConversions, setTargetConversionBracket,
+    setShowGen, setHypPerBen, setNumberOfBeneficiaries, setAdditionalChildrenExpected,
+    setTotalFertilityRate, setGenerationLength, setFertilityWindowStart, setFertilityWindowEnd,
+    setHypDeathAge, setHypMinDistAge,
+    setReturnMode, setSeed, setRandomWalkSeries,
+    setAllocationStrategy, setBondStartPct, setBondEndPct, setBondStartAge, setBondEndAge, setGlidePathShape,
+    setHistoricalYear, setInflationShockRate, setInflationShockDuration,
+  } = usePlanConfigSetters(updatePlanConfig, markDirty, planConfig);
 
-  const setEmploymentType1 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other') => { updatePlanConfig({ employmentType1: value }, 'user-entered'); markDirty(); };
-  const setEmploymentType2 = (value: 'w2' | 'self-employed' | 'both' | 'retired' | 'other' | undefined) => { updatePlanConfig({ employmentType2: value }, 'user-entered'); markDirty(); };
-  const setPrimaryIncome = (value: number) => { updatePlanConfig({ primaryIncome: value }, 'user-entered'); markDirty(); };
-  const setSpouseIncome = (value: number) => { updatePlanConfig({ spouseIncome: value }, 'user-entered'); markDirty(); };
-
-  const setEmergencyFund = (value: number) => { updatePlanConfig({ emergencyFund: value }, 'user-entered'); markDirty(); };
-  const setTaxableBalance = (value: number) => { updatePlanConfig({ taxableBalance: value }, 'user-entered'); markDirty(); };
-  const setPretaxBalance = (value: number) => { updatePlanConfig({ pretaxBalance: value }, 'user-entered'); markDirty(); };
-  const setRothBalance = (value: number) => { updatePlanConfig({ rothBalance: value }, 'user-entered'); markDirty(); };
-
-  const setCTax1 = (value: number) => { updatePlanConfig({ cTax1: value }, 'user-entered'); markDirty(); };
-  const setCPre1 = (value: number) => { updatePlanConfig({ cPre1: value }, 'user-entered'); markDirty(); };
-  const setCPost1 = (value: number) => { updatePlanConfig({ cPost1: value }, 'user-entered'); markDirty(); };
-  const setCMatch1 = (value: number) => { updatePlanConfig({ cMatch1: value }, 'user-entered'); markDirty(); };
-  const setCTax2 = (value: number) => { updatePlanConfig({ cTax2: value }, 'user-entered'); markDirty(); };
-  const setCPre2 = (value: number) => { updatePlanConfig({ cPre2: value }, 'user-entered'); markDirty(); };
-  const setCPost2 = (value: number) => { updatePlanConfig({ cPost2: value }, 'user-entered'); markDirty(); };
-  const setCMatch2 = (value: number) => { updatePlanConfig({ cMatch2: value }, 'user-entered'); markDirty(); };
-
-  const setRetRate = (value: number) => { updatePlanConfig({ retRate: value }, 'user-entered'); markDirty(); };
-  const setInflationRate = (value: number) => { updatePlanConfig({ inflationRate: value }, 'user-entered'); markDirty(); };
-  const setStateRate = (value: number) => { updatePlanConfig({ stateRate: value }, 'user-entered'); markDirty(); };
-  const setIncContrib = (value: boolean) => { updatePlanConfig({ incContrib: value }, 'user-entered'); markDirty(); };
-  const setIncRate = (value: number) => { updatePlanConfig({ incRate: value }, 'user-entered'); markDirty(); };
-  const setWdRate = (value: number) => { updatePlanConfig({ wdRate: value }, 'user-entered'); markDirty(); };
-  const setDividendYield = (value: number) => { updatePlanConfig({ dividendYield: value }, 'user-entered'); markDirty(); };
-
-  const setIncludeSS = (value: boolean) => { updatePlanConfig({ includeSS: value }, 'user-entered'); markDirty(); };
-  const setSSIncome = (value: number) => { updatePlanConfig({ ssIncome: value }, 'user-entered'); markDirty(); };
-  const setSSClaimAge = (value: number) => { updatePlanConfig({ ssClaimAge: value }, 'user-entered'); markDirty(); };
-  const setSSIncome2 = (value: number) => { updatePlanConfig({ ssIncome2: value }, 'user-entered'); markDirty(); };
-  const setSSClaimAge2 = (value: number) => { updatePlanConfig({ ssClaimAge2: value }, 'user-entered'); markDirty(); };
-
-  // Healthcare costs (post-retirement) - now synced to context
+  // Healthcare costs (post-retirement) - derived state reads from context
   const includeMedicare = planConfig.includeMedicare ?? true;
   const medicarePremium = planConfig.medicarePremium ?? DEFAULTS.medicarePremium;
   const medicalInflation = planConfig.medicalInflation ?? DEFAULTS.medicalInflation;
@@ -472,14 +296,7 @@ export default function App() {
   const irmaaThresholdMarried = planConfig.irmaaThresholdMarried ?? DEFAULTS.irmaaThresholdMarried;
   const irmaaSurcharge = planConfig.irmaaSurcharge ?? DEFAULTS.irmaaSurcharge;
 
-  const setIncludeMedicare = (value: boolean) => { updatePlanConfig({ includeMedicare: value }, 'user-entered'); markDirty(); };
-  const setMedicarePremium = (value: number) => { updatePlanConfig({ medicarePremium: value }, 'user-entered'); markDirty(); };
-  const setMedicalInflation = (value: number) => { updatePlanConfig({ medicalInflation: value }, 'user-entered'); markDirty(); };
-  const setIrmaaThresholdSingle = (value: number) => { updatePlanConfig({ irmaaThresholdSingle: value }, 'user-entered'); markDirty(); };
-  const setIrmaaThresholdMarried = (value: number) => { updatePlanConfig({ irmaaThresholdMarried: value }, 'user-entered'); markDirty(); };
-  const setIrmaaSurcharge = (value: number) => { updatePlanConfig({ irmaaSurcharge: value }, 'user-entered'); markDirty(); };
-
-  // Long-Term Care - now synced to context
+  // Long-Term Care - derived state reads from context
   const includeLTC = planConfig.includeLTC ?? false;
   const ltcAnnualCost = planConfig.ltcAnnualCost ?? DEFAULTS.ltcAnnualCost;
   const ltcProbability = planConfig.ltcProbability ?? DEFAULTS.ltcProbability;
@@ -488,39 +305,21 @@ export default function App() {
   const ltcAgeRangeStart = planConfig.ltcAgeRangeStart ?? DEFAULTS.ltcAgeRangeStart;
   const ltcAgeRangeEnd = planConfig.ltcAgeRangeEnd ?? DEFAULTS.ltcAgeRangeEnd;
 
-  const setIncludeLTC = (value: boolean) => { updatePlanConfig({ includeLTC: value }, 'user-entered'); markDirty(); };
-  const setLtcAnnualCost = (value: number) => { updatePlanConfig({ ltcAnnualCost: value }, 'user-entered'); markDirty(); };
-  const setLtcProbability = (value: number) => { updatePlanConfig({ ltcProbability: value }, 'user-entered'); markDirty(); };
-  const setLtcDuration = (value: number) => { updatePlanConfig({ ltcDuration: value }, 'user-entered'); markDirty(); };
-  const setLtcOnsetAge = (value: number) => { updatePlanConfig({ ltcOnsetAge: value }, 'user-entered'); markDirty(); };
-  const setLtcAgeRangeStart = (value: number) => { updatePlanConfig({ ltcAgeRangeStart: value }, 'user-entered'); markDirty(); };
-  const setLtcAgeRangeEnd = (value: number) => { updatePlanConfig({ ltcAgeRangeEnd: value }, 'user-entered'); markDirty(); };
-
-  // Roth Conversion Strategy - now synced to context
+  // Roth Conversion Strategy - derived state reads from context
   const enableRothConversions = planConfig.enableRothConversions ?? false;
   const targetConversionBracket = planConfig.targetConversionBracket ?? DEFAULTS.targetConversionBracket;
 
-  const setEnableRothConversions = (value: boolean) => { updatePlanConfig({ enableRothConversions: value }, 'user-entered'); markDirty(); };
-  const setTargetConversionBracket = (value: number) => { updatePlanConfig({ targetConversionBracket: value }, 'user-entered'); markDirty(); };
-
-  // Generational Wealth - read from planConfig context
+  // Generational Wealth - derived state reads from planConfig context
   const showGen = planConfig.showGen ?? false;
-  const setShowGen = (value: boolean) => { updatePlanConfig({ showGen: value }, 'user-entered'); markDirty(); };
 
   // Generational wealth parameters (improved demographic model)
   const hypPerBen = planConfig.hypPerBen ?? DEFAULTS.hypPerBen;
-  const setHypPerBen = (value: number) => { updatePlanConfig({ hypPerBen: value }, 'user-entered'); markDirty(); };
   const numberOfBeneficiaries = planConfig.numberOfBeneficiaries ?? 2;
-  const setNumberOfBeneficiaries = (value: number) => { updatePlanConfig({ numberOfBeneficiaries: value }, 'user-entered'); markDirty(); };
 
   // Beneficiary inputs - DERIVED from planConfig (no useEffect sync needed)
   // childrenCurrentAges and numberOfChildren are now computed directly from planConfig
   // This eliminates the infinite loop bug that occurred with useEffect-based syncing
   const additionalChildrenExpected = planConfig.additionalChildrenExpected ?? DEFAULTS.additionalChildrenExpected;
-  const setAdditionalChildrenExpected = (value: number) => {
-    updatePlanConfig({ additionalChildrenExpected: value }, 'user-entered');
-    markDirty();
-  };
 
   // DERIVED STATE: Compute children display values directly from planConfig
   // This replaces the useEffect that was syncing state and causing cascade updates
@@ -610,47 +409,30 @@ export default function App() {
     markDirty();
   }, [planConfig.numChildren, planConfig.childrenAges, planConfig.numberOfBeneficiaries, updatePlanConfig]);
 
-  // Generational wealth demographic parameters - read from planConfig context
+  // Generational wealth demographic parameters - derived state reads from planConfig context
   const totalFertilityRate = planConfig.totalFertilityRate ?? DEFAULTS.totalFertilityRate; // Children per person (lifetime)
-  const setTotalFertilityRate = (value: number) => { updatePlanConfig({ totalFertilityRate: value }, 'user-entered'); markDirty(); };
   const generationLength = planConfig.generationLength ?? DEFAULTS.generationLength; // Average age when having children
-  const setGenerationLength = (value: number) => { updatePlanConfig({ generationLength: value }, 'user-entered'); markDirty(); };
   const fertilityWindowStart = planConfig.fertilityWindowStart ?? DEFAULTS.fertilityWindowStart;
-  const setFertilityWindowStart = (value: number) => { updatePlanConfig({ fertilityWindowStart: value }, 'user-entered'); markDirty(); };
   const fertilityWindowEnd = planConfig.fertilityWindowEnd ?? DEFAULTS.fertilityWindowEnd;
-  const setFertilityWindowEnd = (value: number) => { updatePlanConfig({ fertilityWindowEnd: value }, 'user-entered'); markDirty(); };
   const hypDeathAge = planConfig.hypDeathAge ?? DEFAULTS.hypDeathAge;
-  const setHypDeathAge = (value: number) => { updatePlanConfig({ hypDeathAge: value }, 'user-entered'); markDirty(); };
   const hypMinDistAge = planConfig.hypMinDistAge ?? DEFAULTS.hypMinDistAge; // Minimum age to receive distributions
-  const setHypMinDistAge = (value: number) => { updatePlanConfig({ hypMinDistAge: value }, 'user-entered'); markDirty(); };
 
   // Legacy state variables for backward compatibility with old simulation
   const [hypBirthMultiple, setHypBirthMultiple] = useState(1);
   const [hypBirthInterval, setHypBirthInterval] = useState(30);
 
-  // Simulation Settings - synced to context
+  // Simulation Settings - derived state reads from context
   const returnMode = planConfig.returnMode ?? 'randomWalk';
   const seed = planConfig.seed ?? DEFAULTS.seed;
   const randomWalkSeries = planConfig.randomWalkSeries ?? 'trulyRandom';
 
-  const setReturnMode = (value: "fixed" | "randomWalk") => { updatePlanConfig({ returnMode: value }, 'user-entered'); markDirty(); };
-  const setSeed = (value: number) => { updatePlanConfig({ seed: value }, 'user-entered'); markDirty(); };
-  const setRandomWalkSeries = (value: "nominal" | "real" | "trulyRandom") => { updatePlanConfig({ randomWalkSeries: value }, 'user-entered'); markDirty(); };
-
-  // Bond Glide Path Configuration - synced to context
+  // Bond Glide Path Configuration - derived state reads from context
   const allocationStrategy = planConfig.allocationStrategy ?? 'aggressive';
   const bondStartPct = planConfig.bondStartPct ?? DEFAULTS.bondStartPct;
   const bondEndPct = planConfig.bondEndPct ?? DEFAULTS.bondEndPct;
   const bondStartAge = planConfig.bondStartAge ?? age1;
   const bondEndAge = planConfig.bondEndAge ?? DEFAULTS.bondEndAge;
   const glidePathShape = planConfig.glidePathShape ?? 'linear';
-
-  const setAllocationStrategy = (value: 'aggressive' | 'ageBased' | 'custom') => { updatePlanConfig({ allocationStrategy: value }, 'user-entered'); markDirty(); };
-  const setBondStartPct = (value: number) => { updatePlanConfig({ bondStartPct: value }, 'user-entered'); markDirty(); };
-  const setBondEndPct = (value: number) => { updatePlanConfig({ bondEndPct: value }, 'user-entered'); markDirty(); };
-  const setBondStartAge = (value: number) => { updatePlanConfig({ bondStartAge: value }, 'user-entered'); markDirty(); };
-  const setBondEndAge = (value: number) => { updatePlanConfig({ bondEndAge: value }, 'user-entered'); markDirty(); };
-  const setGlidePathShape = (value: 'linear' | 'accelerated' | 'decelerated') => { updatePlanConfig({ glidePathShape: value }, 'user-entered'); markDirty(); };
 
   // NOTE: bondStartAge sync with age1 is now handled atomically in setAge1()
   // This eliminates the useEffect cascade that was causing unnecessary re-renders
@@ -670,14 +452,10 @@ export default function App() {
   // Sensitivity analysis state (page-local, not in any hook)
   const [sensitivityData, setSensitivityData] = useState<SensitivityAnalysisData | null>(null);
 
-  // Scenario Testing - synced to context
+  // Scenario Testing - derived state reads from context
   const historicalYear = planConfig.historicalYear ?? null;
   const inflationShockRate = planConfig.inflationShockRate ?? DEFAULTS.inflationShockRate ?? 0;
   const inflationShockDuration = planConfig.inflationShockDuration ?? DEFAULTS.inflationShockDuration;
-
-  const setHistoricalYear = (value: number | null) => { updatePlanConfig({ historicalYear: value ?? undefined }, 'user-entered'); markDirty(); };
-  const setInflationShockRate = (value: number) => { updatePlanConfig({ inflationShockRate: value }, 'user-entered'); markDirty(); };
-  const setInflationShockDuration = (value: number) => { updatePlanConfig({ inflationShockDuration: value }, 'user-entered'); markDirty(); };
 
   const { resolvedTheme, toggleTheme } = useTheme();
   const isDarkMode = resolvedTheme === 'dark';
@@ -807,124 +585,20 @@ export default function App() {
   // runMonteCarloViaWorker, runLegacyViaWorker, runGuardrailsAnalysis, runRothOptimizer
   // are now provided by useWorkerSimulations hook
 
-  /**
-   * Run comparison between baseline and selected scenarios
-   * Merges comparison data onto existing res.data to preserve bal, real, p10, p90 keys
-   * Accepts optional overrides for scenario values to avoid stale closure issues
-   */
-  const runComparison = useCallback(async (overrides?: {
-    historicalYear?: number | null;
-    inflationShockRate?: number;
-    inflationShockDuration?: number;
-  }) => {
-    if (!comparisonMode || !res?.data) return;
-
-    // Use overrides if provided, otherwise fall back to state values
-    const effectiveHistoricalYear = overrides?.historicalYear !== undefined ? overrides.historicalYear : historicalYear;
-    const effectiveInflationRate = overrides?.inflationShockRate !== undefined ? overrides.inflationShockRate : inflationShockRate;
-    const effectiveInflationDuration = overrides?.inflationShockDuration !== undefined ? overrides.inflationShockDuration : inflationShockDuration;
-
-    setErr(null);
-    const younger = Math.min(age1, isMar ? age2 : age1);
-    const yrsToRet = retirementAge - younger;
-
-    try {
-      // Prepare baseline inputs
-      const baseInputs = {
-        marital, age1, age2, retirementAge, taxableBalance, pretaxBalance, rothBalance,
-        cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-        retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
-        returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
-        historicalYear: undefined,
-        inflationShockRate: null,
-        inflationShockDuration: 5,
-      };
-
-      // Calculate baseline
-      const baselineResult = runSingleSimulation(baseInputs, seed);
-
-      // Calculate bear market scenario if specified
-      let bearData = null;
-      if (effectiveHistoricalYear) {
-        const bearInputs = { ...baseInputs, historicalYear: effectiveHistoricalYear };
-        const bearResult = runSingleSimulation(bearInputs, seed);
-        bearData = bearResult.balancesReal;
-      }
-
-      // Calculate inflation shock scenario if specified
-      let inflationData = null;
-      if (effectiveInflationRate > 0) {
-        const inflationInputs = {
-          ...baseInputs,
-          inflationShockRate: effectiveInflationRate,
-          inflationShockDuration: effectiveInflationDuration
-        };
-        const inflationResult = runSingleSimulation(inflationInputs, seed);
-        inflationData = inflationResult.balancesReal;
-      }
-
-      // Merge comparison data onto existing res.data structure
-      // This preserves bal, real, p10, p90 while adding baseline, bearMarket, inflation
-      const mergedData = res.data.map((row, i) => ({
-        ...row, // Keep year, a1, a2, bal, real, p10, p90, etc.
-        baseline: baselineResult.balancesReal[i],
-        bearMarket: bearData ? bearData[i] : undefined,
-        inflation: inflationData ? inflationData[i] : undefined,
-      }));
-
-      // Update comparison state
-      setComparisonData({
-        baseline: {
-          data: mergedData,
-          visible: true,
-          label: "Baseline",
-        },
-        bearMarket: effectiveHistoricalYear ? {
-          data: mergedData,
-          visible: true,
-          label: BEAR_MARKET_SCENARIOS.find(s => s.year === effectiveHistoricalYear)?.label || `${effectiveHistoricalYear} Crash`,
-          year: effectiveHistoricalYear,
-        } : null,
-        inflation: effectiveInflationRate > 0 ? {
-          data: mergedData,
-          visible: true,
-          label: `${effectiveInflationRate}% Inflation (${effectiveInflationDuration}yr)`,
-          rate: effectiveInflationRate,
-          duration: effectiveInflationDuration,
-        } : null,
-      });
-
-    } catch (error: unknown) {
-      setErr(error instanceof Error ? error.message : 'An unknown error occurred');
-    }
-  }, [comparisonMode, res, age1, age2, retirementAge, marital, taxableBalance, pretaxBalance, rothBalance, cTax1, cPre1, cPost1, cMatch1,
-      cTax2, cPre2, cPost2, cMatch2, retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
-      returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
-      historicalYear, inflationShockRate, inflationShockDuration, seed, isMar]);
-
-  /**
-   * Run comparison with randomly selected bear market and inflation shock scenarios
-   */
-  const runRandomComparison = useCallback(() => {
-    // Randomly select a bear market scenario
-    const randomBearScenario = BEAR_MARKET_SCENARIOS[Math.floor(Math.random() * BEAR_MARKET_SCENARIOS.length)];
-
-    // Randomly select an inflation shock scenario
-    const randomInflationScenario = INFLATION_SHOCK_SCENARIOS[Math.floor(Math.random() * INFLATION_SHOCK_SCENARIOS.length)];
-
-    // Set the states for UI display
-    setHistoricalYear(randomBearScenario.year);
-    setInflationShockRate(randomInflationScenario.rate);
-    setInflationShockDuration(randomInflationScenario.duration);
-    setComparisonMode(true);
-
-    // Pass values directly to runComparison to avoid stale closure issues
-    runComparison({
-      historicalYear: randomBearScenario.year,
-      inflationShockRate: randomInflationScenario.rate,
-      inflationShockDuration: randomInflationScenario.duration,
-    });
-  }, [runComparison]);
+  // runComparison and runRandomComparison are now provided by useComparison hook
+  const { runComparison, runRandomComparison } = useComparison({
+    comparisonMode, setComparisonMode,
+    res, setErr, setComparisonData,
+    historicalYear, inflationShockRate, inflationShockDuration,
+    setHistoricalYear, setInflationShockRate, setInflationShockDuration,
+    marital, age1, age2, retirementAge,
+    taxableBalance, pretaxBalance, rothBalance,
+    cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
+    retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
+    returnMode, randomWalkSeries,
+    includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
+    seed, isMar,
+  });
 
   // calculateLegacyResult and applyGenerationalPreset are now provided by useCalculation hook
 
@@ -1138,84 +812,7 @@ export default function App() {
       </Suspense>
 
       {/* AI Documentation Mode Header */}
-      {isAIDocMode && (
-        <>
-          <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg z-50 print:hidden">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h1 className="text-2xl font-bold mb-2">
-                    🤖 AI Documentation Mode
-                  </h1>
-                  <p className="text-sm opacity-90 mb-3">
-                    All calculator tabs expanded below for AI review. Scroll to see everything or Save as PDF (Ctrl/Cmd+P).
-                  </p>
-                  <div className="flex flex-wrap gap-3 text-xs">
-                    <div className="bg-white/20 rounded px-2 py-1">
-                      📸 Screenshot sections as needed
-                    </div>
-                    <div className="bg-white/20 rounded px-2 py-1">
-                      📄 Ctrl/Cmd+P → Save as PDF
-                    </div>
-                    <div className="bg-white/20 rounded px-2 py-1">
-                      ⌨️ Ctrl+Shift+D to exit
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsAIDocMode(false)}
-                  className="shrink-0 bg-white/20 hover:bg-white/30 rounded px-3 py-1.5 text-sm font-medium transition-colors"
-                >
-                  ✕ Close
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Global styles for doc mode */}
-          <style jsx global>{`
-            .ai-doc-mode-active [role="tabpanel"] {
-              display: block !important;
-              opacity: 1 !important;
-              height: auto !important;
-              overflow: visible !important;
-              margin-bottom: 4rem;
-              padding-bottom: 4rem;
-              border-bottom: 3px solid #e5e7eb;
-              page-break-inside: avoid;
-            }
-
-            .ai-doc-mode-active [role="tabpanel"]:last-child {
-              border-bottom: none;
-            }
-
-            /* Hide tab navigation in doc mode */
-            .ai-doc-mode-active [role="tablist"] {
-              display: none !important;
-            }
-
-            @media print {
-              .ai-doc-mode-active [role="tabpanel"] {
-                page-break-inside: avoid;
-              }
-
-              .ai-doc-mode-active canvas,
-              .ai-doc-mode-active img {
-                max-width: 100% !important;
-                page-break-inside: avoid;
-              }
-            }
-          `}</style>
-
-          {!res && (
-            <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mx-4 mt-4 print:hidden">
-              <p className="text-yellow-800">
-                ⏳ Running calculations... Page will update in a moment.
-              </p>
-            </div>
-          )}
-        </>
-      )}
+      <AIDocMode isActive={isAIDocMode} onToggle={() => setIsAIDocMode(false)} hasResults={!!res} />
 
       {/* Main app content - normal layout or doc mode both use same JSX */}
       {/* BrandLoader disabled - uncomment if needed in future */}
@@ -1724,158 +1321,6 @@ export default function App() {
           </div>
         </TabPanel>
         )}
-        {/* Budget Tab - HIDDEN per user request (contains Retirement Timeline & Implied Budget) */}
-        {false && (
-        <TabPanel id="budget" activeTab={activeMainTab}>
-        <AnimatedSection animation="fade-in" delay={100}>
-          {/* Retirement Timeline - First element */}
-          {res && (
-            <div className="mb-6">
-              <TimelineView
-                result={res!}
-                currentAge={Math.max(age1, isMar ? age2 : age1)}
-                retirementAge={retirementAge}
-                spouseAge={Math.min(age1, isMar ? age2 : age1)}
-              />
-            </div>
-          )}
-
-          {/* Budget Calculator */}
-          {res && (() => {
-            // Calculate implied budget from retirement contributions
-            // Assumptions for budget allocation
-            const RETIREMENT_SAVINGS_RATE = 0.15; // 15% of gross income
-            const HOUSING_RATE = 0.30; // 30% for housing/necessities
-            const DISCRETIONARY_RATE = 0.25; // 25% for discretionary spending
-            const TAXES_RATE = 0.30; // 30% for taxes (federal, state, FICA)
-
-            // Calculate total annual contributions (taxable + pre-tax + post-tax/Roth)
-            const totalContributions = cTax1 + cPre1 + cPost1;
-
-            // Work backwards: if contributions are X% of gross, what's the gross income?
-            const impliedGrossIncome = totalContributions / RETIREMENT_SAVINGS_RATE;
-
-            // Calculate budget categories
-            const budgetCategories = {
-              gross: impliedGrossIncome,
-              retirement: totalContributions,
-              taxes: impliedGrossIncome * TAXES_RATE,
-              housing: impliedGrossIncome * HOUSING_RATE,
-              discretionary: impliedGrossIncome * DISCRETIONARY_RATE,
-            };
-
-            return (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Implied Budget</CardTitle>
-                  <CardDescription>
-                    Based on your ${fmt(totalContributions)} annual retirement contributions,
-                    here's the minimum budget you would need assuming standard allocation percentages.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Info Box */}
-                  <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-100">How This Works</h4>
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      We work backwards from your retirement contributions to estimate your minimum required income
-                      using common financial planning ratios. This assumes you're saving {(RETIREMENT_SAVINGS_RATE * 100).toFixed(0)}%
-                      of your gross income for retirement.
-                    </p>
-                  </div>
-
-                  {/* Budget Breakdown */}
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Gross Income */}
-                      <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <div className="text-sm text-muted-foreground mb-1">Implied Gross Income</div>
-                        <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
-                          {fmt(budgetCategories.gross)}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">100% of budget</div>
-                      </div>
-
-                      {/* Retirement Savings */}
-                      <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-                        <div className="text-sm text-muted-foreground mb-1">Retirement Contributions</div>
-                        <div className="text-3xl font-bold text-green-900 dark:text-green-100">
-                          {fmt(budgetCategories.retirement)}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {(RETIREMENT_SAVINGS_RATE * 100).toFixed(0)}% of gross income
-                        </div>
-                      </div>
-
-                      {/* Taxes */}
-                      <div className="p-4 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border border-red-200 dark:border-red-800 rounded-lg">
-                        <div className="text-sm text-muted-foreground mb-1">Estimated Taxes</div>
-                        <div className="text-3xl font-bold text-red-900 dark:text-red-100">
-                          {fmt(budgetCategories.taxes)}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {(TAXES_RATE * 100).toFixed(0)}% of gross income
-                        </div>
-                      </div>
-
-                      {/* Housing/Necessities */}
-                      <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200 dark:border-purple-800 rounded-lg">
-                        <div className="text-sm text-muted-foreground mb-1">Housing & Necessities</div>
-                        <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-                          {fmt(budgetCategories.housing)}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {(HOUSING_RATE * 100).toFixed(0)}% of gross income
-                        </div>
-                      </div>
-
-                      {/* Discretionary */}
-                      <div className="p-4 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg col-span-1 md:col-span-2">
-                        <div className="text-sm text-muted-foreground mb-1">Discretionary Spending</div>
-                        <div className="text-3xl font-bold text-yellow-900 dark:text-yellow-100">
-                          {fmt(budgetCategories.discretionary)}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {(DISCRETIONARY_RATE * 100).toFixed(0)}% of gross income
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Assumptions */}
-                  <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg">
-                    <h4 className="font-semibold text-sm mb-3">Budget Assumptions</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Retirement Savings:</span>
-                        <span className="font-medium">{(RETIREMENT_SAVINGS_RATE * 100).toFixed(0)}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Taxes (all):</span>
-                        <span className="font-medium">{(TAXES_RATE * 100).toFixed(0)}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Housing/Necessities:</span>
-                        <span className="font-medium">{(HOUSING_RATE * 100).toFixed(0)}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Discretionary:</span>
-                        <span className="font-medium">{(DISCRETIONARY_RATE * 100).toFixed(0)}%</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                      These percentages are based on common financial planning guidelines. Your actual budget may vary
-                      based on your location, family size, and lifestyle choices.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })()}
-        </AnimatedSection>
-        </TabPanel>
-        )}
-
         {/* Optimize Tab */}
         <TabPanel id="optimize" activeTab={activeMainTab}>
         <AnimatedSection animation="fade-in" delay={100}>

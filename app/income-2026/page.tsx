@@ -20,7 +20,6 @@ import {
 import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
 import { createDefaultPlanConfig } from "@/types/plan-config";
-import { loadSharedIncomeData, hasRecentIncomeData } from "@/lib/sharedIncomeData";
 import { fmtFull } from "@/lib/utils";
 import { METRIC_COLORS, TYPOGRAPHY } from "@/lib/designTokens";
 
@@ -36,7 +35,6 @@ import {
   useExpenseState,
   MONTHS,
   getPaychecksPerYear,
-  adjustForWeekend,
   generatePaycheckDates,
   type FilingStatus,
   type PayFrequency,
@@ -210,17 +208,6 @@ export default function Income2026Page() {
     if (hasAISuggestedFields) {
       setIsFromAIOnboarding(true);
       setShowAIBanner(true);
-    }
-
-    // Legacy sharedIncomeData
-    if (!hasAISuggestedFields && hasRecentIncomeData()) {
-      const sharedData = loadSharedIncomeData();
-      if (sharedData && sharedData.source === 'ai-onboarding') {
-        if (!planConfig.primaryIncome) updatePlanConfig({ primaryIncome: sharedData.primaryIncome }, 'imported');
-        if (!planConfig.spouseIncome && sharedData.spouseIncome) updatePlanConfig({ spouseIncome: sharedData.spouseIncome }, 'imported');
-        setIsFromAIOnboarding(true);
-        setShowAIBanner(true);
-      }
     }
   }, [planConfig, updatePlanConfig]);
 
