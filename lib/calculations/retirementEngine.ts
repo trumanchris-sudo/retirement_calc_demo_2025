@@ -39,7 +39,8 @@ import {
 } from "./shared";
 
 // Import from lib/constants for things not in shared (like estate tax, getCurrYear)
-import { ESTATE_TAX_EXEMPTION, ESTATE_TAX_RATE, getCurrYear, IRMAA_BRACKETS_2026 } from "@/lib/constants";
+import { ESTATE_TAX_EXEMPTION, ESTATE_TAX_RATE, getCurrYear } from "@/lib/constants";
+// Note: IRMAA_BRACKETS_2026 is imported in shared/constants and used via getIRMAASurcharge
 
 // Re-export types and functions for consumers of this module
 export type { FilingStatus };
@@ -254,8 +255,7 @@ export function calcCombinedSocialSecurity(
 export function calcEstateTax(
   totalEstate: number,
   status: FilingStatus = "single",
-  year: number = getCurrYear(),
-  _assumeExtended: boolean = true // Reason: Legacy parameter kept for API compatibility
+  year: number = getCurrYear()
 ): number {
   let exemption: number;
 
@@ -1155,7 +1155,6 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   }
 
   const eolWealth = Math.max(0, retBalTax + retBalPre + retBalRoth + retBalEmergency);
-  const yearsFrom2025 = yrsToRet + yrsToSim;
   // Use cumulativeInflation to match the balancesReal array deflation (accounts for inflation shocks)
   // This is consistent with the Monte Carlo worker implementation
   const safeCumulativeInflation = cumulativeInflation || 1;

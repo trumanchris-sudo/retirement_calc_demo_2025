@@ -380,11 +380,10 @@ function RateGauge({
 function BracketRangeIndicator({
   brackets,
   taxableIncome,
-  filingStatus,
 }: {
   brackets: TaxBracket[];
   taxableIncome: number;
-  filingStatus: FilingStatus;
+  filingStatus: FilingStatus; // Reason: Parameter kept for future tax calculations
 }) {
   // Find current bracket
   const currentBracketIndex = brackets.findIndex(
@@ -604,7 +603,7 @@ export function BracketVisualizer({
                     <Info className="h-4 w-4 text-muted-foreground" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p>Your effective rate is the actual percentage of your total income paid in taxes. It's always lower than your marginal rate because of progressive brackets.</p>
+                    <p>Your effective rate is the actual percentage of your total income paid in taxes. It&apos;s always lower than your marginal rate because of progressive brackets.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

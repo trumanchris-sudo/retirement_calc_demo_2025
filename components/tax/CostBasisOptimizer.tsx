@@ -316,10 +316,9 @@ function compareMethods(
 function calculateMethodResult(
   method: "FIFO" | "LIFO" | "HIFO" | "Specific",
   sortedLots: LotAnalysis[],
-  sharesToSell: number,
-  taxableIncome: number,
-  filingStatus: FilingStatus
+  sharesToSell: number
 ): MethodComparison {
+  // Reason: taxableIncome and filingStatus removed - tax calculations already done in analyzeLot
   const lotsUsed: LotAnalysis[] = [];
   let remainingShares = sharesToSell;
   let totalGain = 0;
@@ -951,11 +950,13 @@ export function CostBasisOptimizer({
   realizedLossesYTD = 1200,
   recentPurchases = [],
 }: CostBasisOptimizerProps) {
+  // Suppress unused var warning - currentPrice may be used for validation in the future
+  void currentPrice;
+
   // State
   const [filingStatus, setFilingStatus] = useState<FilingStatus>(initialFilingStatus);
   const [taxableIncome, setTaxableIncome] = useState(initialTaxableIncome);
   const [sharesToSell, setSharesToSell] = useState(initialSharesToSell);
-  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
   const [showLotDetails, setShowLotDetails] = useState(false);
 
   // Total available shares
@@ -991,10 +992,10 @@ export function CostBasisOptimizer({
     [taxLots, realizedGainsYTD, realizedLossesYTD, taxableIncome, filingStatus]
   );
 
-  // Selected method details
+  // Selected method details (currently always using bestMethod)
   const selectedMethodDetails = useMemo(
-    () => methodComparisons.find((m) => m.method === selectedMethod) || bestMethod,
-    [methodComparisons, selectedMethod, bestMethod]
+    () => bestMethod,
+    [bestMethod]
   );
 
   return (
@@ -1112,7 +1113,7 @@ export function CostBasisOptimizer({
                   <p className="text-sm text-blue-800 dark:text-blue-200">
                     When selling shares, you can choose which lots (purchase batches) to sell.
                     Different methods result in different tax outcomes. The IRS allows specific
-                    identification if you document which lots you're selling.
+                    identification if you document which lots you&apos;re selling.
                   </p>
                 </div>
               </div>
@@ -1206,7 +1207,7 @@ export function CostBasisOptimizer({
                         Wash Sale Rule Reminder
                       </h4>
                       <p className="text-sm text-amber-800 dark:text-amber-200">
-                        Avoid repurchasing the same or "substantially identical" security within 30 days
+                        Avoid repurchasing the same or &quot;substantially identical&quot; security within 30 days
                         before or after the sale. Consider buying a similar but different fund (e.g.,
                         switch from VTI to ITOT) to maintain market exposure while harvesting the loss.
                       </p>

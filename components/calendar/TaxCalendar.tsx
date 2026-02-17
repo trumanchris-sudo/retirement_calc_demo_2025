@@ -87,9 +87,10 @@ export interface TaxCalendarProps {
 
 // ==================== Constants ====================
 
-// Reason: React.ComponentType requires explicit props type, but we accept any icon component
 const CATEGORY_CONFIG: Record<
   TaxEventCategory,
+  // Reason: React.ComponentType requires explicit props type, but we accept any icon component
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { label: string; icon: React.ComponentType<any>; color: string; bgColor: string }
 > = {
   ira: {

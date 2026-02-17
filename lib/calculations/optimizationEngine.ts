@@ -297,7 +297,7 @@ function analyzeContributionOrder(inputs: OptimizationInputs): Recommendation[] 
   const {
     marital, age1, primaryIncome = 0, spouseIncome = 0,
     cPre1, cMatch1, cPost1, cTax1,
-    cPre2, cMatch2, cPost2, cTax2,
+    cMatch2,
     hsaEligible = false, hsaContribution = 0,
     retRate,
   } = inputs;
@@ -375,7 +375,6 @@ function analyzeContributionOrder(inputs: OptimizationInputs): Recommendation[] 
   // 3. Taxable before maxing 401k (if in low bracket and young)
   if (currentRate <= 0.22 && age1 < 40 && cTax1 > 0 && cPre1 < max401k) {
     const additionalPretax = Math.min(max401k - cPre1, cTax1);
-    const taxSavings = additionalPretax * currentRate;
     const yearsToRetirement = Math.max(0, inputs.retirementAge - age1);
 
     // Consider if they should be doing Roth instead at low bracket
@@ -433,7 +432,7 @@ function analyzeTaxBracketArbitrage(inputs: OptimizationInputs): Recommendation[
   const recommendations: Recommendation[] = [];
   const {
     marital, age1, primaryIncome = 0, spouseIncome = 0,
-    retirementAge, pretaxBalance, retRate,
+    retirementAge,
   } = inputs;
 
   const totalIncome = primaryIncome + (spouseIncome || 0);

@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
-  ChevronRight,
   ArrowRight,
   Check,
   Star,
@@ -22,7 +21,6 @@ import {
   Twitter,
   Linkedin,
   Github,
-  Mail,
   Menu,
   X,
 } from "lucide-react";

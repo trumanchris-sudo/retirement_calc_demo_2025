@@ -5,7 +5,6 @@ import { Moon, Sun, FileText, Download, Sliders, DollarSign, Briefcase, Bot, Vol
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 import CubeStaticMini from "@/components/CubeStaticMini";
 import { useTheme } from "@/lib/theme-context";
 import { useSoundPreferences } from "@/lib/sounds";
@@ -33,21 +32,17 @@ export interface AdjustmentDeltas {
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
   showActions = false,
-  isDarkMode: _isDarkMode,
-  onToggleDarkMode: _onToggleDarkMode,
   onDownloadPDF,
-  onPrint,
   onShare,
   onAdjust,
   onAIReview,
-  cubeAppended = false,
   hasUnsavedChanges = false,
   isSaving = false,
 }) => {
-  // Use theme context - the props are deprecated but kept for compatibility
+  // Use theme context - the deprecated props are omitted from destructuring
   const { resolvedTheme, toggleTheme } = useTheme();
   const { enabled: soundEnabled, toggle: toggleSound } = useSoundPreferences();
-  const isDarkMode = resolvedTheme === 'dark';
+  const isDarkMode = resolvedTheme === "dark";
   const onToggleDarkMode = toggleTheme;
   const [contributionDelta, setContributionDelta] = useState(0);
   const [withdrawalRateDelta, setWithdrawalRateDelta] = useState(0);

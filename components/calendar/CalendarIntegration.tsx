@@ -97,9 +97,10 @@ export interface CalendarIntegrationProps {
 
 // ==================== Constants ====================
 
-// Reason: React.ComponentType requires explicit props type, but we accept any icon component
 const CATEGORY_CONFIG: Record<
   CalendarEventCategory,
+  // Reason: React.ComponentType requires explicit props type, but we accept any icon component
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { label: string; icon: React.ComponentType<any>; color: string; bgColor: string }
 > = {
   'tax-deadline': {
@@ -1273,7 +1274,7 @@ export function CalendarIntegration({
                 <h4 className="font-medium">Apple Calendar</h4>
               </div>
               <ol className="text-sm text-muted-foreground space-y-2">
-                <li>1. Click "Add to Calendar" on any event</li>
+                <li>1. Click &quot;Add to Calendar&quot; on any event</li>
                 <li>2. Download the ICS file</li>
                 <li>3. Open the file to add to Calendar</li>
               </ol>
@@ -1287,8 +1288,8 @@ export function CalendarIntegration({
                 <h4 className="font-medium">Outlook</h4>
               </div>
               <ol className="text-sm text-muted-foreground space-y-2">
-                <li>1. Click "Add to Calendar" on any event</li>
-                <li>2. Select "Outlook"</li>
+                <li>1. Click &quot;Add to Calendar&quot; on any event</li>
+                <li>2. Select &quot;Outlook&quot;</li>
                 <li>3. Sign in and confirm the event</li>
               </ol>
             </div>

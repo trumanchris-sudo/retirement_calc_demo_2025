@@ -397,7 +397,7 @@ export function MathTab({
               <li>
                 <strong>Healthcare Cost Estimates:</strong> Medicare premiums, IRMAA surcharges, and long-term care
                 costs use national averages. Actual costs vary significantly by location, health status, and
-                insurance coverage. The model assumes continuous Medicare coverage and doesn't account for gaps
+                insurance coverage. The model assumes continuous Medicare coverage and doesn&apos;t account for gaps
                 before age 65 or supplemental insurance (Medigap) costs.
               </li>
               <li>
@@ -411,13 +411,13 @@ export function MathTab({
                 customization of maximum lifespan (up to age 100).
               </li>
               <li>
-                <strong>No Pension Income:</strong> Doesn't model traditional pensions, annuities, or rental income.
+                <strong>No Pension Income:</strong> Doesn&apos;t model traditional pensions, annuities, or rental income.
                 These could be approximated by adjusting your withdrawal needs downward or using the Social Security
                 field for other guaranteed income sources.
               </li>
               <li>
                 <strong>Generational Model Simplifications:</strong> The dynasty trust model assumes constant real
-                returns, uniform fertility patterns, and no external income for beneficiaries. It doesn't model
+                returns, uniform fertility patterns, and no external income for beneficiaries. It doesn&apos;t model
                 legal trust structures, trustee fees, or different payout strategies for different generations.
               </li>
             </ul>
