@@ -93,7 +93,7 @@ function buildContextSummary(config: PlanConfig, results: CalculationResult | nu
 
   let context = `CURRENT FINANCIAL SNAPSHOT:
 - Age: ${config.age1}${isMarried ? `, Spouse: ${config.age2}` : ""}
-- Target Retirement Age: ${config.retirementAge}
+- Retirement Age: ${config.retirementAge}
 - Years to Retirement: ${config.retirementAge - config.age1}
 - Marital Status: ${isMarried ? "Married" : "Single"}
 
@@ -118,7 +118,7 @@ ANNUAL CONTRIBUTIONS:
 - Savings Rate: ${((totalContributions / (config.primaryIncome + (config.spouseIncome || 0))) * 100).toFixed(1)}%
 
 ASSUMPTIONS:
-- Expected Return: ${config.retRate}%
+- Expected Return (Nominal): ${config.retRate}%
 - Inflation Rate: ${config.inflationRate}%
 - State Tax Rate: ${config.stateRate}%
 - Withdrawal Rate: ${config.wdRate}%

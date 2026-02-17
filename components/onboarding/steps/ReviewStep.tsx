@@ -133,7 +133,7 @@ export function ReviewStep({ wizardData, onRunPlan, isSubmitting }: ReviewStepPr
           <CardContent className="space-y-2">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-muted-foreground">Target Retirement Age</p>
+                <p className="text-xs text-muted-foreground">Retirement Age</p>
                 <p className="text-lg font-semibold">{goals.retirementAge}</p>
               </div>
               <div>

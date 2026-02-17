@@ -278,17 +278,17 @@ export function MathTab({
               <div>
                 <h4 className="text-lg font-semibold mb-2 text-blue-800">Estate Tax</h4>
                 <p className="text-gray-700 mb-3">
-                  Under the One Big Beautiful Bill Act (OBBBA, July 2025), the federal estate tax exemption is permanently set at
-                  ${((marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single) / 1_000_000).toFixed(0)}
-                  million per {marital === 'married' ? 'couple' : 'individual'} for 2026 and is indexed annually for inflation starting
-                  in 2027. Estates exceeding this threshold are subject to a 40% federal estate tax on the amount above the exemption.
+                  Under the One Big Beautiful Bill Act (OBBBA, July 2025), the federal estate tax exemption base amount is
+                  ${((marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single) / 1_000_000).toFixed(2)}
+                  million per {marital === 'married' ? 'couple' : 'individual'} for 2026, indexed annually for inflation
+                  starting in 2027. The previous sunset provision that would have halved the exemption has been eliminated.
+                  Estates exceeding this threshold are subject to a 40% federal estate tax on the amount above the exemption.
                   Your heirs receive the net estate after this tax.
                 </p>
 
                 <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 rounded">
                   <p className="text-gray-700">
-                    <strong>NOTE:</strong> The previous sunset provision that would have reduced the exemption to ~$7M has been eliminated.
-                    While the federal exemption has increased, state-level estate taxes may still apply at lower thresholds. This is a simplified
+                    <strong>NOTE:</strong> While the federal exemption is substantial, state-level estate taxes may still apply at lower thresholds. This is a simplified
                     calculation that doesn&apos;t account for spousal transfers, portability elections, trusts, or state estate taxes. Early gifting
                     remains a powerful tool to freeze asset values and remove future appreciation from your taxable estate.
                   </p>
@@ -380,7 +380,9 @@ export function MathTab({
               <li>
                 <strong>Tax Law Stability:</strong> Assumes current (2026) tax brackets, standard deductions,
                 RMD rules, and estate tax exemptions remain constant. Tax laws frequently change. This calculator
-                assumes the permanent $15M exemption enacted by the OBBBA (July 2025) remains in effect and is
+                assumes the OBBBA (July 2025) estate tax exemption of $
+                {((marital === 'married' ? ESTATE_TAX_EXEMPTION.married : ESTATE_TAX_EXEMPTION.single) / 1_000_000).toFixed(2)}M
+                per {marital === 'married' ? 'couple' : 'individual'} (indexed for inflation) remains in effect and is
                 not repealed by future legislation.
               </li>
               <li>
@@ -433,7 +435,7 @@ export function MathTab({
               <li><strong>LTCG Brackets:</strong> 2026 long-term capital gains tax rates (IRS)</li>
               <li><strong>RMD Table:</strong> IRS Uniform Lifetime Table (Publication 590-B)</li>
               <li><strong>Social Security:</strong> 2026 bend points and claiming adjustment factors (SSA)</li>
-              <li><strong>Estate Tax:</strong> OBBBA permanent exemption ($15M individual / $30M married for 2026, indexed annually for inflation starting 2027) and 40% rate</li>
+              <li><strong>Estate Tax:</strong> OBBBA exemption (${(ESTATE_TAX_EXEMPTION.single / 1_000_000).toFixed(2)}M individual / ${(ESTATE_TAX_EXEMPTION.married / 1_000_000).toFixed(2)}M married for 2026, indexed annually for inflation starting 2027) and 40% rate</li>
               <li><strong>Medicare & IRMAA:</strong> 2026 Part B/D premiums and income thresholds (CMS)</li>
               <li><strong>Long-Term Care:</strong> National average costs based on Genworth 2024 Cost of Care Survey</li>
               <li><strong>Medical Inflation:</strong> Historical healthcare cost growth trends (Kaiser Family Foundation, CMS)</li>

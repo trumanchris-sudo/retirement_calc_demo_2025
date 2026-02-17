@@ -35,6 +35,7 @@ export const WealthAccumulationChart = React.memo<WealthChartProps>(({ data, sho
   const tooltipStyles = getTooltipStyles();
 
   return (
+    <div role="img" aria-label="Wealth accumulation chart showing projected portfolio balance over time with nominal and real values">
     <ResponsiveContainer width="100%" height={400}>
       <ComposedChart data={data}>
         <defs>
@@ -100,6 +101,7 @@ export const WealthAccumulationChart = React.memo<WealthChartProps>(({ data, sho
         )}
       </ComposedChart>
     </ResponsiveContainer>
+    </div>
   );
 });
 

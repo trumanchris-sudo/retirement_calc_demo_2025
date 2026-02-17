@@ -246,7 +246,7 @@ export const FlippingCard: React.FC<FlippingCardProps> = ({
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-label={ariaLabel}
-      aria-pressed={isFlipped}
+      aria-expanded={isFlipped}
       aria-disabled={disabled}
       style={!isFlipping ? tiltStyle : undefined}
     >

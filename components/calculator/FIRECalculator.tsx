@@ -1226,7 +1226,7 @@ export function FIRECalculator({
                 {inputs.fireVariant === "coast" && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium flex items-center gap-2">
-                      Target Retirement Age
+                      Retirement Age
                       <InfoTooltip
                         content="The age at which you want to fully retire. Coast FIRE means you stop saving now and let compounding do the rest until this age."
                         side="right"

@@ -199,7 +199,7 @@ export function PrintReport({
             <div className="flex justify-between">
               <span className="text-gray-600">Return Model:</span>
               <span className="font-semibold text-black">
-                {returnMode === 'fixed' ? `Fixed ${retRate}%` : 'Historical Bootstrap'}
+                {returnMode === 'fixed' ? `Fixed ${retRate}% (Nominal)` : 'Historical Bootstrap'}
               </span>
             </div>
           </div>
@@ -584,7 +584,7 @@ export function PrintReport({
               <li>All projections are based on the assumptions and inputs you provided, which may not reflect actual future conditions.</li>
               <li>
                 {returnMode === 'fixed'
-                  ? `Fixed return assumptions (${retRate}% nominal) do not account for market volatility or sequence-of-returns risk.`
+                  ? `Fixed return assumptions (${retRate}% nominal, before inflation) do not account for market volatility or sequence-of-returns risk.`
                   : 'Historical return data (1928-2024) may not predict future market performance. Past performance does not guarantee future results.'}
               </li>
               <li>Tax laws, brackets, and exemptions are subject to change and may differ significantly in the future.</li>

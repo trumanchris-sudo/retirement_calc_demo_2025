@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { toast } from "@/hooks/use-toast";
 import { Calculator, TrendingUp, Info, DollarSign, Building2, Home, ArrowLeft } from "lucide-react";
@@ -98,6 +98,10 @@ export default function SelfEmployed2026Page() {
   const [grossCompensation, setGrossCompensation] = useState(() =>
     Math.round((planConfig.primaryIncome ?? 0) * 1.3)
   );
+  // Track previous primaryIncome to detect external changes and re-sync grossCompensation
+  const prevPrimaryIncomeRef = useRef(planConfig.primaryIncome ?? 0);
+  // Flag to suppress sync-back when "Apply to Main Plan" writes to planConfig
+  const isApplyingToMainPlanRef = useRef(false);
   const [payFrequency, setPayFrequency] = useState<PayFrequency>("semimonthly");
 
   // Distributive Share Schedule
@@ -167,66 +171,151 @@ export default function SelfEmployed2026Page() {
   }, [updatePlanConfig]);
 
   // ============================================================================
-  // EFFECTS - INITIALIZE PAGE-LOCAL STATE FROM PLANCONFIG (one-time setup)
+  // EFFECTS - SYNC PAGE-LOCAL STATE FROM PLANCONFIG
   // ============================================================================
 
+  // Track previous planConfig values to detect external changes and avoid
+  // overwriting user edits when unrelated planConfig fields change.
+  const prevPlanConfigRef = useRef({
+    marital: planConfig.marital,
+    numChildren: planConfig.numChildren,
+    monthlyHealthcareP1: planConfig.monthlyHealthcareP1,
+    monthlyHealthcareP2: planConfig.monthlyHealthcareP2,
+    age1: planConfig.age1,
+    monthlyMortgageRent: planConfig.monthlyMortgageRent,
+    monthlyHouseholdExpenses: planConfig.monthlyHouseholdExpenses,
+    monthlyUtilities: planConfig.monthlyUtilities,
+    monthlyOtherExpenses: planConfig.monthlyOtherExpenses,
+    monthlyInsurancePropertyTax: planConfig.monthlyInsurancePropertyTax,
+    monthlyDiscretionary: planConfig.monthlyDiscretionary,
+    employmentType1: planConfig.employmentType1,
+    primaryIncome: planConfig.primaryIncome,
+  });
+
+  // Sync grossCompensation when planConfig.primaryIncome changes externally
   useEffect(() => {
-    // Initialize health insurance coverage based on marital status
-    if (planConfig.marital === 'married') {
-      if (planConfig.numChildren && planConfig.numChildren > 0) {
-        setHealthInsuranceCoverage('family');
+    // Skip sync when the change was triggered by "Apply to Main Plan"
+    if (isApplyingToMainPlanRef.current) {
+      prevPrimaryIncomeRef.current = planConfig.primaryIncome ?? 0;
+      return;
+    }
+    const prevIncome = prevPrimaryIncomeRef.current;
+    const currentIncome = planConfig.primaryIncome ?? 0;
+    if (currentIncome !== prevIncome) {
+      prevPrimaryIncomeRef.current = currentIncome;
+      if (currentIncome > 0) {
+        setGrossCompensation(Math.round(currentIncome * 1.3));
+      }
+    }
+  }, [planConfig.primaryIncome]);
+
+  // Sync local state fields from planConfig whenever the relevant source fields change.
+  // Only updates local state for fields whose planConfig source actually changed,
+  // so user edits to other local fields are preserved.
+  useEffect(() => {
+    // Skip sync when the change was triggered by "Apply to Main Plan" to avoid feedback loops
+    if (isApplyingToMainPlanRef.current) {
+      isApplyingToMainPlanRef.current = false;
+      // Update the ref snapshot so the next real change is detected correctly
+      prevPlanConfigRef.current = {
+        marital: planConfig.marital,
+        numChildren: planConfig.numChildren,
+        monthlyHealthcareP1: planConfig.monthlyHealthcareP1,
+        monthlyHealthcareP2: planConfig.monthlyHealthcareP2,
+        age1: planConfig.age1,
+        monthlyMortgageRent: planConfig.monthlyMortgageRent,
+        monthlyHouseholdExpenses: planConfig.monthlyHouseholdExpenses,
+        monthlyUtilities: planConfig.monthlyUtilities,
+        monthlyOtherExpenses: planConfig.monthlyOtherExpenses,
+        monthlyInsurancePropertyTax: planConfig.monthlyInsurancePropertyTax,
+        monthlyDiscretionary: planConfig.monthlyDiscretionary,
+        employmentType1: planConfig.employmentType1,
+        primaryIncome: planConfig.primaryIncome,
+      };
+      return;
+    }
+    const prev = prevPlanConfigRef.current;
+
+    // Health insurance coverage: sync when marital status or numChildren changes
+    if (prev.marital !== planConfig.marital || prev.numChildren !== planConfig.numChildren) {
+      if (planConfig.marital === 'married') {
+        if (planConfig.numChildren && planConfig.numChildren > 0) {
+          setHealthInsuranceCoverage('family');
+        } else {
+          setHealthInsuranceCoverage('self_spouse');
+        }
       } else {
-        setHealthInsuranceCoverage('self_spouse');
-      }
-    } else {
-      setHealthInsuranceCoverage('self');
-    }
-
-    if (planConfig.monthlyHealthcareP1 && planConfig.monthlyHealthcareP1 > 0) {
-      const totalMonthlyHealthcare = planConfig.monthlyHealthcareP1 + (planConfig.monthlyHealthcareP2 ?? 0);
-      setHealthInsurancePremium(totalMonthlyHealthcare * 12);
-    }
-
-    const currentAge = planConfig.age1 ?? 35;
-    const isFamilyCoverage = planConfig.marital === 'married';
-    const hsaBaseLimit = isFamilyCoverage ? HSA_LIMITS_2026.FAMILY : HSA_LIMITS_2026.SELF_ONLY;
-    const hsaCatchUp = currentAge >= 55 ? HSA_LIMITS_2026.CATCHUP_55_PLUS : 0;
-    const maxHSAContrib = hsaBaseLimit + hsaCatchUp;
-    setHsaContribution(maxHSAContrib);
-
-    if (planConfig.monthlyMortgageRent && planConfig.monthlyMortgageRent > 0) {
-      setMortgage(planConfig.monthlyMortgageRent);
-    }
-
-    if (planConfig.monthlyHouseholdExpenses && planConfig.monthlyHouseholdExpenses > 0) {
-      setHouseholdExpenses(planConfig.monthlyHouseholdExpenses);
-    } else {
-      let totalHouseholdExpenses = 1500;
-      if (planConfig.monthlyUtilities && planConfig.monthlyUtilities > 0) {
-        totalHouseholdExpenses = planConfig.monthlyUtilities;
-      }
-      if (planConfig.monthlyOtherExpenses && planConfig.monthlyOtherExpenses > 0) {
-        totalHouseholdExpenses += planConfig.monthlyOtherExpenses;
-      }
-      if (planConfig.monthlyInsurancePropertyTax && planConfig.monthlyInsurancePropertyTax > 0) {
-        totalHouseholdExpenses += planConfig.monthlyInsurancePropertyTax;
-      }
-      if (totalHouseholdExpenses > 1500) {
-        setHouseholdExpenses(totalHouseholdExpenses);
+        setHealthInsuranceCoverage('self');
       }
     }
 
-    if (planConfig.monthlyDiscretionary && planConfig.monthlyDiscretionary > 0) {
-      setDiscretionaryBudget(planConfig.monthlyDiscretionary);
+    // Healthcare premiums: sync when monthly healthcare fields change
+    if (prev.monthlyHealthcareP1 !== planConfig.monthlyHealthcareP1 ||
+        prev.monthlyHealthcareP2 !== planConfig.monthlyHealthcareP2) {
+      if (planConfig.monthlyHealthcareP1 && planConfig.monthlyHealthcareP1 > 0) {
+        const totalMonthlyHealthcare = planConfig.monthlyHealthcareP1 + (planConfig.monthlyHealthcareP2 ?? 0);
+        setHealthInsurancePremium(totalMonthlyHealthcare * 12);
+      }
     }
 
-    // Initialize grossCompensation from primaryIncome
-    const isSelfEmployed =
-      planConfig.employmentType1 === 'self-employed' ||
-      planConfig.employmentType1 === 'both';
+    // HSA contribution: sync when age or marital status changes
+    if (prev.age1 !== planConfig.age1 || prev.marital !== planConfig.marital) {
+      const currentAge = planConfig.age1 ?? 35;
+      const isFamilyCoverage = planConfig.marital === 'married';
+      const hsaBaseLimit = isFamilyCoverage ? HSA_LIMITS_2026.FAMILY : HSA_LIMITS_2026.SELF_ONLY;
+      const hsaCatchUp = currentAge >= 55 ? HSA_LIMITS_2026.CATCHUP_55_PLUS : 0;
+      const maxHSAContrib = hsaBaseLimit + hsaCatchUp;
+      setHsaContribution(maxHSAContrib);
+    }
 
-    if (isSelfEmployed && planConfig.primaryIncome && planConfig.primaryIncome > 0) {
-      setGrossCompensation(Math.round(planConfig.primaryIncome * 1.3));
+    // Mortgage: sync when monthlyMortgageRent changes
+    if (prev.monthlyMortgageRent !== planConfig.monthlyMortgageRent) {
+      if (planConfig.monthlyMortgageRent && planConfig.monthlyMortgageRent > 0) {
+        setMortgage(planConfig.monthlyMortgageRent);
+      }
+    }
+
+    // Household expenses: sync when relevant expense fields change
+    if (prev.monthlyHouseholdExpenses !== planConfig.monthlyHouseholdExpenses ||
+        prev.monthlyUtilities !== planConfig.monthlyUtilities ||
+        prev.monthlyOtherExpenses !== planConfig.monthlyOtherExpenses ||
+        prev.monthlyInsurancePropertyTax !== planConfig.monthlyInsurancePropertyTax) {
+      if (planConfig.monthlyHouseholdExpenses && planConfig.monthlyHouseholdExpenses > 0) {
+        setHouseholdExpenses(planConfig.monthlyHouseholdExpenses);
+      } else {
+        let totalHouseholdExpenses = 1500;
+        if (planConfig.monthlyUtilities && planConfig.monthlyUtilities > 0) {
+          totalHouseholdExpenses = planConfig.monthlyUtilities;
+        }
+        if (planConfig.monthlyOtherExpenses && planConfig.monthlyOtherExpenses > 0) {
+          totalHouseholdExpenses += planConfig.monthlyOtherExpenses;
+        }
+        if (planConfig.monthlyInsurancePropertyTax && planConfig.monthlyInsurancePropertyTax > 0) {
+          totalHouseholdExpenses += planConfig.monthlyInsurancePropertyTax;
+        }
+        if (totalHouseholdExpenses > 1500) {
+          setHouseholdExpenses(totalHouseholdExpenses);
+        }
+      }
+    }
+
+    // Discretionary budget: sync when monthlyDiscretionary changes
+    if (prev.monthlyDiscretionary !== planConfig.monthlyDiscretionary) {
+      if (planConfig.monthlyDiscretionary && planConfig.monthlyDiscretionary > 0) {
+        setDiscretionaryBudget(planConfig.monthlyDiscretionary);
+      }
+    }
+
+    // grossCompensation from primaryIncome: sync when primaryIncome or employmentType changes
+    if (prev.primaryIncome !== planConfig.primaryIncome ||
+        prev.employmentType1 !== planConfig.employmentType1) {
+      const isSelfEmployed =
+        planConfig.employmentType1 === 'self-employed' ||
+        planConfig.employmentType1 === 'both';
+
+      if (isSelfEmployed && planConfig.primaryIncome && planConfig.primaryIncome > 0) {
+        setGrossCompensation(Math.round(planConfig.primaryIncome * 1.3));
+      }
     }
 
     // Detect AI onboarding
@@ -236,8 +325,39 @@ export default function SelfEmployed2026Page() {
       setIsFromAIOnboarding(true);
       setShowAIBanner(true);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    // Update the ref snapshot for next comparison
+    prevPlanConfigRef.current = {
+      marital: planConfig.marital,
+      numChildren: planConfig.numChildren,
+      monthlyHealthcareP1: planConfig.monthlyHealthcareP1,
+      monthlyHealthcareP2: planConfig.monthlyHealthcareP2,
+      age1: planConfig.age1,
+      monthlyMortgageRent: planConfig.monthlyMortgageRent,
+      monthlyHouseholdExpenses: planConfig.monthlyHouseholdExpenses,
+      monthlyUtilities: planConfig.monthlyUtilities,
+      monthlyOtherExpenses: planConfig.monthlyOtherExpenses,
+      monthlyInsurancePropertyTax: planConfig.monthlyInsurancePropertyTax,
+      monthlyDiscretionary: planConfig.monthlyDiscretionary,
+      employmentType1: planConfig.employmentType1,
+      primaryIncome: planConfig.primaryIncome,
+    };
+  }, [
+    planConfig.marital,
+    planConfig.numChildren,
+    planConfig.monthlyHealthcareP1,
+    planConfig.monthlyHealthcareP2,
+    planConfig.age1,
+    planConfig.monthlyMortgageRent,
+    planConfig.monthlyHouseholdExpenses,
+    planConfig.monthlyUtilities,
+    planConfig.monthlyOtherExpenses,
+    planConfig.monthlyInsurancePropertyTax,
+    planConfig.monthlyDiscretionary,
+    planConfig.employmentType1,
+    planConfig.primaryIncome,
+    planConfig.fieldMetadata,
+  ]);
 
   // ============================================================================
   // HANDLERS
@@ -260,6 +380,8 @@ export default function SelfEmployed2026Page() {
     const max401kPerson1 = getMax401kContribution(age);
     const max401kPerson2 = isMarried ? getMax401kContribution(spouseAge) : 0;
 
+    // Suppress sync effects from re-deriving local state when we push to planConfig
+    isApplyingToMainPlanRef.current = true;
     updatePlanConfig({
       marital: isMarried ? 'married' : 'single',
       employmentType1: 'self-employed',

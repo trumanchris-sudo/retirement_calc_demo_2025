@@ -852,7 +852,7 @@ export const RothConversionLadder = React.memo(function RothConversionLadder({
               </div>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <Label htmlFor="retirementAge">Target Retirement Age</Label>
+                  <Label htmlFor="retirementAge">Retirement Age</Label>
                   <span className="text-sm font-medium">{retirementAge}</span>
                 </div>
                 <Slider

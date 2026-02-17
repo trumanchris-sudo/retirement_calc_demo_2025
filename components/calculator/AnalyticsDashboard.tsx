@@ -589,7 +589,7 @@ function ParameterBar({ parameter, count, maxCount }: ParameterBarProps) {
       withdrawalRate: "Withdrawal Rate",
       savingsRate: "Savings Rate",
       inflationRate: "Inflation Rate",
-      returnRate: "Return Rate",
+      returnRate: "Expected Return (Nominal)",
       socialSecurity: "Social Security",
       bondAllocation: "Bond Allocation",
       rothConversion: "Roth Conversion",

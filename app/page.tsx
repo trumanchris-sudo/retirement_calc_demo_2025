@@ -1085,7 +1085,7 @@ export default function App() {
                 calculatorInputs={planConfig}
               />
               <div className="mt-8">
-                <ResultsVisualizationsSection />
+                <ResultsVisualizationsSection calculationResult={res} />
               </div>
               <div className="mt-8">
                 <GamificationSection />

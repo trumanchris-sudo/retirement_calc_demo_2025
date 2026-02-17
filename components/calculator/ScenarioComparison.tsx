@@ -215,7 +215,7 @@ const COMPARISON_FIELDS: Array<{
   {
     category: 'Assumptions',
     fields: [
-      { key: 'retRate', label: 'Return Rate', format: (v) => `${v}%` },
+      { key: 'retRate', label: 'Expected Return (Nominal)', format: (v) => `${v}%` },
       { key: 'inflationRate', label: 'Inflation', format: (v) => `${v}%` },
       { key: 'wdRate', label: 'Withdrawal Rate', format: (v) => `${v}%` },
     ],
@@ -620,7 +620,7 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
               Add Current Plan
             </Button>
 
-            {availableScenarios.length > 0 && (
+            {availableScenarios.length > 0 ? (
               <Select
                 value=""
                 onValueChange={(id) => {
@@ -640,7 +640,11 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
                   ))}
                 </SelectContent>
               </Select>
-            )}
+            ) : savedScenarios.length === 0 ? (
+              <span className="text-xs text-muted-foreground italic">
+                Save at least one scenario to compare
+              </span>
+            ) : null}
 
             <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
               <DialogTrigger asChild>
@@ -761,8 +765,34 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
           )}
         </div>
 
-        {/* Empty state */}
-        {comparisonScenarios.length === 0 && (
+        {/* Empty state — no saved scenarios exist at all */}
+        {savedScenarios.length === 0 && comparisonScenarios.length === 0 && (
+          <div className="py-12 text-center text-muted-foreground">
+            <GitCompare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <h3 className="text-lg font-medium mb-2">No Saved Scenarios</h3>
+            <p className="text-sm max-w-md mx-auto mb-6">
+              Save at least one scenario to use the comparison feature.
+              You can also add your current plan as a starting point.
+            </p>
+            <div className="flex justify-center gap-3">
+              <Button onClick={addCurrentScenario} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Current Plan
+              </Button>
+              <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Save className="h-4 w-4" />
+                    Save Current as Scenario
+                  </Button>
+                </DialogTrigger>
+              </Dialog>
+            </div>
+          </div>
+        )}
+
+        {/* Empty state — saved scenarios exist but none added to comparison */}
+        {savedScenarios.length > 0 && comparisonScenarios.length === 0 && (
           <div className="py-12 text-center text-muted-foreground">
             <GitCompare className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <h3 className="text-lg font-medium mb-2">No Scenarios to Compare</h3>
@@ -774,16 +804,14 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
                 <Plus className="h-4 w-4" />
                 Add Current Plan
               </Button>
-              {savedScenarios.length > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={() => addSavedScenario(savedScenarios[0])}
-                  className="gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Saved Scenario
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                onClick={() => addSavedScenario(savedScenarios[0])}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Saved Scenario
+              </Button>
             </div>
           </div>
         )}

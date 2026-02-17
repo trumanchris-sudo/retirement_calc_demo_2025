@@ -143,6 +143,7 @@ export function ResultsTab({
                     <>
                       <Suspense fallback={<ChartLoadingFallback height="h-[400px]" />}>
                         <div className="chart-block">
+                          <div role="img" aria-label="Required Minimum Distribution chart comparing spending needs to required RMD withdrawals by age">
                           <ResponsiveContainer width="100%" height={400}>
                             <LineChart data={res.rmdData}>
                               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -182,6 +183,7 @@ export function ResultsTab({
                               />
                             </LineChart>
                           </ResponsiveContainer>
+                          </div>
                         </div>
                       </Suspense>
                       <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">

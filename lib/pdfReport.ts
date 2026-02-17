@@ -12,6 +12,7 @@ import type { CalculationResult } from '@/types/calculator';
 import type { FilingStatus } from './calculations/taxCalculations';
 import type { ReturnMode, WalkSeries } from '@/types/planner';
 import { fmtFull, fmtPctRaw, fmt } from '@/lib/utils';
+import { ESTATE_TAX_EXEMPTION } from '@/lib/constants';
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -760,7 +761,7 @@ function addPersonalFinancialProfile(doc: jsPDF, data: PDFReportData, reportDate
   if (inputs.marital === 'married') {
     y = addKeyValueRow(doc, 'Spouse Age', String(inputs.age2), y);
   }
-  y = addKeyValueRow(doc, 'Planned Retirement Age', String(inputs.retirementAge), y, { highlight: inputs.marital === 'single' });
+  y = addKeyValueRow(doc, 'Retirement Age', String(inputs.retirementAge), y, { highlight: inputs.marital === 'single' });
   y = addKeyValueRow(doc, 'Years to Retirement', String(results.yrsToRet), y, { highlight: inputs.marital === 'married' });
   y = addKeyValueRow(doc, 'Planning Horizon', `To Age 95 (${95 - inputs.age1} years)`, y);
 
@@ -860,9 +861,9 @@ function addPersonalFinancialProfile(doc: jsPDF, data: PDFReportData, reportDate
 
   // Planning Assumptions
   y = addSubsection(doc, 'Planning Assumptions', y);
-  y = addKeyValueRow(doc, 'Expected Return', fmtPctRaw(inputs.retRate, 1) + ' (nominal)', y);
+  y = addKeyValueRow(doc, 'Expected Return (Nominal)', fmtPctRaw(inputs.retRate, 1) + ' (before inflation)', y);
   y = addKeyValueRow(doc, 'Inflation Rate', fmtPctRaw(inputs.inflationRate, 1), y, { highlight: true });
-  y = addKeyValueRow(doc, 'Real Return', fmtPctRaw(inputs.retRate - inputs.inflationRate, 1), y);
+  y = addKeyValueRow(doc, 'Real Return (After Inflation)', fmtPctRaw(inputs.retRate - inputs.inflationRate, 1), y);
   y = addKeyValueRow(doc, 'Withdrawal Rate', fmtPctRaw(inputs.wdRate, 1), y, { highlight: true });
   y = addKeyValueRow(doc, 'State Tax Rate', fmtPctRaw(inputs.stateRate, 1), y);
 
@@ -1404,7 +1405,7 @@ function addEstateLegacyPlan(doc: jsPDF, data: PDFReportData, reportDate: string
 
   const estateActions = [
     results.estateTax > 0
-      ? `Your estate exceeds the ${fmtFull(13610000)} exemption. Consider gifting strategies and irrevocable trusts.`
+      ? `Your estate exceeds the ${fmtFull(ESTATE_TAX_EXEMPTION[inputs.marital])} exemption. Consider gifting strategies and irrevocable trusts.`
       : 'Your estate is within the federal exemption. Focus on income tax optimization for heirs.',
     'Update beneficiary designations on all retirement accounts annually.',
     results.eolAccounts.pretax > results.eolAccounts.roth
@@ -1559,7 +1560,7 @@ function addDisclosures(doc: jsPDF, reportDate: string) {
       title: 'Tax Law Assumptions',
       content: 'Tax calculations use 2026 federal tax law as the baseline. Significant changes to ' +
                'tax brackets, deductions, or rates may materially impact your plan. Estate tax ' +
-               'exemption is projected at $13.61M (OBBBA July 2025), indexed for inflation.'
+               `exemption is $${(ESTATE_TAX_EXEMPTION.single / 1_000_000).toFixed(2)}M individual / $${(ESTATE_TAX_EXEMPTION.married / 1_000_000).toFixed(2)}M married (OBBBA July 2025), indexed for inflation.`
     },
     {
       title: 'Monte Carlo Methodology',

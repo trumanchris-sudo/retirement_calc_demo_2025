@@ -44,6 +44,7 @@ export const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data,
   }, []);
 
   return (
+    <div role="img" aria-label="Scenario comparison chart showing projected portfolio values across different retirement scenarios">
     <ResponsiveContainer width="100%" height={400}>
       <ComposedChart data={data}>
         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -92,6 +93,7 @@ export const ScenarioComparisonChart = React.memo<ComparisonChartProps>(({ data,
         )}
       </ComposedChart>
     </ResponsiveContainer>
+    </div>
   );
 });
 

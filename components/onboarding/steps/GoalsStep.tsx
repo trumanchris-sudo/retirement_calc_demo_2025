@@ -73,10 +73,10 @@ export function GoalsStep({ data, savingsData, basicsData, onChange }: GoalsStep
         We&apos;ll translate this into a spending plan, with taxes and market risk included.
       </p>
 
-      {/* Target Retirement Age */}
+      {/* Retirement Age */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <Label htmlFor="retirementAge">Target retirement age</Label>
+          <Label htmlFor="retirementAge">Retirement age</Label>
           <Input
             id="retirementAge"
             type="number"

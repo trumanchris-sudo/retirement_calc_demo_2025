@@ -211,10 +211,10 @@ export function ConfigureTab({
                         <option value="married">Married</option>
                       </select>
                     </div>
-                    <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} onInputChange={onInputChange} defaultValue={35} validate={(val) => validateAge(val, 'Your age')} />
+                    <Input label="Your Age" value={age1} setter={setAge1} min={18} max={120} onInputChange={onInputChange} defaultValue={30} validate={(val) => validateAge(val, 'Your age')} />
                     <Input label="Retirement Age" value={retirementAge} setter={setRetirementAge} min={30} max={90} onInputChange={onInputChange} defaultValue={65} validate={(val) => validateRetirementAge(val, age1)} />
                     {isMar && (
-                      <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} onInputChange={onInputChange} defaultValue={33} validate={(val) => validateAge(val, 'Spouse age')} />
+                      <Input label="Spouse Age" value={age2} setter={setAge2} min={18} max={120} onInputChange={onInputChange} defaultValue={30} validate={(val) => validateAge(val, 'Spouse age')} />
                     )}
                   </div>
                 ),
@@ -243,7 +243,7 @@ export function ConfigureTab({
                       <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
                         Your Contributions
                       </Badge>
-                      <Input label="Taxable Brokerage ($/yr)" value={cTax1} setter={setCTax1} step={1000} onInputChange={onInputChange} defaultValue={12000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
+                      <Input label="Taxable Brokerage ($/yr)" value={cTax1} setter={setCTax1} step={1000} onInputChange={onInputChange} defaultValue={10000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
                       <Input label="401(k) Pre-Tax ($/yr)" value={cPre1} setter={setCPre1} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={(val) => validate401kContribution(val, age1)} tip="2026 IRS limit: $24,500" />
                       <Input label="Roth / Post-Tax ($/yr)" value={cPost1} setter={setCPost1} step={500} onInputChange={onInputChange} defaultValue={7000} validate={(val) => validateIRAContribution(val, age1)} tip="2026 IRS limit: $7,000" />
                       <Input label="Employer Match ($/yr)" value={cMatch1} setter={setCMatch1} step={500} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
@@ -265,7 +265,7 @@ export function ConfigureTab({
                         <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
                           Spouse&apos;s Contributions
                         </Badge>
-                        <Input label="Taxable Brokerage ($/yr)" value={cTax2} setter={setCTax2} step={1000} onInputChange={onInputChange} defaultValue={8000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
+                        <Input label="Taxable Brokerage ($/yr)" value={cTax2} setter={setCTax2} step={1000} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Taxable contribution')} />
                         <Input label="401(k) Pre-Tax ($/yr)" value={cPre2} setter={setCPre2} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={(val) => validate401kContribution(val, age2)} tip="2026 IRS limit: $24,500" />
                         <Input label="Roth / Post-Tax ($/yr)" value={cPost2} setter={setCPost2} step={500} onInputChange={onInputChange} defaultValue={7000} validate={(val) => validateIRAContribution(val, age2)} tip="2026 IRS limit: $7,000" />
                         <Input label="Employer Match ($/yr)" value={cMatch2} setter={setCMatch2} step={500} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
@@ -295,14 +295,14 @@ export function ConfigureTab({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       {returnMode === 'fixed' && (
                         <SliderInput
-                          label="Return Rate"
+                          label="Expected Return (Nominal)"
                           value={retRate}
                           onChange={setRetRate}
                           min={0}
                           max={20}
                           step={0.1}
                           unit="%"
-                          description="Historical median ~ 9.8%"
+                          description="Before inflation adjustment. Historical S&P 500 median ~9.8% nominal."
                           onInputChange={onInputChange}
                         />
                       )}
@@ -381,8 +381,9 @@ export function ConfigureTab({
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label>Starting Bond %</Label>
+                              <Label htmlFor="bond-start-pct">Starting Bond %</Label>
                               <UIInput
+                                id="bond-start-pct"
                                 type="number"
                                 value={bondStartPct}
                                 onChange={(e) => {
@@ -395,8 +396,9 @@ export function ConfigureTab({
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label>Ending Bond %</Label>
+                              <Label htmlFor="bond-end-pct">Ending Bond %</Label>
                               <UIInput
+                                id="bond-end-pct"
                                 type="number"
                                 value={bondEndPct}
                                 onChange={(e) => {
@@ -410,14 +412,26 @@ export function ConfigureTab({
                             </div>
                           </div>
 
+                          {/* Warning: decreasing bond allocation */}
+                          {bondStartPct > bondEndPct && (
+                            <div
+                              className="p-3 rounded-lg border text-sm bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300"
+                              role="status"
+                            >
+                              Starting bond % is greater than ending bond %. This creates a decreasing bond allocation over time, which is unconventional. Most glide paths increase bonds with age.
+                            </div>
+                          )}
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label>Start at Age</Label>
+                              <Label htmlFor="bond-start-age">Start at Age</Label>
                               <UIInput
+                                id="bond-start-age"
                                 type="number"
                                 value={bondStartAge}
                                 onChange={(e) => {
-                                  setBondStartAge(Number(e.target.value));
+                                  const val = Math.max(age1, Number(e.target.value));
+                                  setBondStartAge(val);
                                   onInputChange();
                                 }}
                                 min={age1}
@@ -426,8 +440,9 @@ export function ConfigureTab({
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label>End at Age</Label>
+                              <Label htmlFor="bond-end-age">End at Age</Label>
                               <UIInput
+                                id="bond-end-age"
                                 type="number"
                                 value={bondEndAge}
                                 onChange={(e) => {
@@ -441,9 +456,30 @@ export function ConfigureTab({
                             </div>
                           </div>
 
+                          {/* Error: bondEndAge must be greater than bondStartAge */}
+                          {bondEndAge <= bondStartAge && (
+                            <div
+                              className="p-3 rounded-lg border text-sm bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300"
+                              role="alert"
+                            >
+                              End age must be greater than start age. Please increase the end age or decrease the start age.
+                            </div>
+                          )}
+
+                          {/* Error: bondStartAge below current age */}
+                          {bondStartAge < age1 && (
+                            <div
+                              className="p-3 rounded-lg border text-sm bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300"
+                              role="alert"
+                            >
+                              Start age cannot be before your current age ({age1}).
+                            </div>
+                          )}
+
                           <div className="space-y-2">
-                            <Label>Transition Shape</Label>
+                            <Label htmlFor="glide-path-shape">Transition Shape</Label>
                             <select
+                              id="glide-path-shape"
                               value={glidePathShape}
                               onChange={(e) => {
                                 setGlidePathShape(e.target.value as 'linear' | 'accelerated' | 'decelerated');

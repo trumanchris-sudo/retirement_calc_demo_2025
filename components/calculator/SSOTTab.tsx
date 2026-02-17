@@ -487,7 +487,7 @@ export function SSOTTab() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="ssot-retRate" className="flex items-center gap-2">
-                Expected Return Rate (%)
+                Expected Return (Nominal) %
                 <FieldBadge field="retRate" />
               </Label>
               <Input
@@ -499,7 +499,7 @@ export function SSOTTab() {
                 value={config.retRate ?? D.retRate}
                 onChange={(e) => updateField('retRate', parseFloat(e.target.value) || D.retRate)}
               />
-              <p className="text-xs text-muted-foreground mt-1">Historical S&amp;P 500 average: ~10% nominal, ~7% real (after inflation)</p>
+              <p className="text-xs text-muted-foreground mt-1">Before inflation adjustment. Historical S&amp;P 500 median ~9.8% nominal.</p>
             </div>
 
             <div className="space-y-2">

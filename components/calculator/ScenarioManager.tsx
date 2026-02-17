@@ -55,7 +55,7 @@ export function ScenarioManager() {
 
   const handleSave = () => {
     if (!scenarioName.trim()) {
-      toast.warning('Please enter a scenario name');
+      toast.warning('Please enter a plan name');
       return;
     }
 
@@ -65,17 +65,17 @@ export function ScenarioManager() {
       setScenarioDescription('');
       setShowSaveDialog(false);
       refreshScenarios();
-      toast.success(`Scenario "${scenarioName}" saved successfully!`);
+      toast.success(`Plan "${scenarioName}" saved successfully!`);
     } catch (error) {
-      toast.error(`Failed to save scenario: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to save plan: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   const handleLoad = (scenario: SavedScenario) => {
-    if (confirm(`Load scenario "${scenario.name}"? This will replace your current plan.`)) {
+    if (confirm(`Load plan "${scenario.name}"? This will replace your current plan.`)) {
       setConfig(scenario.config);
       setShowLoadDialog(false);
-      toast.success(`Scenario "${scenario.name}" loaded!`);
+      toast.success(`Plan "${scenario.name}" loaded!`);
     }
   };
 
@@ -88,10 +88,10 @@ export function ScenarioManager() {
   };
 
   const handleDelete = (scenario: SavedScenario) => {
-    if (confirm(`Delete scenario "${scenario.name}"? This cannot be undone.`)) {
+    if (confirm(`Delete plan "${scenario.name}"? This cannot be undone.`)) {
       deleteScenario(scenario.id);
       refreshScenarios();
-      toast({ title: `Scenario "${scenario.name}" deleted`, variant: 'default' });
+      toast({ title: `Plan "${scenario.name}" deleted`, variant: 'default' });
     }
   };
 
@@ -101,7 +101,7 @@ export function ScenarioManager() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `retirement-scenarios-${Date.now()}.json`;
+    a.download = `retirement-plans-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -116,7 +116,7 @@ export function ScenarioManager() {
         const result = importScenarios(event.target?.result as string);
         if (result.success) {
           refreshScenarios();
-          toast.success(`Imported ${result.imported} scenario(s)${result.errors.length > 0 ? ` with ${result.errors.length} error(s)` : ''}`);
+          toast.success(`Imported ${result.imported} plan(s)${result.errors.length > 0 ? ` with ${result.errors.length} error(s)` : ''}`);
         } else {
           toast.error(`Import failed: ${result.errors.join(', ')}`);
         }
@@ -141,10 +141,10 @@ export function ScenarioManager() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FolderOpen className="w-5 h-5" />
-          Scenario Manager
+          Saved Plans
         </CardTitle>
         <CardDescription>
-          Save, load, and compare different retirement planning scenarios
+          Save, load, and compare different retirement plans
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -161,7 +161,7 @@ export function ScenarioManager() {
             disabled={scenarios.length === 0}
           >
             <FolderOpen className="w-4 h-4" />
-            Load Scenario
+            Load Plan
           </Button>
           <Button
             onClick={handleExport}
@@ -179,7 +179,7 @@ export function ScenarioManager() {
               accept=".json"
               onChange={handleImport}
               className="hidden"
-              aria-label="Import scenarios from JSON file"
+              aria-label="Import plans from JSON file"
             />
             <Button variant="outline" className="flex items-center gap-2" asChild>
               <span>
@@ -190,12 +190,12 @@ export function ScenarioManager() {
           </label>
         </div>
 
-        {/* Scenarios List */}
+        {/* Saved Plans List */}
         {scenarios.length > 0 && (
           <>
             <Separator />
             <div className="space-y-2">
-              <h4 className="font-semibold text-sm text-muted-foreground">Saved Scenarios ({scenarios.length})</h4>
+              <h4 className="font-semibold text-sm text-muted-foreground">Saved Plans ({scenarios.length})</h4>
               <div className="grid gap-2">
                 {scenarios.map((scenario) => (
                   <Card key={scenario.id} className="p-3">
@@ -223,8 +223,8 @@ export function ScenarioManager() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleLoad(scenario)}
-                          title="Load this scenario"
-                          aria-label={`Load scenario: ${scenario.name}`}
+                          title="Load this plan"
+                          aria-label={`Load plan: ${scenario.name}`}
                         >
                           <FolderOpen className="w-4 h-4" aria-hidden="true" />
                         </Button>
@@ -232,8 +232,8 @@ export function ScenarioManager() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDuplicate(scenario)}
-                          title="Duplicate this scenario"
-                          aria-label={`Duplicate scenario: ${scenario.name}`}
+                          title="Duplicate this plan"
+                          aria-label={`Duplicate plan: ${scenario.name}`}
                         >
                           <Copy className="w-4 h-4" aria-hidden="true" />
                         </Button>
@@ -241,8 +241,8 @@ export function ScenarioManager() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDelete(scenario)}
-                          title="Delete this scenario"
-                          aria-label={`Delete scenario: ${scenario.name}`}
+                          title="Delete this plan"
+                          aria-label={`Delete plan: ${scenario.name}`}
                         >
                           <Trash2 className="w-4 h-4" aria-hidden="true" />
                         </Button>
@@ -260,14 +260,14 @@ export function ScenarioManager() {
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save Scenario</DialogTitle>
+            <DialogTitle>Save Plan</DialogTitle>
             <DialogDescription>
-              Save your current retirement plan as a scenario for later comparison
+              Save your current retirement plan for later comparison
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="scenario-name">Scenario Name *</Label>
+              <Label htmlFor="scenario-name">Plan Name *</Label>
               <Input
                 id="scenario-name"
                 value={scenarioName}
@@ -292,7 +292,7 @@ export function ScenarioManager() {
             </Button>
             <Button onClick={handleSave}>
               <Save className="w-4 h-4 mr-2" />
-              Save Scenario
+              Save Plan
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -302,9 +302,9 @@ export function ScenarioManager() {
       <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Load Scenario</DialogTitle>
+            <DialogTitle>Load Plan</DialogTitle>
             <DialogDescription>
-              Choose a scenario to load. This will replace your current plan.
+              Choose a saved plan to load. This will replace your current plan.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 py-4 max-h-[400px] overflow-y-auto">
@@ -321,7 +321,7 @@ export function ScenarioManager() {
                 }}
                 role="button"
                 tabIndex={0}
-                aria-label={`Load scenario: ${scenario.name}${scenario.description ? `. ${scenario.description}` : ''}`}
+                aria-label={`Load plan: ${scenario.name}${scenario.description ? `. ${scenario.description}` : ''}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">

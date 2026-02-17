@@ -159,14 +159,14 @@ export default function DemoPage() {
             >
               <SliderInput
                 id="return-rate-slider"
-                label="Expected Return Rate"
+                label="Expected Return (Nominal)"
                 value={returnRate}
                 onChange={setReturnRate}
                 min={0}
                 max={15}
                 step={0.5}
                 unit="%"
-                description="Average annual return on investments"
+                description="Before inflation adjustment. Historical S&P 500 median ~9.8% nominal."
               />
 
               <div
@@ -245,10 +245,10 @@ export default function DemoPage() {
                   />
 
                   <AnimatedStatCard
-                    label="Return Rate"
+                    label="Expected Return (Nominal)"
                     value={returnRate}
                     format="percentage"
-                    sublabel="Average annual return"
+                    sublabel="Before inflation adjustment"
                     icon={TrendingUp}
                     delay={300}
                     change={returnRate - 7}

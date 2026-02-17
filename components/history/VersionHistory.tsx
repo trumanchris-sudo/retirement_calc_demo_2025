@@ -140,7 +140,7 @@ const FIELD_DISPLAY_NAMES: Record<string, { name: string; category: VersionCompa
   cMatch2: { name: "Spouse Employer Match", category: "financial" },
 
   // Rates
-  retRate: { name: "Expected Return Rate", category: "simulation" },
+  retRate: { name: "Expected Return (Nominal)", category: "simulation" },
   inflationRate: { name: "Inflation Rate", category: "simulation" },
   stateRate: { name: "State Tax Rate", category: "financial" },
   incRate: { name: "Income Growth Rate", category: "financial" },

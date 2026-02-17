@@ -632,7 +632,7 @@ export const HELP_CONTENT: Record<string, HelpContent> = {
 
   retirementAge: {
     fieldId: 'retirementAge',
-    label: 'Target Retirement Age',
+    label: 'Retirement Age',
     category: 'personal',
     explanation: 'The age at which you plan to stop working and begin drawing from your retirement savings.',
     importance: 'This determines your accumulation period and affects Social Security benefits, Medicare eligibility, and withdrawal strategies.',
@@ -795,9 +795,9 @@ export const HELP_CONTENT: Record<string, HelpContent> = {
   // Rates
   expectedReturn: {
     fieldId: 'expectedReturn',
-    label: 'Expected Return Rate',
+    label: 'Expected Return (Nominal)',
     category: 'rates',
-    explanation: 'The annual rate of return you expect on your investments before inflation.',
+    explanation: 'The annual rate of return you expect on your investments before inflation adjustment. Historical S&P 500 median ~9.8% nominal.',
     importance: 'Even small differences in return rate significantly impact long-term wealth accumulation.',
     guidance: 'Historical stock market returns average 7-10% before inflation. Bond returns are typically 3-5%. Use conservative estimates.',
     thresholds: {

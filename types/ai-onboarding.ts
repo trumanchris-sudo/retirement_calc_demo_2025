@@ -357,7 +357,7 @@ export const FIELD_DISPLAY_NAMES: Record<keyof ExtractedData, string> = {
   contributionRoth: 'Annual Roth Contributions',
   contributionTaxable: 'Annual Taxable Brokerage Savings',
   contributionMatch: 'Annual Employer Match',
-  retirementAge: 'Target Retirement Age',
+  retirementAge: 'Retirement Age',
   desiredRetirementSpending: 'Desired Annual Retirement Spending',
   bonusInfo: 'Bonus Information',
   monthlyMortgageRent: 'Monthly Mortgage/Rent',

@@ -10,6 +10,7 @@ import { RADAR_COLORS } from "@/lib/chartColors";
 import type { DailyContribution } from "@/components/visualizations/HeatmapCalendar";
 import type { WaterfallDataPoint } from "@/components/visualizations/WaterfallChart";
 import type { TreemapNode } from "@/components/visualizations/Treemap";
+import type { CalculationResult } from "@/types/calculator";
 import { PiggyBank, Landmark, Wallet } from "lucide-react";
 
 const Loading = () => <div className="h-64 animate-pulse bg-muted rounded" />;
@@ -29,7 +30,11 @@ const WealthTimeline = dynamic(() => import("@/components/calculator/WealthTimel
 const IncomeReplacementViz = dynamic(() => import("@/components/calculator/IncomeReplacementViz"), { ssr: false, loading: Loading });
 const InflationHistory = dynamic(() => import("@/components/calculator/InflationHistory"), { ssr: false, loading: Loading });
 
-export default function ResultsVisualizationsSection() {
+interface ResultsVisualizationsSectionProps {
+  calculationResult?: CalculationResult | null;
+}
+
+export default function ResultsVisualizationsSection({ calculationResult }: ResultsVisualizationsSectionProps) {
   const { config: planConfig } = usePlanConfig();
   const D = createDefaultPlanConfig();
   const age = planConfig.age1 ?? D.age1;
@@ -48,6 +53,8 @@ export default function ResultsVisualizationsSection() {
     (planConfig.cPost2 ?? D.cPost2) +
     (planConfig.cMatch2 ?? D.cMatch2);
   const targetRetirementIncome = (planConfig.primaryIncome ?? D.primaryIncome) * 0.8;
+  const grossIncome = (planConfig.primaryIncome ?? D.primaryIncome) +
+    (planConfig.spouseIncome ?? D.spouseIncome ?? 0);
 
   // === Derive Sankey data from PlanConfig ===
   const sankeyData = useMemo(() => {
@@ -555,6 +562,19 @@ export default function ResultsVisualizationsSection() {
     });
   }, [totalBalance, annualContributions, planConfig, D, netWorthLiabilities]);
 
+  // When all balances, contributions, and income are zero, show an empty state
+  // instead of rendering charts with meaningless or NaN-producing data.
+  if (totalBalance === 0 && annualContributions === 0 && grossIncome === 0) {
+    return (
+      <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+        <p className="text-sm font-medium">No financial data to visualize</p>
+        <p className="text-xs mt-2">
+          Enter your account balances, contributions, or income in the configuration tab to see advanced visualizations.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Accordion type="multiple" className="space-y-4">
@@ -596,19 +616,18 @@ export default function ResultsVisualizationsSection() {
                 currentAge={age}
               />
               <NetWorthTracker />
-              <WealthTimeline
-                result={{
-                  finNom: totalBalance * 2,
-                  finReal: totalBalance * 1.5,
-                  wdNom: targetRetirementIncome,
-                  wdReal: targetRetirementIncome * 0.8,
-                  eolReal: totalBalance,
-                  data: [],
-                } as never}
-                currentAge={age}
-                retirementAge={retAge}
-                currentWealth={totalBalance}
-              />
+              {calculationResult ? (
+                <WealthTimeline
+                  result={calculationResult}
+                  currentAge={age}
+                  retirementAge={retAge}
+                  currentWealth={totalBalance}
+                />
+              ) : (
+                <div className="rounded-lg border bg-card p-6 text-center text-muted-foreground">
+                  <p className="text-sm">Run a calculation to see your wealth milestone timeline.</p>
+                </div>
+              )}
             </div>
           </AccordionContent>
         </AccordionItem>

@@ -509,7 +509,7 @@ export function mapAIDataToCalculator(
   if (!extractedData.retirementAge) {
     addAssumption(
       'retirementAge',
-      'Target Retirement Age',
+      'Retirement Age',
       retirementAge,
       'Based on current age and financial profile',
       'medium'

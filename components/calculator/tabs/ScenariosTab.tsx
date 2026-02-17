@@ -66,7 +66,7 @@ export function ScenariosTab({
           currentScenario={{
             name: retMode === 'fixed' ? 'Fixed Returns' : 'Historical Bootstrap',
             description: retMode === 'fixed'
-              ? `Assumes constant ${retRate}% annual return`
+              ? `Assumes constant ${retRate}% nominal annual return (before inflation)`
               : 'Based on historical market data (1928-2024)',
             successRate: res.probRuin !== undefined ? (1 - res.probRuin) * 100 : 100,
             eolWealth: res.eolReal,
@@ -82,8 +82,8 @@ export function ScenariosTab({
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Portfolio Stress Tests</CardTitle>
-                  <CardDescription>Test your retirement plan against adverse market conditions, inflation shocks, and compare scenarios</CardDescription>
+                  <CardTitle>Stress Testing &amp; What-If Analysis</CardTitle>
+                  <CardDescription>Test your retirement plan against adverse market conditions, inflation shocks, and compare outcomes</CardDescription>
                 </div>
                 <Button
                   variant={showStressTests ? "default" : "outline"}
@@ -107,11 +107,11 @@ export function ScenariosTab({
                   {/* Bear Market Tab */}
                   <TabsContent value="bear" className="space-y-4">
                     <div className="mb-4">
-                      <h3 className="text-base font-semibold">Bear Market Retirement Scenarios</h3>
+                      <h3 className="text-base font-semibold">Bear Market Stress Tests</h3>
                       <p className="text-sm text-muted-foreground">Test your plan with actual historical returns from major market crashes</p>
                     </div>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Test your plan against the worst bear markets in history. Each scenario uses <strong>actual sequential S&P 500 returns</strong> from that year forward.
+                      Test your plan against the worst bear markets in history. Each stress test uses <strong>actual sequential S&P 500 returns</strong> from that year forward.
                       {historicalYear && (
                         <span className="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100 rounded text-xs font-semibold">
                           Currently using {historicalYear} returns
@@ -151,7 +151,7 @@ export function ScenariosTab({
                           </div>
                           {historicalYear === scenario.year && (
                             <div className="mt-2 pt-2 border-t border-blue-300 dark:border-blue-700">
-                              <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">Active scenario</span>
+                              <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">Active stress test</span>
                             </div>
                           )}
                         </button>
@@ -174,7 +174,7 @@ export function ScenariosTab({
                             variant="outline"
                             size="sm"
                           >
-                            Clear Scenario
+                            Clear Stress Test
                           </Button>
                         </>
                       )}
@@ -183,8 +183,8 @@ export function ScenariosTab({
                     <div className="mt-6 p-4 bg-muted rounded-lg">
                       <h4 className="text-sm font-semibold mb-2">Understanding Sequence-of-Returns Risk</h4>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        These scenarios show why <strong>when you retire matters</strong>. Retiring into a bear market can permanently damage your portfolio even if markets recover later.
-                        Click any scenario above to recalculate using actual historical returns from that year.
+                        These stress tests show why <strong>when you retire matters</strong>. Retiring into a bear market can permanently damage your portfolio even if markets recover later.
+                        Click any stress test above to recalculate using actual historical returns from that year.
                       </p>
                     </div>
 
@@ -194,8 +194,8 @@ export function ScenariosTab({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
-                          <strong>Your Monte Carlo simulation already accounts for this!</strong> By running 1,000 scenarios with different return sequences,
-                          it includes outcomes similar to these historical periods.
+                          <strong>Your Monte Carlo simulation already accounts for this!</strong> By running 1,000 simulations with different return sequences,
+                          it includes outcomes similar to these historical stress tests.
                         </div>
                       </div>
                     </div>
@@ -204,7 +204,7 @@ export function ScenariosTab({
                   {/* Inflation Shock Tab */}
                   <TabsContent value="inflation" className="space-y-4">
                     <div className="mb-4">
-                      <h3 className="text-base font-semibold">Inflation Shock Scenarios</h3>
+                      <h3 className="text-base font-semibold">Inflation Shock Stress Tests</h3>
                       <p className="text-sm text-muted-foreground">Test your plan against periods of elevated inflation</p>
                     </div>
                     <p className="text-sm text-muted-foreground mb-4">
@@ -251,7 +251,7 @@ export function ScenariosTab({
                           </div>
                           {inflationShockRate === scenario.rate && inflationShockDuration === scenario.duration && (
                             <div className="mt-2 pt-2 border-t border-orange-300 dark:border-orange-700">
-                              <span className="text-xs font-semibold text-orange-700 dark:text-orange-300">Active scenario</span>
+                              <span className="text-xs font-semibold text-orange-700 dark:text-orange-300">Active stress test</span>
                             </div>
                           )}
                         </button>
@@ -259,7 +259,7 @@ export function ScenariosTab({
                     </div>
 
                     <div className="mb-4 p-4 bg-muted rounded-lg">
-                      <h4 className="text-sm font-semibold mb-3">Custom Inflation Scenario</h4>
+                      <h4 className="text-sm font-semibold mb-3">Custom Inflation Stress Test</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label className="text-xs font-medium">Inflation Rate (%)</label>
@@ -308,7 +308,7 @@ export function ScenariosTab({
                             variant="outline"
                             size="sm"
                           >
-                            Clear Scenario
+                            Clear Stress Test
                           </Button>
                         </>
                       )}
@@ -328,16 +328,16 @@ export function ScenariosTab({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                         <div className="text-xs text-orange-800 dark:text-orange-200 leading-relaxed">
-                          <strong>Can be combined with bear markets!</strong> Activate both an inflation shock and a bear market scenario to model compound stress.
+                          <strong>Can be combined with bear markets!</strong> Activate both an inflation shock and a bear market stress test to model compound stress.
                         </div>
                       </div>
                     </div>
                   </TabsContent>
 
-                  {/* Scenario Comparison Tab */}
+                  {/* Stress Test Comparison Tab */}
                   <TabsContent value="comparison" className="space-y-4">
                     <div className="mb-4">
-                      <h3 className="text-base font-semibold">Scenario Comparison</h3>
+                      <h3 className="text-base font-semibold">Stress Test Comparison</h3>
                       <p className="text-sm text-muted-foreground">Compare baseline vs bear market vs inflation shock side-by-side</p>
                     </div>
                     <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -352,7 +352,7 @@ export function ScenariosTab({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Baseline Scenario */}
+                      {/* Baseline */}
                       <div className="p-4 border-2 border-blue-500 rounded-lg bg-blue-50 dark:bg-blue-950/20">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="w-3 h-3 rounded-full bg-blue-500"></div>
@@ -363,7 +363,7 @@ export function ScenariosTab({
                         </p>
                       </div>
 
-                      {/* Bear Market Scenario */}
+                      {/* Bear Market Stress Test */}
                       <div className={`p-4 border-2 rounded-lg ${
                         historicalYear
                           ? 'border-red-500 bg-red-50 dark:bg-red-950/20'
@@ -380,11 +380,11 @@ export function ScenariosTab({
                         <p className="text-xs text-muted-foreground">
                           {historicalYear
                             ? `${historicalYear} crash applied`
-                            : 'Select a bear market scenario above'}
+                            : 'Select a bear market stress test above'}
                         </p>
                       </div>
 
-                      {/* Inflation Shock Scenario */}
+                      {/* Inflation Shock Stress Test */}
                       <div className={`p-4 border-2 rounded-lg ${
                         inflationShockRate > 0
                           ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/20'
@@ -401,7 +401,7 @@ export function ScenariosTab({
                         <p className="text-xs text-muted-foreground">
                           {inflationShockRate > 0
                             ? `${inflationShockDuration} years of elevated inflation`
-                            : 'Select an inflation shock above'}
+                            : 'Select an inflation shock stress test above'}
                         </p>
                       </div>
                     </div>
@@ -443,8 +443,8 @@ export function ScenariosTab({
         <AnimatedSection animation="slide-up" delay={300}>
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle>Scenario Comparison Chart</CardTitle>
-              <CardDescription>Compare baseline, bear market, and inflation shock scenarios</CardDescription>
+              <CardTitle>Stress Test Comparison Chart</CardTitle>
+              <CardDescription>Compare baseline, bear market, and inflation shock outcomes</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="chart-block">

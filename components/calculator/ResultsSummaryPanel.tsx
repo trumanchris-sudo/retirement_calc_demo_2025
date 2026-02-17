@@ -251,7 +251,7 @@ export function ResultsSummaryPanel({
                       </ul>
                       <p className="flip-card-details-text">
                         Includes current savings plus all contributions and growth from now until retirement,
-                        accounting for mid-year contributions and {returnMode === 'fixed' ? `compounding returns at ${retRate}% annual return` : 'historical S&P 500 total-return bootstrap (1928–2024)'}.
+                        accounting for mid-year contributions and {returnMode === 'fixed' ? `compounding returns at ${retRate}% nominal annual return (before inflation)` : 'historical S&P 500 total-return bootstrap (1928–2024)'}.
                       </p>
                     </div>
                   </>
@@ -424,7 +424,11 @@ export function ResultsSummaryPanel({
                 {res.eolAccounts && res.eol > 0 ? (
                   <>
                     <Suspense fallback={<ChartLoadingFallback height="h-[350px]" />}>
-                    <div className="wealth-flow-responsive">
+                    <div className="wealth-flow-responsive" role="img" aria-label="Sankey diagram showing lifetime wealth flow from taxable, pre-tax, and Roth accounts to estate tax and net inheritance">
+                    {/* Screen-reader-only text summary of the wealth flows */}
+                    <span className="sr-only">
+                      Wealth flow summary: Taxable account balance {fmt(res.eolAccounts.taxable)}, Pre-tax account balance {fmt(res.eolAccounts.pretax)}, Roth account balance {fmt(res.eolAccounts.roth)}. Estate tax: {fmt(res.estateTax || 0)}. Net to heirs: {fmt(res.netEstate || res.eol)}.
+                    </span>
                     <ResponsiveContainer width="100%" height={350}>
                       <Sankey
                         data={{
@@ -769,7 +773,7 @@ export function ResultsSummaryPanel({
                     {/* Impact Ranking List */}
                     <div className="space-y-4">
                       {sensitivityData.variations.map((variation: SensitivityVariation, idx: number) => {
-                        const maxRange = sensitivityData.variations[0].range;
+                        const maxRange = sensitivityData.variations[0].range || 1;
                         const impactScore = Math.min(5, Math.max(1, Math.round((variation.range / maxRange) * 5)));
 
                         return (
@@ -1195,6 +1199,7 @@ export function ResultsSummaryPanel({
                   </CardHeader>
                   <CardContent>
                     <Suspense fallback={<ChartLoadingFallback height="h-[400px]" />}>
+                    <div role="img" aria-label="Wealth projection area chart showing inflation-adjusted portfolio balance over time">
                     <ResponsiveContainer width="100%" height={400}>
                       <AreaChart data={res.data}>
                         <defs>
@@ -1226,6 +1231,7 @@ export function ResultsSummaryPanel({
                         />
                       </AreaChart>
                     </ResponsiveContainer>
+                    </div>
                     </Suspense>
                   </CardContent>
                 </Card>
