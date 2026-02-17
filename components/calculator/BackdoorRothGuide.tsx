@@ -1125,7 +1125,7 @@ export function BackdoorRothGuide({
                           (${maxIRAContribution.toLocaleString()})
                         </p>
                         <p>
-                          <strong>Line 2:</strong> Total basis from prior years (from last year's Line 14)
+                          <strong>Line 2:</strong> Total basis from prior years (from last year&apos;s Line 14)
                         </p>
                         <p>
                           <strong>Line 3:</strong> Add Lines 1 + 2 = Your total basis

@@ -72,7 +72,8 @@ interface InflationImpactProps {
 }
 
 // Historical inflation data for context
-const _HISTORICAL_INFLATION = {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const HISTORICAL_INFLATION = {
   average1900to2024: 3.2,
   average1970s: 7.1,
   peak1980: 13.5,
@@ -150,13 +151,14 @@ function formatCurrencyFull(value: number): string {
  * InflationImpact - Makes inflation viscerally felt
  * "A number isn't a plan. Purchasing power is the plan."
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const InflationImpact = React.memo(function InflationImpact({
   inflationRate = 3.0,
   portfolioValue = 1000000,
   nominalReturnRate = 8.0,
   currentYear = new Date().getFullYear(),
   isDarkMode = false,
-  yearsToRetirement: _yearsToRetirement = 20,
+  yearsToRetirement = 20,
   socialSecurityMonthly = 2500,
   pensionMonthly = 0,
 }: InflationImpactProps) {
@@ -220,7 +222,8 @@ export const InflationImpact = React.memo(function InflationImpact({
   ]);
 
   // Expense inflation timeline data
-  const _expenseTimelineData = useMemo(() => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const expenseTimelineData = useMemo(() => {
     const baseCosts = {
       groceries: 800,
       healthcare: 500,

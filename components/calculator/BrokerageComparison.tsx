@@ -1208,7 +1208,7 @@ export const BrokerageComparison = React.memo(function BrokerageComparison() {
                   </h4>
                   <p className="text-sm text-green-800 dark:text-green-200 mt-1">
                     If you left a job and still have a 401(k) there, consider
-                    rolling it to an IRA at one of the Big Three. You'll
+                    rolling it to an IRA at one of the Big Three. You&apos;ll
                     probably get lower fees and better investment options than
                     most employer plans.
                   </p>
@@ -1228,7 +1228,7 @@ export const BrokerageComparison = React.memo(function BrokerageComparison() {
                   </h4>
                   <p className="text-sm text-red-800 dark:text-red-200 mt-1">
                     The Big Three (Fidelity, Vanguard, Schwab) avoid all these
-                    issues. If you're with a different brokerage, watch for
+                    issues. If you&apos;re with a different brokerage, watch for
                     these red flags:
                   </p>
                 </div>
@@ -1296,7 +1296,7 @@ export const BrokerageComparison = React.memo(function BrokerageComparison() {
               </h4>
               <ol className="text-sm text-green-800 dark:text-green-200 space-y-2 list-decimal list-inside">
                 <li>
-                  Don't panic - your investments are safe, just potentially
+                  Don&apos;t panic - your investments are safe, just potentially
                   suboptimal
                 </li>
                 <li>Open an account at Fidelity, Vanguard, or Schwab</li>

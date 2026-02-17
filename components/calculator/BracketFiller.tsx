@@ -298,7 +298,7 @@ function generateActionItems(
   props: BracketFillerProps
 ): ActionItem[] {
   const actions: ActionItem[] = [];
-  const { taxableUnrealizedGains = 0, stateRate: _stateRate = 0 } = props;
+  const { taxableUnrealizedGains = 0 } = props;
 
   // Find prime years and generate actions
   const primeYears = opportunities.filter((o) => o.isPrimeYear);
@@ -921,7 +921,6 @@ export const BracketFiller: React.FC<BracketFillerProps> = React.memo(
       retirementAge,
       maritalStatus,
       currentIncome,
-      socialSecurityIncome: _socialSecurityIncome = 0,
       ssClaimAge = 67,
       taxableUnrealizedGains = 0,
     } = props;

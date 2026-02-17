@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   RefreshCw,
@@ -36,12 +35,6 @@ import {
 } from "lucide-react";
 
 // ==================== Types ====================
-
-interface AllocationInput {
-  stocks: number;
-  bonds: number;
-  other?: number;
-}
 
 interface RebalanceResult {
   asset: string;

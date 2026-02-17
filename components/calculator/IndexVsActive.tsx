@@ -278,7 +278,7 @@ export function IndexVsActive() {
     const indexNetReturn = (expectedReturn - indexExpenseRatio) / 100;
     const activeNetReturn = (expectedReturn - activeExpenseRatio) / 100;
 
-    years.forEach((_year) => {
+    years.forEach(() => {
       indexGrowth.push(indexBalance);
       activeGrowth.push(activeBalance);
 

@@ -203,7 +203,8 @@ const COMMON_MISTAKES = [
 // Helper Functions
 // ===============================
 
-function _calculateStepUpSavings(
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function calculateStepUpSavings(
   originalBasis: number,
   valueAtDeath: number,
   taxRate: number = 0.15

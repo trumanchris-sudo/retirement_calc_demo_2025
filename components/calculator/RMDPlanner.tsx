@@ -572,7 +572,7 @@ export const RMDPlanner = React.memo(function RMDPlanner({
                     April 1 of year after turning 73
                   </div>
                   <p className="text-sm text-orange-700 dark:text-orange-300">
-                    You can delay your first RMD until April 1, but then you'll have <strong>two RMDs</strong> in the
+                    You can delay your first RMD until April 1, but then you&apos;ll have <strong>two RMDs</strong> in the
                     same tax year! (First year + current year)
                   </p>
                 </div>
@@ -850,7 +850,7 @@ export const RMDPlanner = React.memo(function RMDPlanner({
               </div>
               <p className="text-xs text-muted-foreground">
                 Higher divisor = smaller RMD. With a spouse 20 years younger at age 73, your divisor is 32.3 vs 26.5 -
-                that's 18% smaller RMDs!
+                that&apos;s 18% smaller RMDs!
               </p>
             </div>
 
