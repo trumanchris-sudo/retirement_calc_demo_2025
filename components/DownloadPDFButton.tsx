@@ -218,7 +218,7 @@ export const DownloadPDFButton: React.FC<DownloadPDFButtonProps> = ({
       ) : (
         <>
           {showIcon && <FileText className="mr-2 h-4 w-4" />}
-          Download Full Report (PDF)
+          Download Report (PDF)
         </>
       )}
     </Button>

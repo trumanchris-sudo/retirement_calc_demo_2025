@@ -119,17 +119,17 @@ export default function Income2026Page() {
   // ============================================================================
 
   const maritalStatus = planConfig.marital ?? DEFAULTS.marital;
-  const p1BaseIncome = planConfig.primaryIncome ?? 0;
-  const p2BaseIncome = planConfig.spouseIncome ?? 0;
+  const p1BaseIncome = planConfig.primaryIncome ?? DEFAULTS.primaryIncome;
+  const p2BaseIncome = planConfig.spouseIncome ?? DEFAULTS.spouseIncome ?? 0;
   const p1Bonus = planConfig.eoyBonusAmount ?? 0;
   const p1BonusMonth = planConfig.eoyBonusMonth ?? "December";
   const p1FirstPayDate = planConfig.firstPayDate ?? "2026-01-15";
-  const p1PreTax401k = planConfig.cPre1 ?? 0;
-  const p1PostTaxRoth = planConfig.cPost1 ?? 0;
-  const p2PreTax401k = planConfig.cPre2 ?? 0;
-  const p2PostTaxRoth = planConfig.cPost2 ?? 0;
-  const p1LifeInsuranceAnnual = planConfig.annualLifeInsuranceP1 ?? 0;
-  const p2LifeInsuranceAnnual = planConfig.annualLifeInsuranceP2 ?? 0;
+  const p1PreTax401k = planConfig.cPre1 ?? DEFAULTS.cPre1;
+  const p1PostTaxRoth = planConfig.cPost1 ?? DEFAULTS.cPost1;
+  const p2PreTax401k = planConfig.cPre2 ?? DEFAULTS.cPre2;
+  const p2PostTaxRoth = planConfig.cPost2 ?? DEFAULTS.cPost2;
+  const p1LifeInsuranceAnnual = planConfig.annualLifeInsuranceP1 ?? DEFAULTS.annualLifeInsuranceP1 ?? 0;
+  const p2LifeInsuranceAnnual = planConfig.annualLifeInsuranceP2 ?? DEFAULTS.annualLifeInsuranceP2 ?? 0;
 
   // ============================================================================
   // PAGE-LOCAL STATE (persisted to localStorage)

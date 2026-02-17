@@ -371,6 +371,9 @@ export function ScenariosTab({
                         <p className="text-xs text-muted-foreground">
                           Your plan with current assumptions (no shocks)
                         </p>
+                        <p className="text-xs text-muted-foreground mt-1 italic">
+                          Uses your current return rate and inflation assumptions with no market shocks.
+                        </p>
                       </div>
 
                       {/* Bear Market Stress Test */}

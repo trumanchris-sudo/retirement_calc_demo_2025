@@ -288,6 +288,19 @@ function runScenarioSimulation(config: PlanConfig): ScenarioResults {
     const annualContrib = config.cTax1 + config.cPre1 + config.cPost1 + config.cMatch1 +
       (config.marital === 'married' ? (config.cTax2 ?? defaults.cTax2) + (config.cPre2 ?? defaults.cPre2) + (config.cPost2 ?? defaults.cPost2) + (config.cMatch2 ?? defaults.cMatch2) : 0);
 
+    // Account for contribution growth if enabled
+    const incContrib = config.incContrib ?? defaults.incContrib;
+    const incRate = (config.incRate ?? defaults.incRate) / 100;
+    let totalContributions: number;
+
+    if (incContrib && incRate > 0) {
+      // Compound formula: sum of annualContrib * (1 + incRate)^i for i = 0..years-1
+      // = annualContrib * ((1 + incRate)^years - 1) / incRate
+      totalContributions = annualContrib * ((Math.pow(1 + incRate, yearsToRetirement) - 1) / incRate);
+    } else {
+      totalContributions = annualContrib * yearsToRetirement;
+    }
+
     // Calculate final balance at retirement
     const retirementYearIndex = yearsToRetirement;
     const finReal = result.balancesReal[retirementYearIndex] || 0;
@@ -298,7 +311,7 @@ function runScenarioSimulation(config: PlanConfig): ScenarioResults {
       survYrs: result.survYrs || 0,
       y1AfterTaxReal: result.y1AfterTaxReal,
       ruined: result.ruined,
-      totalContributions: annualContrib * yearsToRetirement,
+      totalContributions,
     };
   } catch (error) {
     console.error('[ScenarioComparison] Simulation failed:', error);
@@ -728,6 +741,7 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
                       value={newScenarioName}
                       onChange={(e) => setNewScenarioName(e.target.value)}
                       placeholder="e.g., Aggressive Savings, Early Retirement"
+                      maxLength={50}
                       autoFocus
                     />
                   </div>
@@ -738,6 +752,7 @@ export function ScenarioComparison({ onScenarioLoad, className }: ScenarioCompar
                       value={newScenarioDescription}
                       onChange={(e) => setNewScenarioDescription(e.target.value)}
                       placeholder="e.g., Max 401k contributions, retire at 55"
+                      maxLength={50}
                     />
                   </div>
                 </div>

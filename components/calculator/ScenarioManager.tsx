@@ -36,6 +36,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Save,
   FolderOpen,
   Copy,
@@ -143,7 +149,17 @@ export function ScenarioManager() {
           toast.error(`Import failed: ${result.errors.join(', ')}`);
         }
       } catch (error) {
-        toast.error(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        let errorMessage: string;
+        if (error instanceof SyntaxError) {
+          errorMessage = 'Invalid file format. Please select a valid JSON export.';
+        } else if (error instanceof TypeError) {
+          errorMessage = 'File format is outdated or incompatible.';
+        } else if (error instanceof Error) {
+          errorMessage = error.message;
+        } else {
+          errorMessage = String(error);
+        }
+        toast.error(`Import failed: ${errorMessage}`);
       }
     };
     reader.readAsText(file);
@@ -259,15 +275,29 @@ export function ScenarioManager() {
                         >
                           <Copy className="w-4 h-4" aria-hidden="true" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(scenario)}
-                          title="Delete this plan"
-                          aria-label={`Delete plan: ${scenario.name}`}
-                        >
-                          <Trash2 className="w-4 h-4" aria-hidden="true" />
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDelete(scenario)}
+                                  disabled={scenarios.length <= 1}
+                                  title={scenarios.length <= 1 ? undefined : "Delete this plan"}
+                                  aria-label={scenarios.length <= 1 ? "Cannot delete the last saved plan" : `Delete plan: ${scenario.name}`}
+                                >
+                                  <Trash2 className="w-4 h-4" aria-hidden="true" />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            {scenarios.length <= 1 && (
+                              <TooltipContent>
+                                <p>Cannot delete the last saved plan</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </div>
                   </Card>
@@ -295,6 +325,7 @@ export function ScenarioManager() {
                 value={scenarioName}
                 onChange={(e) => setScenarioName(e.target.value)}
                 placeholder="e.g., Conservative Plan, Retire at 60"
+                maxLength={50}
                 autoFocus
               />
             </div>
@@ -305,6 +336,7 @@ export function ScenarioManager() {
                 value={scenarioDescription}
                 onChange={(e) => setScenarioDescription(e.target.value)}
                 placeholder="e.g., Assumes 7% returns, max contributions"
+                maxLength={50}
               />
             </div>
           </div>

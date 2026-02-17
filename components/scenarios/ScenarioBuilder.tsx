@@ -265,21 +265,25 @@ const EventItem = React.memo(function EventItem({
   const isRecurring = event.frequency !== "one_time";
 
   return (
-    <div
-      draggable
-      onDragStart={() => onDragStart(event.id)}
-      onDragOver={(e) => {
-        e.preventDefault();
-        onDragOver(event.id);
-      }}
-      onDragEnd={onDragEnd}
-      className={cn(
-        "group relative flex items-center gap-3 p-3 rounded-lg border bg-card transition-all duration-200",
-        "hover:shadow-md cursor-grab active:cursor-grabbing",
-        isDragging && "opacity-50 scale-95",
-        isDragOver && "border-primary border-2 bg-primary/5"
+    <>
+      {isDragOver && (
+        <div className="border-2 border-dashed border-primary/50 h-2 rounded" />
       )}
-    >
+      <div
+        draggable
+        onDragStart={() => onDragStart(event.id)}
+        onDragOver={(e) => {
+          e.preventDefault();
+          onDragOver(event.id);
+        }}
+        onDragEnd={onDragEnd}
+        className={cn(
+          "group relative flex items-center gap-3 p-3 rounded-lg border bg-card transition-all duration-200",
+          "hover:shadow-md cursor-grab active:cursor-grabbing",
+          isDragging && "opacity-50 scale-95",
+          isDragOver && "border-primary border-2 bg-primary/5"
+        )}
+      >
       {/* Drag Handle */}
       <div className="flex-shrink-0 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
         <GripVertical className="w-5 h-5" />
@@ -362,6 +366,7 @@ const EventItem = React.memo(function EventItem({
         </Button>
       </div>
     </div>
+    </>
   );
 });
 
@@ -395,8 +400,11 @@ const EventForm = React.memo(function EventForm({
 
   const isRecurring = formData.frequency !== "one_time";
 
+  const hasAgeRangeError = isRecurring && formData.endAge !== undefined && formData.startAge !== undefined && formData.startAge > formData.endAge;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasAgeRangeError) return;
     onSave({
       id: event?.id || generateId(),
       name: formData.name || "Unnamed Event",
@@ -540,6 +548,16 @@ const EventForm = React.memo(function EventForm({
           </div>
         )}
       </div>
+
+      {/* Age range validation error */}
+      {hasAgeRangeError && (
+        <div
+          className="p-3 rounded-lg border text-sm bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300"
+          role="alert"
+        >
+          Start age cannot be greater than end age. Please adjust the age range.
+        </div>
+      )}
 
       {/* Inflation Adjustment */}
       <div className="flex items-center justify-between rounded-lg border p-3">

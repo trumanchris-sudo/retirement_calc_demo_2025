@@ -665,7 +665,7 @@ function addExecutiveSummary(doc: jsPDF, data: PDFReportData, reportDate: string
   y = addHighlightBox(doc, [
     { title: 'YEARS TO RETIREMENT', value: String(results.yrsToRet), subtitle: `Age ${inputs.retirementAge}` },
     { title: 'SUCCESS PROBABILITY', value: fmtPctRaw(successRate, 0), subtitle: 'Monte Carlo' },
-    { title: 'ANNUAL WITHDRAWAL', value: fmt(results.wdReal), subtitle: '(2026 dollars)' },
+    { title: 'ANNUAL WITHDRAWAL', value: fmt(results.wdReal), subtitle: `(${new Date().getFullYear()} dollars)` },
   ], y, 'navy');
 
   y += 3;
@@ -1073,6 +1073,8 @@ function addTaxStrategyAnalysis(doc: jsPDF, data: PDFReportData, reportDate: str
     y += 3;
 
     // Conversion strategy table
+    // NOTE: These bracket ranges are 2026 values from IRS Revenue Procedure 2025-32.
+    // Update when new tax brackets are published. See lib/constants/tax2026.ts (TAX_BRACKETS_2026) for source of truth.
     const bracketData = inputs.marital === 'married' ? [
       ['12% Bracket', '$0 - $100,800', 'Highest priority'],
       ['22% Bracket', '$100,800 - $211,400', 'Strong candidate'],

@@ -424,21 +424,37 @@ ${getNextQuestion(0, {})}`;
         }
         break;
 
-      case 12: // Retirement age
+      case 12: { // Retirement age
         // Extract retirement age (should be a single number)
         // More aggressive parsing: match any digits
         const ageMatch = userInput.match(/\d+/);
+        let parsedAge: number | null = null;
+
         if (numbers.length > 0) {
-          extracted.retirementAge = numbers[0];
-          console.log('[AIConsole] ✅ PARSED RETIREMENT AGE:', numbers[0], 'from input:', userInput);
+          parsedAge = numbers[0];
         } else if (ageMatch) {
-          // Fallback: just raw digits
-          extracted.retirementAge = parseInt(ageMatch[0]);
-          console.log('[AIConsole] ✅ PARSED RETIREMENT AGE (fallback):', ageMatch[0], 'from input:', userInput);
+          parsedAge = parseInt(ageMatch[0]);
+        }
+
+        if (parsedAge !== null) {
+          const currentAge = currentData.age ?? 30;
+          if (parsedAge > 90) {
+            // Reject unreasonable values
+            console.error('[AIConsole] Retirement age', parsedAge, 'exceeds 90 — ignoring');
+          } else if (parsedAge < 40) {
+            // Treat as "years from now" and add current age
+            extracted.retirementAge = currentAge + parsedAge;
+            console.log('[AIConsole] PARSED RETIREMENT AGE (years from now):', parsedAge, '+ current age', currentAge, '=', extracted.retirementAge, 'from input:', userInput);
+          } else {
+            // Between 40 and 90: treat as a direct retirement age
+            extracted.retirementAge = parsedAge;
+            console.log('[AIConsole] PARSED RETIREMENT AGE:', parsedAge, 'from input:', userInput);
+          }
         } else {
-          console.error('[AIConsole] ❌ FAILED TO PARSE RETIREMENT AGE from input:', userInput);
+          console.error('[AIConsole] FAILED TO PARSE RETIREMENT AGE from input:', userInput);
         }
         break;
+      }
     }
 
     return extracted;

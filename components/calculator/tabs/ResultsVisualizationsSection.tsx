@@ -11,6 +11,7 @@ import type { DailyContribution } from "@/components/visualizations/HeatmapCalen
 import type { WaterfallDataPoint } from "@/components/visualizations/WaterfallChart";
 import type { TreemapNode } from "@/components/visualizations/Treemap";
 import type { CalculationResult } from "@/types/calculator";
+import { fmt } from "@/lib/utils";
 import { PiggyBank, Landmark, Wallet } from "lucide-react";
 
 const Loading = () => <div className="h-64 animate-pulse bg-muted rounded" />;
@@ -311,13 +312,13 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
         label: "Gross Income",
         value: grossIncome,
         category: "income",
-        description: "Total household annual earnings",
+        description: `Total household annual earnings: ${fmt(grossIncome)}`,
       },
       {
         label: "Federal Tax",
         value: -federalTax,
         category: "tax",
-        description: "Estimated federal income tax (~22% effective rate)",
+        description: `Estimated federal income tax (~22% effective rate): ${fmt(federalTax)}`,
       },
     ];
 
@@ -326,7 +327,7 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
         label: "State Tax",
         value: -stateTax,
         category: "tax",
-        description: `State income tax (${(stateRate * 100).toFixed(1)}%)`,
+        description: `State income tax (${(stateRate * 100).toFixed(1)}%): ${fmt(stateTax)}`,
       });
     }
 
@@ -334,7 +335,7 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
       label: "FICA",
       value: -ficaTax,
       category: "tax",
-      description: "Social Security and Medicare payroll taxes",
+      description: `Social Security and Medicare payroll taxes: ${fmt(ficaTax)}`,
     });
 
     if (housing > 0) {
@@ -342,7 +343,7 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
         label: "Housing",
         value: -housing,
         category: "expense",
-        description: "Mortgage/rent, utilities, insurance, property tax",
+        description: `Mortgage/rent, utilities, insurance, property tax: ${fmt(housing)}`,
       });
     }
 
@@ -351,7 +352,7 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
         label: "Healthcare",
         value: -healthcare,
         category: "expense",
-        description: "Health insurance and medical expenses",
+        description: `Health insurance and medical expenses: ${fmt(healthcare)}`,
       });
     }
 
@@ -360,7 +361,7 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
         label: "Living Expenses",
         value: -living,
         category: "expense",
-        description: "Groceries, household, discretionary spending",
+        description: `Groceries, household, discretionary spending: ${fmt(living)}`,
       });
     }
 
@@ -369,7 +370,7 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
         label: "Retirement Savings",
         value: -annualContributions,
         category: "savings",
-        description: "Total annual retirement contributions (401k, IRA, taxable)",
+        description: `Total annual retirement contributions (401k, IRA, taxable): ${fmt(annualContributions)}`,
       });
     }
 
@@ -377,7 +378,7 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
       label: "Remaining",
       value: Math.max(netSavings, 0),
       category: "total",
-      description: "Cash remaining after taxes, expenses, and retirement savings",
+      description: `Cash remaining after taxes, expenses, and retirement savings: ${fmt(Math.max(netSavings, 0))}`,
     });
 
     return data;

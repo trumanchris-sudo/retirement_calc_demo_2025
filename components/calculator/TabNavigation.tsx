@@ -87,7 +87,7 @@ const TabIcons: Record<MainTabId, React.FC<{ className?: string }>> = {
 
 const tabs: Array<{ id: MainTabId; label: string; shortLabel?: string; description: string }> = [
   { id: 'all', label: 'All-in-One', shortLabel: 'All', description: 'Classic view with everything' },
-  { id: 'configure', label: 'Configure', description: 'Set up your retirement plan' },
+  { id: 'configure', label: 'Plan Setup', shortLabel: 'Setup', description: 'Set up your retirement plan' },
   { id: 'planSettings', label: 'Plan Settings', shortLabel: 'Settings', description: 'All plan inputs and assumptions in one place' },
   { id: 'results', label: 'Results', description: 'View your projections' },
   { id: 'stress', label: 'Stress Tests', shortLabel: 'Stress', description: 'Test market scenarios' },

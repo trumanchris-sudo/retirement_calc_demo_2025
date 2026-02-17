@@ -888,7 +888,7 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
                 </span>
               }
               value={grossCompensation}
-              setter={(v) => { setGrossCompensation(v); calculationState.handleInputChange(); }}
+              setter={(v) => { setGrossCompensation(v); updatePlanConfig({ primaryIncome: Math.round(v / 1.3) }, 'user-entered'); calculationState.handleInputChange(); }}
             />
           </div>
           <div>

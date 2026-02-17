@@ -638,42 +638,20 @@ export function mapAIDataToCalculator(
     cPost2: Math.round(cPost2),
     cMatch2: Math.round(cMatch2),
 
-    // Housing & Expenses (from API assumptions)
-    ...(extractedData.monthlyMortgageRent !== undefined && {
-      monthlyMortgageRent: extractedData.monthlyMortgageRent,
-    }),
-    ...(extractedData.monthlyUtilities !== undefined && {
-      monthlyUtilities: extractedData.monthlyUtilities,
-    }),
-    ...(extractedData.monthlyInsurancePropertyTax !== undefined && {
-      monthlyInsurancePropertyTax: extractedData.monthlyInsurancePropertyTax,
-    }),
-    ...(extractedData.monthlyHealthcareP1 !== undefined && {
-      monthlyHealthcareP1: extractedData.monthlyHealthcareP1,
-    }),
-    ...(extractedData.monthlyHealthcareP2 !== undefined && {
-      monthlyHealthcareP2: extractedData.monthlyHealthcareP2,
-    }),
-    ...(extractedData.monthlyOtherExpenses !== undefined && {
-      monthlyOtherExpenses: extractedData.monthlyOtherExpenses,
-    }),
+    // Housing & Expenses — always include so fieldMetadata tracks them
+    monthlyMortgageRent: extractedData.monthlyMortgageRent ?? 0,
+    monthlyUtilities: extractedData.monthlyUtilities ?? 0,
+    monthlyInsurancePropertyTax: extractedData.monthlyInsurancePropertyTax ?? 0,
+    monthlyHealthcareP1: extractedData.monthlyHealthcareP1 ?? 0,
+    monthlyHealthcareP2: extractedData.monthlyHealthcareP2 ?? 0,
+    monthlyOtherExpenses: extractedData.monthlyOtherExpenses ?? 0,
 
     // Additional expense categories (for 2026 income calculators)
-    ...(extractedData.monthlyHouseholdExpenses !== undefined && {
-      monthlyHouseholdExpenses: extractedData.monthlyHouseholdExpenses,
-    }),
-    ...(extractedData.monthlyDiscretionary !== undefined && {
-      monthlyDiscretionary: extractedData.monthlyDiscretionary,
-    }),
-    ...(extractedData.monthlyChildcare !== undefined && {
-      monthlyChildcare: extractedData.monthlyChildcare,
-    }),
-    ...(extractedData.annualLifeInsuranceP1 !== undefined && {
-      annualLifeInsuranceP1: extractedData.annualLifeInsuranceP1,
-    }),
-    ...(extractedData.annualLifeInsuranceP2 !== undefined && {
-      annualLifeInsuranceP2: extractedData.annualLifeInsuranceP2,
-    }),
+    monthlyHouseholdExpenses: extractedData.monthlyHouseholdExpenses ?? 0,
+    monthlyDiscretionary: extractedData.monthlyDiscretionary ?? 0,
+    monthlyChildcare: extractedData.monthlyChildcare ?? 0,
+    annualLifeInsuranceP1: extractedData.annualLifeInsuranceP1 ?? 0,
+    annualLifeInsuranceP2: extractedData.annualLifeInsuranceP2 ?? 0,
 
     // Rates & Assumptions
     retRate: DEFAULT_ASSUMPTIONS.retRate,

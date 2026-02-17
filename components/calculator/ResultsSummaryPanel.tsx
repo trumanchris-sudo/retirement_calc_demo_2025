@@ -1,6 +1,6 @@
 'use client'
 
-import React, { Suspense } from "react";
+import React, { Suspense, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw } from "lucide-react";
@@ -140,6 +140,87 @@ export function ResultsSummaryPanel({
   deleteScenario,
   loadScenario,
 }: ResultsSummaryPanelProps) {
+  const sankeyData = useMemo(() => {
+    if (!res?.eolAccounts || !res.eol || res.eol <= 0) return null;
+
+    const nodes = [
+      { name: `Taxable — ${fmt(res.eolAccounts.taxable)}` },
+      { name: `Pre-Tax — ${fmt(res.eolAccounts.pretax)}` },
+      { name: `Roth — ${fmt(res.eolAccounts.roth)}` },
+      { name: `Estate Tax — ${fmt(res.estateTax || 0)}` },
+      { name: `Net to Heirs — ${fmt(res.netEstate || res.eol)}` },
+    ];
+
+    const totalReal = res.eolReal || res.eol;
+    const taxRatio = (res.estateTax || 0) / totalReal;
+    const heirRatio = (res.netEstate || totalReal) / totalReal;
+
+    const links: Array<{
+      source: number;
+      target: number;
+      value: number;
+      color: string;
+      sourceName: string;
+      targetName: string;
+    }> = [];
+
+    // Taxable flows
+    if (res.estateTax > 0 && res.eolAccounts.taxable > 0) {
+      links.push({
+        source: 0, target: 3,
+        value: res.eolAccounts.taxable * taxRatio,
+        color: SANKEY_COLORS.accounts.taxable,
+        sourceName: 'Taxable', targetName: 'Estate Tax',
+      });
+    }
+    if (res.eolAccounts.taxable > 0) {
+      links.push({
+        source: 0, target: 4,
+        value: res.eolAccounts.taxable * heirRatio,
+        color: SANKEY_COLORS.accounts.taxable,
+        sourceName: 'Taxable', targetName: 'Net to Heirs',
+      });
+    }
+
+    // Pre-tax flows
+    if (res.estateTax > 0 && res.eolAccounts.pretax > 0) {
+      links.push({
+        source: 1, target: 3,
+        value: res.eolAccounts.pretax * taxRatio,
+        color: SANKEY_COLORS.accounts["401k"],
+        sourceName: 'Pre-Tax', targetName: 'Estate Tax',
+      });
+    }
+    if (res.eolAccounts.pretax > 0) {
+      links.push({
+        source: 1, target: 4,
+        value: res.eolAccounts.pretax * heirRatio,
+        color: SANKEY_COLORS.accounts["401k"],
+        sourceName: 'Pre-Tax', targetName: 'Net to Heirs',
+      });
+    }
+
+    // Roth flows
+    if (res.estateTax > 0 && res.eolAccounts.roth > 0) {
+      links.push({
+        source: 2, target: 3,
+        value: res.eolAccounts.roth * taxRatio,
+        color: SANKEY_COLORS.accounts.roth,
+        sourceName: 'Roth', targetName: 'Estate Tax',
+      });
+    }
+    if (res.eolAccounts.roth > 0) {
+      links.push({
+        source: 2, target: 4,
+        value: res.eolAccounts.roth * heirRatio,
+        color: SANKEY_COLORS.accounts.roth,
+        sourceName: 'Roth', targetName: 'Net to Heirs',
+      });
+    }
+
+    return { nodes, links };
+  }, [res]);
+
   if (!res) {
     return (
       <TabPanel id="results" activeTab={activeMainTab}>
@@ -434,91 +515,7 @@ export function ResultsSummaryPanel({
                     </span>
                     <ResponsiveContainer width="100%" height={350}>
                       <Sankey
-                        data={{
-                          nodes: [
-                            { name: `Taxable — ${fmt(res.eolAccounts.taxable)}` },
-                            { name: `Pre-Tax — ${fmt(res.eolAccounts.pretax)}` },
-                            { name: `Roth — ${fmt(res.eolAccounts.roth)}` },
-                            { name: `Estate Tax — ${fmt(res.estateTax || 0)}` },
-                            { name: `Net to Heirs — ${fmt(res.netEstate || res.eol)}` },
-                          ],
-                          links: (() => {
-                            // Use eolReal for ratios since all values are in real dollars
-                            const totalReal = res.eolReal || res.eol;
-                            const taxRatio = (res.estateTax || 0) / totalReal;
-                            const heirRatio = (res.netEstate || totalReal) / totalReal;
-
-                            const links = [];
-
-                            // Taxable flows
-                            if (res.estateTax > 0 && res.eolAccounts.taxable > 0) {
-                              links.push({
-                                source: 0,
-                                target: 3,
-                                value: res.eolAccounts.taxable * taxRatio,
-                                color: SANKEY_COLORS.accounts.taxable,
-                                sourceName: 'Taxable',
-                                targetName: 'Estate Tax'
-                              });
-                            }
-                            if (res.eolAccounts.taxable > 0) {
-                              links.push({
-                                source: 0,
-                                target: 4,
-                                value: res.eolAccounts.taxable * heirRatio,
-                                color: SANKEY_COLORS.accounts.taxable,
-                                sourceName: 'Taxable',
-                                targetName: 'Net to Heirs'
-                              });
-                            }
-
-                            // Pre-tax flows
-                            if (res.estateTax > 0 && res.eolAccounts.pretax > 0) {
-                              links.push({
-                                source: 1,
-                                target: 3,
-                                value: res.eolAccounts.pretax * taxRatio,
-                                color: SANKEY_COLORS.accounts["401k"],
-                                sourceName: 'Pre-Tax',
-                                targetName: 'Estate Tax'
-                              });
-                            }
-                            if (res.eolAccounts.pretax > 0) {
-                              links.push({
-                                source: 1,
-                                target: 4,
-                                value: res.eolAccounts.pretax * heirRatio,
-                                color: SANKEY_COLORS.accounts["401k"],
-                                sourceName: 'Pre-Tax',
-                                targetName: 'Net to Heirs'
-                              });
-                            }
-
-                            // Roth flows
-                            if (res.estateTax > 0 && res.eolAccounts.roth > 0) {
-                              links.push({
-                                source: 2,
-                                target: 3,
-                                value: res.eolAccounts.roth * taxRatio,
-                                color: SANKEY_COLORS.accounts.roth,
-                                sourceName: 'Roth',
-                                targetName: 'Estate Tax'
-                              });
-                            }
-                            if (res.eolAccounts.roth > 0) {
-                              links.push({
-                                source: 2,
-                                target: 4,
-                                value: res.eolAccounts.roth * heirRatio,
-                                color: SANKEY_COLORS.accounts.roth,
-                                sourceName: 'Roth',
-                                targetName: 'Net to Heirs'
-                              });
-                            }
-
-                            return links;
-                          })(),
-                        }}
+                        data={sankeyData!}
                         width={800}
                         height={350}
                         nodeWidth={15}
@@ -800,6 +797,11 @@ export function ResultsSummaryPanel({
                                 {[1, 2, 3, 4, 5].map((level) => (
                                   <div
                                     key={level}
+                                    role="progressbar"
+                                    aria-valuenow={level <= impactScore ? 100 : 0}
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                    aria-label={`${variation.label} impact level ${level} of 5${level <= impactScore ? ' (filled)' : ' (empty)'}`}
                                     className={`w-3 h-6 rounded-sm ${
                                       level <= impactScore
                                         ? 'bg-blue-500 dark:bg-blue-400'
@@ -979,6 +981,11 @@ export function ResultsSummaryPanel({
                                       </div>
                                       <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6">
                                         <div
+                                          role="progressbar"
+                                          aria-valuenow={Math.round(pct)}
+                                          aria-valuemin={0}
+                                          aria-valuemax={100}
+                                          aria-label={`${scenario.name} net estate: ${fmt(scenario.results.eolReal)}`}
                                           className="bg-gradient-to-r from-green-500 to-emerald-600 h-6 rounded-full flex items-center justify-end px-2 transition-all"
                                           style={{ width: `${pct}%` }}
                                         >
@@ -1008,6 +1015,11 @@ export function ResultsSummaryPanel({
                                       </div>
                                       <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6">
                                         <div
+                                          role="progressbar"
+                                          aria-valuenow={Math.round(pct)}
+                                          aria-valuemin={0}
+                                          aria-valuemax={100}
+                                          aria-label={`${scenario.name} annual income: ${fmt(scenario.results.wdReal)}`}
                                           className="bg-gradient-to-r from-blue-500 to-indigo-600 h-6 rounded-full flex items-center justify-end px-2 transition-all"
                                           style={{ width: `${pct}%` }}
                                         >
@@ -1036,6 +1048,11 @@ export function ResultsSummaryPanel({
                                       </div>
                                       <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6">
                                         <div
+                                          role="progressbar"
+                                          aria-valuenow={Math.round(pct)}
+                                          aria-valuemin={0}
+                                          aria-valuemax={100}
+                                          aria-label={`${scenario.name} balance at retirement: ${fmt(scenario.results.finReal)}`}
                                           className="bg-gradient-to-r from-purple-500 to-violet-600 h-6 rounded-full flex items-center justify-end px-2 transition-all"
                                           style={{ width: `${pct}%` }}
                                         >

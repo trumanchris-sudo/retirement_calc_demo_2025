@@ -493,12 +493,14 @@ export function ConfigureTab({
                             </select>
                           </div>
 
-                          <div className="text-xs text-muted-foreground mt-2">
-                            <p>
-                              Bond allocation will transition from {bondStartPct}% at age {bondStartAge} to {bondEndPct}% at age {bondEndAge}.
-                              Current allocation at age {age1}: {Math.round(calculateBondAllocation(age1, bondGlidePath))}% bonds.
-                            </p>
-                          </div>
+                          {bondGlidePath && (
+                            <div className="text-xs text-muted-foreground mt-2">
+                              <p>
+                                Bond allocation will transition from {bondStartPct}% at age {bondStartAge} to {bondEndPct}% at age {bondEndAge}.
+                                Current allocation at age {age1}: {Math.round(calculateBondAllocation(age1, bondGlidePath))}% bonds.
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -546,6 +548,7 @@ export function ConfigureTab({
                           <input
                             type="checkbox"
                             id="inc-contrib"
+                            aria-describedby="inc-contrib-desc"
                             checked={incContrib}
                             onChange={(e) => { setIncContrib(e.target.checked); onInputChange(); }}
                             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
@@ -554,6 +557,9 @@ export function ConfigureTab({
                             Increase contributions annually {incContrib && <span className="print-only">check mark</span>}
                           </Label>
                         </div>
+                        <p id="inc-contrib-desc" className="text-xs text-muted-foreground">
+                          Your contributions will increase at the specified rate each year
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -571,6 +577,7 @@ export function ConfigureTab({
                         <input
                           type="checkbox"
                           id="include-ss"
+                          aria-describedby="include-ss-desc"
                           checked={includeSS}
                           onChange={(e) => { setIncludeSS(e.target.checked); onInputChange(); }}
                           className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
@@ -579,6 +586,9 @@ export function ConfigureTab({
                           Include Social Security Benefits
                         </Label>
                       </div>
+                      <p id="include-ss-desc" className="text-xs text-muted-foreground">
+                        Estimate Social Security income based on your earnings history and claim age
+                      </p>
 
                       {includeSS && (
                         <div className="space-y-6 pl-7">
@@ -642,6 +652,7 @@ export function ConfigureTab({
                         <input
                           type="checkbox"
                           id="include-medicare"
+                          aria-describedby="include-medicare-desc"
                           checked={includeMedicare}
                           onChange={(e) => { setIncludeMedicare(e.target.checked); onInputChange(); }}
                           className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
@@ -650,6 +661,9 @@ export function ConfigureTab({
                           Include Medicare Premiums (Age 65+)
                         </Label>
                       </div>
+                      <p id="include-medicare-desc" className="text-xs text-muted-foreground">
+                        Account for Medicare Part B and D premiums including IRMAA surcharges
+                      </p>
 
                       {includeMedicare && (
                         <div className="space-y-4 pl-7">
@@ -690,6 +704,7 @@ export function ConfigureTab({
                         <input
                           type="checkbox"
                           id="include-ltc"
+                          aria-describedby="include-ltc-desc"
                           checked={includeLTC}
                           onChange={(e) => { setIncludeLTC(e.target.checked); onInputChange(); }}
                           className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
@@ -698,6 +713,9 @@ export function ConfigureTab({
                           Include Long-Term Care Planning
                         </Label>
                       </div>
+                      <p id="include-ltc-desc" className="text-xs text-muted-foreground">
+                        Model potential long-term care costs based on probability and duration estimates
+                      </p>
 
                       {includeLTC && (
                         <div className="space-y-4 pl-7">
@@ -773,6 +791,15 @@ export function ConfigureTab({
                               onInputChange={onInputChange}
                             />
                           </div>
+
+                          {ltcAgeRangeEnd <= ltcAgeRangeStart && (
+                            <div
+                              className="p-3 rounded-lg border text-sm bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300"
+                              role="status"
+                            >
+                              Age range end ({ltcAgeRangeEnd}) must be greater than age range start ({ltcAgeRangeStart}). Please increase the end age or decrease the start age for a valid LTC planning window.
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -785,6 +812,7 @@ export function ConfigureTab({
                         <input
                           type="checkbox"
                           id="enable-roth-conversions"
+                          aria-describedby="enable-roth-conversions-desc"
                           checked={enableRothConversions}
                           onChange={(e) => { setEnableRothConversions(e.target.checked); onInputChange(); }}
                           className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 no-print"
@@ -793,6 +821,9 @@ export function ConfigureTab({
                           Enable Automatic Roth Conversions
                         </Label>
                       </div>
+                      <p id="enable-roth-conversions-desc" className="text-xs text-muted-foreground">
+                        Convert pre-tax funds to Roth before RMDs begin to reduce lifetime taxes
+                      </p>
 
                       {enableRothConversions && (
                         <div className="space-y-4 pl-7">

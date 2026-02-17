@@ -50,7 +50,7 @@ export function MathTab({
                 <strong>Filing Status:</strong> This calculator is configurable for both single and married filing status.
                 Tax calculations automatically adjust based on your selection, using appropriate brackets
                 (single: $15K standard deduction, married: $30K), NIIT thresholds (single: $200K, married: $250K),
-                and IRMAA thresholds (single: $109K, married: $218K). Select your filing status in the Configure tab
+                and IRMAA thresholds (single: $109K, married: $218K). Select your filing status in the Plan Setup tab
                 to ensure accurate tax projections.
               </p>
             </div>
@@ -335,16 +335,31 @@ export function MathTab({
               </div>
 
               <div>
+                <h4 className="text-lg font-semibold mb-2 text-blue-800">Perpetual Viability Threshold</h4>
+                <p className="text-gray-700 mb-2">
+                  The &quot;perpetual threshold&quot; determines the maximum sustainable distribution rate for a dynasty trust.
+                  It is derived from compound growth theory:
+                </p>
+                <p className="font-mono text-sm bg-gray-100 p-3 rounded mb-2 text-gray-800">
+                  Perpetual Threshold = Real Return - Population Growth Rate
+                </p>
+                <p className="text-gray-700 mb-2">
+                  If your actual distribution rate is below this threshold, the portfolio is mathematically guaranteed to
+                  last forever. For example, with a 7.2% real return and 2.7% population growth, the maximum sustainable
+                  distribution rate is 4.5%. When your distribution rate is below 95% of this threshold, the outcome is
+                  certain and no simulation is needed.
+                </p>
+              </div>
+
+              <div>
                 <h4 className="text-lg font-semibold mb-2 text-blue-800">Computational Optimization</h4>
                 <p className="text-gray-700 mb-2">
                   To provide instant results without sacrificing accuracy, the calculator uses smart shortcuts:
                 </p>
                 <ul className="list-disc pl-6 space-y-2 text-gray-700">
                   <li>
-                    <strong>Perpetual Viability Check:</strong> Before simulating 10,000 years, we calculate the &quot;perpetual
-                    threshold&quot; - the maximum sustainable distribution rate (Real Return - Population Growth Rate). If your
-                    actual distribution rate is below 95% of this threshold, the portfolio is mathematically guaranteed to
-                    last forever, so we skip the year-by-year simulation.
+                    <strong>Perpetual Viability Short-Circuit:</strong> If the distribution rate is below 95% of the
+                    perpetual threshold (see above), the portfolio will last forever, so we skip the year-by-year simulation entirely.
                   </li>
                   <li>
                     <strong>Decade Chunking:</strong> Instead of calculating 10,000 individual years, we simulate in 10-year

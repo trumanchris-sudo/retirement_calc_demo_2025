@@ -74,6 +74,8 @@ export function ResultsTab({
   retirementAge,
   calculatorInputs
 }: ResultsTabProps) {
+  const chartFallback = <ChartLoadingFallback height="h-[400px]" />;
+
   return (
     <>
       <AnimatedSection animation="slide-up" delay={300}>
@@ -90,7 +92,7 @@ export function ResultsTab({
                   <TabsTrigger value="rmd">RMD Tax Bomb</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="accumulation" className="space-y-4">
+                <TabsContent value="accumulation" className="space-y-4" aria-live="polite">
                   {walkSeries === 'trulyRandom' && (
                     <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 items-start sm:items-center print-hide">
                       <div className="flex items-center space-x-2 min-h-[44px]">
@@ -126,7 +128,7 @@ export function ResultsTab({
                   {/* Wealth Accumulation Chart */}
                   {res?.data && res.data.length > 0 && (
                     <div className="chart-block">
-                      <Suspense fallback={<ChartLoadingFallback height="h-[400px]" />}>
+                      <Suspense fallback={chartFallback}>
                         <WealthAccumulationChart
                           data={res.data}
                           showP10={showP10}
@@ -139,10 +141,10 @@ export function ResultsTab({
                   )}
                 </TabsContent>
 
-                <TabsContent value="rmd" className="space-y-4">
+                <TabsContent value="rmd" className="space-y-4" aria-live="polite">
                   {res.rmdData && res.rmdData.length > 0 ? (
                     <>
-                      <Suspense fallback={<ChartLoadingFallback height="h-[400px]" />}>
+                      <Suspense fallback={chartFallback}>
                         <div className="chart-block">
                           <div role="img" aria-label="Required Minimum Distribution chart comparing spending needs to required RMD withdrawals by age">
                           <ResponsiveContainer width="100%" height={400}>
