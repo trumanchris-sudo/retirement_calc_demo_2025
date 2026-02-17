@@ -25,7 +25,8 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         50000,  // basis
         0,      // no state tax
         0,      // no RMD
-        0       // no SS
+        0,      // no SS
+        false   // preserveRoth=false for pro-rata
       );
 
       // Verify pro-rata distribution
@@ -45,7 +46,8 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         30000,
         'single',
         100000, 100000, 100000,
-        80000, 0, 0, 0
+        80000, 0, 0, 0,
+        false   // preserveRoth=false for pro-rata
       );
 
       expect(result.draw.t).toBeCloseTo(10000, 2);
@@ -85,7 +87,8 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         80000,
         0,
         20000,  // RMD = $20k
-        0
+        0,
+        false   // preserveRoth=false for pro-rata
       );
 
       // Pre-tax should be at least RMD
@@ -130,7 +133,8 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         80000,
         0,
         100000, // RMD requests $100k
-        0
+        0,
+        false   // preserveRoth=false for pro-rata
       );
 
       // Can't withdraw more than available
@@ -264,7 +268,8 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         50000,  // 50% gains
         0,
         0,
-        40000   // $40k base income (SS)
+        40000,  // $40k base income (SS)
+        false   // preserveRoth=false for pro-rata
       );
 
       // Pre-tax withdrawal creates ordinary income
@@ -306,7 +311,8 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         150000, // pre-tax
         50000,  // Roth
         5000,
-        0, 0, 0
+        0, 0, 0,
+        false   // preserveRoth=false for pro-rata
       );
 
       // Pro-rata would want: 105k × (10k/210k) = 5k from taxable
@@ -367,7 +373,8 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         100000, // 50% gains in taxable
         0,
         0,
-        100000  // $100k SS income
+        100000, // $100k SS income
+        false   // preserveRoth=false for pro-rata
       );
 
       // MAGI = SS + pre-tax withdrawal + capital gains

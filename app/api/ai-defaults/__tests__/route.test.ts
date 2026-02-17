@@ -2,32 +2,15 @@
  * Tests for AI Defaults API endpoint
  *
  * TODO: These are placeholder tests showing the structure.
- * To run these tests, you'll need to:
- * 1. Install Jest: `npm install --save-dev jest @types/jest ts-jest @jest/globals`
- * 2. Configure Jest for Next.js
- * 3. Mock the Anthropic SDK
+ * Proper implementation requires mocking the Anthropic SDK.
  */
 
-// Commented out until Jest is installed - uncomment after running: npm install --save-dev jest @types/jest @jest/globals ts-jest
-// import { describe, it, expect, jest, beforeEach } from '@jest/globals'
-// import { POST } from '../route'
-// import { NextRequest } from 'next/server'
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function describe(name: string, fn: () => void) { fn(); }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function it(name: string, fn: () => void) { fn(); }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function beforeEach(fn: () => void) { fn(); }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const expect = (_value: unknown) => ({ toBe: (_expected: unknown) => {} });
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const jest = { clearAllMocks: () => {} };
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 describe('/api/ai-defaults', () => {
   // TODO: Add proper mocking setup
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('Request Validation', () => {

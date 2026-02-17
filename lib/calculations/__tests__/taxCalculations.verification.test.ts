@@ -138,9 +138,9 @@ describe('Tax Calculation Verification Suite', () => {
       const tax = calcOrdinaryTax(income, 'single');
 
       const expectedTax =
-        11925 * 0.10 +
-        (48475 - 11925) * 0.12 +
-        (taxable - 48475) * 0.22;
+        12400 * 0.10 +
+        (50400 - 12400) * 0.12 +
+        (taxable - 50400) * 0.22;
 
       expect(tax).toBeCloseTo(expectedTax, 2);
     });
