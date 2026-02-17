@@ -73,7 +73,7 @@ export function computeWithdrawalTaxes(
   if (totalBal <= 0 || safeGross <= 0)
     return { tax: 0, ordinary: 0, capgain: 0, niit: 0, state: 0, draw: { t: 0, p: 0, r: 0 }, newBasis: safeTaxableBasis };
 
-  // RMD Logic: Force drawP to be at least minPretaxDraw before pro-rata distribution
+  // RMD Logic: Force drawP to be at least minPretaxDraw before remaining distribution
   let drawP = Math.min(safeMinPretaxDraw, safePretaxBal); // Can't withdraw more than available
   const remainingNeed = safeGross - drawP;
 
