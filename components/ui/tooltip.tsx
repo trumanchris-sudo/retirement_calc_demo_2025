@@ -361,13 +361,12 @@ const TooltipContent = React.forwardRef<
   }, [enablePin, context])
 
   // Handle clicking outside when pinned
-  const handlePointerDownOutside = React.useCallback((e: Event) => {
+  const handlePointerDownOutside = React.useCallback((e: Parameters<NonNullable<React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>['onPointerDownOutside']>>[0]) => {
     if (context?.isPinned) {
       e.preventDefault()
       context.setIsPinned(false)
     }
-    // Reason: Radix UI PointerDownOutside event type is not properly exported
-    onPointerDownOutside?.(e as unknown as React.PointerEvent)
+    onPointerDownOutside?.(e)
   }, [context, onPointerDownOutside])
 
   // Get animation class based on side

@@ -671,7 +671,7 @@ function calculateTotalTaxBurden(
   totalTax: number;
 } {
   const totalIncome = retirementIncome + ssIncome + pensionIncome + investmentIncome;
-  const incomeTax = calculateStateTax(state, totalIncome, ssIncome, pensionIncome, investmentIncome);
+  const incomeTax = calculateStateTax(state, totalIncome, ssIncome, pensionIncome);
   const propertyTax = calculatePropertyTax(state, homeValue);
   const salesTax = calculateSalesTax(state, annualSpending);
 

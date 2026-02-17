@@ -998,7 +998,6 @@ export const SuccessStateModal: React.FC<SuccessStateModalProps> = ({
       // Reset states
       setShowConfetti(true);
       setShowParticles(true);
-      setCheckmarkComplete(false);
       hasPlayedSound.current = false;
 
       // Play sound

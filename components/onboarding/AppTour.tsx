@@ -586,16 +586,6 @@ export function AppTourProvider({
     setMounted(true);
   }, []);
 
-  // Auto-start tour for new users
-  useEffect(() => {
-    if (autoStart && !hasSeenTour && mounted) {
-      const timer = setTimeout(() => {
-        startTour();
-      }, autoStartDelay);
-      return () => clearTimeout(timer);
-    }
-  }, [autoStart, hasSeenTour, mounted, autoStartDelay, startTour]);
-
   // Update target rect when step changes or window resizes
   useEffect(() => {
     if (!state.isActive || state.isPaused) {
@@ -644,30 +634,6 @@ export function AppTourProvider({
       currentStep.onHide?.();
     };
   }, [state.isActive, state.currentStep, state.isPaused, steps]);
-
-  // Handle keyboard navigation
-  useEffect(() => {
-    if (!state.isActive) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'Escape':
-          endTour();
-          break;
-        case 'ArrowRight':
-        case 'Enter':
-          if (e.key === 'Enter' && e.target instanceof HTMLButtonElement) return;
-          nextStep();
-          break;
-        case 'ArrowLeft':
-          prevStep();
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [state.isActive, state.currentStep, endTour, nextStep, prevStep]);
 
   const startTour = useCallback((stepIndex = 0) => {
     setState({
@@ -741,6 +707,40 @@ export function AppTourProvider({
 
   const currentStep = steps[state.currentStep];
   const spotlightPadding = currentStep?.spotlightPadding ?? 8;
+
+  // Auto-start tour for new users
+  useEffect(() => {
+    if (autoStart && !hasSeenTour && mounted) {
+      const timer = setTimeout(() => {
+        startTour();
+      }, autoStartDelay);
+      return () => clearTimeout(timer);
+    }
+  }, [autoStart, hasSeenTour, mounted, autoStartDelay, startTour]);
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    if (!state.isActive) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case 'Escape':
+          endTour();
+          break;
+        case 'ArrowRight':
+        case 'Enter':
+          if (e.key === 'Enter' && e.target instanceof HTMLButtonElement) return;
+          nextStep();
+          break;
+        case 'ArrowLeft':
+          prevStep();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [state.isActive, endTour, nextStep, prevStep]);
 
   const contextValue: TourContextValue = {
     startTour,

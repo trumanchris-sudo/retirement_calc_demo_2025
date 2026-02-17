@@ -457,6 +457,48 @@ export function CommandPalette({
     return CATEGORY_ORDER.flatMap((cat) => groupedActions[cat]);
   }, [groupedActions]);
 
+  // Reset selected index when filtered list changes
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query]);
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (!listRef.current) return;
+    const selectedEl = listRef.current.querySelector('[data-selected="true"]');
+    if (selectedEl) {
+      selectedEl.scrollIntoView({ block: 'nearest' });
+    }
+  }, [selectedIndex]);
+
+  // Focus input when opened
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen]);
+
+  // ==================== Actions ====================
+
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    setQuery('');
+    setSelectedIndex(0);
+  }, []);
+
+  const executeAction = useCallback(
+    async (action: CommandAction) => {
+      addRecentAction(action.id);
+      setRecentActionIds((prev) => {
+        const filtered = prev.filter((id) => id !== action.id);
+        return [action.id, ...filtered].slice(0, MAX_RECENT_ACTIONS);
+      });
+      handleClose();
+      await action.action();
+    },
+    [handleClose]
+  );
+
   // ==================== Keyboard Handling ====================
 
   const handleKeyDown = useCallback(
@@ -505,48 +547,6 @@ export function CommandPalette({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
-
-  // Reset selected index when filtered list changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
-
-  // Scroll selected item into view
-  useEffect(() => {
-    if (!listRef.current) return;
-    const selectedEl = listRef.current.querySelector('[data-selected="true"]');
-    if (selectedEl) {
-      selectedEl.scrollIntoView({ block: 'nearest' });
-    }
-  }, [selectedIndex]);
-
-  // Focus input when opened
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isOpen]);
-
-  // ==================== Actions ====================
-
-  const handleClose = useCallback(() => {
-    setIsOpen(false);
-    setQuery('');
-    setSelectedIndex(0);
-  }, []);
-
-  const executeAction = useCallback(
-    async (action: CommandAction) => {
-      addRecentAction(action.id);
-      setRecentActionIds((prev) => {
-        const filtered = prev.filter((id) => id !== action.id);
-        return [action.id, ...filtered].slice(0, MAX_RECENT_ACTIONS);
-      });
-      handleClose();
-      await action.action();
-    },
-    [handleClose]
-  );
 
   // ==================== Render ====================
 

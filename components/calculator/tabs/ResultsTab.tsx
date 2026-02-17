@@ -53,7 +53,6 @@ export interface ResultsTabProps {
 
   // Age info for sequence risk chart
   retirementAge: number;
-  age1: number;
 
   // Calculator inputs for Roth comparison
   calculatorInputs?: CalculatorInputs;
@@ -72,7 +71,6 @@ export function ResultsTab({
   batchSummary,
   guardrailsResult,
   retirementAge,
-  age1,
   calculatorInputs
 }: ResultsTabProps) {
   return (
@@ -211,7 +209,6 @@ export function ResultsTab({
           <SequenceRiskChart
             batchSummary={batchSummary}
             retirementAge={retirementAge}
-            age1={age1}
           />
         </AnimatedSection>
       )}

@@ -554,7 +554,7 @@ export function useCalculation(deps: CalcDeps) {
       // Calculate estate tax
       console.log('[CALC] Calculating estate tax...');
       const yearOfDeath = getCurrYear() + (LIFE_EXP - older);
-      const estateTax = calcEstateTax(eolWealth, marital, yearOfDeath, assumeTaxCutsExtended);
+      const estateTax = calcEstateTax(eolWealth, marital, yearOfDeath);
       const realEstateTax = eolWealth > 0 ? estateTax * (eolReal / eolWealth) : 0;
       const netEstate = eolReal - realEstateTax;
       console.log('[CALC] Estate tax calculated - year:', yearOfDeath, 'estateTax:', estateTax, 'realEstateTax:', realEstateTax, 'netEstate:', netEstate);
@@ -593,9 +593,9 @@ export function useCalculation(deps: CalcDeps) {
 
             // Calculate estate tax and net estate for each percentile
             console.log('[CALC] Calculating estate taxes for percentiles...');
-            const estateTaxP25 = calcEstateTax(eolP25, marital, yearOfDeath, assumeTaxCutsExtended);
-            const estateTaxP50 = calcEstateTax(eolP50, marital, yearOfDeath, assumeTaxCutsExtended);
-            const estateTaxP75 = calcEstateTax(eolP75, marital, yearOfDeath, assumeTaxCutsExtended);
+            const estateTaxP25 = calcEstateTax(eolP25, marital, yearOfDeath);
+            const estateTaxP50 = calcEstateTax(eolP50, marital, yearOfDeath);
+            const estateTaxP75 = calcEstateTax(eolP75, marital, yearOfDeath);
 
             const netEstateP25 = eolP25 - estateTaxP25;
             const netEstateP50 = eolP50 - estateTaxP50;
@@ -712,7 +712,7 @@ export function useCalculation(deps: CalcDeps) {
 
             const allEstatesAfterTax = allEstatesReal.map(eolRealVal => {
               const eolNominal = eolRealVal * Math.pow(1 + infl, yearsFrom2025);
-              const estTax = calcEstateTax(eolNominal, marital, yearOfDeath, assumeTaxCutsExtended);
+              const estTax = calcEstateTax(eolNominal, marital, yearOfDeath);
               return eolNominal - estTax;
             });
 

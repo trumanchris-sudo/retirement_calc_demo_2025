@@ -351,7 +351,7 @@ const OdometerDigit = memo<OdometerDigitProps>(({
     const { stiffness, damping, mass } = springConfig;
 
     let velocity = 0;
-    let position = startOffset;
+    let position = prevDigit * digitHeight;
     const targetPosition = numericValue * digitHeight;
 
     const animate = (currentTime: number) => {

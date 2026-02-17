@@ -285,20 +285,20 @@ function compareMethods(
   const fifoLots = [...analyzedLots].sort(
     (a, b) => a.lot.purchaseDate.getTime() - b.lot.purchaseDate.getTime()
   );
-  methods.push(calculateMethodResult("FIFO", fifoLots, sharesToSell, taxableIncome, filingStatus));
+  methods.push(calculateMethodResult("FIFO", fifoLots, sharesToSell));
 
   // LIFO - Last In, First Out
   const lifoLots = [...analyzedLots].sort(
     (a, b) => b.lot.purchaseDate.getTime() - a.lot.purchaseDate.getTime()
   );
-  methods.push(calculateMethodResult("LIFO", lifoLots, sharesToSell, taxableIncome, filingStatus));
+  methods.push(calculateMethodResult("LIFO", lifoLots, sharesToSell));
 
   // HIFO - Highest In, First Out (minimize gains by selling highest cost first)
   const hifoLots = [...analyzedLots].sort((a, b) => b.lot.costBasis - a.lot.costBasis);
-  methods.push(calculateMethodResult("HIFO", hifoLots, sharesToSell, taxableIncome, filingStatus));
+  methods.push(calculateMethodResult("HIFO", hifoLots, sharesToSell));
 
   // Calculate optimal specific lot selection
-  const specificLots = optimizeSpecificLots(analyzedLots, sharesToSell, taxableIncome, filingStatus);
+  const specificLots = optimizeSpecificLots(analyzedLots, sharesToSell);
   methods.push(specificLots);
 
   // Calculate tax savings vs worst method
@@ -373,9 +373,7 @@ function calculateMethodResult(
  */
 function optimizeSpecificLots(
   analyzedLots: LotAnalysis[],
-  sharesToSell: number,
-  taxableIncome: number,
-  filingStatus: FilingStatus
+  sharesToSell: number
 ): MethodComparison {
   // Strategy: Prioritize losses, then long-term gains with lowest rates, then short-term
   const sorted = [...analyzedLots].sort((a, b) => {
@@ -392,7 +390,7 @@ function optimizeSpecificLots(
     return a.gainPercent - b.gainPercent;
   });
 
-  return calculateMethodResult("Specific", sorted, sharesToSell, taxableIncome, filingStatus);
+  return calculateMethodResult("Specific", sorted, sharesToSell);
 }
 
 /**

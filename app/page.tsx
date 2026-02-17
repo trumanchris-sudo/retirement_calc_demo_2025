@@ -1082,7 +1082,6 @@ export default function App() {
                 batchSummary={batchSummary}
                 guardrailsResult={guardrailsResult}
                 retirementAge={retirementAge}
-                age1={age1}
                 calculatorInputs={planConfig}
               />
               <div className="mt-8">
