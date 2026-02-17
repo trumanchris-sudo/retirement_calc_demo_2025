@@ -82,9 +82,7 @@ export const RothConversionOptimizer = React.memo(function RothConversionOptimiz
     optimizedLifetimeTax = 0,
     rmdReduction = 0,
     rmdReductionPercent = 0,
-    effectiveRateImprovement = 0,
     targetBracket = 0.24,
-    targetBracketLimit = 0,
   } = rothResult;
 
   const bracketLabel = `${(targetBracket * 100).toFixed(0)}%`;
@@ -252,7 +250,7 @@ export const RothConversionOptimizer = React.memo(function RothConversionOptimiz
                   <strong>Estate planning:</strong> Heirs inherit Roth IRA tax-free (no income tax on distributions)
                 </li>
                 <li>
-                  <strong>Flexibility:</strong> Roth withdrawals don't affect IRMAA (Medicare surcharges) or SS taxation
+                  <strong>Flexibility:</strong> Roth withdrawals don&apos;t affect IRMAA (Medicare surcharges) or SS taxation
                 </li>
               </ul>
             </div>
