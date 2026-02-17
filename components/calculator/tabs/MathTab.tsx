@@ -328,7 +328,7 @@ export function MathTab({
                 </ul>
                 <p className="text-gray-700 mt-2">
                   In Monte Carlo mode, the model runs simulations at the P25, P50, and P75 estate values and reports
-                  perpetual success probability (75%, 50%, or 25% success rate). This models a "dynasty trust" or "perpetual legacy" scenario and helps
+                  perpetual success probability (75%, 50%, or 25% success rate). This models a &quot;dynasty trust&quot; or &quot;perpetual legacy&quot; scenario and helps
                   you understand whether your wealth could support generations indefinitely. Quick presets
                   (Conservative/Moderate/Aggressive) provide starting points for different legacy goals.
                 </p>
@@ -341,8 +341,8 @@ export function MathTab({
                 </p>
                 <ul className="list-disc pl-6 space-y-2 text-gray-700">
                   <li>
-                    <strong>Perpetual Viability Check:</strong> Before simulating 10,000 years, we calculate the "perpetual
-                    threshold" - the maximum sustainable distribution rate (Real Return - Population Growth Rate). If your
+                    <strong>Perpetual Viability Check:</strong> Before simulating 10,000 years, we calculate the &quot;perpetual
+                    threshold&quot; - the maximum sustainable distribution rate (Real Return - Population Growth Rate). If your
                     actual distribution rate is below 95% of this threshold, the portfolio is mathematically guaranteed to
                     last forever, so we skip the year-by-year simulation.
                   </li>
@@ -386,7 +386,7 @@ export function MathTab({
               <li>
                 <strong>Sequence-of-Returns Risk:</strong> In Truly Random (Monte Carlo) mode with 1,000 simulations,
                 sequence risk is fully captured - bad early returns can deplete portfolios even if average returns are
-                good. Fixed and Random Walk modes don't model this risk as thoroughly. The percentile bands (10th, 50th, 90th for charts; 25th, 50th, 75th for success rates)
+                good. Fixed and Random Walk modes don&apos;t model this risk as thoroughly. The percentile bands (10th, 50th, 90th for charts; 25th, 50th, 75th for success rates)
                 show the range of outcomes from sequence variation.
               </li>
               <li>

@@ -298,9 +298,11 @@ export function StressTest({
   currentAge,
   endAge = 95,
   stockAllocation = 0.6,
-  bondAllocation = 0.4,
+  bondAllocation = 0.4, // Reason: Parameter kept for API compatibility, used in future bond calculations
   expectedReturn = 0.07,
 }: StressTestProps) {
+  // Suppress unused var warning - bondAllocation may be used for future bond calculation features
+  void bondAllocation;
   const [selectedScenario, setSelectedScenario] = useState<string>("2008-crisis");
   const [activeTab, setActiveTab] = useState<string>("scenarios");
   const [customScenario, setCustomScenario] = useState<CustomScenario>({

@@ -342,7 +342,6 @@ interface CalculateFABProps {
 
 const CalculateFAB: React.FC<CalculateFABProps> = ({ onClick, isVisible }) => {
   const controls = useAnimation();
-  const [isPulsing, setIsPulsing] = useState(false);
 
   // Update animation when visibility changes
   useEffect(() => {
@@ -355,11 +354,10 @@ const CalculateFAB: React.FC<CalculateFABProps> = ({ onClick, isVisible }) => {
 
   const handleClick = () => {
     triggerHapticFeedback("heavy");
-    setIsPulsing(true);
-    controls.start({
+    void controls.start({
       scale: [1, 1.2, 1],
       transition: { duration: 0.3 },
-    }).then(() => setIsPulsing(false));
+    });
     onClick();
   };
 

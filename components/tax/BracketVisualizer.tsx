@@ -188,7 +188,6 @@ function calculateFederalTax(
   const segments: BracketSegment[] = [];
   let remainingIncome = taxableIncome;
   let cumulativeTax = 0;
-  let previousMax = 0;
 
   for (let i = 0; i < brackets.length; i++) {
     const bracket = brackets[i];
@@ -212,7 +211,6 @@ function calculateFederalTax(
       bracketIndex: i,
     });
 
-    previousMax = bracket.max;
     if (remainingIncome <= 0) break;
   }
 

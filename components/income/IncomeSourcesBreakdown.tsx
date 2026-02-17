@@ -23,7 +23,8 @@ import {
   ChartContainer,
 } from "@/components/ui/chart";
 
-// Reason: ChartConfig type from recharts v3 has complex nested types
+// Reason: ChartConfig type from recharts v3 has complex nested nested record types that are difficult to type correctly
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ChartConfig = any;
 import {
   Shield,

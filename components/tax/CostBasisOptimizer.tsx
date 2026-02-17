@@ -12,9 +12,8 @@
  * 6. Year-end tax projection
  */
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import {
-  DollarSign,
   TrendingUp,
   TrendingDown,
   Info,
@@ -26,7 +25,6 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowRightLeft,
-  Percent,
   Clock,
   Layers,
   Target,
@@ -65,7 +63,6 @@ import { fmt, fmtFull } from "@/lib/utils";
 import {
   CAPITAL_GAINS_BRACKETS_2026,
   TAX_BRACKETS_2026,
-  STANDARD_DEDUCTION_2026,
   type FilingStatus,
 } from "@/lib/constants/tax2026";
 

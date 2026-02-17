@@ -650,7 +650,7 @@ export function analyzePortfolio(
   const optimalEfficiencyScore = Math.round(100 - (optimalTaxDrag / safeMaxDrag) * 100);
 
   // Generate recommendations
-  const recommendations = generateRecommendations(holdingAnalysis, expectedReturn);
+  const recommendations = generateRecommendations(holdingAnalysis);
 
   // Calculate optimal placement
   const optimalPlacement = calculateOptimalPlacement(allHoldings, currentAllocation);
@@ -675,8 +675,7 @@ export function analyzePortfolio(
  * Generate prioritized recommendations
  */
 function generateRecommendations(
-  holdingAnalysis: HoldingTaxDrag[],
-  _expectedReturn: number // Reason: Reserved for future enhancements to recommendation impact calculations
+  holdingAnalysis: HoldingTaxDrag[]
 ): OptimizationRecommendation[] {
   const recommendations: OptimizationRecommendation[] = [];
 

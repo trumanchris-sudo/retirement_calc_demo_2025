@@ -308,9 +308,6 @@ function analyzeContributionOrder(inputs: OptimizationInputs): Recommendation[] 
   // Determine optimal contribution order based on tax situation
   const { currentRate } = getBracketHeadroom(totalIncome, marital);
 
-  // Calculate current total contributions
-  const totalContributions = cPre1 + cPost1 + cTax1 + cPre2 + cPost2 + cTax2;
-
   // 1. Check if getting full employer match
   const totalMatch = cMatch1 + cMatch2;
   const max401k = isOver50 ?

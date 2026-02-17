@@ -348,6 +348,8 @@ export function SpousalScenarios({
   lifeInsuranceP1 = 0,
   lifeInsuranceP2 = 0,
   disabilityInsuranceP1 = 0,
+  // Reason: disabilityInsuranceP2 accepted as prop but not used in calculations (only primary earner disability shown)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   disabilityInsuranceP2 = 0,
   monthlyExpenses = 0,
   monthlyMortgage = 0,

@@ -243,21 +243,6 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-const getAccountTypeIcon = (type: PlaidAccount["type"]): string => {
-  switch (type) {
-    case "depository":
-      return "bank";
-    case "investment":
-      return "trending-up";
-    case "credit":
-      return "credit-card";
-    case "loan":
-      return "home";
-    default:
-      return "wallet";
-  }
-};
-
 const getAccountTypeLabel = (type: PlaidAccount["type"]): string => {
   const labels: Record<PlaidAccount["type"], string> = {
     depository: "Cash",

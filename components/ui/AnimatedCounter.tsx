@@ -82,12 +82,6 @@ export interface AnimatedCounterProps {
   significantThreshold?: number;
   /** Enable sound effects */
   enableSound?: boolean;
-  /** Custom sound URLs */
-  sounds?: {
-    tick?: string;
-    complete?: string;
-    milestone?: string;
-  };
   /** Sound volume (0-1) */
   soundVolume?: number;
   /** Prefix to display */
@@ -547,7 +541,6 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
   highlightOnChange = false,
   significantThreshold = 10,
   enableSound = false,
-  sounds,
   soundVolume = 0.5,
   prefix = "",
   suffix = "",

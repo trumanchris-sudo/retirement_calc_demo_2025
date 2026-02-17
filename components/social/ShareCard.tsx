@@ -11,7 +11,6 @@ import {
   Facebook,
   Lock,
   Eye,
-  EyeOff,
   Sparkles,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -180,7 +179,6 @@ function generateShareImage(
   canvas.height = height
 
   const { successRate } = metrics
-  const colors = getStatusColor(successRate)
 
   // Background gradient
   const bgGradient = ctx.createLinearGradient(0, 0, width, height)

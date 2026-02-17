@@ -935,13 +935,9 @@ function CategorySection({ category, events, onToggleComplete, defaultOpen = tru
 
 export function CalendarIntegration({
   userAge = 40,
-  retirementAge = 65,
-  portfolioValue = 500000,
   rebalancingFrequency = 'quarterly',
   reviewMeetingFrequency = 'semi-annually',
   customEvents = [],
-  onEventAdd,
-  onEventRemove,
   className,
 }: CalendarIntegrationProps) {
   const currentYear = new Date().getFullYear()
@@ -1263,8 +1259,8 @@ export function CalendarIntegration({
                 <h4 className="font-medium">Google Calendar</h4>
               </div>
               <ol className="text-sm text-muted-foreground space-y-2">
-                <li>1. Click "Add to Calendar" on any event</li>
-                <li>2. Select "Google Calendar"</li>
+                <li>1. Click &quot;Add to Calendar&quot; on any event</li>
+                <li>2. Select &quot;Google Calendar&quot;</li>
                 <li>3. Review and save the event</li>
               </ol>
             </div>

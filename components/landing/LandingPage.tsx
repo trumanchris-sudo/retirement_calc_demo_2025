@@ -416,8 +416,7 @@ const features = [
 
 const FeatureCard: React.FC<{
   feature: typeof features[0];
-  index: number;
-}> = ({ feature, index }) => {
+}> = ({ feature }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(cardRef, { once: true, margin: "-100px" });
 
@@ -953,7 +952,7 @@ const PricingSection: React.FC = () => {
             </span>
           </h2>
           <p className="text-xl text-slate-600 dark:text-slate-300">
-            Start free, upgrade when you're ready for advanced features
+            Start free, upgrade when you&apos;re ready for advanced features
           </p>
         </motion.div>
 

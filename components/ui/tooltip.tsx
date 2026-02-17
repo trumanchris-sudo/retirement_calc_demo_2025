@@ -517,9 +517,9 @@ interface TooltipImageProps {
 }
 
 // Note: Using img instead of next/image for tooltip compatibility and flexibility
-// eslint-disable-next-line @next/next/no-img-element
 const TooltipImage = React.forwardRef<HTMLImageElement, TooltipImageProps>(
   ({ src, alt, className, width, height }, ref) => (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       ref={ref}
       src={src}
