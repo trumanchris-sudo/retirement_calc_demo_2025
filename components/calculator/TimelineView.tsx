@@ -15,9 +15,11 @@ import {
 import type { CalculationResult } from "@/types/calculator";
 
 interface TimelineViewProps {
+  // Reason: result reserved for future milestone calculations from projection data
   result: CalculationResult;
   currentAge: number;
   retirementAge: number;
+  // Reason: spouseAge reserved for future spouse timeline feature
   spouseAge?: number;
 }
 
@@ -30,8 +32,8 @@ interface TimelineEvent {
   color: string;
 }
 
-export const TimelineView = React.memo(function TimelineView({ result, currentAge, retirementAge, spouseAge }: TimelineViewProps) {
-  // Extract key data from result
+export const TimelineView = React.memo(function TimelineView({ currentAge, retirementAge }: TimelineViewProps) {
+  // Extract key data
   const currentYear = new Date().getFullYear();
   const yearsToRetirement = retirementAge - currentAge;
   const retirementYear = currentYear + yearsToRetirement;

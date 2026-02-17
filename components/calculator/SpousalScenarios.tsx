@@ -16,18 +16,14 @@ import React, { useState, useMemo, useCallback } from 'react';
 import {
   Shield,
   Heart,
-  AlertTriangle,
   Users,
   Scale,
   Accessibility,
-  ChevronDown,
-  ChevronUp,
   Eye,
   EyeOff,
   CheckCircle2,
   FileText,
   DollarSign,
-  Baby,
   Briefcase,
   HelpCircle,
   ArrowRight,
@@ -36,7 +32,6 @@ import {
   Home,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';

@@ -162,7 +162,9 @@ export function mapAIDataToCalculator(
   };
 
   const validationWarnings = validateData();
-  console.log('[Mapper] Validation complete. Warnings:', validationWarnings.length);
+  if (validationWarnings.length > 0) {
+    console.log('[Mapper] Validation complete. Warnings:', validationWarnings.length);
+  }
 
   // === Personal Information ===
   const age1 = extractedData.age ?? DEFAULTS.age1;
@@ -263,9 +265,8 @@ export function mapAIDataToCalculator(
 
       // Allocate proportionally to limits, capped at each person's max
       const p1Share = (p1Limit / totalLimit) * totalContrib;
-      const p2Share = (p2Limit / totalLimit) * totalContrib;
       cPre1 = Math.min(p1Share, p1Limit);
-      // Note: cPre2 will be set in the married section below
+      // Note: cPre2 will be set in the married section below using p2Share calculation
     } else {
       cPre1 = Math.min(extractedData.contributionTraditional, p1Limit);
     }
@@ -746,6 +747,7 @@ type _FieldMappingAssertion = {
 };
 
 // Verify the mapping targets exist on CalculatorInputs (compile-time check)
+// Reason: Type-level assertion to ensure field mapping is correct at compile time
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _VerifyMappingTargets = {
   [K in _FieldMappingAssertion[keyof _FieldMappingAssertion]]: K extends keyof CalculatorInputs ? true : never;

@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import * as PopoverPrimitive from "@radix-ui/react-popover"
-import { cva, type VariantProps } from "class-variance-authority"
 import {
   StickyNote as StickyNoteIcon,
   Bold,
@@ -20,7 +19,6 @@ import {
   User,
   Users,
   Download,
-  Copy,
   Check,
   ChevronDown,
   ChevronUp,
@@ -167,7 +165,7 @@ export function AnnotationsProvider({
       const now = new Date()
       const newAnnotation: Annotation = {
         ...annotation,
-        id: `annotation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `annotation-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         createdAt: now,
         updatedAt: now,
         replies: [],
@@ -196,7 +194,7 @@ export function AnnotationsProvider({
     (annotationId: string, reply: Omit<AnnotationReply, "id" | "createdAt">) => {
       const newReply: AnnotationReply = {
         ...reply,
-        id: `reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `reply-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         createdAt: new Date(),
       }
       setAnnotations((prev) =>
@@ -324,7 +322,6 @@ function RichTextEditor({
   minHeight = 80,
 }: RichTextEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null)
-  const [isFocused, setIsFocused] = React.useState(false)
 
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value)
@@ -436,8 +433,6 @@ function RichTextEditor({
         ref={editorRef}
         contentEditable
         onInput={handleInput}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
         onKeyDown={handleKeyDown}
         data-placeholder={placeholder}
         className={cn(

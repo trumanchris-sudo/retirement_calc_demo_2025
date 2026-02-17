@@ -160,7 +160,7 @@ function drawHealthScoreGauge(doc: jsPDF, score: number, x: number, y: number, s
   doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(4);
   const startAngle = Math.PI;
-  const endAngle = 2 * Math.PI;
+  // endAngle would be 2 * Math.PI but we calculate it per segment below
 
   // Draw arc segments manually (jsPDF doesn't have arc, so we approximate with lines)
   const segments = 30;
@@ -317,7 +317,7 @@ function addPageFooter(doc: jsPDF, pageNum: number, totalPages?: number) {
   doc.setTextColor(COLORS.text);
 }
 
-function addSectionTitle(doc: jsPDF, title: string, y: number, icon?: string): number {
+function addSectionTitle(doc: jsPDF, title: string, y: number): number {
   // Navy background bar
   doc.setFillColor(26, 54, 93);
   doc.roundedRect(MARGIN - 2, y - 5, CONTENT_WIDTH + 4, 9, 1, 1, 'F');
@@ -1428,7 +1428,6 @@ function addActionPlan(doc: jsPDF, data: PDFReportData, reportDate: string) {
   addPageHeader(doc, 8, reportDate, 'YOUR ACTION PLAN');
 
   let y = 25;
-  const { results, inputs } = data;
 
   y = addSectionTitle(doc, 'Your Personalized Action Plan', y);
 
@@ -1445,7 +1444,7 @@ function addActionPlan(doc: jsPDF, data: PDFReportData, reportDate: string) {
   // Immediate Actions (Next 30 Days)
   y = addSubsection(doc, 'Immediate Actions (Next 30 Days)', y);
 
-  allRecommendations.immediate.forEach((rec, index) => {
+  allRecommendations.immediate.forEach((rec) => {
     y = checkPageBreak(doc, y, 12, reportDate);
 
     // Checkbox style
@@ -1467,7 +1466,7 @@ function addActionPlan(doc: jsPDF, data: PDFReportData, reportDate: string) {
   // Short-Term Actions (Next 6 Months)
   y = addSubsection(doc, 'Short-Term Actions (Next 6 Months)', y);
 
-  allRecommendations.shortTerm.forEach((rec, index) => {
+  allRecommendations.shortTerm.forEach((rec) => {
     y = checkPageBreak(doc, y, 12, reportDate);
 
     doc.setDrawColor(201, 162, 39);
@@ -1709,7 +1708,6 @@ function generateDetailedRecommendations(data: PDFReportData): {
 } {
   const { inputs, results } = data;
   const successRate = results.probRuin !== undefined ? (100 - results.probRuin) : 95;
-  const totalPortfolio = inputs.taxableBalance + inputs.pretaxBalance + inputs.rothBalance;
 
   const immediate: string[] = [];
   const shortTerm: string[] = [];

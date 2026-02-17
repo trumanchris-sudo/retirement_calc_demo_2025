@@ -174,8 +174,7 @@ const PHASE_COLORS = {
 
 function findMilestoneYear(
   data: ChartDataPoint[],
-  targetValue: number,
-  currentYear: number
+  targetValue: number
 ): { year: number; age: number; value: number } | null {
   for (let i = 0; i < data.length; i++) {
     const point = data[i];
@@ -203,7 +202,6 @@ function getCurrentWealthFromData(
 interface MilestoneNodeProps {
   point: TimelinePoint;
   index: number;
-  totalPoints: number;
   isAnimated: boolean;
   onHover: (point: TimelinePoint | null) => void;
   hoveredPoint: TimelinePoint | null;
@@ -212,7 +210,6 @@ interface MilestoneNodeProps {
 const MilestoneNode = React.memo(function MilestoneNode({
   point,
   index,
-  totalPoints,
   isAnimated,
   onHover,
   hoveredPoint,
@@ -456,7 +453,7 @@ export const WealthTimeline = React.memo(function WealthTimeline({
         actualValue = result.eolReal;
       } else {
         // Wealth-based milestone
-        const found = findMilestoneYear(data, milestone.value, currentYear);
+        const found = findMilestoneYear(data, milestone.value);
         if (!found) continue; // Skip milestones that won't be reached
         if (found.value > result.eolReal * 1.5) continue; // Skip unrealistic milestones
         year = found.year;
@@ -784,7 +781,6 @@ export const WealthTimeline = React.memo(function WealthTimeline({
                     <MilestoneNode
                       point={point}
                       index={index}
-                      totalPoints={timelinePoints.length}
                       isAnimated={isAnimated}
                       onHover={handleHover}
                       hoveredPoint={hoveredPoint}

@@ -388,7 +388,6 @@ interface ScenarioComparisonProps {
 
 export function ScenarioComparison({ onScenarioLoad, className }: ScenarioComparisonProps) {
   const { config, setConfig } = usePlanConfig();
-  const D = createDefaultPlanConfig();
 
   // State
   const [comparisonScenarios, setComparisonScenarios] = useState<ComparisonScenario[]>([]);

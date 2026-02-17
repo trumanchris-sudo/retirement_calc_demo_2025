@@ -22,12 +22,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Keyboard,
   Search,
@@ -35,11 +31,8 @@ import {
   RotateCcw,
   Command,
   ArrowUp,
-  ArrowDown,
-  ArrowLeft,
   ArrowRight,
   CornerDownLeft,
-  Delete,
   CheckCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -47,7 +40,6 @@ import {
   useKeyboardShortcuts,
   useShortcutRegistry,
   formatKeyCombo,
-  parseKeyCombo,
   type KeyboardShortcut,
   type ShortcutCategory,
   type KeyCombo,
@@ -61,16 +53,6 @@ const categoryIcons: Record<ShortcutCategory, React.ReactNode> = {
   View: <ArrowUp className="h-4 w-4" />,
   Help: <Keyboard className="h-4 w-4" />,
   Advanced: <Settings className="h-4 w-4" />,
-};
-
-// Category descriptions
-const categoryDescriptions: Record<ShortcutCategory, string> = {
-  Navigation: 'Move around the app',
-  Actions: 'Perform common tasks',
-  Editing: 'Edit and modify content',
-  View: 'Change how things look',
-  Help: 'Get help and information',
-  Advanced: 'Power user features',
 };
 
 interface KeyBadgeProps {

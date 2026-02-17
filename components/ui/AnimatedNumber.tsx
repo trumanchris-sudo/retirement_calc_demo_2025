@@ -323,7 +323,7 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
         cancelAnimationFrame(requestRef.current);
       }
     };
-  }, [value, hasStarted, useSpring, animate]);
+  }, [value, hasStarted, useSpring, animate, displayValue]);
 
   // Cleanup on unmount
   useEffect(() => {

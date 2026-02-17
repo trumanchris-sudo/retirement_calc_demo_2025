@@ -23,10 +23,9 @@ import {
   BookOpen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { AnimatedNumber, AnimatedCurrency, AnimatedPercentage } from '@/components/ui/AnimatedNumber'
 import { cn } from '@/lib/utils'
-import { fmt } from '@/lib/utils'
 import type { CalculationResult } from '@/types/calculator'
 import type { BatchSummary } from '@/types/planner'
 
@@ -168,19 +167,6 @@ function GlowRing({ delay = 0 }: { delay?: number }) {
 // Animated metric reveal card
 function MetricCard({ metric, isVisible }: { metric: MetricData; isVisible: boolean }) {
   const Icon = metric.icon
-
-  const formatValue = useCallback((value: number) => {
-    switch (metric.format) {
-      case 'currency':
-        return fmt(value)
-      case 'percentage':
-        return `${value.toFixed(0)}%`
-      case 'years':
-        return `${value} years`
-      default:
-        return value.toString()
-    }
-  }, [metric.format])
 
   return (
     <Card

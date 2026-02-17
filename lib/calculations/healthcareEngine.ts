@@ -18,7 +18,7 @@
  * - Genworth Cost of Care Survey 2024: Long-term care costs
  */
 
-import { IRMAA_BRACKETS_2026, TAX_BRACKETS, type FilingStatus } from "./shared/constants";
+import { IRMAA_BRACKETS_2026, type FilingStatus } from "./shared/constants";
 import { getIRMAASurcharge } from "./shared/taxCalculations";
 
 // ===============================
@@ -578,7 +578,7 @@ function getIRMAATier(income: number, status: FilingStatus): string {
 export function calculateLTCAnalysis(
   currentAge: number,
   strategy: 'self_insure' | 'ltc_insurance' | 'hybrid' | 'medicaid_planning',
-  existingInsurancePremium?: number
+  existingInsurancePremium?: number // Reason: Reserved for future feature to handle existing LTC policies
 ): LTCAnalysis {
   const probabilityOfNeed = LONG_TERM_CARE.probabilityOfNeeding65Plus;
   const avgDuration = LONG_TERM_CARE.avgDurationYears;
@@ -652,7 +652,7 @@ export function calculateHSAStrategy(
   currentBalance: number,
   annualContribution: number,
   isFamily: boolean,
-  retirementAge: number = 65
+  retirementAge: number = 65 // Reason: Reserved for future feature to support custom retirement ages
 ): HSAStrategy {
   const maxContribution = isFamily
     ? HSA_CONSTANTS.familyLimit2024 + (currentAge >= 55 ? HSA_CONSTANTS.catchUpAge55 : 0)
@@ -830,7 +830,6 @@ export function calculateHealthcareCosts(inputs: HealthcareCostInputs): Healthca
 
   // Calculate ages for timeline
   const youngerAge = isMarried && age2 ? Math.min(age1, age2) : age1;
-  const olderAge = isMarried && age2 ? Math.max(age1, age2) : age1;
 
   let totalPreMedicare = 0;
   let totalMedicare = 0;
@@ -959,7 +958,6 @@ export function calculateHealthcareCosts(inputs: HealthcareCostInputs): Healthca
   for (let y = 0; y < medicareYears; y++) {
     const age = 65 + y;
     const year = currentYear + Math.max(0, 65 - youngerAge) + y;
-    const yearsFromNow = age - youngerAge;
     const inflationFactor = Math.pow(1 + MEDICARE_PART_B.projectedGrowthRate, y);
 
     const annualMedicareCost = customMedicareCost

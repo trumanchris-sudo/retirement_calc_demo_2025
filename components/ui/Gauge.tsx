@@ -150,8 +150,6 @@ const easeOutElastic = (t: number): number => {
     : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
 };
 
-const easeOutQuart = (t: number): number => 1 - Math.pow(1 - t, 4);
-
 const polarToCartesian = (
   cx: number,
   cy: number,
@@ -522,25 +520,26 @@ export const Gauge: React.FC<GaugeProps> = ({
       return;
     }
 
+    const currentContainer = containerRef.current;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          if (containerRef.current) {
-            observer.unobserve(containerRef.current);
+          if (currentContainer) {
+            observer.unobserve(currentContainer);
           }
         }
       },
       { threshold: 0.2, rootMargin: "0px 0px -50px 0px" }
     );
 
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
+    if (currentContainer) {
+      observer.observe(currentContainer);
     }
 
     return () => {
-      if (containerRef.current) {
-        observer.unobserve(containerRef.current);
+      if (currentContainer) {
+        observer.unobserve(currentContainer);
       }
     };
   }, [animateOnScroll]);

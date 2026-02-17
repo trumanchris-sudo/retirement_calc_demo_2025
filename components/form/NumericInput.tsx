@@ -508,9 +508,6 @@ export function NumericInput({
         )}
         id={id}
         aria-label={ariaLabel}
-        aria-valuemin={min}
-        aria-valuemax={max}
-        aria-valuenow={value}
       />
 
       {/* Right side controls */}

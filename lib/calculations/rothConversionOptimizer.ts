@@ -345,7 +345,7 @@ export function generateConversionLadder(inputs: RothLadderInputs): RothLadderRe
 
   // Key ages and years
   const age59_5 = 59.5;
-  const yearsToRetirement = Math.max(0, retirementAge - currentAge);
+  const yearsToRetirement = Math.max(0, retirementAge - currentAge); // Reason: Reserved for future feature to handle accumulation phase analysis
 
   // Target the 22% bracket by default (good balance of tax efficiency)
   // For very low earners, might target 12% bracket
@@ -355,7 +355,6 @@ export function generateConversionLadder(inputs: RothLadderInputs): RothLadderRe
   // Calculate optimal annual conversion
   // During early retirement, income is typically just dividends/interest from taxable
   const estimatedRetirementIncome = 0; // Conservative: assume no other income
-  const bracketCeiling = getBracketCeiling(filingStatus, targetBracket);
 
   // If considering ACA, limit conversions to stay below subsidy cliff
   const maxConversionWithACA = considerACASubsidies
@@ -611,7 +610,7 @@ function calculateBridgeNeeds(
     // 4. Traditional with penalty (10% + income tax) - last resort
 
     let withdrawal: BridgeWithdrawal;
-    let amountNeeded = inflatedSpending;
+    const amountNeeded = inflatedSpending;
 
     if (remainingTaxable >= amountNeeded) {
       withdrawal = {
@@ -747,8 +746,7 @@ export function calculateConversionScenarios(
   // Moderate: Fill only the 12% bracket
   const moderateInputs = { ...inputs };
   const moderate = generateConversionLadder(moderateInputs);
-  // Override with 12% bracket calculations
-  const moderate12Ceiling = getBracketCeiling(inputs.filingStatus, 0.12);
+  // Note: Future enhancement could use getBracketCeiling(inputs.filingStatus, 0.12) to override target bracket
 
   // Conservative: Optimize for ACA subsidies
   const conservativeInputs = { ...inputs, considerACASubsidies: true };

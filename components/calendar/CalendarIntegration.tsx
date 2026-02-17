@@ -18,18 +18,13 @@ import {
   ExternalLink,
   RefreshCw,
   PiggyBank,
-  TrendingUp,
   Users,
   FileText,
   Settings2,
-  Plus,
-  X,
   Copy,
   Check,
   Shield,
   Target,
-  BarChart3,
-  Briefcase,
   Heart,
   Building2,
   Wallet,
@@ -104,6 +99,7 @@ export interface CalendarIntegrationProps {
 
 // ==================== Constants ====================
 
+// Reason: React.ComponentType requires explicit props type, but we accept any icon component
 const CATEGORY_CONFIG: Record<
   CalendarEventCategory,
   { label: string; icon: React.ComponentType<any>; color: string; bgColor: string }
@@ -550,7 +546,7 @@ function generateDefaultFinancialEvents(
   events.push({
     id: generateEventId(),
     title: 'Review 401(k) Contributions',
-    description: 'Open enrollment for workplace retirement plans. Review contribution percentage, investment allocations, and ensure you\'re maximizing employer match.',
+    description: `Open enrollment for workplace retirement plans. Review contribution percentage, investment allocations, and ensure you're maximizing employer match.`,
     startDate: getDateForYear(11, 1, year),
     allDay: true,
     category: 'contribution',
@@ -686,7 +682,7 @@ function generateDefaultFinancialEvents(
     events.push({
       id: generateEventId(),
       title: 'Social Security Planning Review',
-      description: 'You\'re approaching Social Security eligibility at 62. Review claiming strategies, consider impact of early vs. delayed claiming, and coordinate with spouse if applicable.',
+      description: `You're approaching Social Security eligibility at 62. Review claiming strategies, consider impact of early vs. delayed claiming, and coordinate with spouse if applicable.`,
       startDate: getDateForYear(6, 1, year),
       allDay: true,
       category: 'milestone',

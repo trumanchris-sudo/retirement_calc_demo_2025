@@ -180,8 +180,6 @@ export const AnimatedCheckmark: React.FC<AnimatedCheckmarkProps> = ({
   delay = 0,
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
-  const circleRef = useRef<SVGCircleElement>(null);
-  const checkRef = useRef<SVGPathElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -991,7 +989,6 @@ export const SuccessStateModal: React.FC<SuccessStateModalProps> = ({
 }) => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showParticles, setShowParticles] = useState(false);
-  const [checkmarkComplete, setCheckmarkComplete] = useState(false);
   const hasPlayedSound = useRef(false);
 
   const defaults = config ? TRIGGER_DEFAULTS[config.trigger] : null;
@@ -1096,7 +1093,6 @@ export const SuccessStateModal: React.FC<SuccessStateModalProps> = ({
                   strokeWidth={5}
                   color="white"
                   delay={200}
-                  onComplete={() => setCheckmarkComplete(true)}
                 />
               </div>
 

@@ -15,24 +15,15 @@ import {
   // Constants
   LIFE_EXP,
   RMD_START_AGE,
-  RMD_DIVISORS,
-  SP500_YOY_NOMINAL,
-  BOND_NOMINAL_AVG,
   TAX_BRACKETS,
-  SS_BEND_POINTS,
   // Types
   type FilingStatus,
   // Utility functions
-  mulberry32,
   getEffectiveInflation,
   // Tax calculations
   calcOrdinaryTax,
   calcLTCGTax,
   getIRMAASurcharge,
-  // Bond allocation
-  calculateBondReturn,
-  calculateBondAllocation,
-  calculateBlendedReturn,
   // Withdrawal taxes
   computeWithdrawalTaxes,
   // Return generator

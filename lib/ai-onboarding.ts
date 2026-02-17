@@ -7,9 +7,7 @@
 import type {
   StreamHandlerParams,
   StreamEvent,
-  ConversationPhase,
   ExtractedData,
-  AssumptionWithReasoning,
 } from '@/types/ai-onboarding';
 
 /**
@@ -86,7 +84,6 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-    let currentPhase = phase;
     let finalData = extractedData;
     let finalAssumptions = assumptions;
 
@@ -149,7 +146,6 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
 
               case 'phase_transition':
                 console.log('[streamAIOnboarding] Phase transition:', event.newPhase);
-                currentPhase = event.newPhase;
                 if (onPhaseTransition) {
                   onPhaseTransition(event.newPhase);
                 }

@@ -32,7 +32,6 @@ import {
   Briefcase,
   Heart,
   Shield,
-  Baby,
   Car,
   Shirt,
   Coffee,
@@ -706,8 +705,8 @@ const TaxImpactCard: React.FC<TaxImpactCardProps> = ({
               The Second Earner Tax Trap
             </div>
             <p className="text-sm text-amber-800 dark:text-amber-200">
-              The second spouse's income starts at the <strong>top</strong> of the
-              first spouse's income. This means their first dollar is taxed at{" "}
+              The second spouse&apos;s income starts at the <strong>top</strong> of the
+              first spouse&apos;s income. This means their first dollar is taxed at{" "}
               <strong>{formatPercent(primaryTax.marginalRate)}</strong>, not 10%.
             </p>
           </div>
@@ -1309,7 +1308,7 @@ export const SpouseWorkDecision: React.FC = () => {
               </Badge>
             </CardTitle>
             <CardDescription>
-              The real math behind the two-income decision. It's never just about
+              The real math behind the two-income decision. It&apos;s never just about
               the paycheck.
             </CardDescription>
           </div>
@@ -1380,7 +1379,7 @@ export const SpouseWorkDecision: React.FC = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <h3 className="text-lg font-semibold">Childcare Breakeven</h3>
-                <Badge variant="secondary">At what point is it "not worth it"?</Badge>
+                <Badge variant="secondary">At what point is it &quot;not worth it&quot;?</Badge>
               </div>
               <ChildcareBreakeven
                 result={result}

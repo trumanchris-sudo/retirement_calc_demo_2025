@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, DollarSign, Users, Gift, AlertTriangle, ArrowRight, Sparkles } from "lucide-react";
+import { DollarSign, Users, Gift, AlertTriangle, ArrowRight, Sparkles } from "lucide-react";
 import {
   AreaChart,
   Area,

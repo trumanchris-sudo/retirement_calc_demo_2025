@@ -966,6 +966,8 @@ export const COMPONENT_REGISTRY = {
 // -----------------------------------------------------------------------------
 // /components/calculator/index.ts (NEEDS CREATION)
 // -----------------------------------------------------------------------------
+// Reason: Documentation constant for barrel export template
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _calculatorIndexContent = `
 // Calculator component exports
 export { default as CyberpunkSplash } from './CyberpunkSplash';
@@ -993,6 +995,8 @@ export { TimelineView } from './TimelineView';
 // -----------------------------------------------------------------------------
 // /components/ui/index.ts (NEEDS CREATION - custom components only)
 // -----------------------------------------------------------------------------
+// Reason: Documentation constant for barrel export template
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _uiIndexContent = `
 // Custom UI component exports (supplements shadcn/ui components)
 export { AnimatedSection } from './AnimatedSection';
@@ -1007,6 +1011,8 @@ export { ScrollIndicator } from './ScrollIndicator';
 // -----------------------------------------------------------------------------
 // /components/onboarding/index.ts (NEEDS CREATION)
 // -----------------------------------------------------------------------------
+// Reason: Documentation constant for barrel export template
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _onboardingIndexContent = `
 // Onboarding component exports
 export { ConsoleInput } from './ConsoleInput';
@@ -1018,6 +1024,8 @@ export { ReviewStep } from './steps/ReviewStep';
 // -----------------------------------------------------------------------------
 // /components/visualizations/index.ts (NEEDS CREATION)
 // -----------------------------------------------------------------------------
+// Reason: Documentation constant for barrel export template
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _visualizationsIndexContent = `
 // Visualization component exports
 export { HeatmapCalendar } from './HeatmapCalendar';

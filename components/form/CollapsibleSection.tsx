@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useId, useCallback, useEffect } from "react";
+import React, { useState, useId, useCallback } from "react";
 import { ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";

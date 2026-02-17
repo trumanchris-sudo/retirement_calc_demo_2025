@@ -11,18 +11,11 @@ import {
   Sun,
   FileText,
   Share2,
-  Download,
-  Settings,
-  History,
   Bookmark,
   TrendingUp,
   PiggyBank,
   Target,
-  Wallet,
   RotateCcw,
-  Trash2,
-  Copy,
-  ExternalLink,
   ChevronRight,
   Search,
   Command,
@@ -504,7 +497,7 @@ export function CommandPalette({
           break;
       }
     },
-    [isOpen, flatActions, selectedIndex]
+    [isOpen, flatActions, selectedIndex, executeAction, handleClose]
   );
 
   // Global keyboard listener
@@ -536,6 +529,12 @@ export function CommandPalette({
 
   // ==================== Actions ====================
 
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    setQuery('');
+    setSelectedIndex(0);
+  }, []);
+
   const executeAction = useCallback(
     async (action: CommandAction) => {
       addRecentAction(action.id);
@@ -546,14 +545,8 @@ export function CommandPalette({
       handleClose();
       await action.action();
     },
-    []
+    [handleClose]
   );
-
-  const handleClose = useCallback(() => {
-    setIsOpen(false);
-    setQuery('');
-    setSelectedIndex(0);
-  }, []);
 
   // ==================== Render ====================
 
@@ -721,16 +714,16 @@ export function CommandPalette({
             <div className="flex items-center gap-4 text-xs text-slate-400 dark:text-slate-500">
               <span className="flex items-center gap-1">
                 <kbd className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] dark:border-slate-700 dark:bg-slate-800">
-                  \u2191
+                  ↑
                 </kbd>
                 <kbd className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] dark:border-slate-700 dark:bg-slate-800">
-                  \u2193
+                  ↓
                 </kbd>
                 to navigate
               </span>
               <span className="flex items-center gap-1">
                 <kbd className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] dark:border-slate-700 dark:bg-slate-800">
-                  \u21B5
+                  ↵
                 </kbd>
                 to select
               </span>

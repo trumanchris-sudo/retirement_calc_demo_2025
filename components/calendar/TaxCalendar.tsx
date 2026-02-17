@@ -17,24 +17,16 @@ import {
   Download,
   RefreshCw,
   Heart,
-  Wallet,
-  Building2,
   PiggyBank,
   TrendingUp,
   Info,
   X,
-  Settings,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Calendar as CalendarUI } from '@/components/ui/calendar'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import {
   Alert,
   AlertDescription,
@@ -95,6 +87,7 @@ export interface TaxCalendarProps {
 
 // ==================== Constants ====================
 
+// Reason: React.ComponentType requires explicit props type, but we accept any icon component
 const CATEGORY_CONFIG: Record<
   TaxEventCategory,
   { label: string; icon: React.ComponentType<any>; color: string; bgColor: string }

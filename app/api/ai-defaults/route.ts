@@ -179,7 +179,7 @@ Return ONLY the JSON object, no markdown formatting, no additional text.`
       // Remove markdown code blocks if present
       const cleanedText = textContent.replace(/```json\n?|```\n?/g, '').trim()
       aiResponse = JSON.parse(cleanedText)
-    } catch (_parseError) {
+    } catch {
       console.error('[AI Defaults] Failed to parse Claude response:', textContent)
       console.log('[AI Defaults] Using fallback defaults due to parse error')
       return NextResponse.json(getFallbackDefaults(body))

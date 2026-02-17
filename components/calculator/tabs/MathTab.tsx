@@ -8,7 +8,6 @@ import {
   RMD_START_AGE,
   NIIT_THRESHOLD,
   ESTATE_TAX_EXEMPTION,
-  ESTATE_TAX_RATE,
   SS_BEND_POINTS,
 } from "@/lib/constants";
 
@@ -79,7 +78,7 @@ export function MathTab({
                 <h4 className="text-lg font-semibold mb-2 text-blue-800">Mid-Year Contributions</h4>
                 <p className="text-gray-700">
                   Annual contributions are assumed to occur mid-year on average. To account for partial-year growth,
-                  contributions are multiplied by (1 + (g - 1) x 0.5), where g is the year's growth factor. This
+                  contributions are multiplied by (1 + (g - 1) x 0.5), where g is the year&apos;s growth factor. This
                   gives contributions roughly half a year of growth, which is more realistic than assuming all
                   contributions happen at year-end or year-start.
                 </p>
@@ -99,7 +98,7 @@ export function MathTab({
                 <ul className="list-disc pl-6 space-y-1 text-gray-700">
                   <li><strong>Taxable (Brokerage):</strong> Subject to long-term capital gains tax on withdrawals. We track your cost basis (total contributions) and only the gains are taxed.</li>
                   <li><strong>Pre-Tax (401k/Traditional IRA):</strong> Contributions grow tax-deferred. All withdrawals are taxed as ordinary income. Subject to Required Minimum Distributions (RMDs) starting at age {RMD_START_AGE}.</li>
-                  <li><strong>Post-Tax (Roth):</strong> Contributions grow tax-free. <strong>Qualified withdrawals</strong> (age 59.5 AND account open 5+ years) are completely tax-free (no taxes, no RMDs). This calculator assumes you've met the 5-year rule by retirement and all withdrawals are qualified.</li>
+                  <li><strong>Post-Tax (Roth):</strong> Contributions grow tax-free. <strong>Qualified withdrawals</strong> (age 59.5 AND account open 5+ years) are completely tax-free (no taxes, no RMDs). This calculator assumes you&apos;ve met the 5-year rule by retirement and all withdrawals are qualified.</li>
                 </ul>
               </div>
             </div>
@@ -110,14 +109,14 @@ export function MathTab({
           <section>
             <h3 className="text-xl font-semibold mb-3 text-blue-900">Inflation Adjustments</h3>
             <p className="text-gray-700 mb-2">
-              To show purchasing power, we convert nominal (future) dollars to real (today's) dollars using:
+              To show purchasing power, we convert nominal (future) dollars to real (today&apos;s) dollars using:
             </p>
             <p className="font-mono text-sm bg-gray-100 p-3 rounded mb-2 text-gray-800">
               Real Value = Nominal Value / (1 + inflation_rate)<sup>years</sup>
             </p>
             <p className="text-gray-700">
               For example, if you have $1,000,000 in 30 years and inflation averages 2.6% annually, the real value
-              is $1,000,000 / (1.026)<sup>30</sup> = approximately $462,000 in today's purchasing power.
+              is $1,000,000 / (1.026)<sup>30</sup> = approximately $462,000 in today&apos;s purchasing power.
             </p>
           </section>
 

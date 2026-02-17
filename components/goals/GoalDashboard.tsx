@@ -4,10 +4,9 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
 import { fmt, fmtPercent } from '@/lib/utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
@@ -24,8 +23,6 @@ import {
   TrendingDown,
   AlertTriangle,
   CheckCircle2,
-  ArrowUpDown,
-  Sparkles,
   ChevronDown,
   ChevronUp,
   Info,
@@ -718,8 +715,6 @@ export function GoalDashboard({
   goals,
   tradeOffs = [],
   onGoalClick,
-  onPriorityChange,
-  onGoalUpdate,
   className,
   showTradeOffs = true,
 }: GoalDashboardProps) {
@@ -748,7 +743,7 @@ export function GoalDashboard({
     });
 
     setPreviousGoalStates(currentStates);
-  }, [goals]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [goals, previousGoalStates]);
 
   const handleCelebrationComplete = useCallback(() => {
     setCelebratingGoalId(null);

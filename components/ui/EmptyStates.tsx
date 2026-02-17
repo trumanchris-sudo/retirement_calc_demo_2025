@@ -316,7 +316,7 @@ const CalculatorIllustration: React.FC<{ className?: string }> = ({ className })
   );
 };
 
-export interface NoCalculationsProps extends EmptyStateProps {}
+export type NoCalculationsProps = EmptyStateProps;
 
 export const NoCalculations: React.FC<NoCalculationsProps> = ({
   className,
@@ -476,7 +476,7 @@ const BookmarkIllustration: React.FC<{ className?: string }> = ({ className }) =
   );
 };
 
-export interface NoSavedScenariosProps extends EmptyStateProps {}
+export type NoSavedScenariosProps = EmptyStateProps;
 
 export const NoSavedScenarios: React.FC<NoSavedScenariosProps> = ({
   className,
@@ -659,7 +659,7 @@ const GoalsIllustration: React.FC<{ className?: string }> = ({ className }) => {
   );
 };
 
-export interface NoGoalsSetProps extends EmptyStateProps {}
+export type NoGoalsSetProps = EmptyStateProps;
 
 export const NoGoalsSet: React.FC<NoGoalsSetProps> = ({
   className,

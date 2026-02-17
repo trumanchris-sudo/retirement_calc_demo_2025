@@ -309,25 +309,15 @@ export async function POST(request: NextRequest) {
             stream: true,
           });
 
-          let _currentText = '';
-          let _currentPhase = phase;
           const updatedData = { ...extractedData };
           const updatedAssumptions = [...assumptions];
 
           // Process the stream
           for await (const event of response) {
-            if (event.type === 'content_block_start') {
-              if (event.content_block.type === 'text') {
-                // Start of text block
-                _currentText = '';
-              }
-            }
-
             if (event.type === 'content_block_delta') {
               if (event.delta.type === 'text_delta') {
                 // Stream text delta
                 const delta = event.delta.text;
-                _currentText += delta;
 
                 sendEvent({
                   type: 'message_delta',
@@ -407,8 +397,6 @@ export async function POST(request: NextRequest) {
                 }
 
                 if (toolName === 'transition_phase' && isTransitionPhaseInput(toolInput)) {
-                  _currentPhase = toolInput.newPhase;
-
                   sendEvent({
                     type: 'phase_transition',
                     newPhase: toolInput.newPhase,

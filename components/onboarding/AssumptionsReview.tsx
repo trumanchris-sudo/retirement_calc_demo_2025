@@ -13,12 +13,11 @@ type OverrideValue = string | number | boolean | null;
 
 interface AssumptionsReviewProps {
   assumptions: AssumptionWithReasoning[];
-  onRefine: (refinementText: string) => void;
   onUpdateAssumptions?: (overrides: Record<string, OverrideValue>) => void;
   isUpdating?: boolean;
 }
 
-export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, isUpdating = false }: AssumptionsReviewProps) {
+export function AssumptionsReview({ assumptions, onUpdateAssumptions, isUpdating = false }: AssumptionsReviewProps) {
   // Track user edits: field -> edited value
   const [userEdits, setUserEdits] = useState<Record<string, OverrideValue>>({});
 
@@ -212,7 +211,7 @@ export function AssumptionsReview({ assumptions, onRefine, onUpdateAssumptions, 
       {hasEdits && onUpdateAssumptions && (
         <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
           <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
-            You've made {Object.keys(userEdits).length} change{Object.keys(userEdits).length !== 1 ? 's' : ''}.
+            You&apos;ve made {Object.keys(userEdits).length} change{Object.keys(userEdits).length !== 1 ? 's' : ''}.
             Click below to recalculate assumptions with your updated values.
           </p>
           <Button

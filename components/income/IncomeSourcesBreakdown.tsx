@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -8,10 +8,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   ReferenceLine,
-  Cell,
 } from "recharts";
 import {
   Card,
@@ -23,22 +21,22 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   ChartContainer,
-  ChartConfig,
 } from "@/components/ui/chart";
+
+// Reason: ChartConfig type from recharts v3 has complex nested types
+type ChartConfig = any;
 import {
   Shield,
   TrendingUp,
   Info,
   DollarSign,
-  Briefcase,
   Building2,
   Landmark,
   PiggyBank,
   AlertTriangle,
   CheckCircle2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { fmt, fmtFull } from "@/lib/utils";
+import { cn, fmt, fmtFull } from "@/lib/utils";
 
 // ============================================================================
 // TYPES
@@ -305,6 +303,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
 // MAIN COMPONENT
 // ============================================================================
 
+// eslint-disable-next-line react/display-name
 export const IncomeSourcesBreakdown = React.memo(function IncomeSourcesBreakdown({
   currentAge,
   retirementAge,
@@ -326,8 +325,7 @@ export const IncomeSourcesBreakdown = React.memo(function IncomeSourcesBreakdown
   isLoading = false,
   chartHeight = 400,
 }: IncomeSourcesBreakdownProps) {
-  const [hoveredYear, setHoveredYear] = useState<number | null>(null);
-  const [selectedView, setSelectedView] = useState<"all" | "taxType" | "reliability">("all");
+  const [, setHoveredYear] = useState<number | null>(null);
 
   // Calculate chart data for each year
   const chartData = useMemo(() => {
@@ -350,12 +348,9 @@ export const IncomeSourcesBreakdown = React.memo(function IncomeSourcesBreakdown
 
     const pensionStart = pensionStartAge ?? retirementAge;
     const partTimeEnd = partTimeEndAge ?? retirementAge + 5;
-    const currentYear = new Date().getFullYear();
 
     for (let age = retirementAge; age <= endAge; age++) {
       const yearsFromNow = age - currentAge;
-      const yearsInRetirement = age - retirementAge;
-      const inflationFactor = showRealValues ? 1 : getInflationFactor(yearsFromNow, inflationRate);
       const deflationFactor = showRealValues ? getInflationFactor(yearsFromNow, -inflationRate) : 1;
 
       // Calculate each income source for this age
@@ -388,7 +383,7 @@ export const IncomeSourcesBreakdown = React.memo(function IncomeSourcesBreakdown
 
       data.push({
         age,
-        year: currentYear + yearsFromNow,
+        year: new Date().getFullYear() + yearsFromNow,
         socialSecurity: Math.round(ss),
         spouseSocialSecurity: Math.round(spouseSS),
         traditional401k: Math.round(trad),

@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { fmt } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent } from '@/components/ui/card';
-import { TAX_BRACKETS } from '@/lib/constants';
 
 const MotionDiv = dynamic(() => import('framer-motion').then((m) => m.motion.div), { ssr: false });
 
@@ -70,11 +69,9 @@ export function WhyRothIsBetter() {
 
     // Roth: Pay tax now, withdraw tax-free
     const rothTaxPaidNow = contribution * currentBracket;
-    const rothContribution = contribution - rothTaxPaidNow; // After-tax contribution
-    // But wait - with Roth, you can contribute the FULL amount pre-tax equivalent
+    // With Roth, you can contribute the FULL amount pre-tax equivalent
     // So if you contribute $10K to Roth, you're actually putting in more after-tax dollars
     const rothFutureValue = contribution * Math.pow(1 + growthRate, years); // Tax-free growth
-    const rothTaxPaidTotal = rothTaxPaidNow;
     const rothAfterTax = rothFutureValue; // No tax on withdrawal
 
     // Inheritance comparison

@@ -141,12 +141,19 @@ export function useKeyboardShortcutsContext() {
 export function useRegisterShortcut(shortcut: KeyboardShortcut) {
   const { registerShortcut, unregisterShortcut } = useKeyboardShortcutsContext();
 
+  // Extract keys string for stable dependency tracking
+  const keysString = shortcut.keys.join(',');
+
   useEffect(() => {
     registerShortcut(shortcut);
     return () => unregisterShortcut(shortcut.id);
+    // Reason: shortcut.handler and shortcut.preventDefault are functions that may change reference
+    // on every render but shouldn't trigger re-registration. We only re-register when the actual
+    // shortcut configuration (id, keys, category, etc.) changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     shortcut.id,
-    shortcut.keys.join(','),
+    keysString,
     shortcut.category,
     shortcut.description,
     shortcut.enabled,

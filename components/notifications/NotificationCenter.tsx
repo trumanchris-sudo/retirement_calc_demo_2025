@@ -980,7 +980,7 @@ export function NotificationCenter({
                       : "No notifications yet"}
                   </p>
                   <p className="text-xs text-muted-foreground/60 mt-1">
-                    We'll notify you about important updates
+                    We&apos;ll notify you about important updates
                   </p>
                 </div>
               ) : (

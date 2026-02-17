@@ -89,7 +89,7 @@ const MOTIVATIONAL_MESSAGES: MotivationalMessage[] = [
   { message: "Every day brings you closer to financial freedom!", icon: <Rocket className="w-5 h-5" />, color: "text-blue-500" },
   { message: "Your future self will thank you for your dedication.", icon: <Heart className="w-5 h-5" />, color: "text-pink-500" },
   { message: "Stay the course - consistency is the key to success.", icon: <Target className="w-5 h-5" />, color: "text-green-500" },
-  { message: "You're building a life of choices, not obligations.", icon: <Sun className="w-5 h-5" />, color: "text-yellow-500" },
+  { message: "You&apos;re building a life of choices, not obligations.", icon: <Sun className="w-5 h-5" />, color: "text-yellow-500" },
   { message: "Financial independence is within your reach!", icon: <TrendingUp className="w-5 h-5" />, color: "text-emerald-500" },
   { message: "Dream big - your retirement goals are worth it.", icon: <Sparkles className="w-5 h-5" />, color: "text-purple-500" },
   { message: "Each paycheck invested is a step toward freedom.", icon: <DollarSign className="w-5 h-5" />, color: "text-green-500" },
@@ -211,7 +211,7 @@ function generateMilestones(yearsRemaining: number): Milestone[] {
       description: "Less than 1 year to go!",
       yearsRemaining: 1,
       icon: <Trophy className="w-5 h-5" />,
-      celebrationMessage: "You're in the home stretch! Almost there!",
+      celebrationMessage: "You&apos;re in the home stretch! Almost there!",
       unlocked: yearsRemaining <= 1,
     },
     {
@@ -238,7 +238,7 @@ function generateMilestones(yearsRemaining: number): Milestone[] {
       description: "10 years until retirement",
       yearsRemaining: 10,
       icon: <CalendarDays className="w-5 h-5" />,
-      celebrationMessage: "A decade to go - you're making great progress!",
+      celebrationMessage: "A decade to go - you&apos;re making great progress!",
       unlocked: yearsRemaining <= 10,
     },
     {
@@ -580,7 +580,7 @@ export const RetirementCountdown: React.FC<RetirementCountdownProps> = ({
         </CardHeader>
         <CardContent className="relative text-center space-y-4">
           <p className="text-muted-foreground">
-            Welcome to the next chapter of your life. You've earned this!
+            Welcome to the next chapter of your life. You&apos;ve earned this!
           </p>
           <div className="flex justify-center">
             <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-lg px-4 py-2">

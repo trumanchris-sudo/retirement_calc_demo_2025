@@ -67,6 +67,8 @@ const AnimatedWealthChart: React.FC = () => {
       };
       animateIn();
     }
+    // targetValues is a constant array defined in the component, safe to omit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInView]);
 
   const maxValue = Math.max(...targetValues);
@@ -168,6 +170,8 @@ const HeroSection: React.FC = () => {
       setCurrentStat((prev) => (prev + 1) % stats.length);
     }, 3000);
     return () => clearInterval(interval);
+    // stats is a constant array defined in the component, safe to omit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -556,7 +560,7 @@ const SocialProof: React.FC = () => {
             { value: "$2.4B+", label: "Assets Planned" },
             { value: "98.7%", label: "Accuracy Rate" },
             { value: "4.9/5", label: "User Rating" },
-          ].map((stat, index) => (
+          ].map((stat) => (
             <div key={stat.label} className="text-center">
               <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent mb-2">
                 {stat.value}
@@ -860,8 +864,8 @@ const TestimonialsSection: React.FC = () => {
             className="w-full"
           >
             <CarouselContent className="-ml-4">
-              {testimonials.map((testimonial, index) => (
-                <CarouselItem key={index} className="pl-4 md:basis-1/2 lg:basis-1/3">
+              {testimonials.map((testimonial) => (
+                <CarouselItem key={testimonial.author} className="pl-4 md:basis-1/2 lg:basis-1/3">
                   <TestimonialCard testimonial={testimonial} />
                 </CarouselItem>
               ))}

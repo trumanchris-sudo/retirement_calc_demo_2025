@@ -594,7 +594,7 @@ export function AppTourProvider({
       }, autoStartDelay);
       return () => clearTimeout(timer);
     }
-  }, [autoStart, hasSeenTour, mounted, autoStartDelay]);
+  }, [autoStart, hasSeenTour, mounted, autoStartDelay, startTour]);
 
   // Update target rect when step changes or window resizes
   useEffect(() => {
@@ -667,7 +667,7 @@ export function AppTourProvider({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [state.isActive, state.currentStep]);
+  }, [state.isActive, state.currentStep, endTour, nextStep, prevStep]);
 
   const startTour = useCallback((stepIndex = 0) => {
     setState({

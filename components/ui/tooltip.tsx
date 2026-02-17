@@ -366,6 +366,7 @@ const TooltipContent = React.forwardRef<
       e.preventDefault()
       context.setIsPinned(false)
     }
+    // Reason: Radix UI event type is not properly exported, so type assertion is needed
     onPointerDownOutside?.(e as any)
   }, [context, onPointerDownOutside])
 
@@ -564,6 +565,7 @@ const TooltipList = React.forwardRef<HTMLUListElement, TooltipListProps>(
     const ListTag = ordered ? "ol" : "ul"
     return (
       <ListTag
+        // Reason: Radix UI ref can be either ol or ul, so type assertion needed
         ref={ref as any}
         className={cn(
           "my-1.5 ml-4 space-y-0.5 text-sm",

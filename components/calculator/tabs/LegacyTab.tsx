@@ -74,7 +74,6 @@ export interface LegacyTabProps {
 export function LegacyTab({
   showGen, setShowGen,
   hypPerBen, setHypPerBen,
-  numberOfBeneficiaries, setNumberOfBeneficiaries,
   childrenCurrentAges, setChildrenCurrentAges,
   additionalChildrenExpected, setAdditionalChildrenExpected,
   totalFertilityRate, setTotalFertilityRate,
@@ -151,7 +150,7 @@ export function LegacyTab({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="flex items-center gap-1.5 text-foreground">
-                  Children's Current Ages
+                  Children&apos;s Current Ages
                   <Tip text="Enter current ages of your children, separated by commas (e.g., 5, 3)" />
                 </Label>
                 <UIInput

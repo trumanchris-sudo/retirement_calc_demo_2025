@@ -25,8 +25,8 @@ export function OfflineIndicator({
   showAlways = false,
   className,
 }: OfflineIndicatorProps) {
-  const { isOffline, isReconnecting, wasOffline } = useOffline();
-  const { queueLength, isSyncing, lastSyncTime } = useOfflineQueue();
+  const { isOffline, wasOffline } = useOffline();
+  const { queueLength, isSyncing } = useOfflineQueue();
   const [isVisible, setIsVisible] = useState(false);
   const [showReconnected, setShowReconnected] = useState(false);
 
@@ -213,7 +213,6 @@ export function OfflineAction({
   onClick,
   actionId = 'unknown-action',
   actionData,
-  isLoading,
   children,
   className,
 }: OfflineActionProps) {
@@ -237,7 +236,6 @@ export function OfflineAction({
   return (
     <button
       onClick={handleClick}
-      disabled={isLoading}
       className={cn(
         requiresNetwork && isOffline && 'opacity-75',
         className

@@ -113,7 +113,6 @@ describe('Tax Calculation Verification Suite', () => {
 
     it('should calculate tax correctly for single bracket (10% only)', () => {
       const deduction = TAX_BRACKETS.single.deduction;
-      const firstBracketLimit = TAX_BRACKETS.single.rates[0].limit;
 
       // Income that stays entirely in 10% bracket
       const income = deduction + 5000;

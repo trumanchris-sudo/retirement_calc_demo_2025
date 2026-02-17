@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Progress } from "./progress";
 import { cn } from "@/lib/utils";
-import { TRANSITIONS, STATUS } from "@/lib/designTokens";
+import { TRANSITIONS } from "@/lib/designTokens";
 
 interface CalculationProgressProps {
   /** Current phase of calculation */

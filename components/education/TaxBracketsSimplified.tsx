@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
-import { fmt, fmtFull } from '@/lib/utils';
+import { fmtFull } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent } from '@/components/ui/card';
 import { TAX_BRACKETS } from '@/lib/constants';
@@ -142,9 +142,6 @@ export function TaxBracketsSimplified() {
     });
 
     const effectiveRate = taxableIncome > 0 ? (totalTax / income) * 100 : 0;
-    const marginalRate = bracketDetails.find((b) => !b.isActive)?.rate ||
-      bracketDetails[bracketDetails.length - 1]?.rate ||
-      0;
 
     // Find current bracket (last active one)
     const currentBracket = [...bracketDetails].reverse().find((b) => b.isActive);
@@ -168,7 +165,7 @@ export function TaxBracketsSimplified() {
                    border border-amber-200 dark:border-amber-800 rounded-xl p-6 text-center"
       >
         <p className="text-lg font-medium">
-          Youre in the{' '}
+          You&apos;re in the{' '}
           <span className="text-amber-600 dark:text-amber-400 font-bold">
             {calculations.marginalRate}% bracket
           </span>

@@ -79,7 +79,7 @@ export interface SparklineProps {
 // ============================================================================
 
 function normalizeData(data: (number | SparklineDataPoint)[]): SparklineDataPoint[] {
-  return data.map((d, i) => {
+  return data.map((d) => {
     if (typeof d === "number") {
       return { value: d, label: undefined }
     }

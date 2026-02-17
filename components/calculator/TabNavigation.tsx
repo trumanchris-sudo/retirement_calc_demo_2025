@@ -2,7 +2,6 @@
 
 import React, { useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { TRANSITIONS } from "@/lib/designTokens";
 import { soundPresets } from "@/lib/sounds";
 import { ScreenReaderOnly } from "@/components/a11y/ScreenReaderOnly";
 

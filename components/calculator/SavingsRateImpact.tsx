@@ -15,9 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  type ChartConfig,
-} from "@/components/ui/chart";
-import {
   BarChart,
   Bar,
   LineChart,
@@ -67,29 +64,6 @@ interface SavingsRateHistory {
 }
 
 // ==================== Constants ====================
-
-// Time to FI by savings rate (assuming 5% real return, 4% SWR)
-// Formula: Years = ln((SR / WR) + 1) / ln(1 + r) where SR=savings rate, WR=withdrawal rate, r=real return
-const SAVINGS_RATE_TO_FI_YEARS: Record<number, number> = {
-  5: 66,
-  10: 51,
-  15: 43,
-  20: 37,
-  25: 32,
-  30: 28,
-  35: 25,
-  40: 22,
-  45: 19,
-  50: 17,
-  55: 14.5,
-  60: 12.5,
-  65: 10.5,
-  70: 8.5,
-  75: 7,
-  80: 5.5,
-  85: 4,
-  90: 2.5,
-};
 
 // Comparative data
 const COMPARISON_DATA = {
@@ -321,11 +295,6 @@ export default function SavingsRateImpact({
     ].sort((a, b) => a.rate - b.rate);
   }, [savingsRate]);
 
-  // Chart config
-  const chartConfig: ChartConfig = {
-    years: { label: "Years to FI", color: "#3b82f6" },
-    rate: { label: "Savings Rate", color: "#22c55e" },
-  };
 
   // Add history entry
   const addHistoryEntry = useCallback((rate: number) => {
@@ -345,7 +314,7 @@ export default function SavingsRateImpact({
           </CardTitle>
           <CardDescription className="text-green-800 dark:text-green-200 text-lg">
             <span className="font-bold italic">
-              "Savings rate matters more than investment returns."
+              &quot;Savings rate matters more than investment returns.&quot;
             </span>
           </CardDescription>
         </CardHeader>
@@ -358,9 +327,9 @@ export default function SavingsRateImpact({
                   The #1 Lever Most People Ignore
                 </div>
                 <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                  You can't control the market. You can't control inflation. But you CAN control
-                  how much you save. Every dollar saved does double duty: it's money you have AND
-                  money you've proven you don't need.
+                  You can&apos;t control the market. You can&apos;t control inflation. But you CAN control
+                  how much you save. Every dollar saved does double duty: it&apos;s money you have AND
+                  money you&apos;ve proven you don&apos;t need.
                 </p>
               </div>
             </div>
@@ -686,7 +655,7 @@ export default function SavingsRateImpact({
                 The Math: Why Savings Rate Wins
               </CardTitle>
               <CardDescription>
-                At low savings, returns don't matter much. At high savings, you're buying freedom.
+                At low savings, returns don&apos;t matter much. At high savings, you&apos;re buying freedom.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -714,7 +683,7 @@ export default function SavingsRateImpact({
                         <span className="font-medium">Returns Are Unreliable</span>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        You can't control the market. Historical averages mean nothing
+                        You can&apos;t control the market. Historical averages mean nothing
                         for any given year. Savings rate is the ONE variable you control.
                       </p>
                     </div>
@@ -783,8 +752,8 @@ export default function SavingsRateImpact({
                     </div>
                     <p className="text-green-800 dark:text-green-200 mt-2">
                       <strong>At most savings rates, increasing savings by 5% beats a 1% better return by 2-3x.</strong>
-                      {" "}The only scenario where returns matter more is when you're already saving 75%+ -
-                      and at that point, you're already winning!
+                      {" "}The only scenario where returns matter more is when you&apos;re already saving 75%+ -
+                      and at that point, you&apos;re already winning!
                     </p>
                   </div>
                 </div>
@@ -802,7 +771,7 @@ export default function SavingsRateImpact({
                 Savings Rate vs Return Impact
               </CardTitle>
               <CardDescription>
-                "Increasing savings rate 5% beats a 1% better return"
+                &quot;Increasing savings rate 5% beats a 1% better return&quot;
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -913,7 +882,7 @@ export default function SavingsRateImpact({
                     </strong>
                   </div>
                   <div className="text-sm text-muted-foreground mt-4">
-                    That's{" "}
+                    That&apos;s{" "}
                     {(
                       (Math.max(impactComparison.savingsImpact, impactComparison.returnImpact) /
                         Math.min(impactComparison.savingsImpact, impactComparison.returnImpact)) || 1
@@ -935,7 +904,7 @@ export default function SavingsRateImpact({
                 Lifestyle Inflation Warning
               </CardTitle>
               <CardDescription>
-                "A raise only helps if you SAVE it"
+                &quot;A raise only helps if you SAVE it&quot;
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -949,7 +918,7 @@ export default function SavingsRateImpact({
                     </div>
                     <p className="text-sm text-orange-800 dark:text-orange-200 mt-1">
                       Most people upgrade their lifestyle with every raise. New car, bigger house,
-                      fancier dinners. Result? They're never any closer to financial freedom.
+                      fancier dinners. Result? They&apos;re never any closer to financial freedom.
                       <strong> Your expenses rise to meet your income.</strong>
                     </p>
                   </div>
@@ -976,7 +945,7 @@ export default function SavingsRateImpact({
 
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <Label>Percentage You'll Save</Label>
+                        <Label>Percentage You&apos;ll Save</Label>
                         <Badge variant="outline">{raiseSavePercent}%</Badge>
                       </div>
                       <Slider
@@ -1000,11 +969,11 @@ export default function SavingsRateImpact({
                       <span className="font-bold">{formatCurrency(lifestyleInflationData.monthlyRaise)}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                      <span className="text-green-700 dark:text-green-300">You'll Save:</span>
+                      <span className="text-green-700 dark:text-green-300">You&apos;ll Save:</span>
                       <span className="font-bold text-green-600">{formatCurrency(lifestyleInflationData.savedPortion)}/yr</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                      <span className="text-red-700 dark:text-red-300">You'll Spend:</span>
+                      <span className="text-red-700 dark:text-red-300">You&apos;ll Spend:</span>
                       <span className="font-bold text-red-600">{formatCurrency(lifestyleInflationData.spentPortion)}/yr</span>
                     </div>
                   </div>
@@ -1058,7 +1027,7 @@ export default function SavingsRateImpact({
                     {lifestyleInflationData.yearsSaved.toFixed(1)} years
                   </div>
                   <p className="text-green-800 dark:text-green-200">
-                    That's how much time you'll save by keeping {raiseSavePercent}% of your raise
+                    That&apos;s how much time you&apos;ll save by keeping {raiseSavePercent}% of your raise
                     instead of spending it all. Every raise is a fork in the road: freedom or lifestyle creep.
                   </p>
                 </div>
@@ -1183,7 +1152,7 @@ export default function SavingsRateImpact({
                   type="button"
                 >
                   <Sparkles className="h-4 w-4" />
-                  Record Today's Rate ({formatPercent(savingsRate)})
+                  Record Today&apos;s Rate ({formatPercent(savingsRate)})
                 </button>
               </div>
 
@@ -1194,10 +1163,10 @@ export default function SavingsRateImpact({
                     <Sparkles className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
                     <div>
                       <div className="font-semibold text-green-900 dark:text-green-100">
-                        Congratulations! You're Ahead of the Curve
+                        Congratulations! You&apos;re Ahead of the Curve
                       </div>
                       <p className="text-sm text-green-800 dark:text-green-200">
-                        At {formatPercent(savingsRate)}, you're saving more than most Americans ever will.
+                        At {formatPercent(savingsRate)}, you&apos;re saving more than most Americans ever will.
                         Every percentage point from here accelerates your journey to freedom. Keep going!
                       </p>
                     </div>
@@ -1212,7 +1181,7 @@ export default function SavingsRateImpact({
                         Every Step Counts
                       </div>
                       <p className="text-sm text-blue-800 dark:text-blue-200">
-                        You're at {formatPercent(savingsRate)} - that's a solid foundation!
+                        You&apos;re at {formatPercent(savingsRate)} - that&apos;s a solid foundation!
                         Focus on increasing by just 1% per month. Small, consistent improvements
                         compound into massive results over time.
                       </p>
@@ -1373,8 +1342,8 @@ export default function SavingsRateImpact({
                       Remember: Progress Over Perfection
                     </div>
                     <p className="text-sm text-green-800 dark:text-green-200">
-                      Don't compare yourself to extreme savers or feel bad about where you are.
-                      What matters is the direction you're moving. Every 1% increase in savings rate
+                      Don&apos;t compare yourself to extreme savers or feel bad about where you are.
+                      What matters is the direction you&apos;re moving. Every 1% increase in savings rate
                       is a victory. Focus on consistent, sustainable progress.
                     </p>
                   </div>

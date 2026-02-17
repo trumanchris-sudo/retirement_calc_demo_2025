@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -183,7 +183,7 @@ const HowTheyWorkSection: React.FC = () => (
         <Target className="h-6 w-6 text-blue-600" />
         <CardTitle className="text-xl">How Target Date Funds Work</CardTitle>
       </div>
-      <CardDescription>The "set it and forget it" approach to retirement investing</CardDescription>
+      <CardDescription>The &ldquo;set it and forget it&rdquo; approach to retirement investing</CardDescription>
     </CardHeader>
     <CardContent className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -204,7 +204,7 @@ const HowTheyWorkSection: React.FC = () => (
             <h4 className="font-semibold">2. Starts Aggressive</h4>
           </div>
           <p className="text-sm text-muted-foreground">
-            When you're young and far from retirement, the fund holds mostly stocks (80-90%)
+            When you&apos;re young and far from retirement, the fund holds mostly stocks (80-90%)
             for maximum growth potential.
           </p>
         </div>
@@ -377,8 +377,8 @@ const GlidePathComparisonSection: React.FC<{ currentAge: number }> = ({ currentA
           <CardTitle className="text-xl">Glide Path Comparison</CardTitle>
         </div>
         <CardDescription>
-          "To" retirement funds are more conservative at retirement. "Through" funds stay
-          more aggressive, assuming you'll live 20+ years after retiring.
+          &ldquo;To&rdquo; retirement funds are more conservative at retirement. &ldquo;Through&rdquo; funds stay
+          more aggressive, assuming you&apos;ll live 20+ years after retiring.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -444,16 +444,16 @@ const GlidePathComparisonSection: React.FC<{ currentAge: number }> = ({ currentA
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-900">
             <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-              "To" Retirement (Conservative)
+              &ldquo;To&rdquo; Retirement (Conservative)
             </h4>
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              Reaches final allocation AT retirement. More conservative, assumes you'll
+              Reaches final allocation AT retirement. More conservative, assumes you&apos;ll
               shift to income-focused strategy immediately. (Fidelity Index, Schwab)
             </p>
           </div>
           <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4 border border-purple-200 dark:border-purple-900">
             <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
-              "Through" Retirement (Aggressive)
+              &ldquo;Through&rdquo; Retirement (Aggressive)
             </h4>
             <p className="text-sm text-purple-800 dark:text-purple-200">
               Continues adjusting AFTER retirement. More aggressive, accounts for
@@ -598,10 +598,10 @@ const UnderlyingHoldingsSection: React.FC = () => (
     <CardHeader>
       <div className="flex items-center gap-2">
         <Layers className="h-6 w-6 text-indigo-600" />
-        <CardTitle className="text-xl">What's Inside a Target Date Fund?</CardTitle>
+        <CardTitle className="text-xl">What&apos;s Inside a Target Date Fund?</CardTitle>
       </div>
       <CardDescription>
-        It's just a "fund of funds" - typically 3-4 low-cost index funds in a wrapper
+        It&apos;s just a &ldquo;fund of funds&rdquo; - typically 3-4 low-cost index funds in a wrapper
       </CardDescription>
     </CardHeader>
     <CardContent className="space-y-4">
@@ -856,7 +856,7 @@ const FeeCalculatorSection: React.FC = () => {
               </div>
               <p className="text-sm text-blue-800 dark:text-blue-200">
                 For most people, the convenience of target date funds is worth the small fee difference
-                (0.05-0.10%). However, if you're comfortable rebalancing annually and have $100k+,
+                (0.05-0.10%). However, if you&apos;re comfortable rebalancing annually and have $100k+,
                 DIY can save you {formatCurrency(results.savings / years)}/year.
               </p>
             </div>
@@ -892,7 +892,7 @@ const RecommendationSection: React.FC = () => (
           <li className="flex items-start gap-2">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
             <span>
-              <strong>Pick the year closest to age 65</strong> - If you're 30, that's Target 2055 or 2060
+              <strong>Pick the year closest to age 65</strong> - If you&apos;re 30, that&apos;s Target 2055 or 2060
             </span>
           </li>
           <li className="flex items-start gap-2">

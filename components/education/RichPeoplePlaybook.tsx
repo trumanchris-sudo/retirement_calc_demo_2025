@@ -3,9 +3,7 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
-import { fmt } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
-import { TAX_BRACKETS, ESTATE_TAX_EXEMPTION } from '@/lib/constants';
 
 const MotionDiv = dynamic(() => import('framer-motion').then((m) => m.motion.div), { ssr: false });
 
@@ -157,7 +155,7 @@ export function RichPeoplePlaybook() {
       >
         <h2 className="text-2xl font-bold mb-2">The Wealthy Playbook</h2>
         <p className="text-muted-foreground">
-          These arent secrets - theyre strategies anyone can learn and use
+          These aren&apos;t secrets - they&apos;re strategies anyone can learn and use
         </p>
       </MotionDiv>
 
@@ -220,7 +218,7 @@ export function RichPeoplePlaybook() {
           title="Mega Backdoor Roth"
           subtitle="Supercharge your Roth contributions"
           wealthyUse="If your 401(k) allows after-tax contributions, you can contribute up to $69,000 total (2024) and convert the after-tax portion to Roth."
-          yourUse="Check if your employer plan allows after-tax contributions with in-plan Roth conversions. Not all do, but its worth asking HR."
+          yourUse="Check if your employer plan allows after-tax contributions with in-plan Roth conversions. Not all do, but it&apos;s worth asking HR."
           color="purple"
           delay={2}
           example={
@@ -250,8 +248,8 @@ export function RichPeoplePlaybook() {
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-sm">
               <p className="font-medium mb-2">Example:</p>
               <p className="text-muted-foreground">
-                Your S&P 500 fund is down $10,000. Sell it, buy a Total Market fund (similar but
-                not identical). Youve harvested a $10K loss while staying invested.
+                Your S&amp;P 500 fund is down $10,000. Sell it, buy a Total Market fund (similar but
+                not identical). You&apos;ve harvested a $10K loss while staying invested.
               </p>
             </div>
           }
@@ -294,8 +292,8 @@ export function RichPeoplePlaybook() {
           number={6}
           title="Dynasty/Generation-Skipping"
           subtitle="Multi-generational wealth transfer"
-          wealthyUse="Use the estate tax exemption ({fmt(ESTATE_TAX_EXEMPTION.married)} for couples) to pass wealth to grandchildren, skipping a generation of estate tax."
-          yourUse="You dont need a dynasty trust. Simply designate grandchildren as beneficiaries on your Roth IRA - they get 10 years of tax-free growth."
+          wealthyUse="Use the estate tax exemption ($13.6M+ for couples) to pass wealth to grandchildren, skipping a generation of estate tax."
+          yourUse="You don&apos;t need a dynasty trust. Simply designate grandchildren as beneficiaries on your Roth IRA - they get 10 years of tax-free growth."
           color="emerald"
           delay={5}
           example={
@@ -348,7 +346,7 @@ export function RichPeoplePlaybook() {
         </div>
 
         <p className="text-center mt-6 text-lg font-medium text-purple-700 dark:text-purple-400">
-          You dont need to be wealthy to start. You need to start to become wealthy.
+          You don&apos;t need to be wealthy to start. You need to start to become wealthy.
         </p>
       </MotionDiv>
 

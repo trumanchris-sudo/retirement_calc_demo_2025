@@ -6,7 +6,6 @@ import { usePlanConfig } from '@/lib/plan-config-context';
 import {
   getAllScenarios,
   saveScenario,
-  loadScenario,
   deleteScenario,
   duplicateScenario,
   exportScenarios,

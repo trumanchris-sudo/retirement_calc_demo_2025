@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
-import { HelpCircle, AlertTriangle, ExternalLink, PlayCircle, ChevronDown, ChevronUp, Lightbulb, BookOpen, TrendingUp, TrendingDown } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { HelpCircle, AlertTriangle, ExternalLink, PlayCircle, ChevronDown, ChevronUp, Lightbulb, BookOpen, TrendingUp } from 'lucide-react';
 import {
   Popover,
   PopoverContent,

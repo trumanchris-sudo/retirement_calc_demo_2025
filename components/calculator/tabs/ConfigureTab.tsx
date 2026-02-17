@@ -17,7 +17,6 @@ import {
   validateBalance,
   validate401kContribution,
   validateIRAContribution,
-  validateRate,
   validateTotalContributions,
 } from "@/lib/fieldValidation";
 import { calculateBondAllocation } from "@/lib/bondAllocation";
@@ -161,7 +160,7 @@ export function ConfigureTab({
   cTax2, setCTax2, cPre2, setCPre2, cPost2, setCPost2, cMatch2, setCMatch2,
   retRate, setRetRate, inflationRate, setInflationRate, stateRate, setStateRate,
   incContrib, setIncContrib, incRate, setIncRate, wdRate, setWdRate,
-  returnMode, setReturnMode, randomWalkSeries, setRandomWalkSeries,
+  returnMode, setReturnMode, setRandomWalkSeries,
   allocationStrategy, setAllocationStrategy, bondStartPct, setBondStartPct,
   bondEndPct, setBondEndPct, bondStartAge, setBondStartAge, bondEndAge, setBondEndAge,
   glidePathShape, setGlidePathShape, bondGlidePath,
@@ -264,7 +263,7 @@ export function ConfigureTab({
                     {isMar && (
                       <div className="space-y-4">
                         <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-100">
-                          Spouse's Contributions
+                          Spouse&apos;s Contributions
                         </Badge>
                         <Input label="Taxable Brokerage ($/yr)" value={cTax2} setter={setCTax2} step={1000} onInputChange={onInputChange} defaultValue={8000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
                         <Input label="401(k) Pre-Tax ($/yr)" value={cPre2} setter={setCPre2} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={(val) => validate401kContribution(val, age2)} tip="2026 IRS limit: $24,500" />

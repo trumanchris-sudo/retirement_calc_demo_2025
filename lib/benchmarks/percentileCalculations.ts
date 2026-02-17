@@ -7,11 +7,8 @@
 
 import {
   getPercentilesForAge,
-  getMedianForAge,
   SAVINGS_RATE_BENCHMARKS,
-  RETIREMENT_STATISTICS,
   IMPACT_STATISTICS,
-  type AgePercentiles,
 } from './nationalData';
 
 import type {
@@ -362,8 +359,6 @@ export function calculateBenchmarkResult(
  * Get a motivational comparison message
  */
 export function getComparisonMessage(ranking: PercentileRanking): string {
-  const percentile = Math.round(ranking.percentile);
-
   if (ranking.vsMedian.position === 'above') {
     const multiple = ranking.vsMedian.multiple;
     if (multiple >= 3) {

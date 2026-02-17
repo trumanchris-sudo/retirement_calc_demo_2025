@@ -215,12 +215,11 @@ function calculateChildTaxCredit(
 
   // Phase-out thresholds
   const threshold = filingStatus === "mfj" ? 400000 : 200000;
-  const phaseOutRate = 0.05; // $50 per $1,000 over threshold
 
   if (agi <= threshold) return baseCredit;
 
   const excessIncome = agi - threshold;
-  const phaseOutAmount = Math.ceil(excessIncome / 1000) * 50;
+  const phaseOutAmount = Math.ceil(excessIncome / 1000) * 50; // $50 per $1,000 over threshold
   return Math.max(0, baseCredit - phaseOutAmount);
 }
 
@@ -313,7 +312,6 @@ function generateW4Recommendation(
   deductionsAmount += Math.min(deductions.studentLoanInterest, 2500);
 
   let extraWithholding = 0;
-  let additionalIncome = 0;
   let explanation: string;
   let confidence: "high" | "medium" | "low";
 
@@ -361,8 +359,7 @@ function analyzeTwoEarners(
   wages1: number,
   withholding1: number,
   wages2: number,
-  withholding2: number,
-  filingStatus: "mfj"
+  withholding2: number
 ): TwoEarnerAnalysis {
   const combinedIncome = wages1 + wages2;
   const combinedWithholding = withholding1 + withholding2;
@@ -382,7 +379,6 @@ function analyzeTwoEarners(
   const underwithholding = mfjTax - combinedWithholding;
 
   // Higher earner should adjust
-  const higherWages = Math.max(wages1, wages2);
   const higherEarnerAdjustment = underwithholding > 0 ? Math.ceil(underwithholding / 24) : 0; // Assuming 24 pay periods
 
   let explanation: string;
@@ -543,8 +539,7 @@ export default function W4Optimizer() {
             income.annualWages,
             annualWithholding,
             income.spouseWages,
-            spouseWithholding,
-            "mfj"
+            spouseWithholding
           )
         : null;
 
@@ -991,7 +986,7 @@ export default function W4Optimizer() {
                       Two-Earner Worksheet
                     </CardTitle>
                     <CardDescription>
-                      Dual-income households often underwithhold. Let's check.
+                      Dual-income households often underwithhold. Let&apos;s check.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">

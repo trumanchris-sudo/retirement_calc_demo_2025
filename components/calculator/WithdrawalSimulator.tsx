@@ -37,7 +37,6 @@ export interface WithdrawalSimulatorProps {
   retirementAge: number;
   currentAge: number;
   inflationRate?: number;
-  expectedReturn?: number;
 }
 
 type WithdrawalStrategy =
@@ -598,9 +597,7 @@ function runStrategySimulation(
 export function WithdrawalSimulator({
   initialPortfolio,
   retirementAge,
-  currentAge,
   inflationRate = 2.5,
-  expectedReturn = 7,
 }: WithdrawalSimulatorProps) {
   const [isSimulating, setIsSimulating] = useState(false);
   const [progress, setProgress] = useState(0);

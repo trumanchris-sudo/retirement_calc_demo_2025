@@ -112,7 +112,6 @@ export default function ResultsVisualizationsSection() {
     // Build flows (simplified: income -> accounts -> spending)
     const flows = [];
     const totalIncome = incomeSources.reduce((s, i) => s + i.amount, 0);
-    const totalContribs = totalPreTaxContribs + totalRothContribs + totalTaxableContribs;
 
     // Distribute income to accounts proportionally
     for (const src of incomeSources) {
@@ -579,7 +578,7 @@ export default function ResultsVisualizationsSection() {
         </AccordionItem>
 
         <AccordionItem value="net-worth">
-          <AccordionTrigger className="text-lg font-semibold">Net Worth &amp; Wealth</AccordionTrigger>
+          <AccordionTrigger className="text-lg font-semibold">Net Worth & Wealth</AccordionTrigger>
           <AccordionContent>
             <div className="space-y-6 pt-4">
               <NetWorthDashboard
@@ -644,7 +643,7 @@ export default function ResultsVisualizationsSection() {
         </AccordionItem>
 
         <AccordionItem value="milestones-trends">
-          <AccordionTrigger className="text-lg font-semibold">Milestones &amp; Trends</AccordionTrigger>
+          <AccordionTrigger className="text-lg font-semibold">Milestones & Trends</AccordionTrigger>
           <AccordionContent>
             <div className="space-y-6 pt-4">
               <MilestoneTracker

@@ -35,7 +35,6 @@ export async function POST(request: NextRequest) {
       afterTaxIncome,
       duration,
       maxDuration,
-      endOfLifeWealth,
       totalTax,
       maritalStatus,
       withdrawalRate,
@@ -76,37 +75,6 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       );
     }
-
-    // Build account breakdown text
-    let _accountBreakdown = '';
-    if (eolAccounts) {
-      _accountBreakdown = `
-End-of-Life Account Balances:
-- Taxable Brokerage: $${eolAccounts.taxable.toLocaleString()}
-- Pre-tax (Traditional IRA/401k): $${eolAccounts.pretax.toLocaleString()}
-- Roth IRA: $${eolAccounts.roth.toLocaleString()}`;
-    }
-
-    // Build RMD analysis
-    const _rmdAnalysis = totalRMDs > 0 ? `
-Required Minimum Distributions (Age 73+):
-- Total RMDs Over Retirement: $${totalRMDs.toLocaleString()}
-- These mandatory withdrawals from pre-tax accounts may push you into higher tax brackets` : '';
-
-    // Build estate tax analysis
-    const _estateAnalysis = estateTax > 0 ? `
-Estate Tax Impact:
-- Gross Estate: $${endOfLifeWealth.toLocaleString()}
-- Estate Tax (40% over exemption, $${maritalStatus === 'married' ? '30M married' : '15M single'}): $${estateTax.toLocaleString()}
-- Net Estate to Heirs: $${netEstate.toLocaleString()}
-- Effective Tax Rate on Estate: ${((estateTax / endOfLifeWealth) * 100).toFixed(1)}%` : '';
-
-    // Build Social Security analysis
-    const _ssAnalysis = includeSS ? `
-Social Security Benefits:
-- Average Career Earnings: $${ssIncome.toLocaleString()}/year
-- Claiming Age: ${ssClaimAge}
-- Benefits reduce portfolio withdrawal needs starting at age ${ssClaimAge}` : '';
 
     // Build return model description
     const returnModelDesc = returnModel === 'fixed'

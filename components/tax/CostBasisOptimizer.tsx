@@ -946,6 +946,7 @@ function WashSaleWarning({ recentPurchases }: { recentPurchases: { symbol: strin
 
 export function CostBasisOptimizer({
   taxLots = generateSampleLots(),
+  currentPrice, // Reason: Parameter kept for API compatibility but value is derived from taxLots
   sharesToSell: initialSharesToSell = 50,
   filingStatus: initialFilingStatus = "single",
   taxableIncome: initialTaxableIncome = 85000,

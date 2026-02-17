@@ -9,7 +9,6 @@ import type { BatchSummary } from "@/types/planner";
 interface SequenceRiskChartProps {
   batchSummary: BatchSummary | null;
   retirementAge: number;
-  age1: number;
 }
 
 interface FailureBucket {
@@ -21,7 +20,7 @@ interface FailureBucket {
   age1Range: string;
 }
 
-export const SequenceRiskChart = React.memo(function SequenceRiskChart({ batchSummary, retirementAge, age1 }: SequenceRiskChartProps) {
+export const SequenceRiskChart = React.memo(function SequenceRiskChart({ batchSummary, retirementAge }: SequenceRiskChartProps) {
   const analysis = useMemo(() => {
     if (!batchSummary || !batchSummary.allRuns) return null;
 
@@ -73,7 +72,7 @@ export const SequenceRiskChart = React.memo(function SequenceRiskChart({ batchSu
       buckets: buckets.filter(b => b.count > 0),
       criticalWindow,
     };
-  }, [batchSummary, retirementAge, age1]);
+  }, [batchSummary, retirementAge]);
 
   if (!analysis || analysis.totalFailures === 0) {
     return (

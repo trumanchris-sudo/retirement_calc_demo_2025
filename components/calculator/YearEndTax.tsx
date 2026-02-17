@@ -67,6 +67,7 @@ interface ChecklistItem {
   description: string;
   deadline: string;
   deadlineDate: Date;
+  // Reason: lucide-react icon components accept generic props
   icon: React.ComponentType<any>;
   category: 'retirement' | 'investments' | 'giving' | 'healthcare' | 'income' | 'business';
   dollarImpact: (situation: UserSituation) => number;
@@ -339,7 +340,7 @@ const CHECKLIST_ITEMS: ChecklistItem[] = [
     deadlineDate: new Date(new Date().getFullYear(), 11, 31),
     icon: Gift,
     category: 'giving',
-    dollarImpact: (situation) => {
+    dollarImpact: () => {
       // Estate tax benefit if estate is large
       const estateTaxRate = 0.40;
       const giftAmount = 18000; // Per recipient
@@ -443,29 +444,29 @@ interface YearEndTaxProps {
 }
 
 export default function YearEndTax({ situation: providedSituation, onProgress }: YearEndTaxProps) {
-  // Default situation for demonstration
-  const defaultSituation: UserSituation = {
-    filingStatus: 'married',
-    age: 55,
-    spouseAge: 53,
-    income: 150000,
-    pretaxBalance: 500000,
-    rothBalance: 100000,
-    taxableBalance: 200000,
-    has401k: true,
-    hasHSA: true,
-    hasFSA: true,
-    isFirstRMDYear: false,
-    hasUnrealizedLosses: true,
-    hasUnrealizedGains: true,
-    estimatedLosses: 15000,
-    estimatedGains: 25000,
-    hasCharitableIntent: true,
-    isBusinessOwner: false,
-    expectsBonus: true,
-  };
-
-  const situation: UserSituation = { ...defaultSituation, ...providedSituation };
+  const situation: UserSituation = useMemo(() => {
+    const defaultSituation: UserSituation = {
+      filingStatus: 'married',
+      age: 55,
+      spouseAge: 53,
+      income: 150000,
+      pretaxBalance: 500000,
+      rothBalance: 100000,
+      taxableBalance: 200000,
+      has401k: true,
+      hasHSA: true,
+      hasFSA: true,
+      isFirstRMDYear: false,
+      hasUnrealizedLosses: true,
+      hasUnrealizedGains: true,
+      estimatedLosses: 15000,
+      estimatedGains: 25000,
+      hasCharitableIntent: true,
+      isBusinessOwner: false,
+      expectsBonus: true,
+    };
+    return { ...defaultSituation, ...providedSituation };
+  }, [providedSituation]);
 
   // State
   const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());

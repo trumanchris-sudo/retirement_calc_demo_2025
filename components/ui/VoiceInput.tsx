@@ -542,7 +542,7 @@ export function VoiceInput({
           <p className="font-medium text-sm">Listening...</p>
           {state.transcript && (
             <p className="text-xs text-muted-foreground italic">
-              &ldquo;{state.transcript}&rdquo;
+              &quot;{state.transcript}&quot;
             </p>
           )}
           <p className="text-xs text-muted-foreground">Click to stop</p>
@@ -555,7 +555,7 @@ export function VoiceInput({
         <div className="space-y-1">
           <p className="font-medium text-sm">Processing...</p>
           <p className="text-xs text-muted-foreground italic">
-            &ldquo;{state.transcript}&rdquo;
+            &quot;{state.transcript}&quot;
           </p>
         </div>
       );
@@ -578,10 +578,10 @@ export function VoiceInput({
           Click and say a number like:
         </p>
         <ul className="text-xs text-muted-foreground list-disc list-inside space-y-0.5">
-          <li>&ldquo;one hundred fifty thousand dollars&rdquo;</li>
-          <li>&ldquo;75000&rdquo;</li>
-          <li>&ldquo;fifty k&rdquo;</li>
-          <li>&ldquo;one point five million&rdquo;</li>
+          <li>&quot;one hundred fifty thousand dollars&quot;</li>
+          <li>&quot;75000&quot;</li>
+          <li>&quot;fifty k&quot;</li>
+          <li>&quot;one point five million&quot;</li>
         </ul>
         {showPrivacyNote && (
           <div className="flex items-start gap-1.5 pt-1 border-t border-border mt-2">

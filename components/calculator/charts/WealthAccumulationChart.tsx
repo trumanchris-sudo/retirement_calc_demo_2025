@@ -16,7 +16,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import type { ChartDataPoint } from '@/types/calculator';
-import { CHART_COLORS, CHART_SEMANTIC, getTooltipStyles } from '@/lib/chartColors';
+import { CHART_SEMANTIC, getTooltipStyles } from '@/lib/chartColors';
 
 const ComposedChart = dynamic(
   () => import('recharts').then((mod) => ({ default: mod.ComposedChart })),

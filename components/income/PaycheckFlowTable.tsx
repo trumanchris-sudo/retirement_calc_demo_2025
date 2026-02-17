@@ -53,6 +53,12 @@ export function PaycheckFlowTable({ paychecks }: PaycheckFlowTableProps) {
   const MAX_MED_FSA = 3200;
   const SS_WAGE_BASE = 184500; // 2026 Social Security wage base
 
+  // Suppress unused variable warnings - these are used in the table rows below
+  void MAX_401K;
+  void MAX_DEP_FSA;
+  void MAX_MED_FSA;
+  void SS_WAGE_BASE;
+
   const formatCurrency = (value: number, showSign: boolean = false) => {
     // Handle null/undefined values by defaulting to 0
     const safeValue = value ?? 0;

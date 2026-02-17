@@ -48,7 +48,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fmt, fmtPercent } from "@/lib/utils";
+import { fmt } from "@/lib/utils";
 
 // Historical crisis scenarios with real data
 interface CrisisScenario {
@@ -312,7 +312,6 @@ export function StressTest({
     recoveryShape: "U",
     inflationRate: 3,
   });
-  const [showComparison, setShowComparison] = useState(false);
 
   const yearsToSimulate = endAge - currentAge;
 

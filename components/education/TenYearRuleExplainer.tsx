@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { cn } from '@/lib/utils';
 import { fmt } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent } from '@/components/ui/card';
@@ -296,11 +295,11 @@ export function TenYearRuleExplainer() {
 
       {/* Call to Action */}
       <div className="bg-muted/50 rounded-xl p-6 text-center">
-        <p className="text-lg font-medium">
-          Consider converting Traditional IRA to Roth while youre in a lower tax bracket
+<p className="text-lg font-medium">
+          Consider converting Traditional IRA to Roth while you&apos;re in a lower tax bracket
         </p>
         <p className="text-sm text-muted-foreground mt-2">
-          Pay taxes now at your rate, not your kids higher rate later
+          Pay taxes now at your rate, not your kids&apos; higher rate later
         </p>
       </div>
     </div>

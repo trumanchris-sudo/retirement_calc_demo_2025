@@ -19,7 +19,6 @@ import {
   PiggyBank,
   Receipt,
   Shield,
-  TrendingUp,
   Zap,
   Briefcase,
 } from 'lucide-react'
@@ -38,7 +37,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TYPOGRAPHY, METRIC_COLORS, STATUS } from '@/lib/designTokens'
-import { fmt, fmtFull, fmtPercent } from '@/lib/utils'
+import { fmtFull, fmtPercent } from '@/lib/utils'
 import {
   SE_TAX_2026,
   TAX_BRACKETS_2026,
@@ -322,13 +321,10 @@ function calculateRetirementOptions(
 
 interface TaxShockCardProps {
   seTax: number
-  federalTax: number
-  totalTax: number
   gross1099Income: number
-  effectiveRate: number
 }
 
-function TaxShockCard({ seTax, federalTax, totalTax, gross1099Income, effectiveRate }: TaxShockCardProps) {
+function TaxShockCard({ seTax, gross1099Income }: TaxShockCardProps) {
   const sePercentage = gross1099Income > 0 ? (seTax / gross1099Income) * 100 : 0
 
   return (
@@ -429,7 +425,6 @@ interface QuarterlyPaymentsCardProps {
 }
 
 function QuarterlyPaymentsCard({ payments, annualTaxOwed, w2Withholding }: QuarterlyPaymentsCardProps) {
-  const netTaxOwed = Math.max(0, annualTaxOwed - w2Withholding)
   const safeHarborAmount = annualTaxOwed * 0.9
 
   return (
@@ -771,12 +766,11 @@ function DeductionFinder({ inputs, onUpdate, marginalRate }: DeductionFinderProp
 
 interface RetirementOpportunityProps {
   options: RetirementOption[]
-  netSEIncome: number
   marginalRate: number
   age: number
 }
 
-function RetirementOpportunity({ options, netSEIncome, marginalRate, age }: RetirementOpportunityProps) {
+function RetirementOpportunity({ options, marginalRate, age }: RetirementOpportunityProps) {
   const solo401k = options.find(o => o.name === 'Solo 401(k)')
   const sepIRA = options.find(o => o.name === 'SEP-IRA')
 
@@ -930,7 +924,6 @@ interface W2IntegrationProps {
 }
 
 function W2Integration({ inputs, onUpdate, ssWageBaseRemaining }: W2IntegrationProps) {
-  const w2WagesSubjectToSS = Math.min(inputs.w2Income, SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE)
   const ssUsedByW2 = SE_TAX_2026.SOCIAL_SECURITY_WAGE_BASE - ssWageBaseRemaining
   const ssCapReached = ssWageBaseRemaining <= 0
 
@@ -1279,10 +1272,7 @@ export function SideHustleTax({
         <TabsContent value="overview" className="space-y-6 mt-6">
           <TaxShockCard
             seTax={seTaxResult.totalSETax}
-            federalTax={federalTaxResult.federalTax}
-            totalTax={totalTaxOwed}
             gross1099Income={inputs.gross1099Income}
-            effectiveRate={effectiveTaxRate}
           />
 
           {/* Tax Breakdown */}
@@ -1426,7 +1416,6 @@ export function SideHustleTax({
         <TabsContent value="retirement" className="mt-6">
           <RetirementOpportunity
             options={retirementOptions}
-            netSEIncome={netSEIncome}
             marginalRate={federalTaxResult.marginalRate}
             age={inputs.age}
           />

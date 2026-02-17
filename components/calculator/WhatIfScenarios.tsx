@@ -18,7 +18,6 @@ import {
   TrendingUp,
   Calendar,
   Users,
-  Share2,
   Copy,
   Mail,
   Twitter,
@@ -29,7 +28,6 @@ import {
   ChevronUp,
   Heart,
   Clock,
-  DollarSign,
   ArrowRight,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -50,14 +48,12 @@ import { Separator } from '@/components/ui/separator';
 import { fmt } from '@/lib/utils';
 import {
   toShareableData,
-  createSendToKidsLink,
   createSendToKidsEmailLink,
   createSocialShare,
   createTwitterShareLink,
   createLinkedInShareLink,
   createFacebookShareLink,
   copyShareableLinkToClipboard,
-  type ShareableData,
 } from '@/lib/shareableLink';
 import { runSingleSimulation, calcSocialSecurity } from '@/lib/calculations/retirementEngine';
 import type { SimulationInputs } from '@/lib/calculations/retirementEngine';
@@ -581,8 +577,8 @@ export function WhatIfScenarios({
 
     return results;
   }, [
-    age, spouseAge, retirementAge, marital, totalCurrentContrib, totalCurrentBalance,
-    retRate, inflationRate, wdRate, stateRate, includeSS, ssIncome, ssClaimAge,
+    age, retirementAge, totalCurrentContrib, totalCurrentBalance,
+    retRate, inflationRate, wdRate, includeSS, ssIncome, ssClaimAge,
     isMarried, childrenAges, childrenNames, currentEolReal, baseInputs,
   ]);
 

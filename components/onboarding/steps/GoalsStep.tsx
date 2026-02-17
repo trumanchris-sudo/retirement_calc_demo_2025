@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useEffect } from 'react'
-import { Sparkles, Info } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
+import { Info } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Slider } from '@/components/ui/slider'
@@ -23,7 +23,6 @@ interface GoalsStepProps {
 }
 
 export function GoalsStep({ data, savingsData, basicsData, onChange }: GoalsStepProps) {
-  const totalIncome = savingsData.income + (savingsData.spouseIncome || 0)
   const { defaults } = useAIDefaults()
 
   // Apply AI-suggested retirement age if user hasn't changed from default
@@ -192,7 +191,7 @@ export function GoalsStep({ data, savingsData, basicsData, onChange }: GoalsStep
       )}
 
       {/* Estimated Spending Summary */}
-      {totalIncome > 0 && estimatedSpending > 0 && (
+      {estimatedSpending > 0 && (
         <div className="bg-muted p-4 rounded-lg space-y-2">
           <p className="text-sm font-medium">
             Based on your selections:

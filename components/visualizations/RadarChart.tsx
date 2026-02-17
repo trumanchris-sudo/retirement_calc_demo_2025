@@ -176,24 +176,6 @@ function polarToCartesian(
 }
 
 /**
- * Generate polygon points for a radar shape
- */
-function generatePolygonPoints(
-  center: number,
-  values: number[],
-  maxRadius: number
-): string {
-  const angleStep = 360 / values.length;
-  return values
-    .map((value, index) => {
-      const radius = (value / 100) * maxRadius;
-      const point = polarToCartesian(center, center, radius, angleStep * index);
-      return `${point.x},${point.y}`;
-    })
-    .join(" ");
-}
-
-/**
  * Generate SVG path for animated drawing
  */
 function generatePolygonPath(
@@ -364,7 +346,6 @@ export function RadarChart({
   className,
   onAxisClick
 }: RadarChartProps) {
-  const [isAnimating, setIsAnimating] = useState(animateOnMount);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [hoveredScenario, setHoveredScenario] = useState<string | null>(null);
 
@@ -399,15 +380,6 @@ export function RadarChart({
     return lines;
   }, [center, maxRadius, numAxes, angleStep]);
 
-  // Handle animation completion
-  useEffect(() => {
-    if (animateOnMount) {
-      const timer = setTimeout(() => {
-        setIsAnimating(false);
-      }, animationDuration * 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [animateOnMount, animationDuration]);
 
   // Calculate path lengths for animation
   const getPathLength = useCallback((values: number[]) => {

@@ -22,7 +22,6 @@ import {
   clearStorage,
   parseUrlOverrides,
   resolveAllFlags,
-  resolveFeatureFlag,
   isDevelopment,
   getUserId,
 } from '@/lib/featureFlags';

@@ -24,9 +24,10 @@ export const AnimatedSection: React.FC<AnimatedSectionProps> = ({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const element = ref.current;
     // Check if element is already in viewport on mount
-    if (ref.current) {
-      const rect = ref.current.getBoundingClientRect();
+    if (element) {
+      const rect = element.getBoundingClientRect();
       const isInViewport = rect.top < window.innerHeight && rect.bottom > 0;
 
       if (isInViewport) {
@@ -46,8 +47,8 @@ export const AnimatedSection: React.FC<AnimatedSectionProps> = ({
             setIsVisible(true);
           }, delay);
           // Unobserve after animation triggers
-          if (ref.current) {
-            observer.unobserve(ref.current);
+          if (element) {
+            observer.unobserve(element);
           }
         }
       },
@@ -57,13 +58,13 @@ export const AnimatedSection: React.FC<AnimatedSectionProps> = ({
       }
     );
 
-    if (ref.current) {
-      observer.observe(ref.current);
+    if (element) {
+      observer.observe(element);
     }
 
     return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current);
+      if (element) {
+        observer.unobserve(element);
       }
     };
   }, [delay, threshold]);

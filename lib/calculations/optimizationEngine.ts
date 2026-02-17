@@ -20,15 +20,9 @@ import {
   type FilingStatus,
 } from "./shared/constants";
 import {
-  calcOrdinaryTax,
-  calcLTCGTax,
-} from "./shared/taxCalculations";
-import {
   calcPIA,
   calcSocialSecurity,
-  calculateEffectiveSS,
 } from "./shared/socialSecurity";
-import { calcRMD } from "./shared/rmd";
 
 // ===============================
 // Type Definitions
@@ -143,32 +137,6 @@ const CONTRIBUTION_LIMITS_2026 = {
 // ===============================
 // Utility Functions
 // ===============================
-
-/**
- * Get the current tax bracket for a given income
- */
-function getCurrentBracket(income: number, status: FilingStatus): { rate: number; limit: number; index: number } {
-  const brackets = TAX_BRACKETS[status];
-  const taxableIncome = Math.max(0, income - brackets.deduction);
-
-  for (let i = 0; i < brackets.rates.length; i++) {
-    if (taxableIncome <= brackets.rates[i].limit) {
-      return {
-        rate: brackets.rates[i].rate,
-        limit: brackets.rates[i].limit,
-        index: i,
-      };
-    }
-  }
-
-  // Return top bracket
-  const lastIndex = brackets.rates.length - 1;
-  return {
-    rate: brackets.rates[lastIndex].rate,
-    limit: brackets.rates[lastIndex].limit,
-    index: lastIndex,
-  };
-}
 
 /**
  * Calculate room remaining in current tax bracket

@@ -39,7 +39,6 @@ import {
   Shield,
   Building2,
   Scale,
-  Clock,
   Ban,
   Check,
   X,
@@ -49,14 +48,6 @@ import { cn } from "@/lib/utils";
 // ============================================================================
 // Types
 // ============================================================================
-
-interface HarvestOpportunity {
-  id: string;
-  asset: string;
-  currentLoss: number;
-  purchaseDate: Date;
-  isShortTerm: boolean;
-}
 
 interface DecemberChecklistItem {
   id: string;
@@ -202,7 +193,7 @@ function ConceptExplainer() {
             </div>
             <h4 className="font-semibold text-sm mb-2">1. Spot a Loss</h4>
             <p className="text-xs text-muted-foreground">
-              Investment drops below what you paid. You have an "unrealized loss."
+              Investment drops below what you paid. You have an &ldquo;unrealized loss.&rdquo;
             </p>
             <div className="mt-3 p-2 bg-white dark:bg-neutral-800 rounded text-xs">
               <span className="text-muted-foreground">Bought at:</span>{" "}
@@ -239,8 +230,8 @@ function ConceptExplainer() {
             <div>
               <h4 className="font-semibold">Sell the losing investment</h4>
               <p className="text-sm text-muted-foreground mt-1">
-                This "realizes" the loss, making it usable on your taxes. You
-                haven't actually lost money - you've just converted paper losses
+                This &ldquo;realizes&rdquo; the loss, making it usable on your taxes. You
+                haven&apos;t actually lost money - you&apos;ve just converted paper losses
                 into tax benefits.
               </p>
             </div>
@@ -314,7 +305,7 @@ function ConceptExplainer() {
  * Wash Sale Rule explanation with interactive calendar visualization
  */
 function WashSaleRule() {
-  const [saleDate, setSaleDate] = useState<Date>(new Date());
+  const [saleDate] = useState<Date>(new Date());
 
   // Calculate the 61-day wash sale window (30 days before + sale day + 30 days after)
   const windowStart = new Date(saleDate);
@@ -342,7 +333,7 @@ function WashSaleRule() {
           <CardTitle className="text-xl">The Wash Sale Rule</CardTitle>
         </div>
         <CardDescription>
-          The IRS disallows losses if you buy back "substantially identical"
+          The IRS disallows losses if you buy back &ldquo;substantially identical&rdquo;
           securities within 30 days
         </CardDescription>
       </CardHeader>
@@ -354,7 +345,7 @@ function WashSaleRule() {
           <AlertDescription>
             If you sell at a loss and buy the same (or substantially identical)
             investment within 30 days before OR after the sale, the IRS
-            disallows the loss. It's a 61-day total window.
+            disallows the loss. It&apos;s a 61-day total window.
           </AlertDescription>
         </Alert>
 
@@ -412,8 +403,9 @@ function WashSaleRule() {
               <input
                 type="date"
                 value={saleDate.toISOString().split("T")[0]}
-                onChange={(e) => setSaleDate(new Date(e.target.value))}
-                className="px-3 py-2 border rounded-md bg-white dark:bg-neutral-900 text-sm"
+                readOnly
+                disabled
+                className="px-3 py-2 border rounded-md bg-white dark:bg-neutral-900 text-sm opacity-60 cursor-not-allowed"
               />
             </div>
             <ArrowRight className="h-5 w-5 text-gray-400 hidden sm:block" />
@@ -813,7 +805,7 @@ function HarvestChecklist() {
               All tasks complete!
             </AlertTitle>
             <AlertDescription className="text-green-700 dark:text-green-300">
-              You've completed your year-end tax loss harvesting review. Don't
+              You&apos;ve completed your year-end tax loss harvesting review. Don&apos;t
               forget to document everything for tax time.
             </AlertDescription>
           </Alert>
@@ -883,8 +875,8 @@ function SubstantiallyIdenticalRule() {
           <Info className="h-4 w-4" />
           <AlertTitle>The Gray Area</AlertTitle>
           <AlertDescription>
-            The IRS doesn't provide a precise definition of "substantially
-            identical." Generally, two securities tracking the same index are
+            The IRS doesn&apos;t provide a precise definition of &ldquo;substantially
+            identical.&rdquo; Generally, two securities tracking the same index are
             considered substantially identical, while different indexes or
             strategies are not.
           </AlertDescription>

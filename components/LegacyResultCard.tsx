@@ -55,7 +55,6 @@ export const LegacyResultCard: React.FC<LegacyProps> = ({
   isPerpetual = false,
   successRate = 0,
   currency = "USD",
-  label: _label
 }) => {
   // Determine variant based on success rate
   // 80-100%: excellent (navy/gold), 50-79%: good (slate/silver), 25-49%: concerning (purple/lavender), 0-24%: warning (burgundy/copper)

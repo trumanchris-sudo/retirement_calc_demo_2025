@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { processAIOnboarding, type MissingField } from '@/lib/processAIOnboarding';
+import { processAIOnboarding } from '@/lib/processAIOnboarding';
 import { processOnboardingClientSide } from '@/lib/processOnboardingClientSide';
 import type {
   ConversationMessage,
@@ -88,8 +88,6 @@ export function AIConsole({ onComplete, onSkip, onBack }: AIConsoleProps) {
   const [input, setInput] = useState('');
   const [extractedData, setExtractedData] = useState<ExtractedData>({});
   const [assumptions, setAssumptions] = useState<AssumptionWithReasoning[]>([]);
-  const [missingFields, setMissingFields] = useState<MissingField[]>([]);
-  const [hasProcessed, setHasProcessed] = useState(false);
   const [phase, setPhase] = useState<ConversationPhase>('greeting');
   const [error, setError] = useState<string | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0); // Track which pre-scripted question we're on
@@ -525,7 +523,6 @@ ${getNextQuestion(0, {})}`;
 
     setIsProcessing(true);
     setError(null);
-    setHasProcessed(true);
 
     console.log('[AIConsole] Processing conversation...');
     console.log('[AIConsole] 🔍 EXTRACTED DATA:', {
@@ -577,7 +574,6 @@ ${getNextQuestion(0, {})}`;
 
       setExtractedData(result.extractedData);
       setAssumptions(result.assumptions);
-      setMissingFields([]); // Always empty now
 
       // Always move to assumptions review (no more questions)
       setPhase('assumptions-review');
@@ -594,7 +590,6 @@ ${getNextQuestion(0, {})}`;
       console.error('[AIConsole] Processing error:', errorMessage);
       setError(errorMessage);
       setPhase('data-collection');
-      setHasProcessed(false); // Allow retry
     } finally {
       setIsProcessing(false);
     }
@@ -814,15 +809,6 @@ ${getNextQuestion(0, {})}`;
             <>
               <AssumptionsReview
                 assumptions={assumptions}
-                onRefine={(refinement) => {
-                  setPhase('data-collection');
-                  const refinementMsg: ConversationMessage = {
-                    role: 'user',
-                    content: refinement,
-                    timestamp: Date.now(),
-                  };
-                  setMessages((prev) => [...prev, refinementMsg]);
-                }}
                 onUpdateAssumptions={handleUpdateAssumptions}
                 isUpdating={isUpdating}
               />

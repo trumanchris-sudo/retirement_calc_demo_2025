@@ -121,10 +121,10 @@ export interface AnimatedCounterProps {
 const useSoundManager = (
   enabled: boolean,
   volume: number,
-  sounds?: AnimatedCounterProps["sounds"]
+  // Reason: sounds parameter reserved for future custom sound URLs feature
+  _sounds?: AnimatedCounterProps["sounds"]
 ) => {
   const audioContextRef = useRef<AudioContext | null>(null);
-  const audioBuffersRef = useRef<Map<string, AudioBuffer>>(new Map());
 
   // Initialize audio context on first interaction
   const initAudio = useCallback(() => {
@@ -319,7 +319,6 @@ interface OdometerDigitProps {
   digitHeight: number;
   stagger: number;
   springConfig: SpringConfig;
-  isChanging: boolean;
 }
 
 const OdometerDigit = memo<OdometerDigitProps>(({
@@ -329,7 +328,6 @@ const OdometerDigit = memo<OdometerDigitProps>(({
   digitHeight,
   stagger,
   springConfig,
-  isChanging,
 }) => {
   const numericValue = digit === "," || digit === "." || digit === "-" || digit === "+" || digit === "$" || digit === "%" || digit === " "
     ? -1
@@ -358,8 +356,6 @@ const OdometerDigit = memo<OdometerDigitProps>(({
       diff = diff > 0 ? diff - 10 : diff + 10;
     }
 
-    const startOffset = prevDigit * digitHeight;
-    const endOffset = (prevDigit + diff) * digitHeight;
     const { stiffness, damping, mass } = springConfig;
 
     let velocity = 0;
@@ -634,7 +630,7 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
   const animatedValue = useSpringValue(
     hasStarted ? value : prevValueRef.current,
     prefersReducedMotion ? { stiffness: 1000, damping: 100, mass: 0.1 } : springConfig,
-    useCallback((v: number) => {
+    useCallback((_v: number) => {
       // Play tick sound occasionally during animation
       if (enableSound && Math.random() < 0.1) {
         playTick();
@@ -788,7 +784,6 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
             digitHeight={digitHeight}
             stagger={digitStagger}
             springConfig={springConfig}
-            isChanging={isAnimating}
           />
         ))}
       </div>

@@ -44,6 +44,7 @@ interface PageTransitionContextValue {
   prefersReducedMotion: boolean;
 }
 
+// Reason: SharedElementState interface is defined for future use with shared element transitions
 interface SharedElementState {
   id: string;
   rect: DOMRect;
@@ -729,7 +730,6 @@ export const StaggerContainer: React.FC<StaggerContainerProps> = ({
 interface StaggerItemProps {
   children: React.ReactNode;
   className?: string;
-  index?: number;
 }
 
 /**

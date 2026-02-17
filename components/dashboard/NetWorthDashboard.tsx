@@ -17,8 +17,6 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -49,7 +47,7 @@ import {
   Gem,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fmt, fmtFull, fmtPercent } from "@/lib/utils";
+import { fmt, fmtFull } from "@/lib/utils";
 
 // ==================== Types ====================
 
@@ -561,7 +559,7 @@ const AgeComparisonCard: React.FC<AgeComparisonCardProps> = ({
             {percentileLabel}
           </Badge>
           <p className="text-sm text-muted-foreground">
-            You're ahead of {percentile}% of your peers
+            You&apos;re ahead of {percentile}% of your peers
           </p>
         </div>
 
@@ -599,7 +597,7 @@ const AgeComparisonCard: React.FC<AgeComparisonCardProps> = ({
           <p className="text-sm">
             {netWorth >= comparison.p50 ? (
               <span className="text-green-600 dark:text-green-400">
-                You're {fmt(netWorth - comparison.p50)} above the median for your age
+                You&apos;re {fmt(netWorth - comparison.p50)} above the median for your age
               </span>
             ) : (
               <span className="text-amber-600 dark:text-amber-400">

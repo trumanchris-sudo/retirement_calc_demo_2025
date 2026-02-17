@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import type { EducationTopic } from './types';
 import { EDUCATION_TOPICS } from './types';
 import { useEducationProgress } from './useEducationProgress';

@@ -25,7 +25,6 @@ import {
   Info,
   PiggyBank,
   Building2,
-  Calendar,
   Scale,
   Briefcase,
   Plus,
@@ -115,15 +114,6 @@ const formatCurrency = (value: number): string => {
     currency: "USD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(value);
-};
-
-const formatCurrencyFull = (value: number): string => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
   }).format(value);
 };
 
@@ -454,7 +444,7 @@ export default function StudentLoanOptimizer() {
 
       Object.entries(IDR_PLANS).forEach(([key, plan]) => {
         let monthlyPayment: number;
-        let forgivenessYears = plan.forgivenessYears;
+        const forgivenessYears = plan.forgivenessYears;
 
         if (key === "SAVE" && plan.undergradThreshold && federalBalance <= plan.undergradThreshold) {
           // SAVE has 5% for undergrad loans
@@ -498,7 +488,6 @@ export default function StudentLoanOptimizer() {
     if (!isEligibleEmployer || federalBalance === 0) return null;
 
     const paymentsRemaining = Math.max(0, 120 - paymentsMade);
-    const monthsToForgiveness = paymentsRemaining;
 
     // Use SAVE/IDR payment amount
     const discretionaryIncome = calculateDiscretionaryIncome(annualIncome, familySize);
@@ -1048,7 +1037,7 @@ export default function StudentLoanOptimizer() {
                     <div className="bg-gray-50 dark:bg-gray-900/50 border rounded-lg p-4">
                       <p className="text-sm text-muted-foreground">
                         Consider switching to a qualifying employer to benefit from PSLF. Even if you have
-                        been repaying for years, those payments don't count toward PSLF unless made while
+                        been repaying for years, those payments don&apos;t count toward PSLF unless made while
                         working for a qualifying employer.
                       </p>
                     </div>

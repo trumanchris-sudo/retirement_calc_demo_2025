@@ -187,7 +187,7 @@ export const HeatmapCalendar = React.memo(function HeatmapCalendar({
   showMonthlyTotals = true,
   targetDailyAmount = 50,
 }: HeatmapCalendarProps) {
-  const today = new Date()
+  const today = useMemo(() => new Date(), [])
   const currentYear = today.getFullYear()
 
   const [selectedYear, setSelectedYear] = useState(initialYear ?? currentYear)
@@ -317,9 +317,6 @@ export const HeatmapCalendar = React.memo(function HeatmapCalendar({
     longestStreak = Math.max(longestStreak, tempStreak)
 
     // Calculate current streak (going backwards from today)
-    const todayKey = getDateKey(today)
-    const yesterdayKey = getDateKey(new Date(today.getTime() - 86400000))
-
     // Check if streak is active (contributed today or yesterday)
     const lastContrib = parseDate(lastContributionDate)
     const daysSinceLastContrib = Math.round(

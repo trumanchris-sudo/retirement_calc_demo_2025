@@ -103,28 +103,13 @@ function calculateMonthlyIncome(portfolioValue: number): number {
  */
 function getReadinessStatus(
   projectedValue: number,
-  currentIncome: number,
-  age: number
+  currentIncome: number
 ): { status: 'behind' | 'on-track' | 'ahead'; message: string; color: string } {
   // Target: 25x annual expenses (4% rule), assume 70% income replacement
   const targetSpending = currentIncome * 0.7;
   const targetSavings = targetSpending * 25;
 
-  // Age-based savings milestones (Fidelity guidelines)
-  // 30: 1x salary, 40: 3x, 50: 6x, 60: 8x, 67: 10x
-  const milestones: Record<number, number> = {
-    25: 0.5, 30: 1, 35: 2, 40: 3, 45: 4, 50: 6, 55: 7, 60: 8, 65: 10
-  };
-
-  // Find closest milestone
-  const closestAge = Object.keys(milestones)
-    .map(Number)
-    .reduce((prev, curr) =>
-      Math.abs(curr - age) < Math.abs(prev - age) ? curr : prev
-    );
-
-  const targetMultiple = milestones[closestAge] || 1;
-  const targetAtAge = currentIncome * targetMultiple;
+  // Calculate savings ratio
   const ratio = projectedValue / targetSavings;
 
   if (ratio >= 1.1) {
@@ -214,7 +199,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
     );
 
     const monthlyIncome = calculateMonthlyIncome(futureValue);
-    const readiness = getReadinessStatus(futureValue, parsedIncome, parsedAge);
+    const readiness = getReadinessStatus(futureValue, parsedIncome);
 
     // Calculate potential improvement: +5% savings rate
     const improvedContributions = parsedIncome * 0.15;
@@ -288,7 +273,7 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
     updateConfig(configUpdate, 'ai-suggested');
 
     onComplete();
-  }, [projection, parsedAge, parsedSpouseAge, parsedIncome, parsedSavings, maritalStatus, updateConfig, onComplete]);
+  }, [projection, parsedAge, parsedSpouseAge, parsedIncome, maritalStatus, updateConfig, onComplete]);
 
   // Format input as currency on blur
   const formatInputAsCurrency = (value: string, setValue: (v: string) => void) => {

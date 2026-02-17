@@ -131,7 +131,6 @@ interface RingPathProps {
   circumference: number;
   gradientId: string;
   glow?: boolean;
-  index: number;
   rotationOffset: number;
 }
 
@@ -144,7 +143,6 @@ const RingPath: React.FC<RingPathProps> = ({
   circumference,
   gradientId,
   glow,
-  index,
   rotationOffset,
 }) => {
   const strokeDashoffset = circumference - (progress / 100) * circumference;
@@ -339,7 +337,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
     const rotations: number[] = [];
     let currentRotation = rotationOffset;
 
-    normalizedSegments.forEach((segment, index) => {
+    normalizedSegments.forEach((segment) => {
       rotations.push(currentRotation);
       const segmentAngle = (segment.value / 100) * 360;
       currentRotation += segmentAngle + segmentGap;
@@ -427,7 +425,6 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
             circumference={circumference}
             gradientId={gradientIds[index]}
             glow={segment.glow}
-            index={index}
             rotationOffset={segmentRotations[index]}
           />
         ))}
@@ -672,16 +669,6 @@ export const PortfolioAllocationRing: React.FC<PortfolioAllocationRingProps> = (
     delay: index * 150,
     glow: false,
   }));
-
-  // Calculate cumulative rotations for pie-chart style
-  const cumulativeSegments = useMemo(() => {
-    let cumulative = 0;
-    return segments.map((segment) => {
-      const result = { ...segment, rotation: cumulative * 3.6 }; // 360/100 = 3.6
-      cumulative += segment.value;
-      return result;
-    });
-  }, [segments]);
 
   return (
     <div className={cn("flex flex-col items-center gap-4", className)}>

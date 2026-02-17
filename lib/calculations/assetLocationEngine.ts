@@ -479,7 +479,7 @@ export function analyzeHolding(
   holding: AssetHolding,
   marginalRate: number,
   ltcgRate: number,
-  expectedReturn: number = 0.07
+  expectedReturn: number = 0.07 // Reason: Used for calculating twentyYearImpact compound growth
 ): HoldingTaxDrag {
   const profile = ASSET_TAX_PROFILES[holding.assetClass];
   const currentAccount = holding.accountType;
@@ -676,7 +676,7 @@ export function analyzePortfolio(
  */
 function generateRecommendations(
   holdingAnalysis: HoldingTaxDrag[],
-  expectedReturn: number
+  expectedReturn: number // Reason: Reserved for future enhancements to recommendation impact calculations
 ): OptimizationRecommendation[] {
   const recommendations: OptimizationRecommendation[] = [];
 
