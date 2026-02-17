@@ -120,27 +120,6 @@ function sortDebtsByStrategy(debts: Debt[], strategy: PayoffStrategy): Debt[] {
 }
 
 /**
- * Calculate months to pay off debt with extra payment
- */
-function calculateDebtPayoffMonths(
-  balance: number,
-  interestRate: number,
-  monthlyPayment: number
-): number {
-  if (monthlyPayment <= 0 || balance <= 0) return 0;
-  const monthlyRate = interestRate / 100 / 12;
-  if (monthlyRate === 0) return Math.ceil(balance / monthlyPayment);
-
-  // If payment is less than interest, it will never be paid off
-  const monthlyInterest = balance * monthlyRate;
-  if (monthlyPayment <= monthlyInterest) return Infinity;
-
-  // Standard loan payoff formula: n = -log(1 - r*P/M) / log(1+r)
-  const months = -Math.log(1 - (monthlyRate * balance) / monthlyPayment) / Math.log(1 + monthlyRate);
-  return Math.ceil(months);
-}
-
-/**
  * Simulate both paths over time
  */
 function simulateTimelines(
@@ -154,11 +133,11 @@ function simulateTimelines(
   const afterTaxReturn = calculateAfterTaxInvestmentReturn(expectedReturn, marginalTaxRate);
 
   // Path 1: Focus on debt payoff
-  let debtPathDebts = debts.map(d => ({ ...d }));
+  const debtPathDebts = debts.map(d => ({ ...d }));
   let debtPathInvestment = 0;
 
   // Path 2: Focus on investing (minimum payments on debt)
-  let investPathDebts = debts.map(d => ({ ...d }));
+  const investPathDebts = debts.map(d => ({ ...d }));
   let investPathInvestment = 0;
 
   // Calculate total minimum payments
@@ -313,11 +292,6 @@ export default function DebtVsInvest() {
 
   const totalDebt = useMemo(() =>
     debts.reduce((sum, d) => sum + d.balance, 0),
-    [debts]
-  );
-
-  const totalMinimumPayments = useMemo(() =>
-    debts.reduce((sum, d) => sum + d.minimumPayment, 0),
     [debts]
   );
 
@@ -621,7 +595,7 @@ export default function DebtVsInvest() {
             <CardContent className="space-y-3">
               {debts.length === 0 ? (
                 <p className="text-center text-muted-foreground py-4">
-                  No debts added. Click "Add Debt" to get started.
+                  No debts added. Click &quot;Add Debt&quot; to get started.
                 </p>
               ) : (
                 debts.map((debt, index) => (
@@ -798,13 +772,13 @@ export default function DebtVsInvest() {
                 <Heart className="h-5 w-5 text-pink-500" />
                 Psychological Factors
               </CardTitle>
-              <CardDescription>The numbers don't tell the whole story</CardDescription>
+              <CardDescription>The numbers don&apos;t tell the whole story</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label htmlFor="peace-of-mind" className="font-medium">
-                    "I value peace of mind"
+                    &quot;I value peace of mind&quot;
                   </Label>
                   <p className="text-sm text-muted-foreground">
                     Being debt-free has emotional value beyond the math
@@ -889,7 +863,7 @@ export default function DebtVsInvest() {
                   </h4>
                   <p className="text-sm text-red-700/80 dark:text-red-300/80">
                     You have debt at {fmtPctRaw(Math.max(...debts.map(d => d.interestRate)), 1)} interest.
-                    No investment reliably beats this guaranteed "return" from paying it off.
+                    No investment reliably beats this guaranteed &quot;return&quot; from paying it off.
                   </p>
                 </div>
               )}
@@ -989,7 +963,6 @@ export default function DebtVsInvest() {
                       ]);
                       const maxVal = Math.max(...allValues);
                       const minVal = Math.min(...allValues);
-                      const range = maxVal - minVal || 1;
                       return [maxVal, (maxVal + minVal) / 2, minVal].map((v, i) => (
                         <span key={i} className="text-right pr-2">{fmt(v)}</span>
                       ));
@@ -1028,11 +1001,11 @@ export default function DebtVsInvest() {
                         const getY = (val: number) => ((maxVal - val) / range) * 100;
                         const getX = (year: number) => (year / TIMELINE_YEARS) * 100;
 
-                        const debtPoints = timeline.map((t, i) =>
+                        const debtPoints = timeline.map((t) =>
                           `${getX(t.year)},${getY(t.debtPath.netWorth)}`
                         ).join(' ');
 
-                        const investPoints = timeline.map((t, i) =>
+                        const investPoints = timeline.map((t) =>
                           `${getX(t.year)},${getY(t.investPath.netWorth)}`
                         ).join(' ');
 

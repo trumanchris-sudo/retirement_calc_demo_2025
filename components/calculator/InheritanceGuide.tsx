@@ -486,8 +486,10 @@ const InheritedIRACalculator = React.memo(function InheritedIRACalculator({
   );
 
   const totalTraditionalTax = schedule.reduce((sum, y) => sum + y.traditionalTax, 0);
-  const _totalTraditionalWithdrawn = schedule.reduce((sum, y) => sum + y.traditionalWithdrawal, 0);
-  const _totalRothWithdrawn = schedule.reduce((sum, y) => sum + y.rothWithdrawal, 0);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const totalTraditionalWithdrawn = schedule.reduce((sum, y) => sum + y.traditionalWithdrawal, 0);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const totalRothWithdrawn = schedule.reduce((sum, y) => sum + y.rothWithdrawal, 0);
 
   // Calculate optimal vs worst-case for traditional
   const worstCaseTax = inputs.inheritedTraditionalIRA * 0.37; // If cashed out all at once in top bracket

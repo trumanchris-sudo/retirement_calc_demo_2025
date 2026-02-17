@@ -158,7 +158,6 @@ export const InflationImpact = React.memo(function InflationImpact({
   nominalReturnRate = 8.0,
   currentYear = new Date().getFullYear(),
   isDarkMode = false,
-  yearsToRetirement = 20,
   socialSecurityMonthly = 2500,
   pensionMonthly = 0,
 }: InflationImpactProps) {
@@ -220,30 +219,6 @@ export const InflationImpact = React.memo(function InflationImpact({
     timeHorizon,
     currentYear,
   ]);
-
-  // Expense inflation timeline data
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const expenseTimelineData = useMemo(() => {
-    const baseCosts = {
-      groceries: 800,
-      healthcare: 500,
-      housing: 2000,
-      utilities: 300,
-    };
-
-    const data = [];
-    for (let year = 0; year <= 30; year += 10) {
-      data.push({
-        year: currentYear + year,
-        yearsOut: year,
-        groceries: calculateFutureCost(baseCosts.groceries, CATEGORY_INFLATION.food, year),
-        healthcare: calculateFutureCost(baseCosts.healthcare, CATEGORY_INFLATION.healthcare, year),
-        housing: calculateFutureCost(baseCosts.housing, CATEGORY_INFLATION.housing, year),
-        utilities: calculateFutureCost(baseCosts.utilities, CATEGORY_INFLATION.energy, year),
-      });
-    }
-    return data;
-  }, [currentYear]);
 
   // Inflation scenario data (normal vs 1970s-style)
   const scenarioData = useMemo(() => {

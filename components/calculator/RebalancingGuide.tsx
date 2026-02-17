@@ -48,60 +48,6 @@ interface RebalanceResult {
 // ==================== Helper Components ====================
 
 /**
- * Visual allocation bar showing current vs target
- */
-function AllocationBar({
-  label,
-  current,
-  target,
-  color,
-}: {
-  label: string;
-  current: number;
-  target: number;
-  color: string;
-}) {
-  const diff = current - target;
-  const isOff = Math.abs(diff) >= 5;
-
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-sm">
-        <span className="font-medium">{label}</span>
-        <span className="text-muted-foreground">
-          {current}% / {target}% target
-          {isOff && (
-            <Badge
-              variant="outline"
-              className={`ml-2 ${
-                diff > 0
-                  ? "text-amber-600 border-amber-300"
-                  : "text-blue-600 border-blue-300"
-              }`}
-            >
-              {diff > 0 ? "+" : ""}
-              {diff}%
-            </Badge>
-          )}
-        </span>
-      </div>
-      <div className="relative h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-        {/* Target marker */}
-        <div
-          className="absolute top-0 bottom-0 w-0.5 bg-gray-800 dark:bg-white z-10"
-          style={{ left: `${target}%` }}
-        />
-        {/* Current allocation */}
-        <div
-          className={`h-full ${color} transition-all duration-500`}
-          style={{ width: `${current}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-/**
  * Expandable section component
  */
 function ExpandableSection({
@@ -698,7 +644,7 @@ export const RebalancingGuide = React.memo(function RebalancingGuide() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Rebalancing forces you to sell assets that have risen and buy those
-                    that have fallen. It's automatic contrarian investing.
+                    that have fallen. It&apos;s automatic contrarian investing.
                   </p>
                 </div>
 
@@ -756,7 +702,7 @@ export const RebalancingGuide = React.memo(function RebalancingGuide() {
                       <span className="font-semibold">1. Rebalance in 401k/IRA First</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      No tax impact! Trades within tax-advantaged accounts don't trigger
+                      No tax impact! Trades within tax-advantaged accounts don&apos;t trigger
                       capital gains. Do as much rebalancing here as possible.
                     </p>
                   </div>
@@ -824,7 +770,7 @@ export const RebalancingGuide = React.memo(function RebalancingGuide() {
                     Choose Your Approach
                   </div>
                   <p className="text-sm text-blue-700 dark:text-blue-300">
-                    There's no single "best" method. The right choice depends on your tax
+                    There&apos;s no single &quot;best&quot; method. The right choice depends on your tax
                     situation, portfolio size, and how hands-on you want to be.
                   </p>
                 </div>
@@ -1047,7 +993,7 @@ export const RebalancingGuide = React.memo(function RebalancingGuide() {
                     Make Maintenance Easy
                   </div>
                   <p className="text-sm text-emerald-700 dark:text-emerald-300">
-                    The best rebalancing strategy is one you'll actually follow. Consider
+                    The best rebalancing strategy is one you&apos;ll actually follow. Consider
                     automation options that fit your style.
                   </p>
                 </div>

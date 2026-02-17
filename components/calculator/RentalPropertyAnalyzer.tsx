@@ -677,7 +677,6 @@ export function RentalPropertyAnalyzer({
   retirementAge = 65,
   currentAge = 35,
   annualRetirementIncome = 80000,
-  portfolioBalance = 500000,
   onRentalIncomeChange,
 }: RentalPropertyAnalyzerProps) {
   const [inputs, setInputs] = useState<RentalPropertyInputs>(DEFAULT_INPUTS);
@@ -1223,9 +1222,9 @@ export function RentalPropertyAnalyzer({
                     Depreciation: Your Silent Tax Shield
                   </div>
                   <p className="text-sm text-purple-800 dark:text-purple-200 mb-3">
-                    The IRS allows you to deduct the "wearing out" of your
+                    The IRS allows you to deduct the &quot;wearing out&quot; of your
                     rental property over 27.5 years - even though real estate
-                    usually appreciates! This "paper loss" reduces your taxable
+                    usually appreciates! This &quot;paper loss&quot; reduces your taxable
                     rental income.
                   </p>
                   <div className="text-sm">
