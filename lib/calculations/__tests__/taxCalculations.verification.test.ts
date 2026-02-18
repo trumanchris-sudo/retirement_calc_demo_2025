@@ -125,15 +125,15 @@ describe('Tax Calculation Verification Suite', () => {
       const deduction = TAX_BRACKETS.single.deduction;
 
       // Income: $100,000 single filer
-      // After deduction: $85,000 taxable (with current $15k deduction)
+      // After deduction: $83,900 taxable (with current $16,100 deduction)
       const income = 100000;
       const taxable = income - deduction;
 
       // Manual calculation:
-      // First $11,925 @ 10% = $1,192.50
-      // Next $36,550 ($48,475 - $11,925) @ 12% = $4,386.00
-      // Remaining $38,525 ($85,000 - $48,475) @ 22% = $8,475.50
-      // Total = $14,054.00
+      // First $12,400 @ 10% = $1,240.00
+      // Next $38,000 ($50,400 - $12,400) @ 12% = $4,560.00
+      // Remaining $33,500 ($83,900 - $50,400) @ 22% = $7,370.00
+      // Total = $13,170.00
 
       const tax = calcOrdinaryTax(income, 'single');
 
