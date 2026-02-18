@@ -1,6 +1,7 @@
 /**
  * Withdrawal Tax Strategy Verification Tests
  * Purpose: Verify pro-rata withdrawal logic and tax calculations
+ * Updated: February 2026 — fixed preserveRoth parameter in pro-rata tests
  */
 
 import { describe, it, expect } from 'vitest';
