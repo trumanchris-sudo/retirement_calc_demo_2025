@@ -709,6 +709,21 @@ export default function App() {
     }
   }, [calcPending, calc]);
 
+  // Auto-recalculate when stress-test scenario inputs change
+  // (e.g. clicking a bear-market or inflation button on Scenarios tab).
+  // Uses a ref to skip the initial render so we don't fire on mount.
+  const prevScenarioRef = useRef({ historicalYear, inflationShockRate });
+  useEffect(() => {
+    const prev = prevScenarioRef.current;
+    if (
+      res &&
+      (prev.historicalYear !== historicalYear || prev.inflationShockRate !== inflationShockRate)
+    ) {
+      prevScenarioRef.current = { historicalYear, inflationShockRate };
+      calc();
+    }
+  }, [historicalYear, inflationShockRate, res, calc]);
+
   // TRUE SIDE EFFECT: Auto-run calculations when entering AI Doc Mode
   // This triggers an async calculation side effect when the secret mode is activated.
   // IMPORTANT: This hook must be before the early return to avoid hooks violation.

@@ -23,7 +23,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip as RTooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 
@@ -145,19 +144,29 @@ export function ResultsTab({
                   {res.rmdData && res.rmdData.length > 0 ? (
                     <>
                       <Suspense fallback={chartFallback}>
-                        <div className="chart-block">
-                          <div role="img" aria-label="Required Minimum Distribution chart comparing spending needs to required RMD withdrawals by age">
-                          <ResponsiveContainer width="100%" height={400}>
+                        <div className="chart-block space-y-3">
+                          {/* Custom inline legend — matches "Two Paths Diverge" style */}
+                          <div className="flex items-center gap-5 text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CHART_SEMANTIC.real }} />
+                              <span className="text-muted-foreground">Spending Need (after SS)</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-3 h-0.5 border-t-2 border-dashed" style={{ borderColor: CHART_SEMANTIC.bearMarket }} />
+                              <span className="text-muted-foreground">Required RMD</span>
+                            </div>
+                          </div>
+                          <div className="h-[400px]" role="img" aria-label="Required Minimum Distribution chart comparing spending needs to required RMD withdrawals by age">
+                          <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={res.rmdData}>
                               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                              <XAxis dataKey="age" />
-                              <YAxis tickFormatter={(v) => fmt(v as number)} />
+                              <XAxis dataKey="age" tick={{ fontSize: 12 }} />
+                              <YAxis tickFormatter={(v) => fmt(v as number)} tick={{ fontSize: 12 }} />
                               <RTooltip
                                 formatter={(v) => fmt(v as number)}
                                 contentStyle={getTooltipStyles().contentStyle}
                                 labelStyle={getTooltipStyles().labelStyle}
                               />
-                              <Legend />
                               <Line
                                 type="monotone"
                                 dataKey="spending"

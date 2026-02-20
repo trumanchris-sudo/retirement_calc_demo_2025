@@ -516,15 +516,16 @@ export function mapAIDataToCalculator(
     );
   }
 
-  // Desired retirement spending
+  // Desired retirement spending (useful context, kept for display)
   const totalIncome = primaryIncome + spouseIncome;
   const desiredSpending =
     extractedData.desiredRetirementSpending ??
     Math.round(totalIncome * 0.8); // 80% replacement ratio
 
-  // Convert to withdrawal rate
-  const estimatedPortfolio = taxableBalance + pretaxBalance + rothBalance + emergencyFund;
-  const wdRate = estimatedPortfolio > 0 ? (desiredSpending / estimatedPortfolio) * 100 : 3.5;
+  // Use the standard safe withdrawal rate from defaults.
+  // The old formula (desiredSpending / currentPortfolio) produced nonsensical
+  // results for young savers whose portfolios are still small relative to spending.
+  const wdRate = DEFAULT_ASSUMPTIONS.wdRate;
 
   if (!extractedData.desiredRetirementSpending) {
     addAssumption(
@@ -535,6 +536,14 @@ export function mapAIDataToCalculator(
       'medium'
     );
   }
+
+  addAssumption(
+    'wdRate',
+    'Withdrawal Rate',
+    wdRate,
+    'Standard safe withdrawal rate for retirement planning',
+    'high'
+  );
 
   // === State Tax Rate ===
   const stateCode = extractedData.state?.toUpperCase();
@@ -659,7 +668,7 @@ export function mapAIDataToCalculator(
     stateRate,
     incContrib: true, // Enable annual increases
     incRate: DEFAULT_ASSUMPTIONS.incRate,
-    wdRate: Math.min(wdRate, 4.5), // Cap at 4.5%
+    wdRate,
     dividendYield: DEFAULT_ASSUMPTIONS.dividendYield,
 
     // Social Security

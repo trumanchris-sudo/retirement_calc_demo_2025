@@ -288,7 +288,7 @@ export function processOnboardingClientSide(
 
   // Filter out calculator defaults from assumptions (they're not wizard assumptions)
   // These are standard calculator settings, not onboarding inferences
-  const calculatorDefaults = ['retRate', 'inflationRate', 'incRate', 'dividendYield', 'wdRate', 'includeSS', 'stateRate'];
+  const calculatorDefaults = ['retRate', 'inflationRate', 'incRate', 'dividendYield', 'includeSS', 'stateRate'];
   const wizardAssumptions = mappedResult.generatedAssumptions.filter(
     a => !calculatorDefaults.includes(a.field)
   );

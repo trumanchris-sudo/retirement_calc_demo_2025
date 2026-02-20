@@ -11,11 +11,11 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip as RTooltip,
-  Legend,
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
 import { fmt } from "@/lib/utils";
+import { getTooltipStyles } from "@/lib/chartColors";
 import type { CalculatorInputs, FilingStatus } from "@/types/calculator";
 import { runSingleSimulation } from "@/lib/calculations/retirementEngine";
 import { LIFE_EXP } from "@/lib/constants";
@@ -311,7 +311,7 @@ function TaxDragVisualizer({ currentTaxDrag, rothTaxDrag }: TaxDragVisualizerPro
 
 export const RothComparison = React.memo(function RothComparison({
   inputs,
-  isDarkMode
+  isDarkMode: _isDarkMode // eslint-disable-line @typescript-eslint/no-unused-vars
 }: RothComparisonProps) {
 
   const { currentScenario, rothScenario, timelineData } = useMemo(() => {
@@ -540,15 +540,8 @@ export const RothComparison = React.memo(function RothComparison({
                 <RTooltip
                   formatter={(v: number, name: string) => [fmt(v), name === 'currentPath' ? 'Current Path' : 'Roth-First']}
                   labelFormatter={(label) => `Age ${label}`}
-                  contentStyle={{
-                    backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                    borderRadius: "8px",
-                    border: isDarkMode ? "1px solid #374151" : "1px solid #e5e7eb",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                  }}
-                />
-                <Legend
-                  formatter={(value) => value === 'currentPath' ? 'Current Path' : 'Roth-First Strategy'}
+                  contentStyle={getTooltipStyles().contentStyle}
+                  labelStyle={getTooltipStyles().labelStyle}
                 />
                 <ReferenceLine
                   x={retirementAge}

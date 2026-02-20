@@ -3,20 +3,20 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import {
+  Area,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip as RTooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 import type { ChartDataPoint, ComparisonData } from "@/types/calculator";
 import { CHART_SEMANTIC, getTooltipStyles } from "@/lib/chartColors";
 
-// Lazy load the ComposedChart for better performance
-const ComposedChart = dynamic(
-  () => import("recharts").then((mod) => ({ default: mod.ComposedChart })),
+// Lazy load AreaChart for better performance
+const AreaChart = dynamic(
+  () => import("recharts").then((mod) => ({ default: mod.AreaChart })),
   { ssr: false }
 );
 
@@ -29,8 +29,9 @@ export interface WealthChartProps {
 }
 
 /**
- * WealthAccumulationChart - Shows wealth over time with percentile bands
- * Mobile-responsive with touch-friendly tooltips
+ * WealthAccumulationChart - Shows wealth over time with percentile bands.
+ * Visual style matches "Two Paths Diverge": AreaChart with gradient fills
+ * and a custom inline legend (no Recharts Legend overlay).
  */
 export const WealthAccumulationChart = React.memo<WealthChartProps>(
   ({ data, showP10, showP90, fmt }) => {
@@ -40,7 +41,6 @@ export const WealthAccumulationChart = React.memo<WealthChartProps>(
 
     React.useEffect(() => {
       const updateHeight = () => {
-        // Shorter chart on mobile to leave room for controls
         setChartHeight(window.innerWidth < 640 ? 280 : 400);
       };
       updateHeight();
@@ -49,84 +49,110 @@ export const WealthAccumulationChart = React.memo<WealthChartProps>(
     }, []);
 
     return (
-      <ResponsiveContainer width="100%" height={chartHeight}>
-        <ComposedChart data={data}>
-          <defs>
-            <linearGradient id="colorBal" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={CHART_SEMANTIC.nominal} stopOpacity={0.3} />
-              <stop offset="95%" stopColor={CHART_SEMANTIC.nominal} stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={CHART_SEMANTIC.real} stopOpacity={0.3} />
-              <stop offset="95%" stopColor={CHART_SEMANTIC.real} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-          <XAxis dataKey="year" className="text-sm" />
-          <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
-          <RTooltip
-            formatter={(v) => fmt(v as number)}
-            contentStyle={tooltipStyles.contentStyle}
-            labelStyle={tooltipStyles.labelStyle}
-          />
-          <Legend />
-          <Line
-            type="monotone"
-            dataKey="bal"
-            stroke={CHART_SEMANTIC.nominal}
-            strokeWidth={3}
-            dot={false}
-            name="Nominal (50th Percentile)"
-            isAnimationActive={true}
-            animationDuration={1200}
-            animationBegin={0}
-            animationEasing="ease-out"
-          />
-          <Line
-            type="monotone"
-            dataKey="real"
-            stroke={CHART_SEMANTIC.real}
-            strokeWidth={2}
-            strokeDasharray="5 5"
-            dot={false}
-            name="Real (50th Percentile)"
-            isAnimationActive={true}
-            animationDuration={1200}
-            animationBegin={200}
-            animationEasing="ease-out"
-          />
+      <div className="space-y-3">
+        {/* Custom inline legend — matches "Two Paths Diverge" style */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CHART_SEMANTIC.nominal }} />
+            <span className="text-muted-foreground">Nominal (50th)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CHART_SEMANTIC.real }} />
+            <span className="text-muted-foreground">Real (50th)</span>
+          </div>
           {showP10 && (
-            <Line
-              type="monotone"
-              dataKey="p10"
-              stroke={CHART_SEMANTIC.p10}
-              strokeWidth={2}
-              strokeDasharray="3 3"
-              dot={false}
-              name="10th Percentile (Nominal)"
-              isAnimationActive={true}
-              animationDuration={1200}
-              animationBegin={400}
-              animationEasing="ease-out"
-            />
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5" style={{ backgroundColor: CHART_SEMANTIC.p10 }} />
+              <span className="text-muted-foreground">10th Percentile</span>
+            </div>
           )}
           {showP90 && (
-            <Line
-              type="monotone"
-              dataKey="p90"
-              stroke={CHART_SEMANTIC.p90}
-              strokeWidth={2}
-              strokeDasharray="3 3"
-              dot={false}
-              name="90th Percentile (Nominal)"
-              isAnimationActive={true}
-              animationDuration={1200}
-              animationBegin={600}
-              animationEasing="ease-out"
-            />
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5" style={{ backgroundColor: CHART_SEMANTIC.p90 }} />
+              <span className="text-muted-foreground">90th Percentile</span>
+            </div>
           )}
-        </ComposedChart>
-      </ResponsiveContainer>
+        </div>
+
+        <div style={{ height: chartHeight }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data}>
+              <defs>
+                <linearGradient id="accBal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_SEMANTIC.nominal} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={CHART_SEMANTIC.nominal} stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="accReal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_SEMANTIC.real} stopOpacity={0.4} />
+                  <stop offset="95%" stopColor={CHART_SEMANTIC.real} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+              <XAxis dataKey="year" tick={{ fontSize: 12 }} />
+              <YAxis tickFormatter={(v) => fmt(v as number)} tick={{ fontSize: 12 }} />
+              <RTooltip
+                formatter={(v) => fmt(v as number)}
+                contentStyle={tooltipStyles.contentStyle}
+                labelStyle={tooltipStyles.labelStyle}
+              />
+              <Area
+                type="monotone"
+                dataKey="bal"
+                stroke={CHART_SEMANTIC.nominal}
+                strokeWidth={2}
+                fill="url(#accBal)"
+                name="Nominal (50th Percentile)"
+                isAnimationActive={true}
+                animationDuration={1200}
+                animationBegin={0}
+                animationEasing="ease-out"
+              />
+              <Area
+                type="monotone"
+                dataKey="real"
+                stroke={CHART_SEMANTIC.real}
+                strokeWidth={2}
+                fill="url(#accReal)"
+                name="Real (50th Percentile)"
+                isAnimationActive={true}
+                animationDuration={1200}
+                animationBegin={200}
+                animationEasing="ease-out"
+              />
+              {showP10 && (
+                <Line
+                  type="monotone"
+                  dataKey="p10"
+                  stroke={CHART_SEMANTIC.p10}
+                  strokeWidth={1.5}
+                  strokeDasharray="3 3"
+                  dot={false}
+                  name="10th Percentile"
+                  isAnimationActive={true}
+                  animationDuration={1200}
+                  animationBegin={400}
+                  animationEasing="ease-out"
+                />
+              )}
+              {showP90 && (
+                <Line
+                  type="monotone"
+                  dataKey="p90"
+                  stroke={CHART_SEMANTIC.p90}
+                  strokeWidth={1.5}
+                  strokeDasharray="3 3"
+                  dot={false}
+                  name="90th Percentile"
+                  isAnimationActive={true}
+                  animationDuration={1200}
+                  animationBegin={600}
+                  animationEasing="ease-out"
+                />
+              )}
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     );
   }
 );
@@ -141,7 +167,9 @@ export interface ComparisonChartProps {
 }
 
 /**
- * ScenarioComparisonChart - Shows baseline vs stress scenarios
+ * ScenarioComparisonChart - Shows baseline vs stress scenarios.
+ * Visual style matches "Two Paths Diverge": AreaChart with gradient fills
+ * and a custom inline legend.
  */
 export const ScenarioComparisonChart = React.memo<ComparisonChartProps>(
   ({ data, comparisonData, fmt }) => {
@@ -177,60 +205,100 @@ export const ScenarioComparisonChart = React.memo<ComparisonChartProps>(
       });
     }, [data, comparisonData]);
 
+    const bearLabel = comparisonData.bearMarket?.label || "Bear Market";
+    const inflLabel = comparisonData.inflation?.label || "Inflation Shock";
+
     return (
-      <ResponsiveContainer width="100%" height={isMobile ? 300 : 400}>
-        <ComposedChart data={combinedData}>
-          <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-          <XAxis dataKey="year" className="text-sm" />
-          <YAxis tickFormatter={(v) => fmt(v as number)} className="text-sm" />
-          <RTooltip
-            formatter={(v) => fmt(v as number)}
-            contentStyle={tooltipStyles.contentStyle}
-            labelStyle={tooltipStyles.labelStyle}
-          />
-          <Legend />
-          <Line
-            type="monotone"
-            dataKey="baseline"
-            stroke={CHART_SEMANTIC.nominal}
-            strokeWidth={3}
-            dot={false}
-            name="Baseline (Real)"
-            isAnimationActive={true}
-            animationDuration={1200}
-            animationBegin={0}
-            animationEasing="ease-out"
-          />
+      <div className="space-y-3">
+        {/* Custom inline legend */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CHART_SEMANTIC.nominal }} />
+            <span className="text-muted-foreground">Baseline (Real)</span>
+          </div>
           {comparisonData.bearMarket?.visible && (
-            <Line
-              type="monotone"
-              dataKey="bearMarket"
-              stroke={CHART_SEMANTIC.bearMarket}
-              strokeWidth={2}
-              dot={false}
-              name={comparisonData.bearMarket.label || "Bear Market"}
-              isAnimationActive={true}
-              animationDuration={1200}
-              animationBegin={300}
-              animationEasing="ease-out"
-            />
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CHART_SEMANTIC.bearMarket }} />
+              <span className="text-muted-foreground">{bearLabel}</span>
+            </div>
           )}
           {comparisonData.inflation?.visible && (
-            <Line
-              type="monotone"
-              dataKey="inflation"
-              stroke={CHART_SEMANTIC.inflation}
-              strokeWidth={2}
-              dot={false}
-              name={comparisonData.inflation.label || "Inflation Shock"}
-              isAnimationActive={true}
-              animationDuration={1200}
-              animationBegin={600}
-              animationEasing="ease-out"
-            />
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CHART_SEMANTIC.inflation }} />
+              <span className="text-muted-foreground">{inflLabel}</span>
+            </div>
           )}
-        </ComposedChart>
-      </ResponsiveContainer>
+        </div>
+
+        <div style={{ height: isMobile ? 300 : 400 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={combinedData}>
+              <defs>
+                <linearGradient id="scBaseline" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_SEMANTIC.nominal} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={CHART_SEMANTIC.nominal} stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="scBear" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_SEMANTIC.bearMarket} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={CHART_SEMANTIC.bearMarket} stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="scInflation" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_SEMANTIC.inflation} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={CHART_SEMANTIC.inflation} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+              <XAxis dataKey="year" tick={{ fontSize: 12 }} />
+              <YAxis tickFormatter={(v) => fmt(v as number)} tick={{ fontSize: 12 }} />
+              <RTooltip
+                formatter={(v) => fmt(v as number)}
+                contentStyle={tooltipStyles.contentStyle}
+                labelStyle={tooltipStyles.labelStyle}
+              />
+              <Area
+                type="monotone"
+                dataKey="baseline"
+                stroke={CHART_SEMANTIC.nominal}
+                strokeWidth={2}
+                fill="url(#scBaseline)"
+                name="Baseline (Real)"
+                isAnimationActive={true}
+                animationDuration={1200}
+                animationBegin={0}
+                animationEasing="ease-out"
+              />
+              {comparisonData.bearMarket?.visible && (
+                <Area
+                  type="monotone"
+                  dataKey="bearMarket"
+                  stroke={CHART_SEMANTIC.bearMarket}
+                  strokeWidth={2}
+                  fill="url(#scBear)"
+                  name={bearLabel}
+                  isAnimationActive={true}
+                  animationDuration={1200}
+                  animationBegin={300}
+                  animationEasing="ease-out"
+                />
+              )}
+              {comparisonData.inflation?.visible && (
+                <Area
+                  type="monotone"
+                  dataKey="inflation"
+                  stroke={CHART_SEMANTIC.inflation}
+                  strokeWidth={2}
+                  fill="url(#scInflation)"
+                  name={inflLabel}
+                  isAnimationActive={true}
+                  animationDuration={1200}
+                  animationBegin={600}
+                  animationEasing="ease-out"
+                />
+              )}
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     );
   }
 );

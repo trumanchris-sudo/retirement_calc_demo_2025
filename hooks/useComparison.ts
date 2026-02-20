@@ -135,7 +135,11 @@ export function useComparison(params: UseComparisonParams): UseComparisonReturn 
    * Accepts optional overrides for scenario values to avoid stale closure issues.
    */
   const runComparison = useCallback(async (overrides?: ComparisonOverrides) => {
-    if (!comparisonMode || !res?.data) return;
+    if (!res?.data) return;
+
+    // Ensure comparison mode is active (avoids stale closure from callers
+    // who call setComparisonMode(true) in the same handler — state hasn't flushed yet)
+    setComparisonMode(true);
 
     // Use overrides if provided, otherwise fall back to state values
     const effectiveHistoricalYear =
@@ -165,7 +169,7 @@ export function useComparison(params: UseComparisonParams): UseComparisonReturn 
       // Calculate bear market scenario if specified
       let bearData: number[] | null = null;
       if (effectiveHistoricalYear) {
-        const bearInputs = { ...baseInputs, historicalYear: effectiveHistoricalYear };
+        const bearInputs = { ...baseInputs, historicalYear: effectiveHistoricalYear, returnMode: 'randomWalk' as ReturnMode };
         const bearResult = runSingleSimulation(bearInputs, seed);
         bearData = bearResult.balancesReal;
       }
@@ -223,7 +227,7 @@ export function useComparison(params: UseComparisonParams): UseComparisonReturn 
       setErr(error instanceof Error ? error.message : 'An unknown error occurred');
     }
   }, [
-    comparisonMode, res, age1, age2, retirementAge, marital, taxableBalance, pretaxBalance, rothBalance,
+    res, setComparisonMode, age1, age2, retirementAge, marital, taxableBalance, pretaxBalance, rothBalance,
     cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
     retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
     returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,

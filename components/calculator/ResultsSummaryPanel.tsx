@@ -39,7 +39,7 @@ import { AiInsightBox } from "@/components/calculator/AiInsightBox";
 import { PlanSummaryCard } from "@/components/calculator/PlanSummaryCard";
 import { NextStepsCard } from "@/components/calculator/NextStepsCard";
 import { fmt } from "@/lib/utils";
-import { SANKEY_COLORS, getTooltipStyles } from "@/lib/chartColors";
+import { CHART_SEMANTIC, SANKEY_COLORS, getTooltipStyles } from "@/lib/chartColors";
 import type { MainTabId } from "@/components/calculator/TabNavigation";
 import type { CalculationResult, SavedScenario } from "@/types/calculator";
 import type { BatchSummary, ReturnMode } from "@/types/planner";
@@ -1236,35 +1236,38 @@ export function ResultsSummaryPanel({
                     <CardDescription>Your projected portfolio balance over time (inflation-adjusted)</CardDescription>
                   </CardHeader>
                   <CardContent>
+                    {/* Custom inline legend — matches "Two Paths Diverge" style */}
+                    <div className="flex items-center gap-4 text-xs mb-3">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CHART_SEMANTIC.real }} />
+                        <span className="text-muted-foreground">Real Balance</span>
+                      </div>
+                    </div>
                     <Suspense fallback={<ChartLoadingFallback height="h-[400px]" />}>
-                    <div role="img" aria-label="Wealth projection area chart showing inflation-adjusted portfolio balance over time">
-                    <ResponsiveContainer width="100%" height={400}>
+                    <div className="h-[400px]" role="img" aria-label="Wealth projection area chart showing inflation-adjusted portfolio balance over time">
+                    <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={res.data}>
                         <defs>
-                          <linearGradient id="wealthGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                          <linearGradient id="qvRealGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={CHART_SEMANTIC.real} stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor={CHART_SEMANTIC.real} stopOpacity={0}/>
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                        <XAxis
-                          dataKey="year"
-                          label={{ value: 'Year', position: 'insideBottom', offset: -5 }}
-                        />
-                        <YAxis
-                          label={{ value: 'Balance ($)', angle: -90, position: 'insideLeft' }}
-                          tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-                        />
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <XAxis dataKey="year" tick={{ fontSize: 12 }} />
+                        <YAxis tickFormatter={(v) => fmt(v as number)} tick={{ fontSize: 12 }} />
                         <RTooltip
-                          formatter={(value: number) => [`$${value.toLocaleString()}`, 'Balance']}
+                          formatter={(value: number) => [fmt(value), 'Balance']}
                           labelFormatter={(label) => `Year ${label}`}
+                          contentStyle={getTooltipStyles().contentStyle}
+                          labelStyle={getTooltipStyles().labelStyle}
                         />
                         <Area
                           type="monotone"
                           dataKey="real"
-                          stroke="#3b82f6"
+                          stroke={CHART_SEMANTIC.real}
                           strokeWidth={2}
-                          fill="url(#wealthGradient)"
+                          fill="url(#qvRealGrad)"
                           name="Real Balance"
                         />
                       </AreaChart>

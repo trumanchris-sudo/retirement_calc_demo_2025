@@ -80,7 +80,7 @@ export function AssumptionsReview({ assumptions, onUpdateAssumptions, isUpdating
     lifestyle: categorize([
       'monthlyOtherExpenses', 'monthlyHouseholdExpenses',
       'monthlyDiscretionary', 'monthlyChildcare',
-      'desiredRetirementSpending',
+      'desiredRetirementSpending', 'wdRate',
     ]),
     other: categorize([
       'maritalStatus', 'employmentType1', 'employmentType2', 'state',
@@ -270,10 +270,15 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
                           fieldLower.startsWith('ctax') ||
                           fieldLower.startsWith('cmatch');
 
+  // Raw percentage fields: stored as-is (e.g. wdRate = 3.5 means 3.5%)
+  // These must NOT be multiplied by 100 for display.
+  const isRawPercentageField = fieldLower === 'wdrate';
+
   // Percentage fields: rates stored as decimals (0.07 = 7%)
-  // Explicitly exclude contribution dollar amounts
-  const isPercentageField = (fieldLower.includes('rate') && !fieldLower.startsWith('c')) ||
-                            (fieldLower.includes('savingsrate'));
+  // Explicitly exclude contribution dollar amounts and raw percentage fields
+  const isPercentageField = !isRawPercentageField &&
+                            ((fieldLower.includes('rate') && !fieldLower.startsWith('c')) ||
+                            (fieldLower.includes('savingsrate')));
 
   // Safely convert value to string for select elements
   const stringValue = value == null ? '' : String(value);
@@ -349,6 +354,11 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
       displayValue = Math.round(numValue).toLocaleString('en-US');
       prefix = '$';
       placeholder = '$0';
+    } else if (isRawPercentageField) {
+      // Display as percentage directly: value is already in % (e.g. 3.5 = 3.5%)
+      displayValue = numValue.toFixed(1);
+      suffix = '%';
+      placeholder = '0%';
     } else if (isPercentageField) {
       // Display as percentage: 7.0%
       // Value is stored as decimal (0.07), display as 7.0
@@ -372,7 +382,10 @@ function EditableField({ value, originalValue, field, onChange, onFocus, onBlur,
 
           // Only update if we have a valid number
           if (!isNaN(parsed) && isFinite(parsed)) {
-            if (isPercentageField) {
+            if (isRawPercentageField) {
+              // Raw percentage: pass through as-is (3.5 stays 3.5)
+              onChange(parsed);
+            } else if (isPercentageField) {
               // Convert percentage input to decimal
               onChange(parsed / 100);
             } else {
