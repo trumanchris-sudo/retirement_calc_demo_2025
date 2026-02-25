@@ -126,8 +126,6 @@ export async function POST(request: NextRequest) {
     const body: AIOnboardingRequest = await request.json();
     const { messages, extractedData = {}, assumptions = [], phase } = body;
 
-    console.log('[AI Onboarding] Request received:', { phase, messageCount: messages.length });
-
     // Create a readable stream for Server-Sent Events
     const encoder = new TextEncoder();
     const stream = new ReadableStream({

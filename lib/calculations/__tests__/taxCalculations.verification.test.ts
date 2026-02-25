@@ -123,13 +123,14 @@ describe('Tax Calculation Verification Suite', () => {
 
     it('should calculate tax correctly across multiple brackets', () => {
       const deduction = TAX_BRACKETS.single.deduction;
+      const brackets = TAX_BRACKETS.single.rates;
 
       // Income: $100,000 single filer
-      // After deduction: $83,900 taxable (with current $16,100 deduction)
+      // After deduction ($16,100): $83,900 taxable
       const income = 100000;
       const taxable = income - deduction;
 
-      // Manual calculation:
+      // Manual calculation using 2026 brackets:
       // First $12,400 @ 10% = $1,240.00
       // Next $38,000 ($50,400 - $12,400) @ 12% = $4,560.00
       // Remaining $33,500 ($83,900 - $50,400) @ 22% = $7,370.00
@@ -138,9 +139,9 @@ describe('Tax Calculation Verification Suite', () => {
       const tax = calcOrdinaryTax(income, 'single');
 
       const expectedTax =
-        12400 * 0.10 +
-        (50400 - 12400) * 0.12 +
-        (taxable - 50400) * 0.22;
+        brackets[0].limit * 0.10 +
+        (brackets[1].limit - brackets[0].limit) * 0.12 +
+        (taxable - brackets[1].limit) * 0.22;
 
       expect(tax).toBeCloseTo(expectedTax, 2);
     });

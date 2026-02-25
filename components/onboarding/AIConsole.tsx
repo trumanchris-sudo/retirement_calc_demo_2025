@@ -180,8 +180,6 @@ export function AIConsole({ onComplete, onSkip, onBack }: AIConsoleProps) {
 
   // Initial greeting - start sequential conversation
   const startGreeting = useCallback(() => {
-    console.log('[AIConsole] Starting greeting...');
-
     // Show instant pre-scripted greeting with first question
     const greetingMessage = `Hello! I'm here to help you set up your retirement calculator. I'll ask you a few questions to get started.
 
@@ -210,7 +208,6 @@ ${getNextQuestion(0, {})}`;
         if (stateWithOverrides.userOverrides) {
           setUserOverrides(stateWithOverrides.userOverrides);
         }
-        console.log('[AIConsole] Restored state from localStorage');
       } catch (e) {
         console.error('[AIConsole] Failed to load saved onboarding state:', e);
         // Clear invalid state and start fresh
@@ -218,7 +215,6 @@ ${getNextQuestion(0, {})}`;
         startGreeting();
       }
     } else {
-      console.log('[AIConsole] Starting new onboarding session');
       // Start with greeting if no saved state
       startGreeting();
     }
@@ -349,7 +345,6 @@ ${getNextQuestion(0, {})}`;
       case 4: // Traditional 401k/IRA balance
         if (numbers.length > 0) {
           extracted.currentTraditional = numbers[0];
-          console.log('[AIConsole] ✅ PARSED Traditional balance:', numbers[0]);
         } else {
           extracted.currentTraditional = 0;
         }
@@ -358,7 +353,6 @@ ${getNextQuestion(0, {})}`;
       case 5: // Roth balance
         if (numbers.length > 0) {
           extracted.currentRoth = numbers[0];
-          console.log('[AIConsole] ✅ PARSED Roth balance:', numbers[0]);
         } else {
           extracted.currentRoth = 0;
         }
@@ -367,7 +361,6 @@ ${getNextQuestion(0, {})}`;
       case 6: // Taxable brokerage balance
         if (numbers.length > 0) {
           extracted.currentTaxable = numbers[0];
-          console.log('[AIConsole] ✅ PARSED Taxable balance:', numbers[0]);
         } else {
           extracted.currentTaxable = 0;
         }
@@ -376,7 +369,6 @@ ${getNextQuestion(0, {})}`;
       case 7: // Emergency fund / cash
         if (numbers.length > 0) {
           extracted.emergencyFund = numbers[0];
-          console.log('[AIConsole] ✅ PARSED Emergency fund:', numbers[0]);
         } else {
           extracted.emergencyFund = 0;
         }
@@ -388,7 +380,6 @@ ${getNextQuestion(0, {})}`;
           const isBothTrad = currentData.maritalStatus === 'married' &&
             (input.includes('both') || input.includes('each') || input.includes('per person'));
           extracted.contributionTraditional = isBothTrad ? numbers[0] * 2 : numbers[0];
-          console.log('[AIConsole] ✅ PARSED Traditional contributions:', extracted.contributionTraditional, isBothTrad ? '(doubled for both)' : '');
         } else {
           extracted.contributionTraditional = 0;
         }
@@ -400,7 +391,6 @@ ${getNextQuestion(0, {})}`;
           const isBothRoth = currentData.maritalStatus === 'married' &&
             (input.includes('both') || input.includes('each') || input.includes('per person'));
           extracted.contributionRoth = isBothRoth ? numbers[0] * 2 : numbers[0];
-          console.log('[AIConsole] ✅ PARSED Roth contributions:', extracted.contributionRoth, isBothRoth ? '(doubled for both)' : '');
         } else {
           extracted.contributionRoth = 0;
         }
@@ -409,7 +399,6 @@ ${getNextQuestion(0, {})}`;
       case 10: // Annual taxable brokerage savings
         if (numbers.length > 0) {
           extracted.contributionTaxable = numbers[0];
-          console.log('[AIConsole] ✅ PARSED Taxable contributions:', numbers[0]);
         } else {
           extracted.contributionTaxable = 0;
         }
@@ -418,7 +407,6 @@ ${getNextQuestion(0, {})}`;
       case 11: // Employer match
         if (numbers.length > 0) {
           extracted.contributionMatch = numbers[0];
-          console.log('[AIConsole] ✅ PARSED Employer match:', numbers[0]);
         } else {
           extracted.contributionMatch = 0;
         }
@@ -444,11 +432,9 @@ ${getNextQuestion(0, {})}`;
           } else if (parsedAge < 40) {
             // Treat as "years from now" and add current age
             extracted.retirementAge = currentAge + parsedAge;
-            console.log('[AIConsole] PARSED RETIREMENT AGE (years from now):', parsedAge, '+ current age', currentAge, '=', extracted.retirementAge, 'from input:', userInput);
           } else {
             // Between 40 and 90: treat as a direct retirement age
             extracted.retirementAge = parsedAge;
-            console.log('[AIConsole] PARSED RETIREMENT AGE:', parsedAge, 'from input:', userInput);
           }
         } else {
           console.error('[AIConsole] FAILED TO PARSE RETIREMENT AGE from input:', userInput);
@@ -508,8 +494,6 @@ ${getNextQuestion(0, {})}`;
     const updatedData = { ...extractedData, ...parsed };
     setExtractedData(updatedData);
 
-    console.log('[AIConsole] Parsed data:', parsed, 'Updated data:', updatedData);
-
     // Check if we have more pre-scripted questions
     const nextQ = getNextQuestion(questionIndex + 1, updatedData);
 
@@ -540,17 +524,6 @@ ${getNextQuestion(0, {})}`;
     setIsProcessing(true);
     setError(null);
 
-    console.log('[AIConsole] Processing conversation...');
-    console.log('[AIConsole] 🔍 EXTRACTED DATA:', {
-      retirementAge: dataToSend.retirementAge,
-      age: dataToSend.age,
-      maritalStatus: dataToSend.maritalStatus,
-      allKeys: Object.keys(dataToSend),
-      fullData: dataToSend,
-      usingOverride: !!dataOverride,
-      processingMode: USE_API_FOR_ASSUMPTIONS ? 'API' : 'Client-Side'
-    });
-
     try {
       let result;
 
@@ -558,7 +531,6 @@ ${getNextQuestion(0, {})}`;
         // ===== API-BASED PROCESSING =====
         // Uses Claude Opus 4.5 to generate assumptions
         // Cost: ~$0.10-0.30 per user | Latency: 2-5 seconds
-        console.log('[AIConsole] 🌐 Using API-based processing (Claude Opus 4.5)...');
 
         const conversationHistory = messages.map(msg => ({
           role: msg.role,
@@ -569,24 +541,13 @@ ${getNextQuestion(0, {})}`;
           conversationHistory,
           extractedData: dataToSend,
         });
-
-        console.log('[AIConsole] ✅ API processing complete');
       } else {
         // ===== CLIENT-SIDE PROCESSING =====
         // Uses deterministic IF-THEN logic for assumptions
         // Cost: $0.00 | Latency: < 1ms
-        console.log('[AIConsole] ⚡ Using client-side processing (instant, free)...');
 
         result = processOnboardingClientSide(dataToSend);
-
-        console.log('[AIConsole] ✅ Client-side processing complete');
       }
-
-      console.log('[AIConsole] Processing complete', {
-        fieldsExtracted: Object.keys(result.extractedData).length,
-        assumptionsMade: result.assumptions.length,
-        missingFieldsCount: result.missingFields.length,
-      });
 
       setExtractedData(result.extractedData);
       setAssumptions(result.assumptions);
@@ -619,20 +580,10 @@ ${getNextQuestion(0, {})}`;
     setError(null);
     setUserOverrides(overrides); // Save overrides
 
-    console.log('[AIConsole] Updating assumptions with user overrides:', overrides);
-
     try {
       // Merge overrides into extractedData
       const updatedData = { ...extractedData, ...overrides };
       setExtractedData(updatedData);
-
-      console.log('[AIConsole] 🔍 UPDATED DATA:', {
-        retirementAge: updatedData.retirementAge,
-        age: updatedData.age,
-        userOverrides: overrides,
-        fullData: updatedData,
-        processingMode: USE_API_FOR_ASSUMPTIONS ? 'API' : 'Client-Side'
-      });
 
       let result;
 
@@ -651,11 +602,6 @@ ${getNextQuestion(0, {})}`;
         // Client-side update
         result = processOnboardingClientSide(updatedData);
       }
-
-      console.log('[AIConsole] Update complete', {
-        fieldsExtracted: Object.keys(result.extractedData).length,
-        assumptionsMade: result.assumptions.length,
-      });
 
       // Merge API results back, but preserve user overrides
       const finalData = { ...result.extractedData, ...overrides };
@@ -679,7 +625,7 @@ ${getNextQuestion(0, {})}`;
       // Add update confirmation message
       const updateMessage: ConversationMessage = {
         role: 'assistant',
-        content: `✅ Updated ${Object.keys(overrides).length} assumption(s) and recalculated. Please review the updated assumptions below.`,
+        content: `Updated ${Object.keys(overrides).length} assumption(s) and recalculated. Please review the updated assumptions below.`,
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, updateMessage]);

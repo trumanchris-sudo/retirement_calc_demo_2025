@@ -856,7 +856,6 @@ export function PlaidConnect({
   // Waitlist signup
   const handleJoinWaitlist = useCallback((email: string) => {
     // In production, this would call an API to save the email
-    console.log("Waitlist signup:", email);
     // Could integrate with analytics or email service here
   }, []);
 

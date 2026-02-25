@@ -39,8 +39,6 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
   const handleComplete = useCallback(
     async (extractedData: ExtractedData, assumptions: AssumptionWithReasoning[]) => {
       try {
-        console.log('[OnboardingWizard] Starting completion...', { extractedData, assumptions });
-
         // Enrich extracted data with expense assumptions
         const processed = processOnboardingClientSide(extractedData);
         const enrichedData = processed.extractedData;
@@ -52,27 +50,18 @@ export function OnboardingWizard({ isOpen, onClose, onComplete }: OnboardingWiza
           allAssumptions
         );
 
-        console.log('[OnboardingWizard] Mapped calculator inputs:', calculatorInputs);
-        console.log('[OnboardingWizard] Generated assumptions:', generatedAssumptions);
-
         // Write to PlanConfig context (single source of truth)
-        console.log('[OnboardingWizard] Writing to PlanConfig context...');
         updateConfig(calculatorInputs, 'ai-suggested');
 
         // Save assumptions to config
         if (generatedAssumptions && generatedAssumptions.length > 0) {
           updateConfig({ assumptions: generatedAssumptions }, 'ai-suggested');
         }
-        console.log('[OnboardingWizard] PlanConfig updated successfully');
-
         // Pass to calculator
-        console.log('[OnboardingWizard] Calling parent onComplete...');
         await onComplete(calculatorInputs);
 
-        console.log('[OnboardingWizard] Parent onComplete finished, closing wizard...');
         // Close wizard
         onClose();
-        console.log('[OnboardingWizard] onClose called');
       } catch (error) {
         console.error('[OnboardingWizard] Failed to complete onboarding:', error);
         toast.error(`Error completing onboarding: ${error instanceof Error ? error.message : 'Unknown error'}`);

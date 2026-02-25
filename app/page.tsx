@@ -208,7 +208,6 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
         e.preventDefault();
         setIsAIDocMode(prev => !prev);
-        console.log('[AI Doc Mode]', !isAIDocMode ? 'ACTIVATED ⚡' : 'DEACTIVATED');
       }
     };
     window.addEventListener('keydown', handleKeyboard);
@@ -575,7 +574,6 @@ export default function App() {
 
   useEffect(() => {
     if (pendingCalcFromWizard) {
-      console.log('[ONBOARDING] planConfig propagated, triggering calc() via useEffect');
       setPendingCalcFromWizard(false);
       calc();
     }
@@ -590,7 +588,6 @@ export default function App() {
     try {
       const savedTab = sessionStorage.getItem('calculatorTab');
       if (savedTab && isMainTabId(savedTab)) {
-        console.log('[NAV PERSISTENCE] Restoring tab:', savedTab);
         setActiveMainTab(savedTab);
         sessionStorage.removeItem('calculatorTab');
       }
@@ -624,7 +621,6 @@ export default function App() {
           contributionsTaxable: totalContribsTaxable,
           maritalStatus: marital,
         });
-        console.log('[BUDGET CONTEXT] Populated implied budget for income page');
       } catch (e) {
         console.error('[NAV PERSISTENCE] Failed to save state:', e);
       }
@@ -729,7 +725,6 @@ export default function App() {
   // IMPORTANT: This hook must be before the early return to avoid hooks violation.
   useEffect(() => {
     if (isAIDocMode && !res) {
-      console.log('[AI Doc Mode] Auto-running calculations...');
       setCalcPending(true);
     }
   }, [isAIDocMode, res]);
@@ -750,7 +745,6 @@ export default function App() {
     return (
       <OnboardingSelector
         onComplete={async () => {
-          console.log('[ONBOARDING] Onboarding completed, triggering auto-calculation...');
           markOnboardingComplete();
 
           // Give user a moment to see results before transitioning
@@ -764,7 +758,6 @@ export default function App() {
           // CRITICAL: Defer calc() via state flag so it runs AFTER React flushes
           // the planConfig update. The useEffect watching calcPending will fire
           // once the component re-renders with the new planConfig values.
-          console.log('[ONBOARDING] Setting calcPending — calc() will fire after React flush');
           setCalcPending(true);
         }}
         onSkip={() => {

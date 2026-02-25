@@ -25,10 +25,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log metric (in production, you'd send to a service like Google Analytics, Datadog, etc.)
-    console.log('[Analytics]', metric);
-
     // TODO: Send to analytics service
+    // In production, send to Google Analytics, Datadog, New Relic, etc.
     // Examples:
     // - Google Analytics
     // - Datadog

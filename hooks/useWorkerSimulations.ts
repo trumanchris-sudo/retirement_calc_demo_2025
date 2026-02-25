@@ -44,10 +44,8 @@ export function useWorkerSimulations() {
 
   // Worker lifecycle
   useEffect(() => {
-    console.log('[WORKER] Initializing web worker...');
     try {
       workerRef.current = new Worker('/monte-carlo-worker.js');
-      console.log('[WORKER] Web worker initialized successfully');
 
       workerRef.current.onerror = (error) => {
         console.error('[WORKER] Worker global error:', error);
@@ -57,16 +55,12 @@ export function useWorkerSimulations() {
     }
 
     return () => {
-      if (workerRef.current) {
-        console.log('[WORKER] Terminating web worker');
-        workerRef.current.terminate();
-      }
+      workerRef.current?.terminate();
     };
   }, []);
 
   const runMonteCarloViaWorker = useCallback((inputs: Inputs, baseSeed: number, N: number = 2000): Promise<BatchSummary> => {
     return new Promise((resolve, reject) => {
-      console.log('[WORKER] Starting runMonteCarloViaWorker...');
       if (!workerRef.current) {
         console.error('[WORKER] Worker not initialized!');
         reject(new Error("Worker not initialized"));
@@ -75,7 +69,6 @@ export function useWorkerSimulations() {
 
       const worker = workerRef.current;
       const requestId = ++monteCarloRequestIdRef.current;
-      console.log('[WORKER] Worker exists, setting up message handler, requestId:', requestId);
 
       const handleMessage = (e: MessageEvent) => {
         if (!e.data) return;
@@ -85,12 +78,9 @@ export function useWorkerSimulations() {
         // Discard stale responses from previous simulation runs
         if (type === 'progress' || type === 'complete' || (type === 'error' && responseId !== undefined)) {
           if (responseId !== requestId) {
-            console.log('[WORKER] Discarding stale response, expected:', requestId, 'got:', responseId);
             return;
           }
         }
-
-        console.log('[WORKER] Received message:', { type, completed, total, hasResult: !!result, error, requestId: responseId });
 
         if (type === 'progress') {
           const percent = Math.round((completed / total) * 100);
@@ -100,7 +90,6 @@ export function useWorkerSimulations() {
             message: `Running Monte Carlo simulation... ${completed} / ${total}`
           });
         } else if (type === 'complete') {
-          console.log('[WORKER] Worker complete! Resolving promise...');
           setCalcProgress(null);
           worker.removeEventListener('message', handleMessage);
           worker.removeEventListener('error', handleError);
@@ -124,7 +113,6 @@ export function useWorkerSimulations() {
 
       worker.addEventListener('message', handleMessage);
       worker.addEventListener('error', handleError);
-      console.log('[WORKER] Posting message to worker with N=', N, 'requestId:', requestId);
       worker.postMessage({ type: 'run', params: inputs, baseSeed, N, requestId });
     });
   }, []);
@@ -213,7 +201,6 @@ export function useWorkerSimulations() {
       // Discard stale responses from previous guardrails runs
       if (type === 'guardrails-complete' || (type === 'error' && responseId !== undefined)) {
         if (responseId !== requestId) {
-          console.log('[GUARDRAILS] Discarding stale response, expected:', requestId, 'got:', responseId);
           return;
         }
       }
@@ -222,7 +209,6 @@ export function useWorkerSimulations() {
         worker.removeEventListener('message', handleMessage);
         worker.removeEventListener('error', handleError);
         setGuardrailsResult(result);
-        console.log('[GUARDRAILS] Analysis complete:', result);
       } else if (type === 'error' && responseId === requestId) {
         worker.removeEventListener('message', handleMessage);
         worker.removeEventListener('error', handleError);
@@ -260,13 +246,11 @@ export function useWorkerSimulations() {
     const pretaxBalance = eolAccounts?.pretax || 0;
 
     if (pretaxBalance <= 0) {
-      console.log('[ROTH-OPT] Skipping - no pre-tax balance');
       setRothResult(null);
       return;
     }
 
     if (retirementAge >= RMD_START_AGE) {
-      console.log('[ROTH-OPT] Skipping - already at or past RMD age');
       setRothResult(null);
       return;
     }
@@ -282,7 +266,6 @@ export function useWorkerSimulations() {
       // Discard stale responses from previous roth optimizer runs
       if (type === 'roth-optimizer-complete' || (type === 'error' && responseId !== undefined)) {
         if (responseId !== requestId) {
-          console.log('[ROTH-OPT] Discarding stale response, expected:', requestId, 'got:', responseId);
           return;
         }
       }
@@ -291,7 +274,6 @@ export function useWorkerSimulations() {
         worker.removeEventListener('message', handleMessage);
         worker.removeEventListener('error', handleError);
         setRothResult(optimizerResult);
-        console.log('[ROTH-OPT] Analysis complete:', optimizerResult);
       } else if (type === 'error' && responseId === requestId) {
         worker.removeEventListener('message', handleMessage);
         worker.removeEventListener('error', handleError);

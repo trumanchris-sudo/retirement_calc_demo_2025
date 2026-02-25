@@ -98,9 +98,6 @@ export function PlanConfigProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(saved) as PlanConfig;
         setConfigState(parsed);
         savedVersionHash.current = quickHash(parsed);
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[PlanConfig] Loaded from localStorage');
-        }
       }
     } catch (error) {
       console.error('[PlanConfig] Failed to load from localStorage:', error);
@@ -126,9 +123,6 @@ export function PlanConfigProvider({ children }: { children: ReactNode }) {
     saveTimeoutRef.current = setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[PlanConfig] Saved to localStorage (debounced)');
-        }
       } catch (error) {
         console.error('[PlanConfig] Failed to save to localStorage:', error);
       }
@@ -149,9 +143,6 @@ export function PlanConfigProvider({ children }: { children: ReactNode }) {
     ) => {
       setConfigState(current => {
         const updated = mergeConfigUpdates(current, updates, source);
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[PlanConfig] Updated:', Object.keys(updates), 'Source:', source);
-        }
         return updated;
       });
     },
@@ -160,18 +151,12 @@ export function PlanConfigProvider({ children }: { children: ReactNode }) {
 
   const setConfig = useCallback((newConfig: PlanConfig) => {
     setConfigState(newConfig);
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[PlanConfig] Config replaced');
-    }
   }, []);
 
   const resetConfig = useCallback(() => {
     const defaultConfig = createDefaultPlanConfig();
     setConfigState(defaultConfig);
     savedVersionHash.current = 0;
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[PlanConfig] Reset to defaults');
-    }
   }, []);
 
   const markSaved = useCallback(() => {

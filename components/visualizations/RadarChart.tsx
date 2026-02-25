@@ -793,9 +793,7 @@ export function RadarChartDemo() {
         showLegend={true}
         animateOnMount={true}
         animationDuration={1.5}
-        onAxisClick={(axis) => {
-          console.log("Axis clicked:", axis.label);
-        }}
+        onAxisClick={() => {}}
       />
     </div>
   );

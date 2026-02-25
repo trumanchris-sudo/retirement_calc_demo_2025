@@ -181,11 +181,9 @@ export function useMaritalState(
     const previousStatus = maritalStatus;
     setMaritalStatus(value);
     updatePlanConfig({ marital: value }, 'user-entered');
-    console.log('[useIncomeCalculator] Wrote marital status to PlanConfig SSOT:', value);
 
     // Clear spouse data when switching from married to single
     if (value === 'single' && previousStatus === 'married') {
-      console.log('[useIncomeCalculator] Clearing spouse data (switched to single)');
       onSpouseCleared?.();
     }
   }, [maritalStatus, updatePlanConfig, onSpouseCleared]);
@@ -225,7 +223,6 @@ export function useHousingState(): HousingState {
   const updateMortgageInSSOT = useCallback((value: number) => {
     setMortgagePayment(value);
     updatePlanConfig({ monthlyMortgageRent: value }, 'user-entered');
-    console.log('[useIncomeCalculator] Wrote mortgage to PlanConfig SSOT:', value);
   }, [updatePlanConfig]);
 
   return {
@@ -321,7 +318,6 @@ export function useDetectAIOnboarding(
     if (hasAISuggestedFields) {
       setIsFromAIOnboarding(true);
       setShowAIBanner(true);
-      console.log('[useIncomeCalculator] Detected AI-suggested data via PlanConfig fieldMetadata');
     }
   }, [planConfig.fieldMetadata, setIsFromAIOnboarding, setShowAIBanner]);
 }

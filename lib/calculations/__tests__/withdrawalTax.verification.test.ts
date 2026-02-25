@@ -27,7 +27,7 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         0,      // no state tax
         0,      // no RMD
         0,      // no SS
-        false   // use pro-rata distribution
+        false   // pro-rata strategy
       );
 
       // Verify pro-rata distribution
@@ -47,8 +47,7 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         30000,
         'single',
         100000, 100000, 100000,
-        80000, 0, 0, 0,
-        false   // use pro-rata distribution
+        80000, 0, 0, 0, false // pro-rata strategy
       );
 
       expect(result.draw.t).toBeCloseTo(10000, 2);
@@ -89,7 +88,7 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         0,
         20000,  // RMD = $20k
         0,
-        false   // use pro-rata for remainder
+        false   // pro-rata strategy
       );
 
       // Pre-tax should be at least RMD
@@ -135,7 +134,7 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         0,
         100000, // RMD requests $100k
         0,
-        false   // use pro-rata for remainder
+        false   // pro-rata strategy
       );
 
       // Can't withdraw more than available
@@ -270,7 +269,7 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         0,
         0,
         40000,  // $40k base income (SS)
-        false   // use pro-rata distribution
+        false   // pro-rata strategy
       );
 
       // Pre-tax withdrawal creates ordinary income
@@ -313,7 +312,7 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         50000,  // Roth
         5000,
         0, 0, 0,
-        false   // use pro-rata distribution
+        false   // pro-rata strategy
       );
 
       // Pro-rata would want: 105k × (10k/210k) = 5k from taxable
@@ -375,7 +374,7 @@ describe('Withdrawal Tax Strategy Verification (Phase 3)', () => {
         0,
         0,
         100000, // $100k SS income
-        false   // use pro-rata distribution
+        false   // pro-rata strategy
       );
 
       // MAGI = SS + pre-tax withdrawal + capital gains

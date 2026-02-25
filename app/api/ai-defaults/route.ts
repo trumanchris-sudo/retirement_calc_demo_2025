@@ -94,7 +94,6 @@ export async function POST(request: NextRequest) {
 
     // Check if API key is configured
     if (!process.env.ANTHROPIC_API_KEY) {
-      console.log('[AI Defaults] No API key configured, using fallback defaults')
       return NextResponse.json(getFallbackDefaults(body))
     }
 
@@ -181,7 +180,6 @@ Return ONLY the JSON object, no markdown formatting, no additional text.`
       aiResponse = JSON.parse(cleanedText)
     } catch {
       console.error('[AI Defaults] Failed to parse Claude response:', textContent)
-      console.log('[AI Defaults] Using fallback defaults due to parse error')
       return NextResponse.json(getFallbackDefaults(body))
     }
 
@@ -192,7 +190,6 @@ Return ONLY the JSON object, no markdown formatting, no additional text.`
       timestamp: Date.now(),
     })
 
-    console.log('[AI Defaults] Successfully generated:', validatedResponse)
     return NextResponse.json(validatedResponse)
 
   } catch (error: unknown) {
@@ -210,7 +207,6 @@ Return ONLY the JSON object, no markdown formatting, no additional text.`
     }
 
     // Return fallback defaults on error
-    console.log('[AI Defaults] Using fallback defaults due to error')
     return NextResponse.json(getFallbackDefaults(requestBody))
   }
 }

@@ -311,7 +311,6 @@ export default function Income2026Page() {
       monthlyOtherExpenses: expenseState.monthlyOtherExpenses,
     }, 'user-entered');
 
-    console.log('[INCOME-2026] Calculated effective tax rate:', (effectiveTaxRate * 100).toFixed(1) + '%');
     toast.success('Your 2026 income data has been applied to your main retirement plan!');
   }, [results, housingState, expenseState, updatePlanConfig]);
 
@@ -320,7 +319,6 @@ export default function Income2026Page() {
   // ============================================================================
 
   const handleCalculate = useCallback(() => {
-    console.log("Calculating 2026 unified forecast...");
     calculationState.setIsCalculating(true);
     calculationState.setCalculationError(null);
     calculationState.setIsDirty(false);

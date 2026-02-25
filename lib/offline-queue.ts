@@ -87,7 +87,6 @@ class OfflineQueueManager {
 
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('[OfflineQueue] IndexedDB initialized');
         resolve();
       };
 
@@ -128,7 +127,6 @@ class OfflineQueueManager {
       const request = store.add(queueItem);
 
       request.onsuccess = async () => {
-        console.log('[OfflineQueue] Item added:', queueItem.id);
         const length = await this.getQueueLength();
         this.emit({ type: 'itemAdded', item: queueItem, queueLength: length });
         resolve(queueItem.id);
@@ -226,7 +224,6 @@ class OfflineQueueManager {
       const request = store.delete(id);
 
       request.onsuccess = async () => {
-        console.log('[OfflineQueue] Item removed:', id);
         const length = await this.getQueueLength();
         this.emit({ type: 'itemRemoved', queueLength: length });
         resolve();
@@ -276,7 +273,6 @@ class OfflineQueueManager {
    */
   async processQueue(): Promise<{ processed: number; failed: number }> {
     if (this.isProcessing) {
-      console.log('[OfflineQueue] Already processing');
       return { processed: 0, failed: 0 };
     }
 
@@ -338,21 +334,18 @@ class OfflineQueueManager {
       case 'calculation':
         // Calculations are handled locally by the Monte Carlo worker
         // No network request needed - just mark as processed
-        console.log('[OfflineQueue] Calculation processed locally:', item.id);
         break;
 
       case 'scenario-save':
         // Scenarios are saved to localStorage - also local
         const { saveScenario } = await import('@/lib/scenarioManager');
         saveScenario(item.config, item.name, undefined, item.scenarioId);
-        console.log('[OfflineQueue] Scenario saved:', item.scenarioId);
         break;
 
       case 'action':
         // Action items are processed based on their actionId
         // Actions with callbacks cannot be stored in IndexedDB,
         // so we use actionId to identify what action to take
-        console.log('[OfflineQueue] Action queued:', item.actionId, item.actionData);
         // Actions are typically handled by the UI layer when it detects
         // the sync completion event
         break;
@@ -379,7 +372,6 @@ class OfflineQueueManager {
       const request = store.clear();
 
       request.onsuccess = () => {
-        console.log('[OfflineQueue] Queue cleared');
         this.emit({ type: 'queueCleared', queueLength: 0 });
         resolve();
       };
@@ -459,7 +451,6 @@ export async function initOfflineQueue(): Promise<void> {
 
   // Process queue when coming back online
   window.addEventListener('online', async () => {
-    console.log('[OfflineQueue] Back online - processing queue');
     await offlineQueue.processQueue();
   });
 
@@ -474,7 +465,6 @@ export async function initOfflineQueue(): Promise<void> {
   if (navigator.onLine) {
     const pending = await offlineQueue.getPendingItems();
     if (pending.length > 0) {
-      console.log('[OfflineQueue] Found pending items, processing...');
       await offlineQueue.processQueue();
     }
   }

@@ -78,13 +78,13 @@ export function useRenderCount(componentName: string, props?: Record<string, unk
       );
     }
 
-    // Log what changed (only in verbose mode)
+    // Track what changed (only in verbose mode)
     if (globalConfig.verboseLogging && props && lastProps.current) {
       const changedProps = Object.keys(props).filter(
         key => props[key] !== lastProps.current?.[key]
       );
       if (changedProps.length > 0) {
-        console.log(`[PERF] ${componentName} re-rendered. Changed props:`, changedProps);
+        // Changed props tracked for verbose monitoring
       }
     }
 
@@ -126,8 +126,6 @@ export function useRenderTime(componentName: string): () => void {
         `[PERF] Slow render: ${componentName} took ${renderTime.toFixed(2)}ms` +
           (lastTime ? ` (previous: ${lastTime.toFixed(2)}ms)` : '')
       );
-    } else if (globalConfig.verboseLogging) {
-      console.log(`[PERF] ${componentName} rendered in ${renderTime.toFixed(2)}ms`);
     }
   };
 }
@@ -179,7 +177,7 @@ export function useWhyDidYouRender(
       });
 
       if (changed.length > 0) {
-        console.log(`[PERF] ${componentName} re-rendered because:`, changed);
+        // Render cause tracked for verbose monitoring
       }
     }
 
@@ -211,8 +209,6 @@ export function useProfiledOperation(operationName: string) {
           console.warn(
             `[PERF] Slow operation: ${operationName} took ${duration.toFixed(2)}ms`
           );
-        } else if (globalConfig.verboseLogging) {
-          console.log(`[PERF] ${operationName} completed in ${duration.toFixed(2)}ms`);
         }
 
         return result;
@@ -255,7 +251,7 @@ if (IS_DEV && typeof window !== 'undefined') {
 
     console.group('[PERF] Top 10 Most Re-rendered Components');
     sorted.forEach(([name, count], i) => {
-      console.log(`${i + 1}. ${name}: ${count} renders`);
+      void `${i + 1}. ${name}: ${count} renders`;
     });
     console.groupEnd();
   };
@@ -288,10 +284,6 @@ export function createProfilerCallback(componentName: string) {
       console.warn(
         `[PERF] ${componentName} ${phase}: ${actualDuration.toFixed(2)}ms actual, ` +
           `${baseDuration.toFixed(2)}ms base`
-      );
-    } else if (globalConfig.verboseLogging) {
-      console.log(
-        `[PERF] ${componentName} ${phase}: ${actualDuration.toFixed(2)}ms`
       );
     }
   };

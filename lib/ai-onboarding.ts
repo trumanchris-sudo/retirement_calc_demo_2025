@@ -30,8 +30,6 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
   let timeoutId: NodeJS.Timeout | null = null;
 
   try {
-    console.log('[streamAIOnboarding] Starting request:', { phase, messageCount: messages.length });
-
     // Create AbortController for timeout
     const controller = new AbortController();
 
@@ -60,8 +58,6 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
       }
       throw new Error(`Network error: ${fetchError.message || 'Unable to connect to server'}`);
     });
-
-    console.log('[streamAIOnboarding] Response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -129,7 +125,6 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
                 break;
 
               case 'data_update':
-                console.log('[streamAIOnboarding] Data update:', event.field, event.value);
                 if (onDataUpdate) {
                   onDataUpdate(event.field, event.value);
                 }
@@ -137,7 +132,6 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
                 break;
 
               case 'assumption_added':
-                console.log('[streamAIOnboarding] Assumption added:', event.assumption.field);
                 if (onAssumptionAdded) {
                   onAssumptionAdded(event.assumption);
                 }
@@ -145,14 +139,12 @@ export async function streamAIOnboarding(params: StreamHandlerParams): Promise<v
                 break;
 
               case 'phase_transition':
-                console.log('[streamAIOnboarding] Phase transition:', event.newPhase);
                 if (onPhaseTransition) {
                   onPhaseTransition(event.newPhase);
                 }
                 break;
 
               case 'complete':
-                console.log('[streamAIOnboarding] Stream complete');
                 finalData = event.finalData;
                 finalAssumptions = event.assumptions;
                 if (onComplete) {

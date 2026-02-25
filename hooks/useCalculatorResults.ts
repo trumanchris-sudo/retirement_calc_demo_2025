@@ -187,10 +187,7 @@ export function useCalculatorResults(): UseCalculatorResultsReturn {
       const savedResults = sessionStorage.getItem(SESSION_KEY_RESULTS);
       if (savedResults) {
         const results = JSON.parse(savedResults);
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[Results] Restoring saved results from session');
-        }
-        setResult(results);
+          setResult(results);
         setLastCalculated(new Date());
         // Clear after restore
         sessionStorage.removeItem(SESSION_KEY_RESULTS);

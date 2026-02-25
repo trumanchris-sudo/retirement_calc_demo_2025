@@ -27,16 +27,6 @@ function isPlanConfigComplete(config: Partial<CalculatorInputs>): boolean {
 
   const isComplete = required.every((field) => field !== undefined && field !== null)
 
-  if (!isComplete) {
-    console.log('[useOnboarding] PlanConfig incomplete, showing wizard:', {
-      marital: config.marital,
-      age1: config.age1,
-      retirementAge: config.retirementAge,
-      primaryIncome: config.primaryIncome,
-      hasBalances: config.taxableBalance !== undefined || config.pretaxBalance !== undefined || config.rothBalance !== undefined,
-    })
-  }
-
   return isComplete
 }
 

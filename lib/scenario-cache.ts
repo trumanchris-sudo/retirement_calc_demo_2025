@@ -60,7 +60,6 @@ class ScenarioCacheManager {
 
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('[ScenarioCache] IndexedDB initialized');
         resolve();
       };
 
@@ -143,7 +142,6 @@ class ScenarioCacheManager {
       const request = store.put(cachedScenario);
 
       request.onsuccess = async () => {
-        console.log('[ScenarioCache] Scenario cached:', scenario.id);
         await this.trimScenarioCache();
         resolve();
       };
@@ -233,7 +231,6 @@ class ScenarioCacheManager {
       const request = store.delete(id);
 
       request.onsuccess = () => {
-        console.log('[ScenarioCache] Scenario removed from cache:', id);
         resolve();
       };
 
@@ -287,7 +284,6 @@ class ScenarioCacheManager {
       const request = store.put(cachedResult);
 
       request.onsuccess = async () => {
-        console.log('[ScenarioCache] Result cached:', cachedResult.id);
         await this.trimResultCache();
         await this.cleanExpiredResults();
         resolve();
@@ -328,7 +324,6 @@ class ScenarioCacheManager {
           .sort((a, b) => b.timestamp - a.timestamp)[0];
 
         if (validResult) {
-          console.log('[ScenarioCache] Cache hit for config hash:', configHash);
           resolve(validResult.result);
         } else {
           resolve(null);
@@ -399,7 +394,6 @@ class ScenarioCacheManager {
         const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
 
         if (cursor) {
-          console.log('[ScenarioCache] Removing expired result:', cursor.value.id);
           cursor.delete();
           cursor.continue();
         } else {
@@ -429,7 +423,6 @@ class ScenarioCacheManager {
       transaction.objectStore(RESULT_STORE).clear();
 
       transaction.oncomplete = () => {
-        console.log('[ScenarioCache] All caches cleared');
         resolve();
       };
 
@@ -491,8 +484,6 @@ class ScenarioCacheManager {
       for (const scenario of scenarios.slice(0, MAX_CACHED_SCENARIOS)) {
         await this.cacheScenario(scenario);
       }
-
-      console.log(`[ScenarioCache] Synced ${scenarios.length} scenarios from localStorage`);
     } catch (error) {
       console.error('[ScenarioCache] Failed to sync from localStorage:', error);
     }

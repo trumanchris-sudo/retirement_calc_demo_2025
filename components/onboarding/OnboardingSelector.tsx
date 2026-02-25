@@ -31,8 +31,6 @@ export function OnboardingSelector({ onComplete, onSkip }: OnboardingSelectorPro
   const handleGuidedComplete = useCallback(
     async (extractedData: ExtractedData, assumptions: AssumptionWithReasoning[]) => {
       try {
-        console.log('[OnboardingSelector] AI Wizard completed', { extractedData, assumptions });
-
         // Enrich extracted data with expense assumptions
         const processed = processOnboardingClientSide(extractedData);
         const enrichedData = processed.extractedData;
@@ -43,8 +41,6 @@ export function OnboardingSelector({ onComplete, onSkip }: OnboardingSelectorPro
           enrichedData,
           allAssumptions
         );
-
-        console.log('[OnboardingSelector] Mapped calculator inputs:', calculatorInputs);
 
         // Write to PlanConfig context (batched into a single call to avoid double re-render)
         const configUpdate: Partial<PlanConfig> = { ...calculatorInputs };

@@ -161,10 +161,7 @@ export function mapAIDataToCalculator(
     return warnings;
   };
 
-  const validationWarnings = validateData();
-  if (validationWarnings.length > 0) {
-    console.log('[Mapper] Validation complete. Warnings:', validationWarnings.length);
-  }
+  validateData();
 
   // === Personal Information ===
   const age1 = extractedData.age ?? DEFAULTS.age1;
@@ -487,24 +484,11 @@ export function mapAIDataToCalculator(
       }
     }
 
-    if (eoyBonusAmount) {
-      console.log('[aiOnboardingMapper] Parsed bonus:', {
-        raw: extractedData.bonusInfo,
-        amount: eoyBonusAmount,
-        month: eoyBonusMonth || 'December (default)',
-      });
-    }
   }
 
   // === Retirement Goals ===
   // IMPORTANT: Use user-specified retirement age if provided, don't override it
   const retirementAge = extractedData.retirementAge ?? calculateRecommendedRetirementAge(age1, primaryIncome);
-
-  console.log('[aiOnboardingMapper] Retirement age:', {
-    userProvided: extractedData.retirementAge,
-    calculated: calculateRecommendedRetirementAge(age1, primaryIncome),
-    final: retirementAge,
-  });
 
   if (!extractedData.retirementAge) {
     addAssumption(

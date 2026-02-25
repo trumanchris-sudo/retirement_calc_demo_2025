@@ -45,16 +45,12 @@ const MAX_SCENARIO_CACHE_ITEMS = 20;
  * Install event - precache static assets
  */
 self.addEventListener('install', (event: ExtendableEvent) => {
-  console.log('[ServiceWorker] Installing...');
-
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('[ServiceWorker] Precaching static assets');
         return cache.addAll(PRECACHE_ASSETS);
       })
       .then(() => {
-        console.log('[ServiceWorker] Install complete');
         // Activate immediately without waiting
         return self.skipWaiting();
       })
@@ -68,8 +64,6 @@ self.addEventListener('install', (event: ExtendableEvent) => {
  * Activate event - clean up old caches
  */
 self.addEventListener('activate', (event: ExtendableEvent) => {
-  console.log('[ServiceWorker] Activating...');
-
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
@@ -81,13 +75,11 @@ self.addEventListener('activate', (event: ExtendableEvent) => {
                      !cacheName.endsWith(CACHE_VERSION);
             })
             .map((cacheName) => {
-              console.log('[ServiceWorker] Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             })
         );
       })
       .then(() => {
-        console.log('[ServiceWorker] Claiming clients');
         // Take control of all pages immediately
         return self.clients.claim();
       })
@@ -216,7 +208,6 @@ async function handleApiRequest(request: Request): Promise<Response> {
     const cachedResponse = await caches.match(request);
 
     if (cachedResponse) {
-      console.log('[ServiceWorker] Serving cached API response');
       return cachedResponse;
     }
 

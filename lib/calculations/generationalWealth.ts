@@ -85,7 +85,6 @@ export function checkPerpetualViability(
   perBenReal: number,
   initialFundReal: number,
   startBens: number,
-  debugLog = false
 ): boolean {
   const safeGenerationLength = generationLength || 1;
   const populationGrowthRate = (totalFertilityRate - 2.0) / safeGenerationLength;
@@ -94,17 +93,6 @@ export function checkPerpetualViability(
   const distributionRate = initialFundReal > 0 ? annualDistribution / initialFundReal : Infinity;
   const safeThreshold = perpetualThreshold * 0.95;
   const isPerpetual = distributionRate < safeThreshold;
-
-  if (debugLog) {
-    console.log('[PERPETUAL CHECK] Real return rate: ' + (realReturnRate * 100).toFixed(2) + '%');
-    console.log('[PERPETUAL CHECK] Population growth rate: ' + (populationGrowthRate * 100).toFixed(2) + '%');
-    console.log('[PERPETUAL CHECK] Perpetual threshold (return - pop growth): ' + (perpetualThreshold * 100).toFixed(2) + '%');
-    console.log('[PERPETUAL CHECK] Safe threshold (95% of perpetual threshold): ' + (safeThreshold * 100).toFixed(2) + '%');
-    console.log('[PERPETUAL CHECK] Annual distribution: $' + annualDistribution.toLocaleString() + ' ($' + perBenReal.toLocaleString() + ' × ' + startBens + ' beneficiaries)');
-    console.log('[PERPETUAL CHECK] Initial fund: $' + initialFundReal.toLocaleString());
-    console.log('[PERPETUAL CHECK] Distribution rate: ' + (distributionRate * 100).toFixed(2) + '%');
-    console.log('[PERPETUAL CHECK] Result: ' + (isPerpetual ? 'PERPETUAL ✓' : 'NOT PERPETUAL ✗') + ' (' + (distributionRate * 100).toFixed(2) + '% ' + (isPerpetual ? '<' : '>=') + ' ' + (safeThreshold * 100).toFixed(2) + '%)');
-  }
 
   return isPerpetual;
 }

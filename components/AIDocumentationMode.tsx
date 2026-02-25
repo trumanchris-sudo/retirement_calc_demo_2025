@@ -41,7 +41,6 @@ export function AIDocumentationMode({
     if (isActive && !hasResults) {
       // Auto-run calculations if not already done
       setIsGenerating(true);
-      console.log('[AI Doc Mode] Auto-running calculations...');
       triggerCalc();
       setTimeout(() => setIsGenerating(false), 2000);
     }
@@ -188,7 +187,6 @@ export function useAIDocMode() {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
         e.preventDefault();
         setIsDocMode((prev) => !prev);
-        console.log('[AI Doc Mode]', !isDocMode ? 'ACTIVATED' : 'DEACTIVATED');
       }
     };
 

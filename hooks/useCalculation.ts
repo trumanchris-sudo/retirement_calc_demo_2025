@@ -89,11 +89,9 @@ function backfillYoungerGenerations(
         currentAge = childAge;
         currentSize = childSize;
         generation++;
-        console.log(`[BACKFILL] Gen ${generation}: Parent age ${currentAge + generationLength} → Child age ${childAge}, size ${childSize.toFixed(2)}`);
       }
 
       result.push({ age: currentAge, size: currentSize, generation });
-      console.log(`[BACKFILL] Final: Added beneficiary at age ${currentAge}, size ${currentSize.toFixed(2)}, generation ${generation}`);
     }
   }
 
@@ -347,7 +345,6 @@ export function useCalculation(deps: CalcDeps) {
 
   const calc = useCallback(async (optionsOrEvent?: { forceShowGen?: boolean } | React.MouseEvent) => {
     soundPresets.button();
-    console.log('[CALC] Starting calculation...');
 
     const options = optionsOrEvent && 'forceShowGen' in optionsOrEvent ? optionsOrEvent : undefined;
     const effectiveShowGen = options?.forceShowGen ?? showGen;
@@ -359,7 +356,6 @@ export function useCalculation(deps: CalcDeps) {
 
     // Start cinematic Monte Carlo sequence from All-in-One, Configure tabs, or Wizard completion
     if (activeMainTab === 'all' || activeMainTab === 'configure' || isFromWizard) {
-      console.log('[CALC] Playing splash animation');
       splashRef.current?.play();
     }
 
@@ -379,11 +375,9 @@ export function useCalculation(deps: CalcDeps) {
     if (randomWalkSeries === 'trulyRandom') {
       currentSeed = Math.floor(Math.random() * 1000000);
       updatePlanConfig({ seed: currentSeed }, 'user-entered');
-      console.log('[CALC] Using Monte Carlo mode with seed:', currentSeed);
     }
 
     try {
-      console.log('[CALC] Validating inputs...');
       const validationResult = validateCalculatorInputs({
         age1,
         age2: isMar ? age2 : undefined,
@@ -411,7 +405,6 @@ export function useCalculation(deps: CalcDeps) {
         throw new Error(validationResult.error);
       }
 
-      console.log('[CALC] Validation passed, starting calculation...');
 
       const younger = Math.min(age1, isMar ? age2 : age1);
       const older = Math.max(age1, isMar ? age2 : age1);
@@ -426,14 +419,10 @@ export function useCalculation(deps: CalcDeps) {
       const initialPretaxRatio = initialTotal > 0 ? pretaxBalance / initialTotal : 0.5;
       const initialTaxableRatio = initialTotal > 0 ? taxableBalance / initialTotal : 0.3;
       const initialRothRatio = initialTotal > 0 ? rothBalance / initialTotal : 0.2;
-      console.log('[CALC] Initial asset allocation ratios - Pretax:', initialPretaxRatio.toFixed(2),
-                  'Taxable:', initialTaxableRatio.toFixed(2), 'Roth:', initialRothRatio.toFixed(2));
 
       // Determine simulation count based on mode
       const simCount = randomWalkSeries === 'trulyRandom' ? 1000 : 1;
-      console.log('[CALC] Running', simCount, 'simulation(s) via web worker for mode:', randomWalkSeries);
 
-      console.log('[CALC] Worker ref exists:', !!workerRef.current);
       const inputs: SimulationInputs = {
         // Personal & Family
         marital, age1, age2, retirementAge,
@@ -462,17 +451,9 @@ export function useCalculation(deps: CalcDeps) {
         bondGlidePath,
       };
 
-      console.log('[CALC] Calling web worker with inputs...');
       let batchResult: BatchSummary;
       try {
         batchResult = await runMonteCarloViaWorker(inputs, currentSeed, simCount);
-        console.log('[CALC] Web worker completed successfully, batch summary:', batchResult);
-        console.log('[CALC] p50BalancesReal length:', batchResult?.p50BalancesReal?.length);
-        console.log('[CALC] p10BalancesReal length:', batchResult?.p10BalancesReal?.length);
-        console.log('[CALC] p90BalancesReal length:', batchResult?.p90BalancesReal?.length);
-        console.log('[CALC] y1AfterTaxReal_p50:', batchResult?.y1AfterTaxReal_p50);
-        console.log('[CALC] eolReal_p50:', batchResult?.eolReal_p50);
-        console.log('[CALC] probRuin:', batchResult?.probRuin);
       } catch (workerError) {
         console.error('[CALC] Worker failed with error:', workerError);
         throw workerError;
@@ -484,7 +465,6 @@ export function useCalculation(deps: CalcDeps) {
         throw new Error('Monte Carlo simulation returned invalid results');
       }
 
-      console.log('[CALC] Starting data reconstruction...');
       // Reason: chart data points have dynamic keys that vary by simulation mode
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: any[] = [];
@@ -499,10 +479,8 @@ export function useCalculation(deps: CalcDeps) {
 
         data.push({ year: yr, a1, a2, bal: nomBal, real: realBal, p10: p10Nom, p90: p90Nom });
       }
-      console.log('[CALC] Data reconstruction complete, data length:', data.length);
 
       // Use conservative average (P25-P50) for key metrics
-      console.log('[CALC] Calculating key metrics...');
       const finReal = batchResult.p50BalancesReal[yrsToRet];
       const finNom = finReal * Math.pow(1 + infl, yrsToRet);
 
@@ -514,9 +492,7 @@ export function useCalculation(deps: CalcDeps) {
       const eolReal = (batchResult.eolReal_p25 + batchResult.eolReal_p50) / 2;
       const yearsFrom2025 = yrsToRet + yrsToSim;
       const eolWealth = eolReal * Math.pow(1 + infl, yearsFrom2025);
-      console.log('[CALC] Key metrics calculated - finReal:', finReal, 'eolWealth:', eolWealth);
 
-      console.log('[CALC] Starting RMD calculation, yrsToSim:', yrsToSim);
       const rmdData: { age: number; spending: number; rmd: number }[] = [];
       for (let y = 1; y <= yrsToSim; y++) {
         const currentAge = age1 + yrsToRet + y;
@@ -549,50 +525,36 @@ export function useCalculation(deps: CalcDeps) {
           }
         }
       }
-      console.log('[CALC] RMD calculation complete, rmdData length:', rmdData.length);
 
       // Calculate estate tax
-      console.log('[CALC] Calculating estate tax...');
       const yearOfDeath = getCurrYear() + (LIFE_EXP - older);
       const estateTax = calcEstateTax(eolWealth, marital, yearOfDeath);
       const realEstateTax = eolWealth > 0 ? estateTax * (eolReal / eolWealth) : 0;
       const netEstate = eolReal - realEstateTax;
-      console.log('[CALC] Estate tax calculated - year:', yearOfDeath, 'estateTax:', estateTax, 'realEstateTax:', realEstateTax, 'netEstate:', netEstate);
 
       // Generational payout calculation (if enabled)
-      console.log('[CALC] Checking generational payout, effectiveShowGen:', effectiveShowGen, 'netEstate > 0:', netEstate > 0);
       let genPayout: GenerationalPayout | null = null;
 
       if (effectiveShowGen && netEstate > 0) {
-        console.log('[CALC] Starting generational payout calculation...');
-        console.log('[CALC] hypBenAgesStr:', hypBenAgesStr);
         const benAges = hypBenAgesStr
           .split(',')
           .map(s => parseInt(s.trim(), 10))
           .filter(n => !isNaN(n) && n >= 0 && n < 90);
-        console.log('[CALC] benAges parsed:', benAges);
 
         const totalAnnualDist = hypPerBen * Math.max(1, numberOfBeneficiaries);
         const hasValidBeneficiaries = benAges.length > 0 && benAges.some(age => age >= 0);
         const hasValidDistribution = hypPerBen > 0 && totalAnnualDist > 0;
 
         if (!hasValidBeneficiaries || !hasValidDistribution) {
-          console.log('[CALC] Skipping generational simulation - degenerate inputs:', {
-            benAges, numberOfBeneficiaries, hypPerBen, totalAnnualDist,
-            hasValidBeneficiaries, hasValidDistribution
-          });
           genPayout = null;
         } else {
           try {
             // Calculate EOL values for all three percentiles
-            console.log('[CALC] Calculating EOL percentiles...');
             const eolP25 = batchResult.eolReal_p25 * Math.pow(1 + infl, yearsFrom2025);
             const eolP50 = batchResult.eolReal_p50 * Math.pow(1 + infl, yearsFrom2025);
             const eolP75 = batchResult.eolReal_p75 * Math.pow(1 + infl, yearsFrom2025);
-            console.log('[CALC] EOL percentiles - p25:', eolP25, 'p50:', eolP50, 'p75:', eolP75);
 
             // Calculate estate tax and net estate for each percentile
-            console.log('[CALC] Calculating estate taxes for percentiles...');
             const estateTaxP25 = calcEstateTax(eolP25, marital, yearOfDeath);
             const estateTaxP50 = calcEstateTax(eolP50, marital, yearOfDeath);
             const estateTaxP75 = calcEstateTax(eolP75, marital, yearOfDeath);
@@ -600,7 +562,6 @@ export function useCalculation(deps: CalcDeps) {
             const netEstateP25 = eolP25 - estateTaxP25;
             const netEstateP50 = eolP50 - estateTaxP50;
             const netEstateP75 = eolP75 - estateTaxP75;
-            console.log('[CALC] Net estates - p25:', netEstateP25.toLocaleString(), 'p50:', netEstateP50.toLocaleString(), 'p75:', netEstateP75.toLocaleString());
 
             // Calculate Implied CAGR for Legacy Simulations
             const startingBalance = taxableBalance + pretaxBalance + rothBalance;
@@ -618,9 +579,6 @@ export function useCalculation(deps: CalcDeps) {
             const impliedRealCAGR_P75 = Math.pow(safeGrowthP75, 1 / safeYearsTotal) - 1;
             const impliedNominal_P75 = ((1 + impliedRealCAGR_P75) * (1 + inflationRate / 100) - 1) * 100;
 
-            console.log('[CALC] Implied CAGR - P25 Real:', (impliedRealCAGR_P25 * 100).toFixed(2) + '%, Nominal:', impliedNominal_P25.toFixed(2) + '%');
-            console.log('[CALC] Implied CAGR - P50: Using user retRate:', retRate + '%');
-            console.log('[CALC] Implied CAGR - P75 Real:', (impliedRealCAGR_P75 * 100).toFixed(2) + '%, Nominal:', impliedNominal_P75.toFixed(2) + '%');
 
             // Backfill younger generations if needed
             const backfilledBeneficiaries = backfillYoungerGenerations(
@@ -629,10 +587,6 @@ export function useCalculation(deps: CalcDeps) {
 
             const adjustedStartBens = backfilledBeneficiaries.reduce((sum, b) => sum + b.size, 0);
 
-            console.log('[BACKFILL] Summary:');
-            console.log('[BACKFILL] Original beneficiaries:', numberOfBeneficiaries, 'at ages', benAges);
-            console.log('[BACKFILL] Backfilled cohorts:', backfilledBeneficiaries.map(b => `Gen${b.generation}(age=${b.age}, size=${b.size.toFixed(2)})`).join(', '));
-            console.log('[BACKFILL] Adjusted total beneficiaries:', adjustedStartBens.toFixed(2));
 
             const finalBenAges = backfilledBeneficiaries.length > 0
               ? backfilledBeneficiaries.map(b => b.age)
@@ -640,12 +594,8 @@ export function useCalculation(deps: CalcDeps) {
 
             const finalStartBens = Math.max(1, Math.round(adjustedStartBens));
 
-            console.log('[BACKFILL] Final parameters for worker:');
-            console.log('[BACKFILL] - initialBenAges:', finalBenAges);
-            console.log('[BACKFILL] - startBens:', finalStartBens);
 
             // Run generational wealth simulation for P25, P50, P75
-            console.log('[CALC] Running generational simulations for P25, P50, P75...');
 
             const legacyParams = {
               startBens: finalStartBens,
@@ -687,12 +637,8 @@ export function useCalculation(deps: CalcDeps) {
               perBenReal: hypPerBen,
             });
 
-            console.log('[CALC] Generational simulations completed - P25:', simP25, 'P50:', simP50, 'P75:', simP75);
 
             // Calculate empirical success rate from all MC simulations
-            console.log('[SUCCESS RATE DEBUG] ====================');
-            console.log('[SUCCESS RATE DEBUG] CALCULATING EMPIRICAL SUCCESS RATE FROM ALL 1,000 SIMULATIONS');
-            console.log('[SUCCESS RATE DEBUG] ====================');
 
             const realReturnRate = realReturn(retRate, inflationRate);
             const safeGenerationLength = generationLength || 1;
@@ -701,14 +647,8 @@ export function useCalculation(deps: CalcDeps) {
             const minEstateRequired = sustainableDistRate > 0 ? totalAnnualDist / sustainableDistRate : Infinity;
             const safeMinEstate = minEstateRequired * 1.05;
 
-            console.log('[SUCCESS RATE DEBUG] Real return rate: ' + (realReturnRate * 100).toFixed(2) + '%');
-            console.log('[SUCCESS RATE DEBUG] Population growth rate: ' + (populationGrowthRate * 100).toFixed(2) + '%');
-            console.log('[SUCCESS RATE DEBUG] Sustainable distribution rate: ' + (sustainableDistRate * 100).toFixed(2) + '%');
-            console.log('[SUCCESS RATE DEBUG] Total annual distribution: $' + totalAnnualDist.toLocaleString());
-            console.log('[SUCCESS RATE DEBUG] Minimum estate required (with 5% safety): $' + safeMinEstate.toLocaleString());
 
             const allEstatesReal = batchResult.allRuns.map(run => run.eolReal);
-            console.log('[SUCCESS RATE DEBUG] Total MC simulations: ' + allEstatesReal.length);
 
             const allEstatesAfterTax = allEstatesReal.map(eolRealVal => {
               const eolNominal = eolRealVal * Math.pow(1 + infl, yearsFrom2025);
@@ -720,22 +660,11 @@ export function useCalculation(deps: CalcDeps) {
             const calculatedProbPerpetual = allEstatesAfterTax.length > 0 ? successCount / allEstatesAfterTax.length : 0;
             const successRatePercent = Math.round(calculatedProbPerpetual * 100);
 
-            console.log('[SUCCESS RATE DEBUG] Estates meeting perpetual threshold: ' + successCount + ' / ' + allEstatesAfterTax.length);
-            console.log('[SUCCESS RATE DEBUG] SUCCESS RATE: ' + successRatePercent + '%');
 
             const sortedEstates = [...allEstatesAfterTax].sort((a, b) => a - b);
-            console.log('[SUCCESS RATE DEBUG] Estate distribution:');
-            console.log('[SUCCESS RATE DEBUG]   P10: $' + sortedEstates[Math.floor(allEstatesAfterTax.length * 0.10)].toLocaleString());
-            console.log('[SUCCESS RATE DEBUG]   P25: $' + sortedEstates[Math.floor(allEstatesAfterTax.length * 0.25)].toLocaleString());
-            console.log('[SUCCESS RATE DEBUG]   P50: $' + sortedEstates[Math.floor(allEstatesAfterTax.length * 0.50)].toLocaleString());
-            console.log('[SUCCESS RATE DEBUG]   P75: $' + sortedEstates[Math.floor(allEstatesAfterTax.length * 0.75)].toLocaleString());
-            console.log('[SUCCESS RATE DEBUG]   P90: $' + sortedEstates[Math.floor(allEstatesAfterTax.length * 0.90)].toLocaleString());
-            console.log('[SUCCESS RATE DEBUG] ====================');
 
-            console.log('[CALC] Calculated success rate:', calculatedProbPerpetual);
 
             // Build genPayout object
-            console.log('[CALC] Building genPayout object...');
             genPayout = {
               perBenReal: hypPerBen,
               years: simP50.years,
@@ -768,19 +697,14 @@ export function useCalculation(deps: CalcDeps) {
             };
           } catch (genError: unknown) {
             console.error('[CALC] Generational simulation error:', genError);
-            console.log('[CALC] Continuing with null genPayout due to error');
             genPayout = null;
           }
         }
       }
-      console.log('[CALC] Generational payout complete, genPayout:', genPayout ? 'exists' : 'null');
 
       // Determine if ruined
-      console.log('[CALC] Calculating survYrs, probRuin:', batchResult.probRuin);
       const survYrs = batchResult.probRuin > 0.5 ? yrsToSim - 5 : yrsToSim;
-      console.log('[CALC] survYrs calculated:', survYrs);
 
-      console.log('[CALC] Building newRes object...');
       newRes = {
         finNom,
         finReal,
@@ -815,29 +739,24 @@ export function useCalculation(deps: CalcDeps) {
         },
       };
 
-      console.log('[CALC] About to set result, newRes:', newRes);
       setRes(newRes);
       setIsDirty(false);
       setLegacyResult(calculateLegacyResult(newRes));
       setBatchSummary(batchResult);
-      console.log('[CALC] Result set successfully');
 
       // Run guardrails analysis if we have failures
       if (batchResult && batchResult.probRuin > 0) {
-        console.log('[CALC] Running guardrails analysis...');
         runGuardrailsAnalysis(batchResult);
       } else {
         setGuardrailsResult(null);
       }
 
       // Run Roth conversion optimizer
-      console.log('[CALC] Running Roth conversion optimizer...');
       if (newRes) {
         runRothOptimizer(newRes);
       }
 
       soundPresets.formSuccess();
-      console.log('[CALC] Calculation complete');
 
       // Track calculation for tab interface
       const isFirstCalculation = !lastCalculated;
@@ -849,12 +768,8 @@ export function useCalculation(deps: CalcDeps) {
       // - Recalculate from ANY other location → Stay on current tab, don't scroll
       const shouldNavigate = (isFirstCalculation && activeMainTab === 'configure') || isFromWizard;
 
-      console.log('[CALC NAV] Navigation decision:', {
-        shouldNavigate, isFirstCalculation, activeMainTab, isFromWizard
-      });
 
       if (shouldNavigate) {
-        console.log('[CALC NAV] Navigating to Results tab');
         setActiveMainTab('results');
         setIsFromWizard(false);
         setTimeout(() => {
@@ -863,7 +778,6 @@ export function useCalculation(deps: CalcDeps) {
           setIsLoadingAi(false);
         }, 800);
       } else {
-        console.log('[CALC NAV] Staying on current tab:', activeMainTab);
         setOlderAgeForAnalysis(olderAgeForAI);
         setIsLoadingAi(false);
       }
@@ -874,9 +788,7 @@ export function useCalculation(deps: CalcDeps) {
       setRes(null);
       setIsLoadingAi(false);
     } finally {
-      console.log('[CALC] Calculation complete, setting isRunning to false');
       setIsRunning(false);
-      console.log('[CALC] Finished calculation, clearing loading state');
     }
   }, [
     age1, age2, retirementAge, isMar, taxableBalance, pretaxBalance, rothBalance,

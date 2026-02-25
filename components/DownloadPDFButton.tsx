@@ -192,8 +192,6 @@ export const DownloadPDFButton: React.FC<DownloadPDFButtonProps> = ({
 
       await generatePDFReport(reportData);
 
-      // Success feedback
-      console.log('PDF report generated successfully');
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast.error('Failed to generate PDF report. Please try again.');

@@ -35,19 +35,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Process Onboarding] Processing conversation', {
-      messageCount: conversationHistory?.length || 0,
-      fieldsCollected: Object.keys(extractedData || {}).length
-    });
-
-    console.log('[Process Onboarding] 🔍 RECEIVED EXTRACTED DATA:', {
-      retirementAge: extractedData?.retirementAge,
-      age: extractedData?.age,
-      maritalStatus: extractedData?.maritalStatus,
-      allKeys: Object.keys(extractedData || {}),
-      fullData: extractedData
-    });
-
     const systemPrompt = `You are a retirement planning assistant. The client has collected 6 key questions from the user:
 
 1. Age, marital status, and spouse age (if married)
@@ -289,17 +276,6 @@ Response: {
 
     const result = JSON.parse(jsonMatch[0]);
 
-    console.log('[Process Onboarding] Extraction complete:', {
-      fieldsExtracted: Object.keys(result.extractedData).length,
-      assumptionsMade: result.assumptions.length,
-    });
-
-    console.log('[Process Onboarding] 🔍 RETURNING TO CLIENT:', {
-      retirementAge: result.extractedData?.retirementAge,
-      age: result.extractedData?.age,
-      maritalStatus: result.extractedData?.maritalStatus
-    });
-
     // Verify retirement age wasn't changed
     if (extractedData?.retirementAge && result.extractedData?.retirementAge !== extractedData.retirementAge) {
       console.error('[Process Onboarding] ❌❌❌ ERROR: AI CHANGED RETIREMENT AGE!', {
@@ -308,7 +284,6 @@ Response: {
       });
       // Override it back to user value
       result.extractedData.retirementAge = extractedData.retirementAge;
-      console.log('[Process Onboarding] ✅ CORRECTED: Forcing retirement age back to', extractedData.retirementAge);
     }
 
     return NextResponse.json(result);

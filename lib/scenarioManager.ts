@@ -66,7 +66,6 @@ export function saveScenario(
 
   try {
     localStorage.setItem(SCENARIOS_STORAGE_KEY, JSON.stringify(updatedScenarios));
-    console.log('[ScenarioManager] Saved scenario:', scenario.name);
     return scenario;
   } catch (error) {
     console.error('[ScenarioManager] Failed to save scenario:', error);
@@ -81,10 +80,6 @@ export function loadScenario(id: string): SavedScenario | null {
   const scenarios = getAllScenarios();
   const scenario = scenarios.find(s => s.id === id);
 
-  if (scenario) {
-    console.log('[ScenarioManager] Loaded scenario:', scenario.name);
-  }
-
   return scenario || null;
 }
 
@@ -97,7 +92,6 @@ export function deleteScenario(id: string): boolean {
 
   try {
     localStorage.setItem(SCENARIOS_STORAGE_KEY, JSON.stringify(updatedScenarios));
-    console.log('[ScenarioManager] Deleted scenario:', id);
     return true;
   } catch (error) {
     console.error('[ScenarioManager] Failed to delete scenario:', error);

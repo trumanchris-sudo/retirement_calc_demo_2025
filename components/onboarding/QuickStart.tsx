@@ -263,8 +263,6 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
       []
     );
 
-    console.log('[QuickStart] Mapped inputs:', calculatorInputs);
-
     // Update PlanConfig (single batched call to avoid split-second inconsistency)
     const configUpdate = { ...calculatorInputs };
     if (generatedAssumptions && generatedAssumptions.length > 0) {

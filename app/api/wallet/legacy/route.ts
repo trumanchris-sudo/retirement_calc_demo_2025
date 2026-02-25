@@ -97,7 +97,6 @@ async function signManifest(manifestPath: string, signatureOutputPath: string): 
       process.env.WALLET_KEY_PEM &&
       process.env.WALLET_WWDR_PEM
     ) {
-      console.log("✓ Using Apple Wallet certificates from environment variables");
       certPem = process.env.WALLET_CERT_PEM;
       keyPem = process.env.WALLET_KEY_PEM;
       wwdrPem = process.env.WALLET_WWDR_PEM;
@@ -108,7 +107,6 @@ async function signManifest(manifestPath: string, signatureOutputPath: string): 
       const keyPath = path.join(certsPath, "passkey-unencrypted.pem");
       const wwdrPath = path.join(certsPath, "Apple_Wallet_CA_Chain.pem");
 
-      console.log(`✓ Using Apple Wallet certificates from disk: ${certsPath}`);
 
       // Check if certificate files exist
       if (!fs.existsSync(certPath) || !fs.existsSync(keyPath) || !fs.existsSync(wwdrPath)) {
@@ -172,7 +170,6 @@ async function signManifest(manifestPath: string, signatureOutputPath: string): 
     // 8. Write signature file
     await fs.promises.writeFile(signatureOutputPath, derBuffer);
 
-    console.log("✓ Manifest signed successfully using node-forge");
   } catch (error) {
     console.error("Error signing manifest with node-forge:", error);
     throw new Error(`Failed to sign manifest: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -226,8 +223,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Generating pass for serial: ${requestData.serialNumber}`);
-
     // 2. Load pass.json template
     const templatePath = path.join(process.cwd(), "features/wallet/template/pass.json");
 
@@ -235,7 +230,6 @@ export async function POST(request: NextRequest) {
       throw new Error(`Pass template not found at: ${templatePath}`);
     }
 
-    console.log(`Loading pass template from: ${templatePath}`);
     const templateContent = await fs.promises.readFile(templatePath, "utf-8");
 
     // 3. Substitute placeholders
@@ -264,8 +258,6 @@ export async function POST(request: NextRequest) {
         "background.png",
       ];
 
-      console.log(`Loading wallet assets from: ${templateDir}`);
-
       for (const asset of assetFiles) {
         const srcPath = path.join(templateDir, asset);
         const destPath = path.join(tempDir, asset);
@@ -273,7 +265,6 @@ export async function POST(request: NextRequest) {
         // Only copy if file exists (background.png is optional)
         if (fs.existsSync(srcPath)) {
           await copyFile(srcPath, destPath);
-          console.log(`  ✓ Copied asset: ${asset}`);
         } else {
           console.warn(`  ⚠ Asset not found (skipping): ${asset}`);
         }
@@ -298,8 +289,6 @@ export async function POST(request: NextRequest) {
 
       // 8. Create .pkpass archive
       const pkpassBuffer = await createPkPassArchive(tempDir);
-
-      console.log(`✓ Pass generated successfully: ${requestData.serialNumber}`);
 
       // 9. Send response
       return new NextResponse(new Uint8Array(pkpassBuffer), {

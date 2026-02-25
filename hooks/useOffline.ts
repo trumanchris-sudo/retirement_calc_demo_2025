@@ -362,7 +362,6 @@ export function useOfflineInit(): {
         await initScenarioCache();
 
         setIsInitialized(true);
-        console.log('[useOfflineInit] Offline features initialized');
       } catch (err) {
         console.error('[useOfflineInit] Initialization failed:', err);
         setError(err instanceof Error ? err : new Error('Unknown error'));

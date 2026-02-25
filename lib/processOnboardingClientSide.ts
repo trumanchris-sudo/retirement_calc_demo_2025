@@ -27,8 +27,6 @@ export interface ProcessOnboardingResult {
 export function processOnboardingClientSide(
   extractedData: ExtractedData
 ): ProcessOnboardingResult {
-  console.log('[Client-Side] Processing onboarding data locally...');
-
   const assumptions: AssumptionWithReasoning[] = [];
 
   // Helper to add assumption
@@ -311,14 +309,6 @@ export function processOnboardingClientSide(
 
   // Generate friendly summary
   const summary = generateSummary(completeExtractedData, wizardAssumptions);
-
-  console.log('[Client-Side] Processing complete:', {
-    fieldsExtracted: Object.keys(completeExtractedData).length,
-    assumptionsMade: wizardAssumptions.length,
-    calculatorDefaultsFiltered: mappedResult.generatedAssumptions.length - wizardAssumptions.length,
-    executionTime: '< 1ms',
-    cost: '$0.00'
-  });
 
   return {
     extractedData: completeExtractedData,

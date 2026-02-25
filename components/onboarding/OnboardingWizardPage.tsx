@@ -23,8 +23,6 @@ export function OnboardingWizardPage({ onComplete, onSkip }: OnboardingWizardPag
   const handleComplete = useCallback(
     async (extractedData: ExtractedData, assumptions: AssumptionWithReasoning[]) => {
       try {
-        console.log('[OnboardingWizardPage] Starting completion...', { extractedData, assumptions });
-
         // Enrich extracted data with expense assumptions (housing, healthcare, discretionary, etc.)
         const processed = processOnboardingClientSide(extractedData);
         const enrichedData = processed.extractedData;
@@ -36,33 +34,13 @@ export function OnboardingWizardPage({ onComplete, onSkip }: OnboardingWizardPag
           allAssumptions
         );
 
-        console.log('[OnboardingWizardPage] Mapped calculator inputs:', calculatorInputs);
-        console.log('[OnboardingWizardPage] Generated assumptions:', generatedAssumptions);
-
         // Write to PlanConfig context (SINGLE SOURCE OF TRUTH)
-        console.log('[OnboardingWizardPage] Writing to PlanConfig (SSOT)...');
         updateConfig(calculatorInputs, 'ai-suggested');
-
-        // Log SSOT after update - especially critical fields that have been buggy
-        console.log('[OnboardingWizardPage] ✅ SSOT Updated:', {
-          retirementAge: calculatorInputs.retirementAge,
-          primaryIncome: calculatorInputs.primaryIncome,
-          spouseIncome: calculatorInputs.spouseIncome,
-          emergencyFund: calculatorInputs.emergencyFund,
-          // Critical fields per user request:
-          monthlyMortgageRent: calculatorInputs.monthlyMortgageRent,
-          eoyBonusAmount: calculatorInputs.eoyBonusAmount,
-          eoyBonusMonth: calculatorInputs.eoyBonusMonth,
-          firstPayDate: calculatorInputs.firstPayDate,
-          fullConfig: calculatorInputs,
-        });
 
         // Save assumptions to config
         if (generatedAssumptions && generatedAssumptions.length > 0) {
           updateConfig({ assumptions: generatedAssumptions }, 'ai-suggested');
         }
-
-        console.log('[OnboardingWizardPage] Wizard complete, calling onComplete...');
 
         // Mark onboarding as complete and transition to calculator
         onComplete();
@@ -75,7 +53,6 @@ export function OnboardingWizardPage({ onComplete, onSkip }: OnboardingWizardPag
   );
 
   const handleSkip = useCallback(() => {
-    console.log('[OnboardingWizardPage] User skipped wizard');
     onSkip();
   }, [onSkip]);
 

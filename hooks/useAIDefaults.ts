@@ -36,7 +36,6 @@ export function useAIDefaults(): UseAIDefaultsResult {
 
       const data: AIDefaultsResponse = await response.json()
       setDefaults(data)
-      console.log('[useAIDefaults] Fetched defaults:', data)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       console.error('[useAIDefaults] Error:', errorMessage)

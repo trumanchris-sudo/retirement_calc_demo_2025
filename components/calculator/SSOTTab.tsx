@@ -32,7 +32,6 @@ export function SSOTTab() {
     value: CalculatorInputs[K],
     source: UpdateSource = 'user-entered'
   ) => {
-    console.log(`[SSOT] Updating ${field}:`, value);
     updateConfig({ [field]: value }, source);
   };
 
