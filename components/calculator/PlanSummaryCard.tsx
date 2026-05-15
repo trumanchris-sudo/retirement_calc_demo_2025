@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { CalculationResult } from '@/types/calculator'
 import type { BatchSummary } from '@/types/planner'
@@ -111,58 +111,62 @@ export function PlanSummaryCard({ result, batchSummary, wealthTrajectory }: Plan
 
   const colorClasses = {
     green: {
-      badge: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-      border: 'border-green-200 dark:border-green-800',
-      iconBg: 'bg-green-100 dark:bg-green-900/30',
-      iconColor: 'text-green-600 dark:text-green-400',
+      badge: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300',
+      iconBg: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:ring-emerald-900',
+      metric: 'text-emerald-700 dark:text-emerald-300',
     },
     yellow: {
-      badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-      border: 'border-yellow-200 dark:border-yellow-800',
-      iconBg: 'bg-yellow-100 dark:bg-yellow-900/30',
-      iconColor: 'text-yellow-600 dark:text-yellow-400',
+      badge: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300',
+      iconBg: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:ring-amber-900',
+      metric: 'text-amber-700 dark:text-amber-300',
     },
     red: {
-      badge: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-      border: 'border-red-200 dark:border-red-800',
-      iconBg: 'bg-red-100 dark:bg-red-900/30',
-      iconColor: 'text-red-600 dark:text-red-400',
+      badge: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300',
+      iconBg: 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-950/30 dark:text-red-300 dark:ring-red-900',
+      metric: 'text-red-700 dark:text-red-300',
     },
   }
 
   const classes = colorClasses[color]
 
   return (
-    <Card className={`border-2 ${classes.border}`}>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <CardTitle className={TYPOGRAPHY.metricMedium}>Plan Summary</CardTitle>
-            <Badge className={`${classes.badge} border-0`}>{label}</Badge>
+    <Card className="overflow-hidden border bg-card shadow-sm">
+      <CardContent className="p-0">
+        <div className="border-b bg-muted/30 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className={`rounded-xl p-3 ring-1 ${classes.iconBg}`} aria-hidden="true">
+                <Icon className="h-6 w-6" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  Plan Outlook
+                </p>
+                <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                  {label}
+                </h2>
+              </div>
+            </div>
+            <Badge variant="outline" className={`${classes.badge} shrink-0`}>
+              {successRate !== undefined ? `${successRate.toFixed(0)}% success` : label}
+            </Badge>
           </div>
-          <div className={`p-3 rounded-full ${classes.iconBg}`}>
-            <Icon className={`h-8 w-8 ${classes.iconColor}`} />
-          </div>
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">
+            {message}
+          </p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Status Message */}
-        <p className={`${TYPOGRAPHY.bodyMuted} leading-relaxed`}>
-          {message}
-        </p>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+        <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-3">
           {/* Success Rate (if available) */}
           {successRate !== undefined && (
-            <div className="space-y-1">
+            <div className="rounded-xl border bg-background p-4">
               <div className="flex items-center gap-1">
                 <p className={TYPOGRAPHY.tableHeader}>
                   Success Rate
                 </p>
                 <InfoTooltip {...TOOLTIP_CONTENT.successRate} side="top" />
               </div>
-              <p className={TYPOGRAPHY.metricMedium}>{successRate.toFixed(0)}%</p>
+              <p className={`mt-2 text-3xl font-semibold tracking-tight ${classes.metric}`}>{successRate.toFixed(0)}%</p>
               <p className={TYPOGRAPHY.tableCellCompact + ' text-muted-foreground'}>
                 Chance of not running out during retirement
               </p>
@@ -170,28 +174,28 @@ export function PlanSummaryCard({ result, batchSummary, wealthTrajectory }: Plan
           )}
 
           {/* Safe Withdrawal */}
-          <div className="space-y-1">
+          <div className="rounded-xl border bg-background p-4">
             <div className="flex items-center gap-1">
               <p className={TYPOGRAPHY.tableHeader}>
                 Annual After-Tax Income
               </p>
               <InfoTooltip {...TOOLTIP_CONTENT.afterTaxWithdrawal} side="top" />
             </div>
-            <p className={TYPOGRAPHY.metricMedium}>{fmt(safeWithdrawal)}</p>
+            <p className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{fmt(safeWithdrawal)}</p>
             <p className={TYPOGRAPHY.tableCellCompact + ' text-muted-foreground'}>
               In retirement (real)
             </p>
           </div>
 
           {/* End-of-Life Wealth */}
-          <div className="space-y-1">
+          <div className="rounded-xl border bg-background p-4">
             <div className="flex items-center gap-1">
               <p className={TYPOGRAPHY.tableHeader}>
                 End-of-Life Wealth
               </p>
               <InfoTooltip {...TOOLTIP_CONTENT.endOfLifeWealth} side="top" />
             </div>
-            <p className={TYPOGRAPHY.metricMedium}>{fmt(eolWealthRange)}</p>
+            <p className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{fmt(eolWealthRange)}</p>
             <p className={TYPOGRAPHY.tableCellCompact + ' text-muted-foreground'}>
               Remaining assets (real)
             </p>
@@ -200,7 +204,7 @@ export function PlanSummaryCard({ result, batchSummary, wealthTrajectory }: Plan
 
         {/* Wealth Trajectory Sparkline */}
         {wealthTrajectory && wealthTrajectory.length > 2 && (
-          <div className="pt-4 border-t">
+          <div className="border-t p-4">
             <div className="flex items-center justify-between mb-2">
               <p className={`${TYPOGRAPHY.tableHeader} text-muted-foreground`}>
                 Wealth Trajectory

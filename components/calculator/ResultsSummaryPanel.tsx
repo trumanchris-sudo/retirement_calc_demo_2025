@@ -278,18 +278,19 @@ export function ResultsSummaryPanel({
               </Card>
             )}
 
-            {/* Plan Summary Card */}
-            <div className="mb-6">
+            <div className="mb-6 grid items-start gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.85fr)]">
               <PlanSummaryCard result={res} batchSummary={batchSummary} />
-            </div>
-
-            {/* Next Steps Card */}
-            <div className="mb-6">
               <NextStepsCard result={res} batchSummary={batchSummary} />
             </div>
 
             {/* View Mode Toggle */}
-            <div className="flex justify-center mb-6">
+            <div className="mb-6 flex flex-col gap-3 rounded-2xl border bg-card/80 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold tracking-tight">Projection Details</p>
+                <p className="text-xs text-muted-foreground">
+                  Keep the first view focused, then drill into cards, charts, and assumptions.
+                </p>
+              </div>
               <ToggleGroup
                 type="single"
                 value={resultsViewMode}
@@ -298,12 +299,12 @@ export function ResultsSummaryPanel({
                     setResultsViewMode(value)
                   }
                 }}
-                className="bg-muted p-1 rounded-lg"
+                className="w-full rounded-xl bg-muted p-1 sm:w-auto"
               >
-                <ToggleGroupItem value="quick" className="px-6">
+                <ToggleGroupItem value="quick" className="flex-1 rounded-lg px-5 sm:flex-none">
                   Quick View
                 </ToggleGroupItem>
-                <ToggleGroupItem value="detailed" className="px-6">
+                <ToggleGroupItem value="detailed" className="flex-1 rounded-lg px-5 sm:flex-none">
                   Detailed View
                 </ToggleGroupItem>
               </ToggleGroup>

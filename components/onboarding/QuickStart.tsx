@@ -466,13 +466,13 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                 {/* Main Projection */}
                 <div className="text-center py-4">
                   <p className="text-muted-foreground text-sm mb-2">
-                    At age 65, you could have approximately
+                    Rough preview at age 65
                   </p>
                   <p className="text-5xl sm:text-6xl font-bold text-foreground mb-2">
                     {formatCurrency(projection.futureValue)}
                   </p>
                   <p className="text-muted-foreground">
-                    That could provide roughly <span className="text-green-600 dark:text-green-400 font-semibold">{formatCurrency(projection.monthlyIncome)}/month</span> in retirement
+                    Simple 4% rule estimate before taxes: <span className="text-green-600 dark:text-green-400 font-semibold">{formatCurrency(projection.monthlyIncome)}/month</span>
                   </p>
                 </div>
 
@@ -539,8 +539,8 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
                         <Target className="w-5 h-5 text-purple-700 dark:text-purple-400" />
                       </div>
                       <div className="text-left">
-                        <p className="font-medium text-foreground">See what your kids could inherit</p>
-                        <p className="text-sm text-muted-foreground">Explore generational wealth planning</p>
+                        <p className="font-medium text-foreground">Run the full tax-aware plan</p>
+                        <p className="text-sm text-muted-foreground">Monte Carlo, taxes, Social Security, and legacy details</p>
                       </div>
                     </div>
                     <ArrowRight className="w-5 h-5 text-muted-foreground" />
@@ -615,8 +615,8 @@ export function QuickStart({ onComplete, onSwitchToGuided }: QuickStartProps) {
         {/* Assumptions Note */}
         {showResults && (
           <p className="text-center text-xs text-muted-foreground mt-4 px-4">
-            Estimate based on 10% savings rate, 3% employer match, age-based returns, and 4% withdrawal rule.
-            Results are projections and not guaranteed.
+            Quick preview based on 10% savings rate, 3% employer match, age-based returns, and a simple 4% rule before taxes.
+            The full calculator replaces this with tax-aware Monte Carlo results.
           </p>
         )}
       </div>

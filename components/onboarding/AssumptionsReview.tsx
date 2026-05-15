@@ -56,11 +56,12 @@ export function AssumptionsReview({ assumptions, onUpdateAssumptions, isUpdating
   // Group assumptions by category
   const groupedAssumptions = {
     cashSafety: categorize([
-      'emergencyFund',
+      'emergencyFund', 'taxableBalance',
       ...(assumptions.find(x => x.field === 'cTax1') ? [] : ['currentTaxable']),
     ]),
     retirement: categorize([
       'currentTraditional', 'currentRoth',
+      'pretaxBalance', 'rothBalance',
       'cPre1', 'cPost1', 'cMatch1',
       'cPre2', 'cPost2', 'cMatch2',
     ]),

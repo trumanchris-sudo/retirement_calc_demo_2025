@@ -137,26 +137,35 @@ export function NextStepsCard({ result, batchSummary }: NextStepsCardProps) {
   const suggestions = generateSuggestions(result, batchSummary)
 
   return (
-    <Card className="border-2 border-blue-200 dark:border-blue-800">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <LightbulbIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-          What Should I Do Next?
-        </CardTitle>
+    <Card className="border bg-card shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-blue-50 p-2.5 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:ring-blue-900">
+            <LightbulbIcon className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Next Moves
+            </p>
+            <CardTitle className="mt-1 text-xl tracking-tight">
+              What to do next
+            </CardTitle>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Based on your plan results, here are some actions to consider:
+            Based on your plan results, prioritize these actions first:
           </p>
 
-          <ul className="space-y-3">
+          <ul className="space-y-2.5">
             {suggestions.map((suggestion, index) => {
               const Icon = suggestion.icon
               return (
-                <li key={index} className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    <Icon className={`h-5 w-5 ${suggestion.color}`} />
+                <li key={index} className="flex items-start gap-3 rounded-xl border bg-background p-3">
+                  <div className="mt-0.5 rounded-lg bg-muted p-1.5">
+                    <Icon className={`h-4 w-4 ${suggestion.color}`} />
                   </div>
                   <p className="text-sm leading-relaxed">{suggestion.text}</p>
                 </li>
@@ -164,7 +173,7 @@ export function NextStepsCard({ result, batchSummary }: NextStepsCardProps) {
             })}
           </ul>
 
-          <div className="pt-4 border-t">
+          <div className="border-t pt-3">
             <p className="text-xs text-muted-foreground italic">
               These are informational suggestions, not financial advice. Consider consulting with a fiduciary advisor for personalized guidance.
             </p>

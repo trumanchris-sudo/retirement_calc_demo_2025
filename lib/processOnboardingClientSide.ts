@@ -16,6 +16,86 @@ export interface ProcessOnboardingResult {
   summary: string;
 }
 
+const HIGH_HOUSING_COST_STATES = new Set(['CA', 'NY', 'NJ', 'MA', 'WA', 'DC', 'HI']);
+const HIGH_PROPERTY_TAX_STATES = new Set(['TX', 'NJ', 'IL', 'NE', 'NH', 'CT', 'VT', 'WI']);
+const HIGH_HOME_INSURANCE_STATES = new Set(['FL', 'LA', 'OK', 'TX']);
+
+const formatIncome = (amount: number): string => {
+  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
+  return `$${amount.toLocaleString()}`;
+};
+
+const roundToNearest = (value: number, nearest: number): number => (
+  Math.round(value / nearest) * nearest
+);
+
+function estimateHousingPayment(totalIncome: number, isMarried: boolean, stateCode?: string): number {
+  const highCost = stateCode ? HIGH_HOUSING_COST_STATES.has(stateCode) : false;
+
+  if (totalIncome < 100000) return isMarried ? 1800 : 1200;
+  if (totalIncome < 200000) return isMarried ? 2800 : 2000;
+  if (totalIncome < 400000) return isMarried ? 4000 : 3000;
+  if (totalIncome < 700000) return isMarried ? (highCost ? 6500 : 5500) : (highCost ? 5000 : 4000);
+  return isMarried ? (highCost ? 7500 : 6000) : (highCost ? 5500 : 4500);
+}
+
+function estimatePropertyTaxAndInsurance(totalIncome: number, isMarried: boolean, stateCode?: string): number {
+  const highPropertyTax = stateCode ? HIGH_PROPERTY_TAX_STATES.has(stateCode) : false;
+  const highInsurance = stateCode ? HIGH_HOME_INSURANCE_STATES.has(stateCode) : false;
+
+  if (totalIncome < 100000) return isMarried ? 400 : 300;
+  if (totalIncome < 200000) return isMarried ? (highPropertyTax ? 900 : 700) : (highPropertyTax ? 700 : 500);
+  if (totalIncome < 400000) return isMarried ? (highPropertyTax ? 1500 : 1000) : (highPropertyTax ? 1100 : 750);
+  if (totalIncome < 700000) return isMarried ? (highPropertyTax ? 2400 : 1500) : (highPropertyTax ? 1700 : 1100);
+
+  if (stateCode === 'TX') return isMarried ? 3375 : 2400;
+  if (stateCode === 'FL') return isMarried ? 3000 : 2200;
+  if (highPropertyTax || highInsurance) return isMarried ? 2400 : 1700;
+  return isMarried ? 1800 : 1300;
+}
+
+function estimateUtilities(totalIncome: number): number {
+  if (totalIncome < 100000) return 250;
+  if (totalIncome < 400000) return 350;
+  return 400;
+}
+
+function estimateHealthcarePremium(
+  totalIncome: number,
+  employmentType?: ExtractedData['employmentType1']
+): number {
+  const selfEmployed = employmentType === 'self-employed' || employmentType === 'both';
+  if (totalIncome >= 700000) return selfEmployed ? 1000 : 850;
+  if (totalIncome >= 400000) return selfEmployed ? 900 : 750;
+  if (totalIncome >= 200000) return selfEmployed ? 750 : 650;
+  return selfEmployed ? 650 : 550;
+}
+
+function estimateHouseholdExpenses(totalIncome: number, isMarried: boolean, childCount: number): number {
+  const childAdd = Math.min(childCount, 2) * 350;
+  if (totalIncome < 100000) return (isMarried ? 900 : 600) + childAdd;
+  if (totalIncome < 200000) return (isMarried ? 1400 : 900) + childAdd;
+  if (totalIncome < 400000) return (isMarried ? 2200 : 1400) + childAdd;
+  if (totalIncome < 700000) return (isMarried ? 3000 : 2000) + childAdd;
+  return (isMarried ? 3200 : 2200) + childAdd;
+}
+
+function estimateDiscretionary(totalIncome: number, isMarried: boolean): number {
+  if (totalIncome < 100000) return isMarried ? 800 : 600;
+  if (totalIncome < 200000) return isMarried ? 1500 : 1000;
+  if (totalIncome < 400000) return isMarried ? 3000 : 2000;
+  if (totalIncome < 700000) return isMarried ? 4500 : 3000;
+  return isMarried ? 5500 : 4000;
+}
+
+function estimateOtherExpenses(totalIncome: number, isMarried: boolean): number {
+  if (totalIncome < 100000) return isMarried ? 800 : 600;
+  if (totalIncome < 200000) return isMarried ? 1200 : 900;
+  if (totalIncome < 400000) return isMarried ? 1800 : 1300;
+  if (totalIncome < 700000) return isMarried ? 2200 : 1600;
+  return isMarried ? 2500 : 1800;
+}
+
 /**
  * Process onboarding data client-side (no API call)
  *
@@ -52,42 +132,26 @@ export function processOnboardingClientSide(
 
   const totalIncome = (extractedData.primaryIncome || 100000) + (extractedData.spouseIncome || 0);
   const isMarried = extractedData.maritalStatus === 'married';
+  const childCount = extractedData.numChildren ?? 0;
+  const stateCode = extractedData.state?.toUpperCase();
 
   // Housing: monthlyMortgageRent
   if (extractedData.monthlyMortgageRent === undefined) {
-    let mortgage: number;
-    if (totalIncome < 100000) {
-      mortgage = isMarried ? 1800 : 1200;
-    } else if (totalIncome < 200000) {
-      mortgage = isMarried ? 3000 : 2000;
-    } else if (totalIncome < 400000) {
-      mortgage = isMarried ? 4500 : 3000;
-    } else if (totalIncome < 700000) {
-      mortgage = isMarried ? 7000 : 5000;
-    } else {
-      mortgage = isMarried ? 9000 : 6500;
-    }
+    const mortgage = estimateHousingPayment(totalIncome, isMarried, stateCode);
 
     extractedData.monthlyMortgageRent = mortgage;
     addAssumption(
       'monthlyMortgageRent',
       'Monthly Housing Cost',
       mortgage,
-      `Scaled to ${totalIncome >= 1000000 ? '$' + Math.round(totalIncome/1000) + 'k' : '$' + totalIncome.toLocaleString()} income (~${Math.round((mortgage * 12 / totalIncome) * 100)}% of gross)`,
+      `Capped high-income housing estimate for ${stateCode ?? 'your state'}; about ${Math.round((mortgage * 12 / totalIncome) * 100)}% of ${formatIncome(totalIncome)} gross income`,
       'medium'
     );
   }
 
   // Utilities: monthlyUtilities
   if (extractedData.monthlyUtilities === undefined) {
-    let utilities: number;
-    if (totalIncome < 100000) {
-      utilities = 250;
-    } else if (totalIncome < 400000) {
-      utilities = 350;
-    } else {
-      utilities = 500;
-    }
+    const utilities = estimateUtilities(totalIncome);
 
     extractedData.monthlyUtilities = utilities;
     addAssumption(
@@ -101,69 +165,57 @@ export function processOnboardingClientSide(
 
   // Insurance & Property Tax: monthlyInsurancePropertyTax
   if (extractedData.monthlyInsurancePropertyTax === undefined) {
-    let insurance: number;
-    if (totalIncome < 100000) {
-      insurance = isMarried ? 400 : 300;
-    } else if (totalIncome < 400000) {
-      insurance = isMarried ? 700 : 500;
-    } else {
-      insurance = isMarried ? 1200 : 800;
-    }
+    const insurance = estimatePropertyTaxAndInsurance(totalIncome, isMarried, stateCode);
 
     extractedData.monthlyInsurancePropertyTax = insurance;
     addAssumption(
       'monthlyInsurancePropertyTax',
       'Monthly Insurance & Property Tax',
       insurance,
-      'Scaled with housing value and income',
+      stateCode === 'TX'
+        ? 'Texas-specific estimate: no state income tax, but higher property tax and home insurance burden'
+        : 'State-aware estimate for property tax and home insurance',
       'medium'
     );
   }
 
   // Healthcare: monthlyHealthcareP1 & P2
   if (extractedData.monthlyHealthcareP1 === undefined) {
-    extractedData.monthlyHealthcareP1 = 600;
+    const healthcareP1 = estimateHealthcarePremium(totalIncome, extractedData.employmentType1);
+    extractedData.monthlyHealthcareP1 = healthcareP1;
     addAssumption(
       'monthlyHealthcareP1',
       'Your Monthly Healthcare Premium',
-      600,
-      'Standard employer-sponsored plan premium',
+      healthcareP1,
+      extractedData.employmentType1 === 'self-employed'
+        ? 'Self-employed/K-1 households often carry higher premium exposure'
+        : 'Employer-plan premium estimate scaled by income',
       'medium'
     );
   }
 
   if (isMarried && extractedData.monthlyHealthcareP2 === undefined) {
-    extractedData.monthlyHealthcareP2 = 600;
+    const healthcareP2 = estimateHealthcarePremium(totalIncome, extractedData.employmentType2);
+    extractedData.monthlyHealthcareP2 = healthcareP2;
     addAssumption(
       'monthlyHealthcareP2',
       'Spouse Monthly Healthcare Premium',
-      600,
-      'Standard employer-sponsored plan premium',
+      healthcareP2,
+      'Spouse healthcare premium estimate scaled by employment type and household income',
       'medium'
     );
   }
 
   // Other Monthly Expenses: monthlyOtherExpenses
   if (extractedData.monthlyOtherExpenses === undefined) {
-    let other: number;
-    if (totalIncome < 100000) {
-      other = isMarried ? 2000 : 1500;
-    } else if (totalIncome < 200000) {
-      other = isMarried ? 2500 : 2000;
-    } else if (totalIncome < 400000) {
-      other = isMarried ? 4000 : 3000;
-    } else if (totalIncome < 700000) {
-      other = isMarried ? 6000 : 4500;
-    } else {
-      other = isMarried ? 7500 : 5500;
-    }
+    const other = estimateOtherExpenses(totalIncome, isMarried);
 
     extractedData.monthlyOtherExpenses = other;
     addAssumption(
       'monthlyOtherExpenses',
       'Other Monthly Expenses',
       other,
-      `Lifestyle expenses scaled to income bracket (groceries, dining, shopping, travel) - ~${Math.round((other * 12 / totalIncome) * 100)}% of gross`,
+      'Miscellaneous recurring costs kept separate from household and discretionary spending to avoid double-counting',
       'medium'
     );
   }
@@ -172,59 +224,52 @@ export function processOnboardingClientSide(
 
   // Household Expenses: monthlyHouseholdExpenses (groceries, supplies, maintenance)
   if (extractedData.monthlyHouseholdExpenses === undefined) {
-    let household: number;
-    if (totalIncome < 100000) {
-      household = isMarried ? 800 : 500;
-    } else if (totalIncome < 200000) {
-      household = isMarried ? 1200 : 800;
-    } else if (totalIncome < 400000) {
-      household = isMarried ? 1800 : 1200;
-    } else {
-      household = isMarried ? 2500 : 1800;
-    }
+    const household = roundToNearest(estimateHouseholdExpenses(totalIncome, isMarried, childCount), 50);
 
     extractedData.monthlyHouseholdExpenses = household;
     addAssumption(
       'monthlyHouseholdExpenses',
       'Monthly Household Expenses',
       household,
-      `Groceries, supplies, and maintenance - ~${Math.round((household * 12 / totalIncome) * 100)}% of gross income`,
+      'Groceries, household supplies, and routine maintenance; scaled for household size',
       'medium'
     );
   }
 
   // Discretionary Spending: monthlyDiscretionary (entertainment, dining, shopping)
   if (extractedData.monthlyDiscretionary === undefined) {
-    // Discretionary typically 15-25% of take-home pay, scale with income
-    let discretionary: number;
-    if (totalIncome < 100000) {
-      discretionary = isMarried ? 800 : 600;
-    } else if (totalIncome < 200000) {
-      discretionary = isMarried ? 1500 : 1000;
-    } else if (totalIncome < 400000) {
-      discretionary = isMarried ? 2500 : 1800;
-    } else if (totalIncome < 700000) {
-      discretionary = isMarried ? 4000 : 3000;
-    } else {
-      discretionary = isMarried ? 6000 : 4500;
-    }
+    const discretionary = estimateDiscretionary(totalIncome, isMarried);
 
     extractedData.monthlyDiscretionary = discretionary;
     addAssumption(
       'monthlyDiscretionary',
       'Monthly Discretionary Spending',
       discretionary,
-      `Entertainment, dining out, shopping, hobbies - ~${Math.round((discretionary * 12 / totalIncome) * 100)}% of gross income`,
+      'Dining, travel, shopping, and entertainment with high-income lifestyle creep capped',
       'medium'
     );
   }
 
   // Childcare: monthlyChildcare (only if they have children indicated)
-  // Note: We don't have numChildren in ExtractedData yet, so skip unless income suggests family
   if (extractedData.monthlyChildcare === undefined) {
-    // Default to 0 unless explicitly set - childcare varies widely
-    extractedData.monthlyChildcare = 0;
-    // Don't add assumption for 0 value - it's opt-in
+    const childAges = extractedData.childrenAges ?? [];
+    const hasYoungChild = childCount > 0 && (childAges.length === 0 || childAges.some(age => age < 6));
+
+    if (hasYoungChild) {
+      const childcare = Math.min(childCount, 2) * 1500;
+      extractedData.monthlyChildcare = childcare;
+      addAssumption(
+        'monthlyChildcare',
+        'Monthly Childcare Costs',
+        childcare,
+        childAges.length === 0
+          ? 'Placeholder for children when ages are unknown; set to $0 if there are no paid childcare costs'
+          : 'Estimated daycare/childcare cost for young children',
+        'low'
+      );
+    } else {
+      extractedData.monthlyChildcare = 0;
+    }
   }
 
   // Life Insurance: annualLifeInsuranceP1 and P2
@@ -290,6 +335,9 @@ export function processOnboardingClientSide(
   const wizardAssumptions = mappedResult.generatedAssumptions.filter(
     a => !calculatorDefaults.includes(a.field)
   );
+  const desiredRetirementSpending = wizardAssumptions.find(
+    a => a.field === 'desiredRetirementSpending' && typeof a.value === 'number'
+  )?.value as number | undefined;
 
   // Build final extractedData with all fields populated
   const completeExtractedData: ExtractedData = {
@@ -305,6 +353,7 @@ export function processOnboardingClientSide(
     currentTraditional: extractedData.currentTraditional || mappedResult.pretaxBalance,
     currentRoth: extractedData.currentRoth || mappedResult.rothBalance,
     emergencyFund: extractedData.emergencyFund || mappedResult.emergencyFund,
+    desiredRetirementSpending: extractedData.desiredRetirementSpending ?? desiredRetirementSpending,
   };
 
   // Generate friendly summary
@@ -343,9 +392,8 @@ function generateSummary(data: ExtractedData, assumptions: AssumptionWithReasoni
   const assumedCount = assumptions.filter(a => !a.userProvided).length;
 
   if (assumedCount > 0) {
-    summary += `I've made ${assumedCount} reasonable assumption${assumedCount === 1 ? '' : 's'} `;
-    summary += `(contribution rates, housing costs, other expenses) scaled to your income level. `;
-    summary += `You can review and adjust all assumptions in the next screen.`;
+    summary += `I've highlighted ${assumedCount} planning estimate${assumedCount === 1 ? '' : 's'} for review. `;
+    summary += `You can edit these before building the full plan.`;
   }
 
   return summary;

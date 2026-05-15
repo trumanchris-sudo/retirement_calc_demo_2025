@@ -86,18 +86,18 @@ const TabIcons: Record<MainTabId, React.FC<{ className?: string }>> = {
 };
 
 const tabs: Array<{ id: MainTabId; label: string; shortLabel?: string; description: string }> = [
-  { id: 'all', label: 'All-in-One', shortLabel: 'All', description: 'Classic view with everything' },
   { id: 'configure', label: 'Plan Setup', shortLabel: 'Setup', description: 'Set up your retirement plan' },
-  { id: 'planSettings', label: 'Plan Settings', shortLabel: 'Settings', description: 'All plan inputs and assumptions in one place' },
   { id: 'results', label: 'Results', description: 'View your projections' },
   { id: 'stress', label: 'Stress Tests', shortLabel: 'Stress', description: 'Test market scenarios' },
-  { id: 'legacy', label: 'Legacy Planning', shortLabel: 'Legacy', description: 'Generational wealth' },
-  // Budget tab hidden per user request (contains Retirement Timeline & Implied Budget)
-  // { id: 'budget', label: 'Budget', description: 'Timeline and budget insights' },
   { id: 'optimize', label: 'Optimize', description: 'Find your freedom date' },
   { id: 'tools', label: 'Planning Tools', shortLabel: 'Tools', description: 'Student loans, annuities, semi-retirement' },
-  { id: 'checkUs', label: 'Check Us', shortLabel: 'Check', description: 'Verify our calculations' },
+  { id: 'legacy', label: 'Legacy Planning', shortLabel: 'Legacy', description: 'Generational wealth' },
   { id: 'math', label: 'Math', description: 'Understanding the calculations' },
+  { id: 'planSettings', label: 'Plan Settings', shortLabel: 'Settings', description: 'All plan inputs and assumptions in one place' },
+  { id: 'checkUs', label: 'Check Us', shortLabel: 'Check', description: 'Verify our calculations' },
+  { id: 'all', label: 'All-in-One', shortLabel: 'All', description: 'Classic view with everything' },
+  // Budget tab hidden per user request (contains Retirement Timeline & Implied Budget)
+  // { id: 'budget', label: 'Budget', description: 'Timeline and budget insights' },
 ];
 
 export function TabNavigation({
@@ -112,7 +112,7 @@ export function TabNavigation({
   // Get enabled tabs for keyboard navigation
   const enabledTabs = tabs.filter(tab => {
     if (!hasResults) {
-      return tab.id === 'all' || tab.id === 'configure' || tab.id === 'planSettings';
+      return tab.id === 'configure' || tab.id === 'planSettings';
     }
     return true;
   });
@@ -155,10 +155,10 @@ export function TabNavigation({
   }, [enabledTabs, onTabChange]);
 
   return (
-    <div className="relative border-b border-gray-200 dark:border-gray-700">
+    <div className="relative rounded-xl border bg-muted/40 p-1 shadow-sm">
       {/* Mobile scroll hint - left fade */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white dark:from-gray-900 to-transparent pointer-events-none z-10 sm:hidden"
+        className="absolute left-0 top-1 bottom-1 w-6 rounded-l-xl bg-gradient-to-r from-background to-transparent pointer-events-none z-10 sm:hidden"
         aria-hidden="true"
       />
       {/* Screen reader description */}
@@ -184,6 +184,7 @@ export function TabNavigation({
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const isDisabled = !hasResults && (
+            tab.id === 'all' ||
             tab.id === 'results' ||
             tab.id === 'stress' ||
             tab.id === 'legacy' ||
@@ -211,28 +212,27 @@ export function TabNavigation({
               disabled={isDisabled}
               className={cn(
                 // Base styles with mobile-friendly touch targets (min 44px height)
-                "group relative flex items-center gap-2 py-3 px-4 text-sm font-medium whitespace-nowrap",
+                "group relative flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap",
                 "min-h-[44px] min-w-[44px]", // WCAG 2.5.5 touch target
                 "flex-shrink-0", // Prevent tabs from shrinking/overlapping in scroll container
-                "transition-all duration-200 rounded-t-lg",
+                "transition-all duration-200",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                 // Snap alignment for mobile scrolling
                 "snap-start",
                 // Prevent text selection on mobile double-tap
                 "select-none",
                 isActive && [
-                  "text-blue-600 dark:text-blue-400",
-                  "bg-blue-50/50 dark:bg-blue-900/20",
+                  "bg-background text-foreground shadow-sm",
                 ],
                 !isActive && !isDisabled && [
-                  "text-gray-600 dark:text-gray-400",
-                  "hover:text-gray-900 dark:hover:text-gray-200",
-                  "hover:bg-gray-100 dark:hover:bg-gray-800",
+                  "text-muted-foreground",
+                  "hover:text-foreground",
+                  "hover:bg-background/70",
                   // Mobile: use active state instead of hover
-                  "active:bg-gray-100 dark:active:bg-gray-800",
+                  "active:bg-background/70",
                 ],
                 isDisabled && [
-                  "text-gray-400 dark:text-gray-600",
+                  "text-muted-foreground/60",
                   "cursor-not-allowed opacity-60",
                 ],
                 // Mobile: slightly smaller padding
@@ -247,9 +247,9 @@ export function TabNavigation({
                 <Icon
                   className={cn(
                     "w-4 h-4 flex-shrink-0 transition-colors duration-200",
-                    isActive && "text-blue-600 dark:text-blue-400",
-                    !isActive && !isDisabled && "text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300",
-                    isDisabled && "text-gray-300 dark:text-gray-600"
+                    isActive && "text-emerald-600 dark:text-emerald-400",
+                    !isActive && !isDisabled && "text-muted-foreground group-hover:text-foreground",
+                    isDisabled && "text-muted-foreground/50"
                   )}
                 />
               )}
@@ -283,10 +283,7 @@ export function TabNavigation({
               {/* Active indicator bar */}
               <span
                 className={cn(
-                  "absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-200",
-                  isActive
-                    ? "bg-blue-600 dark:bg-blue-400"
-                    : "bg-transparent group-hover:bg-gray-300 dark:group-hover:bg-gray-600"
+                  "hidden"
                 )}
                 aria-hidden="true"
               />
@@ -297,7 +294,7 @@ export function TabNavigation({
 
       {/* Mobile scroll hint - right fade */}
       <div
-        className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white dark:from-gray-900 to-transparent pointer-events-none z-10 sm:hidden"
+        className="absolute right-0 top-1 bottom-1 w-6 rounded-r-xl bg-gradient-to-l from-background to-transparent pointer-events-none z-10 sm:hidden"
         aria-hidden="true"
       />
     </div>
