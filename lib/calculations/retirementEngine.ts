@@ -615,6 +615,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
   const g_fixed = 1 + retRate / 100;
   const infl = inflationRate / 100;
   const infl_factor = 1 + infl;
+  const historicalStressStartYear = historicalYear ?? undefined;
 
   // Track cumulative inflation for variable inflation scenarios
   let cumulativeInflation = 1.0;
@@ -628,7 +629,7 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     infPct: inflationRate,
     walkSeries: randomWalkSeries,
     seed: seed,
-    startYear: historicalYear, // Pass historicalYear to handle bear market sequences naturally
+    startYear: undefined,
     bondGlidePath: params.bondGlidePath || null,
     currentAge: younger,
   })();
@@ -640,7 +641,9 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
     infPct: inflationRate,
     walkSeries: randomWalkSeries,
     seed: seed + 1,
-    startYear: historicalYear ? historicalYear + yrsToRet : undefined, // Continue from retirement year
+    // Stress-test years model sequence-of-returns risk at retirement.
+    // Accumulation stays on the normal seeded path; the selected historical sequence starts here.
+    startYear: historicalStressStartYear,
     bondGlidePath: params.bondGlidePath || null,
     currentAge: older + yrsToRet,
   })();
@@ -661,7 +664,6 @@ export function runSingleSimulation(params: SimulationInputs, seed: number): Sim
 
   // Accumulation phase
   for (let y = 0; y <= yrsToRet; y++) {
-    // Generator handles historical sequences naturally via startYear
     const g = returnMode === "fixed" ? g_fixed : (accGen.next().value as number);
 
     const a1 = age1 + y;

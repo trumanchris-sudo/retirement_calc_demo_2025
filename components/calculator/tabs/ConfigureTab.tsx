@@ -16,6 +16,7 @@ import {
   validateRetirementAge,
   validateBalance,
   validate401kContribution,
+  getMaxIRAContribution,
   validateIRAContribution,
   validateTotalContributions,
 } from "@/lib/fieldValidation";
@@ -129,6 +130,8 @@ export function ConfigureTab({
     () => (isMar ? validateTotalContributions(cPre2, cMatch2, age2) : null),
     [cPre2, cMatch2, age2, isMar]
   );
+  const iraLimitTip1 = `2026 IRS limit: $${getMaxIRAContribution(age1).toLocaleString()}`;
+  const iraLimitTip2 = `2026 IRS limit: $${getMaxIRAContribution(age2).toLocaleString()}`;
 
   return (
     <AnimatedSection animation="fade-in" delay={100}>
@@ -193,7 +196,7 @@ export function ConfigureTab({
                       </Badge>
                       <Input label="Taxable Brokerage ($/yr)" value={cTax1} setter={setCTax1} step={1000} onInputChange={onInputChange} defaultValue={10000} validate={(val) => validateBalance(val, 'Taxable contribution')} />
                       <Input label="Pre-Tax (401k/IRA) ($/yr)" value={cPre1} setter={setCPre1} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={(val) => validate401kContribution(val, age1)} tip="2026 IRS limit: $24,500" />
-                      <Input label="Post-Tax (Roth) ($/yr)" value={cPost1} setter={setCPost1} step={500} onInputChange={onInputChange} defaultValue={7000} validate={(val) => validateIRAContribution(val, age1)} tip="2026 IRS limit: $7,000" />
+                      <Input label="Post-Tax (Roth) ($/yr)" value={cPost1} setter={setCPost1} step={500} onInputChange={onInputChange} defaultValue={getMaxIRAContribution(age1)} validate={(val) => validateIRAContribution(val, age1)} tip={iraLimitTip1} />
                       <Input label="Employer Match ($/yr)" value={cMatch1} setter={setCMatch1} step={500} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
                       {person1TotalValidation && person1TotalValidation.error && (
                         <div
@@ -215,7 +218,7 @@ export function ConfigureTab({
                         </Badge>
                         <Input label="Taxable Brokerage ($/yr)" value={cTax2} setter={setCTax2} step={1000} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Taxable contribution')} />
                         <Input label="Pre-Tax (401k/IRA) ($/yr)" value={cPre2} setter={setCPre2} step={1000} onInputChange={onInputChange} defaultValue={23000} validate={(val) => validate401kContribution(val, age2)} tip="2026 IRS limit: $24,500" />
-                        <Input label="Post-Tax (Roth) ($/yr)" value={cPost2} setter={setCPost2} step={500} onInputChange={onInputChange} defaultValue={7000} validate={(val) => validateIRAContribution(val, age2)} tip="2026 IRS limit: $7,000" />
+                        <Input label="Post-Tax (Roth) ($/yr)" value={cPost2} setter={setCPost2} step={500} onInputChange={onInputChange} defaultValue={getMaxIRAContribution(age2)} validate={(val) => validateIRAContribution(val, age2)} tip={iraLimitTip2} />
                         <Input label="Employer Match ($/yr)" value={cMatch2} setter={setCMatch2} step={500} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Employer match')} />
                         {person2TotalValidation && person2TotalValidation.error && (
                           <div

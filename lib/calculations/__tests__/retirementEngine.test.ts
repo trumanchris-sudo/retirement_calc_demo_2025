@@ -343,6 +343,18 @@ describe('Retirement Engine', () => {
       // Should handle bear market scenario
       expect(result.eolReal).toBeGreaterThanOrEqual(0);
     });
+
+    it('should apply historical stress years at retirement rather than during accumulation', () => {
+      const inputs = createDefaultInputs();
+      inputs.returnMode = 'randomWalk';
+      const yrsToRet = inputs.retirementAge - inputs.age1;
+
+      const baseline = runSingleSimulation(inputs, 12345);
+      const stressed = runSingleSimulation({ ...inputs, historicalYear: 2008 }, 12345);
+
+      expect(stressed.balancesReal[yrsToRet]).toBe(baseline.balancesReal[yrsToRet]);
+      expect(stressed.balancesReal[yrsToRet + 1]).not.toBe(baseline.balancesReal[yrsToRet + 1]);
+    });
   });
 
   describe('runSingleSimulation - Inflation Scenarios', () => {
