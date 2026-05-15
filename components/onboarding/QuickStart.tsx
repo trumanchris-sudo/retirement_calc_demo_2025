@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePlanConfig } from '@/lib/plan-config-context';
 import { mapAIDataToCalculator } from '@/lib/aiOnboardingMapper';
+import { RETIREMENT_LIMITS_2026 } from '@/lib/constants/tax2026';
 import type { ExtractedData } from '@/types/ai-onboarding';
 import { cn } from '@/lib/utils';
 import { ChevronRight, ChevronDown, Sparkles, TrendingUp, Users, PiggyBank, Target, ArrowRight } from 'lucide-react';
@@ -50,8 +51,14 @@ function deriveDefaults(age: number, income: number, savings: number, isMarried:
   const taxableBalance = savings * taxableRatio;
 
   // Annual contributions breakdown
-  const traditionalContrib = Math.min(annualContributions * 0.6, 23500); // 2026 limit
-  const rothContrib = Math.min(annualContributions * 0.3, 7500); // 2026 IRA limit
+  const traditionalContrib = Math.min(
+    annualContributions * 0.6,
+    RETIREMENT_LIMITS_2026.TRADITIONAL_401K_LIMIT
+  );
+  const rothContrib = Math.min(
+    annualContributions * 0.3,
+    RETIREMENT_LIMITS_2026.IRA_LIMIT
+  );
   const taxableContrib = annualContributions * 0.1;
 
   return {

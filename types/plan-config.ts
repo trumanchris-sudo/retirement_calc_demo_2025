@@ -249,7 +249,7 @@ export function isConfigComplete(config: PlanConfig): boolean {
   return requiredFields.every(field =>
     config[field] !== undefined &&
     config[field] !== null &&
-    (typeof config[field] !== 'number' || !isNaN(config[field] as number))
+    (typeof config[field] !== 'number' || Number.isFinite(config[field] as number))
   );
 }
 
@@ -277,7 +277,7 @@ export function getMissingFields(config: PlanConfig): string[] {
   return requiredFields
     .filter(({ key }) => {
       const value = config[key as keyof PlanConfig];
-      return value === undefined || value === null || (typeof value === 'number' && isNaN(value));
+      return value === undefined || value === null || (typeof value === 'number' && !Number.isFinite(value));
     })
     .map(({ name }) => name);
 }
