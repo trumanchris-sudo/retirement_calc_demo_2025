@@ -30,6 +30,7 @@ import {
   getMissingFields,
   isConfigComplete,
 } from '@/types/plan-config';
+import { normalizePlanConfig, validatePlanConfig } from '@/lib/planConfig';
 
 interface PlanConfigContextValue {
   /** Current plan configuration */
@@ -95,7 +96,7 @@ export function PlanConfigProvider({ children }: { children: ReactNode }) {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved) as PlanConfig;
+        const parsed = normalizePlanConfig(JSON.parse(saved));
         setConfigState(parsed);
         savedVersionHash.current = quickHash(parsed);
       }
@@ -143,6 +144,10 @@ export function PlanConfigProvider({ children }: { children: ReactNode }) {
     ) => {
       setConfigState(current => {
         const updated = mergeConfigUpdates(current, updates, source);
+        const validation = validatePlanConfig(updated);
+        if (!validation.isValid) {
+          console.warn('[PlanConfig] Update produced validation warnings:', validation.errors);
+        }
         return updated;
       });
     },
@@ -150,7 +155,7 @@ export function PlanConfigProvider({ children }: { children: ReactNode }) {
   );
 
   const setConfig = useCallback((newConfig: PlanConfig) => {
-    setConfigState(newConfig);
+    setConfigState(normalizePlanConfig(newConfig));
   }, []);
 
   const resetConfig = useCallback(() => {
