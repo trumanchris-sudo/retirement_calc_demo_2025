@@ -118,6 +118,7 @@ import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
 import { createDefaultPlanConfig } from "@/types/plan-config";
+import { hashPlanSimulationInputs } from "@/lib/calculations/buildSimulationInputs";
 import { OnboardingSelector } from "@/components/onboarding/OnboardingSelector";
 import { AIReviewPanel } from "@/components/AIReviewPanel";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -164,6 +165,7 @@ export default function App() {
     comparisonMode, setComparisonMode,
     lastCalculated, setLastCalculated,
     inputsModified, setInputsModified,
+    calculatedSnapshotHash, setCalculatedSnapshotHash,
   } = useCalculatorResults();
 
   // UI toggles hook (owns visibility states + localStorage for resultsViewMode)
@@ -406,6 +408,38 @@ export default function App() {
 
   // Build bond glide path configuration object
   const bondGlidePath = useBondGlidePathDerived(planConfig);
+  const currentSnapshotHash = useMemo(
+    () => hashPlanSimulationInputs(planConfig, { bondGlidePath }),
+    [planConfig, bondGlidePath]
+  );
+
+  const snapshotComparisonAvailable = Boolean(res && calculatedSnapshotHash);
+  const calculationInputsModified = snapshotComparisonAvailable
+    ? currentSnapshotHash !== calculatedSnapshotHash
+    : inputsModified;
+  const calculationResultsDirty = snapshotComparisonAvailable
+    ? calculationInputsModified
+    : isDirty;
+
+  useEffect(() => {
+    if (!res || !calculatedSnapshotHash) return;
+
+    const isSnapshotStale = currentSnapshotHash !== calculatedSnapshotHash;
+    if (isDirty !== isSnapshotStale) {
+      setIsDirty(isSnapshotStale);
+    }
+    if (inputsModified !== isSnapshotStale) {
+      setInputsModified(isSnapshotStale);
+    }
+  }, [
+    res,
+    calculatedSnapshotHash,
+    currentSnapshotHash,
+    isDirty,
+    inputsModified,
+    setIsDirty,
+    setInputsModified,
+  ]);
 
   // Auto-calculate beneficiary ages based on user's age and family structure
   const hypBenAgesStr = useBeneficiaryAgesDerived(planConfig, childrenCurrentAges, additionalChildrenExpected);
@@ -491,7 +525,7 @@ export default function App() {
     // Result state
     res, setRes, setErr: (v: string | null) => setErr(v), setIsRunning, setIsDirty,
     setBatchSummary, setLegacyResult, setOlderAgeForAnalysis,
-    lastCalculated, setLastCalculated, setInputsModified,
+    lastCalculated, setLastCalculated, setInputsModified, setCalculatedSnapshotHash,
     // Worker hook
     workerRef, runMonteCarloViaWorker, runLegacyViaWorker,
     runGuardrailsAnalysis, runRothOptimizer, setGuardrailsResult,
@@ -546,13 +580,6 @@ export default function App() {
     res, setErr, setComparisonData,
     historicalYear, inflationShockRate, inflationShockDuration,
     setHistoricalYear, setInflationShockRate, setInflationShockDuration,
-    marital, age1, age2, retirementAge,
-    taxableBalance, pretaxBalance, rothBalance,
-    cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-    retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
-    returnMode, randomWalkSeries,
-    includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
-    seed, isMar,
   });
 
   // calculateLegacyResult and applyGenerationalPreset are now provided by useCalculation hook
@@ -913,7 +940,7 @@ export default function App() {
             <div className="flex justify-end">
               <LastCalculatedBadge
                 lastCalculated={lastCalculated}
-                inputsModified={inputsModified}
+                inputsModified={calculationInputsModified}
               />
             </div>
           )}
@@ -1000,7 +1027,7 @@ export default function App() {
 
             <ResultsSummaryPanel
               activeMainTab={activeMainTab}
-              isDirty={isDirty}
+              isDirty={calculationResultsDirty}
               res={res}
               calc={calc}
               isLoadingAi={isLoadingAi}
@@ -1108,102 +1135,9 @@ export default function App() {
         {activeMainTab !== 'all' && (
         <TabPanel id="configure" activeTab={activeMainTab}>
           <ConfigureTab
-            marital={marital}
-            setMarital={setMarital}
-            age1={age1}
-            setAge1={setAge1}
-            age2={age2}
-            setAge2={setAge2}
-            retirementAge={retirementAge}
-            setRetirementAge={setRetirementAge}
-            isMar={isMar}
-            taxableBalance={taxableBalance}
-            setTaxableBalance={setTaxableBalance}
-            pretaxBalance={pretaxBalance}
-            setPretaxBalance={setPretaxBalance}
-            rothBalance={rothBalance}
-            setRothBalance={setRothBalance}
-            cTax1={cTax1}
-            setCTax1={setCTax1}
-            cPre1={cPre1}
-            setCPre1={setCPre1}
-            cPost1={cPost1}
-            setCPost1={setCPost1}
-            cMatch1={cMatch1}
-            setCMatch1={setCMatch1}
-            cTax2={cTax2}
-            setCTax2={setCTax2}
-            cPre2={cPre2}
-            setCPre2={setCPre2}
-            cPost2={cPost2}
-            setCPost2={setCPost2}
-            cMatch2={cMatch2}
-            setCMatch2={setCMatch2}
-            retRate={retRate}
-            setRetRate={setRetRate}
-            inflationRate={inflationRate}
-            setInflationRate={setInflationRate}
-            stateRate={stateRate}
-            setStateRate={setStateRate}
-            incContrib={incContrib}
-            setIncContrib={setIncContrib}
-            incRate={incRate}
-            setIncRate={setIncRate}
-            wdRate={wdRate}
-            setWdRate={setWdRate}
-            returnMode={returnMode}
-            setReturnMode={setReturnMode}
-            randomWalkSeries={randomWalkSeries}
-            setRandomWalkSeries={setRandomWalkSeries}
-            allocationStrategy={allocationStrategy}
-            setAllocationStrategy={setAllocationStrategy}
-            bondStartPct={bondStartPct}
-            setBondStartPct={setBondStartPct}
-            bondEndPct={bondEndPct}
-            setBondEndPct={setBondEndPct}
-            bondStartAge={bondStartAge}
-            setBondStartAge={setBondStartAge}
-            bondEndAge={bondEndAge}
-            setBondEndAge={setBondEndAge}
-            glidePathShape={glidePathShape}
-            setGlidePathShape={setGlidePathShape}
-            bondGlidePath={bondGlidePath}
-            includeSS={includeSS}
-            setIncludeSS={setIncludeSS}
-            ssIncome={ssIncome}
-            setSSIncome={setSSIncome}
-            ssClaimAge={ssClaimAge}
-            setSSClaimAge={setSSClaimAge}
-            ssIncome2={ssIncome2}
-            setSSIncome2={setSSIncome2}
-            ssClaimAge2={ssClaimAge2}
-            setSSClaimAge2={setSSClaimAge2}
-            includeMedicare={includeMedicare}
-            setIncludeMedicare={setIncludeMedicare}
-            medicarePremium={medicarePremium}
-            setMedicarePremium={setMedicarePremium}
-            medicalInflation={medicalInflation}
-            setMedicalInflation={setMedicalInflation}
-            includeLTC={includeLTC}
-            setIncludeLTC={setIncludeLTC}
-            ltcAnnualCost={ltcAnnualCost}
-            setLtcAnnualCost={setLtcAnnualCost}
-            ltcProbability={ltcProbability}
-            setLtcProbability={setLtcProbability}
-            ltcDuration={ltcDuration}
-            setLtcDuration={setLtcDuration}
-            ltcOnsetAge={ltcOnsetAge}
-            setLtcOnsetAge={setLtcOnsetAge}
-            ltcAgeRangeStart={ltcAgeRangeStart}
-            setLtcAgeRangeStart={setLtcAgeRangeStart}
-            ltcAgeRangeEnd={ltcAgeRangeEnd}
-            setLtcAgeRangeEnd={setLtcAgeRangeEnd}
-            enableRothConversions={enableRothConversions}
-            setEnableRothConversions={setEnableRothConversions}
-            targetConversionBracket={targetConversionBracket}
-            setTargetConversionBracket={setTargetConversionBracket}
             onCalculate={calc}
             onInputChange={handleInputChange}
+            markDirty={markDirty}
             isLoading={isLoadingAi}
             err={err}
             calcProgress={calcProgress}

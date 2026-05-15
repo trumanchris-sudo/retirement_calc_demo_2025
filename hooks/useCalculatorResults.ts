@@ -92,6 +92,8 @@ interface UseCalculatorResultsReturn {
   setLastCalculated: (date: Date | null) => void;
   inputsModified: boolean;
   setInputsModified: (modified: boolean) => void;
+  calculatedSnapshotHash: string | null;
+  setCalculatedSnapshotHash: (hash: string | null) => void;
 
   // Actions
   clearResults: () => void;
@@ -127,6 +129,7 @@ export function useCalculatorResults(): UseCalculatorResultsReturn {
   // UI state
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [inputsModified, setInputsModified] = useState(false);
+  const [calculatedSnapshotHash, setCalculatedSnapshotHash] = useState<string | null>(null);
 
   // Dirty state helpers
   const markDirty = useCallback(() => setIsDirty(true), []);
@@ -146,6 +149,7 @@ export function useCalculatorResults(): UseCalculatorResultsReturn {
     setComparisonMode(false);
     setLastCalculated(null);
     setInputsModified(false);
+    setCalculatedSnapshotHash(null);
     setIsDirty(false);
   }, []);
 
@@ -186,8 +190,14 @@ export function useCalculatorResults(): UseCalculatorResultsReturn {
     try {
       const savedResults = sessionStorage.getItem(SESSION_KEY_RESULTS);
       if (savedResults) {
-        const results = JSON.parse(savedResults);
-          setResult(results);
+        const restored = JSON.parse(savedResults);
+        const results = restored?.result ?? restored;
+        setResult(results);
+        setCalculatedSnapshotHash(
+          typeof restored?.calculatedSnapshotHash === 'string'
+            ? restored.calculatedSnapshotHash
+            : null
+        );
         setLastCalculated(new Date());
         // Clear after restore
         sessionStorage.removeItem(SESSION_KEY_RESULTS);
@@ -201,12 +211,15 @@ export function useCalculatorResults(): UseCalculatorResultsReturn {
   useEffect(() => {
     if (result) {
       try {
-        sessionStorage.setItem(SESSION_KEY_RESULTS, JSON.stringify(result));
+        sessionStorage.setItem(SESSION_KEY_RESULTS, JSON.stringify({
+          result,
+          calculatedSnapshotHash,
+        }));
       } catch (e) {
         console.error('[Results] Failed to save to session:', e);
       }
     }
-  }, [result]);
+  }, [result, calculatedSnapshotHash]);
 
   return {
     // Core results
@@ -244,6 +257,8 @@ export function useCalculatorResults(): UseCalculatorResultsReturn {
     setLastCalculated,
     inputsModified,
     setInputsModified,
+    calculatedSnapshotHash,
+    setCalculatedSnapshotHash,
 
     // Actions
     clearResults,

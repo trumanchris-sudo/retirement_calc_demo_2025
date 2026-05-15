@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useId, useState, useMemo, useCallback } from "react";
+import React, { useId, useState, useMemo, useCallback, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePlanConfig } from "@/lib/plan-config-context";
 
 // ============================================================================
 // TYPES
@@ -104,6 +105,14 @@ const IDR_PLANS: Record<string, IDRPlan> = {
 
 const SECURE_2_TAX_FREE_LIMIT = 5250; // Annual employer repayment tax-free limit
 
+const DEFAULT_PROFILE = {
+  annualIncome: 55000,
+  familySize: 1,
+  hasEmployerMatch: true,
+  matchPercent: 4,
+  currentRetirementContribution: 6,
+};
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
@@ -118,6 +127,9 @@ const formatCurrency = (value: number): string => {
 };
 
 const generateId = (): string => Math.random().toString(36).substring(2, 9);
+
+const clamp = (value: number, min: number, max: number): number =>
+  Math.min(max, Math.max(min, value));
 
 // Calculate monthly payment for a loan
 const calculateMonthlyPayment = (
@@ -317,6 +329,34 @@ const LoanInputCard: React.FC<LoanInputCardProps> = ({
 export default function StudentLoanOptimizer() {
   // State for loans
   const mainId = useId();
+  const { config: planConfig } = usePlanConfig();
+
+  const planProfileDefaults = useMemo(() => {
+    const primaryIncome = planConfig.primaryIncome ?? 0;
+    const spouseIncome = planConfig.marital === "married" ? planConfig.spouseIncome ?? 0 : 0;
+    const householdIncome = primaryIncome + spouseIncome;
+    const primaryRetirementContribution = (planConfig.cPre1 ?? 0) + (planConfig.cPost1 ?? 0);
+    const employerMatch = planConfig.cMatch1 ?? 0;
+    const matchWasEntered = Boolean(planConfig.fieldMetadata?.cMatch1);
+
+    return {
+      annualIncome: householdIncome > 0 ? householdIncome : DEFAULT_PROFILE.annualIncome,
+      familySize: clamp(
+        1 + (planConfig.marital === "married" ? 1 : 0) + (planConfig.numChildren ?? 0),
+        1,
+        8
+      ),
+      hasEmployerMatch: matchWasEntered ? employerMatch > 0 : DEFAULT_PROFILE.hasEmployerMatch,
+      matchPercent:
+        primaryIncome > 0 && employerMatch > 0
+          ? clamp(Number(((employerMatch / primaryIncome) * 100).toFixed(1)), 1, 10)
+          : DEFAULT_PROFILE.matchPercent,
+      currentRetirementContribution:
+        primaryIncome > 0 && primaryRetirementContribution > 0
+          ? clamp(Number(((primaryRetirementContribution / primaryIncome) * 100).toFixed(1)), 0, 20)
+          : DEFAULT_PROFILE.currentRetirementContribution,
+    };
+  }, [planConfig]);
 
   const [loans, setLoans] = useState<Loan[]>([
     {
@@ -331,8 +371,9 @@ export default function StudentLoanOptimizer() {
   ]);
 
   // State for user profile
-  const [annualIncome, setAnnualIncome] = useState(55000);
-  const [familySize, setFamilySize] = useState(1);
+  const [usesPlanProfile, setUsesPlanProfile] = useState(true);
+  const [annualIncome, setAnnualIncome] = useState(planProfileDefaults.annualIncome);
+  const [familySize, setFamilySize] = useState(planProfileDefaults.familySize);
   const [extraPayment, setExtraPayment] = useState(0);
 
   // PSLF state
@@ -347,9 +388,29 @@ export default function StudentLoanOptimizer() {
   const [employerContribution, setEmployerContribution] = useState(0);
 
   // Retirement state
-  const [hasEmployerMatch, setHasEmployerMatch] = useState(true);
-  const [matchPercent, setMatchPercent] = useState(4);
-  const [currentRetirementContribution, setCurrentRetirementContribution] = useState(6);
+  const [hasEmployerMatch, setHasEmployerMatch] = useState(planProfileDefaults.hasEmployerMatch);
+  const [matchPercent, setMatchPercent] = useState(planProfileDefaults.matchPercent);
+  const [currentRetirementContribution, setCurrentRetirementContribution] = useState(
+    planProfileDefaults.currentRetirementContribution
+  );
+
+  const applyPlanProfileDefaults = useCallback(() => {
+    setAnnualIncome(planProfileDefaults.annualIncome);
+    setFamilySize(planProfileDefaults.familySize);
+    setHasEmployerMatch(planProfileDefaults.hasEmployerMatch);
+    setMatchPercent(planProfileDefaults.matchPercent);
+    setCurrentRetirementContribution(planProfileDefaults.currentRetirementContribution);
+  }, [planProfileDefaults]);
+
+  useEffect(() => {
+    if (usesPlanProfile) {
+      applyPlanProfileDefaults();
+    }
+  }, [applyPlanProfileDefaults, usesPlanProfile]);
+
+  const markProfileCustomized = useCallback(() => {
+    setUsesPlanProfile(false);
+  }, []);
 
   // Derived values
   const totalBalance = useMemo(
@@ -709,7 +770,27 @@ export default function StudentLoanOptimizer() {
 
               {/* Income Input */}
               <div className="border-t pt-4 mt-6">
-                <h4 className="font-semibold mb-4">Your Income (for IDR calculations)</h4>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-semibold">Your Income (for IDR calculations)</h4>
+                    {usesPlanProfile && (
+                      <Badge variant="outline">Using plan profile</Badge>
+                    )}
+                  </div>
+                  {!usesPlanProfile && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        applyPlanProfileDefaults();
+                        setUsesPlanProfile(true);
+                      }}
+                    >
+                      Use retirement plan data
+                    </Button>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label htmlFor={`${mainId}-income`} className="text-sm text-muted-foreground">Annual Gross Income</label>
@@ -719,7 +800,10 @@ export default function StudentLoanOptimizer() {
                         id={`${mainId}-income`}
                         type="number"
                         value={annualIncome}
-                        onChange={(e) => setAnnualIncome(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => {
+                          markProfileCustomized();
+                          setAnnualIncome(parseFloat(e.target.value) || 0);
+                        }}
                         className="pl-8"
                       />
                     </div>
@@ -728,7 +812,10 @@ export default function StudentLoanOptimizer() {
                     <label id={`${mainId}-family-size-label`} className="text-sm text-muted-foreground">Family Size</label>
                     <Select
                       value={familySize.toString()}
-                      onValueChange={(value) => setFamilySize(parseInt(value))}
+                      onValueChange={(value) => {
+                        markProfileCustomized();
+                        setFamilySize(parseInt(value));
+                      }}
                     >
                       <SelectTrigger aria-labelledby={`${mainId}-family-size-label`}>
                         <SelectValue placeholder="Select size" />
@@ -1590,14 +1677,20 @@ export default function StudentLoanOptimizer() {
                       <Button
                         variant={hasEmployerMatch ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setHasEmployerMatch(true)}
+                        onClick={() => {
+                          markProfileCustomized();
+                          setHasEmployerMatch(true);
+                        }}
                       >
                         Yes
                       </Button>
                       <Button
                         variant={!hasEmployerMatch ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setHasEmployerMatch(false)}
+                        onClick={() => {
+                          markProfileCustomized();
+                          setHasEmployerMatch(false);
+                        }}
                       >
                         No
                       </Button>
@@ -1612,7 +1705,10 @@ export default function StudentLoanOptimizer() {
                           <Slider
                             aria-labelledby={`${mainId}-match-pct-label`}
                             value={[matchPercent]}
-                            onValueChange={([value]) => setMatchPercent(value)}
+                            onValueChange={([value]) => {
+                              markProfileCustomized();
+                              setMatchPercent(value);
+                            }}
                             min={1}
                             max={10}
                             step={0.5}
@@ -1629,7 +1725,10 @@ export default function StudentLoanOptimizer() {
                           <Slider
                             aria-labelledby={`${mainId}-contribution-label`}
                             value={[currentRetirementContribution]}
-                            onValueChange={([value]) => setCurrentRetirementContribution(value)}
+                            onValueChange={([value]) => {
+                              markProfileCustomized();
+                              setCurrentRetirementContribution(value);
+                            }}
                             min={0}
                             max={20}
                             step={1}

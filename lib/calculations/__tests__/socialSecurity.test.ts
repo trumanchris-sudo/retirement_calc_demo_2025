@@ -218,7 +218,6 @@ describe('Social Security Calculations', () => {
 
     it('should NOT increase spousal benefit for delayed claiming past FRA', () => {
       // Spousal benefits cap at FRA — no delayed credits
-      const atFRA = calculateEffectiveSS(500, 3000, 67, 67);
       const delayed = calculateEffectiveSS(500, 3000, 70, 67);
       // The spousal benefit stays the same, but own benefit increases
       // Since own PIA is $500, even with 24% increase = $620, still < $1,500 spousal

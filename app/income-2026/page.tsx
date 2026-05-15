@@ -301,8 +301,6 @@ export default function Income2026Page() {
   }, [updatePlanConfig]);
 
   const handleApplyToMainPlan = useCallback(() => {
-    const effectiveTaxRate = results?.yearSummary?.effectiveTaxRate ?? 0;
-
     // Income fields are already in PlanConfig; push housing/expense fields
     updatePlanConfig({
       monthlyMortgageRent: housingState.housingType === 'rent' ? housingState.rentPayment : housingState.mortgagePayment,

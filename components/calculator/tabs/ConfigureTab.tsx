@@ -21,130 +21,19 @@ import {
 } from "@/lib/fieldValidation";
 import { calculateBondAllocation } from "@/lib/bondAllocation";
 import { RMD_START_AGE } from "@/lib/constants";
+import { usePlanConfig } from "@/lib/plan-config-context";
+import { useBondGlidePathDerived, useIsMarried } from "@/hooks/useCalculatorDerivedState";
+import { usePlanConfigSetters } from "@/hooks/usePlanConfigSetters";
 import type { FilingStatus } from "@/lib/calculations/taxCalculations";
-import type { ReturnMode, WalkSeries } from "@/types/planner";
-import type { BondGlidePath, CalculationProgress } from "@/types/calculator";
+import { createDefaultPlanConfig } from "@/types/plan-config";
+import type { ReturnMode } from "@/types/planner";
+import type { CalculationProgress } from "@/types/calculator";
 
 export interface ConfigureTabProps {
-  // Personal Information
-  marital: FilingStatus;
-  setMarital: (value: FilingStatus) => void;
-  age1: number;
-  setAge1: (value: number) => void;
-  age2: number;
-  setAge2: (value: number) => void;
-  retirementAge: number;
-  setRetirementAge: (value: number) => void;
-  isMar: boolean;
-
-  // Starting Balances
-  taxableBalance: number;
-  setTaxableBalance: (value: number) => void;
-  pretaxBalance: number;
-  setPretaxBalance: (value: number) => void;
-  rothBalance: number;
-  setRothBalance: (value: number) => void;
-
-  // Person 1 Contributions
-  cTax1: number;
-  setCTax1: (value: number) => void;
-  cPre1: number;
-  setCPre1: (value: number) => void;
-  cPost1: number;
-  setCPost1: (value: number) => void;
-  cMatch1: number;
-  setCMatch1: (value: number) => void;
-
-  // Person 2 Contributions
-  cTax2: number;
-  setCTax2: (value: number) => void;
-  cPre2: number;
-  setCPre2: (value: number) => void;
-  cPost2: number;
-  setCPost2: (value: number) => void;
-  cMatch2: number;
-  setCMatch2: (value: number) => void;
-
-  // Rates
-  retRate: number;
-  setRetRate: (value: number) => void;
-  inflationRate: number;
-  setInflationRate: (value: number) => void;
-  stateRate: number;
-  setStateRate: (value: number) => void;
-  incContrib: boolean;
-  setIncContrib: (value: boolean) => void;
-  incRate: number;
-  setIncRate: (value: number) => void;
-  wdRate: number;
-  setWdRate: (value: number) => void;
-
-  // Simulation Settings
-  returnMode: ReturnMode;
-  setReturnMode: (value: ReturnMode) => void;
-  randomWalkSeries: WalkSeries;
-  setRandomWalkSeries: (value: WalkSeries) => void;
-
-  // Asset Allocation
-  allocationStrategy: 'aggressive' | 'ageBased' | 'custom';
-  setAllocationStrategy: (value: 'aggressive' | 'ageBased' | 'custom') => void;
-  bondStartPct: number;
-  setBondStartPct: (value: number) => void;
-  bondEndPct: number;
-  setBondEndPct: (value: number) => void;
-  bondStartAge: number;
-  setBondStartAge: (value: number) => void;
-  bondEndAge: number;
-  setBondEndAge: (value: number) => void;
-  glidePathShape: 'linear' | 'accelerated' | 'decelerated';
-  setGlidePathShape: (value: 'linear' | 'accelerated' | 'decelerated') => void;
-  bondGlidePath: BondGlidePath | null;
-
-  // Social Security
-  includeSS: boolean;
-  setIncludeSS: (value: boolean) => void;
-  ssIncome: number;
-  setSSIncome: (value: number) => void;
-  ssClaimAge: number;
-  setSSClaimAge: (value: number) => void;
-  ssIncome2: number;
-  setSSIncome2: (value: number) => void;
-  ssClaimAge2: number;
-  setSSClaimAge2: (value: number) => void;
-
-  // Healthcare
-  includeMedicare: boolean;
-  setIncludeMedicare: (value: boolean) => void;
-  medicarePremium: number;
-  setMedicarePremium: (value: number) => void;
-  medicalInflation: number;
-  setMedicalInflation: (value: number) => void;
-
-  // Long-Term Care
-  includeLTC: boolean;
-  setIncludeLTC: (value: boolean) => void;
-  ltcAnnualCost: number;
-  setLtcAnnualCost: (value: number) => void;
-  ltcProbability: number;
-  setLtcProbability: (value: number) => void;
-  ltcDuration: number;
-  setLtcDuration: (value: number) => void;
-  ltcOnsetAge: number;
-  setLtcOnsetAge: (value: number) => void;
-  ltcAgeRangeStart: number;
-  setLtcAgeRangeStart: (value: number) => void;
-  ltcAgeRangeEnd: number;
-  setLtcAgeRangeEnd: (value: number) => void;
-
-  // Roth Conversion
-  enableRothConversions: boolean;
-  setEnableRothConversions: (value: boolean) => void;
-  targetConversionBracket: number;
-  setTargetConversionBracket: (value: number) => void;
-
   // Actions
   onCalculate: () => void;
   onInputChange: () => void;
+  markDirty: () => void;
   isLoading: boolean;
   err: string | null;
   calcProgress: CalculationProgress | null;
@@ -154,26 +43,82 @@ export interface ConfigureTabProps {
 }
 
 export function ConfigureTab({
-  marital, setMarital, age1, setAge1, age2, setAge2, retirementAge, setRetirementAge, isMar,
-  taxableBalance, setTaxableBalance, pretaxBalance, setPretaxBalance, rothBalance, setRothBalance,
-  cTax1, setCTax1, cPre1, setCPre1, cPost1, setCPost1, cMatch1, setCMatch1,
-  cTax2, setCTax2, cPre2, setCPre2, cPost2, setCPost2, cMatch2, setCMatch2,
-  retRate, setRetRate, inflationRate, setInflationRate, stateRate, setStateRate,
-  incContrib, setIncContrib, incRate, setIncRate, wdRate, setWdRate,
-  returnMode, setReturnMode, setRandomWalkSeries,
-  allocationStrategy, setAllocationStrategy, bondStartPct, setBondStartPct,
-  bondEndPct, setBondEndPct, bondStartAge, setBondStartAge, bondEndAge, setBondEndAge,
-  glidePathShape, setGlidePathShape, bondGlidePath,
-  includeSS, setIncludeSS, ssIncome, setSSIncome, ssClaimAge, setSSClaimAge,
-  ssIncome2, setSSIncome2, ssClaimAge2, setSSClaimAge2,
-  includeMedicare, setIncludeMedicare, medicarePremium, setMedicarePremium, medicalInflation, setMedicalInflation,
-  includeLTC, setIncludeLTC, ltcAnnualCost, setLtcAnnualCost, ltcProbability, setLtcProbability,
-  ltcDuration, setLtcDuration, ltcOnsetAge, setLtcOnsetAge,
-  ltcAgeRangeStart, setLtcAgeRangeStart, ltcAgeRangeEnd, setLtcAgeRangeEnd,
-  enableRothConversions, setEnableRothConversions, targetConversionBracket, setTargetConversionBracket,
-  onCalculate, onInputChange, isLoading, err, calcProgress, tabGroupRef
+  onCalculate, onInputChange, markDirty, isLoading, err, calcProgress, tabGroupRef
 }: ConfigureTabProps) {
   const selectId = useId();
+  const DEFAULTS = useMemo(() => createDefaultPlanConfig(), []);
+  const { config: planConfig, updateConfig: updatePlanConfig } = usePlanConfig();
+
+  const marital = planConfig.marital ?? DEFAULTS.marital;
+  const age1 = planConfig.age1 ?? DEFAULTS.age1;
+  const age2 = planConfig.age2 ?? DEFAULTS.age2;
+  const retirementAge = planConfig.retirementAge ?? DEFAULTS.retirementAge;
+  const isMar = useIsMarried(planConfig);
+
+  const taxableBalance = planConfig.taxableBalance ?? DEFAULTS.taxableBalance;
+  const pretaxBalance = planConfig.pretaxBalance ?? DEFAULTS.pretaxBalance;
+  const rothBalance = planConfig.rothBalance ?? DEFAULTS.rothBalance;
+
+  const cTax1 = planConfig.cTax1 ?? DEFAULTS.cTax1;
+  const cPre1 = planConfig.cPre1 ?? DEFAULTS.cPre1;
+  const cPost1 = planConfig.cPost1 ?? DEFAULTS.cPost1;
+  const cMatch1 = Math.max(0, planConfig.cMatch1 ?? DEFAULTS.cMatch1);
+  const cTax2 = planConfig.cTax2 ?? DEFAULTS.cTax2;
+  const cPre2 = planConfig.cPre2 ?? DEFAULTS.cPre2;
+  const cPost2 = planConfig.cPost2 ?? DEFAULTS.cPost2;
+  const cMatch2 = Math.max(0, planConfig.cMatch2 ?? DEFAULTS.cMatch2);
+
+  const retRate = planConfig.retRate ?? DEFAULTS.retRate;
+  const inflationRate = planConfig.inflationRate ?? DEFAULTS.inflationRate;
+  const stateRate = planConfig.stateRate ?? DEFAULTS.stateRate;
+  const incContrib = planConfig.incContrib ?? DEFAULTS.incContrib;
+  const incRate = planConfig.incRate ?? DEFAULTS.incRate;
+  const wdRate = planConfig.wdRate ?? DEFAULTS.wdRate;
+
+  const returnMode = planConfig.returnMode ?? DEFAULTS.returnMode;
+  const allocationStrategy = planConfig.allocationStrategy ?? DEFAULTS.allocationStrategy;
+  const bondStartPct = planConfig.bondStartPct ?? DEFAULTS.bondStartPct;
+  const bondEndPct = planConfig.bondEndPct ?? DEFAULTS.bondEndPct;
+  const bondStartAge = planConfig.bondStartAge ?? age1;
+  const bondEndAge = planConfig.bondEndAge ?? DEFAULTS.bondEndAge;
+  const glidePathShape = planConfig.glidePathShape ?? DEFAULTS.glidePathShape;
+  const bondGlidePath = useBondGlidePathDerived(planConfig);
+
+  const includeSS = planConfig.includeSS ?? DEFAULTS.includeSS;
+  const ssIncome = planConfig.ssIncome ?? DEFAULTS.ssIncome;
+  const ssClaimAge = planConfig.ssClaimAge ?? DEFAULTS.ssClaimAge;
+  const ssIncome2 = planConfig.ssIncome2 ?? DEFAULTS.ssIncome2;
+  const ssClaimAge2 = planConfig.ssClaimAge2 ?? DEFAULTS.ssClaimAge2;
+
+  const includeMedicare = planConfig.includeMedicare ?? DEFAULTS.includeMedicare;
+  const medicarePremium = planConfig.medicarePremium ?? DEFAULTS.medicarePremium;
+  const medicalInflation = planConfig.medicalInflation ?? DEFAULTS.medicalInflation;
+
+  const includeLTC = planConfig.includeLTC ?? DEFAULTS.includeLTC;
+  const ltcAnnualCost = planConfig.ltcAnnualCost ?? DEFAULTS.ltcAnnualCost;
+  const ltcProbability = planConfig.ltcProbability ?? DEFAULTS.ltcProbability;
+  const ltcDuration = planConfig.ltcDuration ?? DEFAULTS.ltcDuration;
+  const ltcOnsetAge = planConfig.ltcOnsetAge ?? DEFAULTS.ltcOnsetAge;
+  const ltcAgeRangeStart = planConfig.ltcAgeRangeStart ?? DEFAULTS.ltcAgeRangeStart;
+  const ltcAgeRangeEnd = planConfig.ltcAgeRangeEnd ?? DEFAULTS.ltcAgeRangeEnd;
+
+  const enableRothConversions = planConfig.enableRothConversions ?? DEFAULTS.enableRothConversions;
+  const targetConversionBracket = planConfig.targetConversionBracket ?? DEFAULTS.targetConversionBracket;
+
+  const {
+    setMarital, setAge1, setAge2, setRetirementAge,
+    setTaxableBalance, setPretaxBalance, setRothBalance,
+    setCTax1, setCPre1, setCPost1, setCMatch1,
+    setCTax2, setCPre2, setCPost2, setCMatch2,
+    setRetRate, setInflationRate, setStateRate, setIncContrib, setIncRate, setWdRate,
+    setReturnMode, setRandomWalkSeries,
+    setAllocationStrategy, setBondStartPct, setBondEndPct, setBondStartAge, setBondEndAge, setGlidePathShape,
+    setIncludeSS, setSSIncome, setSSClaimAge, setSSIncome2, setSSClaimAge2,
+    setIncludeMedicare, setMedicarePremium, setMedicalInflation,
+    setIncludeLTC, setLtcAnnualCost, setLtcProbability, setLtcDuration,
+    setLtcOnsetAge, setLtcAgeRangeStart, setLtcAgeRangeEnd,
+    setEnableRothConversions, setTargetConversionBracket,
+  } = usePlanConfigSetters(updatePlanConfig, markDirty, planConfig);
 
   // Cross-field validation: IRS Section 415(c) total annual additions
   const person1TotalValidation = useMemo(

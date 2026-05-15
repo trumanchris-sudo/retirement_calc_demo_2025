@@ -22,6 +22,7 @@ import {
   calcEstateTax,
   type SimulationInputs,
 } from '@/lib/calculations/retirementEngine';
+import { buildSimulationInputs, hashSimulationInputs } from '@/lib/calculations/buildSimulationInputs';
 import {
   getCurrYear,
   LIFE_EXP,
@@ -116,6 +117,7 @@ export interface CalcDeps {
   lastCalculated: Date | null;
   setLastCalculated: (v: Date | null) => void;
   setInputsModified: (v: boolean) => void;
+  setCalculatedSnapshotHash: (v: string | null) => void;
 
   // Worker hook
   workerRef: React.RefObject<Worker | null>;
@@ -257,7 +259,7 @@ export function useCalculation(deps: CalcDeps) {
   const {
     res, setRes, setErr, setIsRunning, setIsDirty,
     setBatchSummary, setLegacyResult, setOlderAgeForAnalysis,
-    lastCalculated, setLastCalculated, setInputsModified,
+    lastCalculated, setLastCalculated, setInputsModified, setCalculatedSnapshotHash,
     workerRef, runMonteCarloViaWorker, runLegacyViaWorker,
     runGuardrailsAnalysis, runRothOptimizer, setGuardrailsResult,
     setAiInsight, setAiError, setIsLoadingAi,
@@ -378,26 +380,29 @@ export function useCalculation(deps: CalcDeps) {
     }
 
     try {
+      const inputs = buildSimulationInputs(planConfig, { bondGlidePath });
+      const calculationHash = hashSimulationInputs(inputs);
+
       const validationResult = validateCalculatorInputs({
-        age1,
-        age2: isMar ? age2 : undefined,
-        retirementAge,
-        taxableBalance,
-        pretaxBalance,
-        rothBalance,
-        cTax1,
-        cPre1,
-        cPost1,
-        cMatch1,
-        cTax2: isMar ? cTax2 : undefined,
-        cPre2: isMar ? cPre2 : undefined,
-        cPost2: isMar ? cPost2 : undefined,
-        cMatch2: isMar ? cMatch2 : undefined,
-        wdRate,
-        retRate,
-        inflationRate,
-        stateRate,
-        marital
+        age1: inputs.age1,
+        age2: isMar ? inputs.age2 : undefined,
+        retirementAge: inputs.retirementAge,
+        taxableBalance: inputs.taxableBalance,
+        pretaxBalance: inputs.pretaxBalance,
+        rothBalance: inputs.rothBalance,
+        cTax1: inputs.cTax1,
+        cPre1: inputs.cPre1,
+        cPost1: inputs.cPost1,
+        cMatch1: inputs.cMatch1,
+        cTax2: isMar ? inputs.cTax2 : undefined,
+        cPre2: isMar ? inputs.cPre2 : undefined,
+        cPost2: isMar ? inputs.cPost2 : undefined,
+        cMatch2: isMar ? inputs.cMatch2 : undefined,
+        wdRate: inputs.wdRate,
+        retRate: inputs.retRate,
+        inflationRate: inputs.inflationRate,
+        stateRate: inputs.stateRate,
+        marital: inputs.marital
       });
 
       if (!validationResult.isValid) {
@@ -422,34 +427,6 @@ export function useCalculation(deps: CalcDeps) {
 
       // Determine simulation count based on mode
       const simCount = randomWalkSeries === 'trulyRandom' ? 1000 : 1;
-
-      const inputs: SimulationInputs = {
-        // Personal & Family
-        marital, age1, age2, retirementAge,
-        numChildren, childrenAges, additionalChildrenExpected,
-        // Employment & Income
-        employmentType1, employmentType2, primaryIncome, spouseIncome,
-        // Account Balances
-        emergencyFund, taxableBalance, pretaxBalance, rothBalance,
-        // Contributions
-        cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-        // Rates & Assumptions
-        retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
-        returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
-        historicalYear: historicalYear || undefined,
-        inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
-        inflationShockDuration,
-        dividendYield,
-        // Healthcare costs
-        includeMedicare, medicarePremium, medicalInflation,
-        irmaaThresholdSingle, irmaaThresholdMarried, irmaaSurcharge,
-        includeLTC, ltcAnnualCost, ltcProbability, ltcDuration, ltcOnsetAge,
-        ltcAgeRangeStart, ltcAgeRangeEnd,
-        // Roth conversion strategy
-        enableRothConversions, targetConversionBracket,
-        // Bond glide path
-        bondGlidePath,
-      };
 
       let batchResult: BatchSummary;
       try {
@@ -762,6 +739,7 @@ export function useCalculation(deps: CalcDeps) {
       const isFirstCalculation = !lastCalculated;
       setLastCalculated(new Date());
       setInputsModified(false);
+      setCalculatedSnapshotHash(calculationHash);
 
       // NAVIGATION BEHAVIOR:
       // - First calculation from Configure tab OR Wizard completion → Navigate to Results tab and scroll to top
@@ -813,10 +791,10 @@ export function useCalculation(deps: CalcDeps) {
     assumeTaxCutsExtended,
     // State setters (stable references)
     setRes, setErr, setIsRunning, setIsDirty, setBatchSummary, setLegacyResult,
-    setOlderAgeForAnalysis, setLastCalculated, setInputsModified,
+    setOlderAgeForAnalysis, setLastCalculated, setInputsModified, setCalculatedSnapshotHash,
     setGuardrailsResult, setAiInsight, setAiError, setIsLoadingAi,
     setComparisonData, setComparisonMode, setShowBearMarket, setShowInflationShock,
-    setIsFromWizard, splashRef, tabGroupRef, workerRef, updatePlanConfig,
+    setIsFromWizard, splashRef, tabGroupRef, workerRef, updatePlanConfig, planConfig,
   ]);
 
   // ========================================
@@ -826,34 +804,21 @@ export function useCalculation(deps: CalcDeps) {
   const calculateSensitivity = useCallback((): SensitivityAnalysisData | null => {
     if (!res) return null;
 
-    const baseInputs: SimulationInputs = {
-      marital, age1, age2, retirementAge, taxableBalance, pretaxBalance, rothBalance,
-      cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-      retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
-      returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
-      historicalYear: historicalYear || undefined,
-      inflationShockRate: inflationShockRate > 0 ? inflationShockRate : null,
-      inflationShockDuration,
-      includeMedicare, medicarePremium, medicalInflation,
-      irmaaThresholdSingle, irmaaThresholdMarried, irmaaSurcharge,
-      includeLTC, ltcAnnualCost, ltcProbability, ltcDuration,
-      ltcOnsetAge, ltcAgeRangeStart, ltcAgeRangeEnd,
-      bondGlidePath,
-    };
+    const baseInputs = buildSimulationInputs(planConfig, { bondGlidePath });
 
     const baselineSim = runSingleSimulation(baseInputs, seed);
     const baselineEOL = baselineSim.eolReal;
-    const infl = inflationRate / 100;
-    const younger = Math.min(age1, isMar ? age2 : age1);
-    const older = Math.max(age1, isMar ? age2 : age1);
+    const infl = baseInputs.inflationRate / 100;
+    const younger = Math.min(baseInputs.age1, isMar ? baseInputs.age2 : baseInputs.age1);
+    const older = Math.max(baseInputs.age1, isMar ? baseInputs.age2 : baseInputs.age1);
     const yearsFrom2025 = (LIFE_EXP - older);
     const baselineNominal = baselineEOL * Math.pow(1 + infl, yearsFrom2025);
 
     const variations: SensitivityVariation[] = [];
 
     // 1. Return Rate: ±2%
-    const highReturnSim = runSingleSimulation({ ...baseInputs, retRate: retRate + 2 }, seed);
-    const lowReturnSim = runSingleSimulation({ ...baseInputs, retRate: retRate - 2 }, seed);
+    const highReturnSim = runSingleSimulation({ ...baseInputs, retRate: baseInputs.retRate + 2 }, seed);
+    const lowReturnSim = runSingleSimulation({ ...baseInputs, retRate: baseInputs.retRate - 2 }, seed);
     variations.push({
       label: "Return Rate",
       high: (highReturnSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
@@ -862,8 +827,8 @@ export function useCalculation(deps: CalcDeps) {
     });
 
     // 2. Retirement Age: ±2 years
-    const highRetAgeSim = runSingleSimulation({ ...baseInputs, retirementAge: retirementAge + 2 }, seed);
-    const lowRetAgeSim = runSingleSimulation({ ...baseInputs, retirementAge: Math.max(younger + 5, retirementAge - 2) }, seed);
+    const highRetAgeSim = runSingleSimulation({ ...baseInputs, retirementAge: baseInputs.retirementAge + 2 }, seed);
+    const lowRetAgeSim = runSingleSimulation({ ...baseInputs, retirementAge: Math.max(younger + 5, baseInputs.retirementAge - 2) }, seed);
     variations.push({
       label: "Retirement Age",
       high: (highRetAgeSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
@@ -872,8 +837,8 @@ export function useCalculation(deps: CalcDeps) {
     });
 
     // 3. Withdrawal Rate: ±0.5%
-    const highWdSim = runSingleSimulation({ ...baseInputs, wdRate: wdRate + 0.5 }, seed);
-    const lowWdSim = runSingleSimulation({ ...baseInputs, wdRate: wdRate - 0.5 }, seed);
+    const highWdSim = runSingleSimulation({ ...baseInputs, wdRate: baseInputs.wdRate + 0.5 }, seed);
+    const lowWdSim = runSingleSimulation({ ...baseInputs, wdRate: baseInputs.wdRate - 0.5 }, seed);
     variations.push({
       label: "Withdrawal Rate",
       high: (lowWdSim.eolReal * Math.pow(1 + infl, yearsFrom2025)) - baselineNominal,
@@ -885,15 +850,15 @@ export function useCalculation(deps: CalcDeps) {
     const savingsFactor = 0.15;
     const highSavingsSim = runSingleSimulation({
       ...baseInputs,
-      taxableBalance: taxableBalance * (1 + savingsFactor),
-      pretaxBalance: pretaxBalance * (1 + savingsFactor),
-      rothBalance: rothBalance * (1 + savingsFactor),
+      taxableBalance: baseInputs.taxableBalance * (1 + savingsFactor),
+      pretaxBalance: baseInputs.pretaxBalance * (1 + savingsFactor),
+      rothBalance: baseInputs.rothBalance * (1 + savingsFactor),
     }, seed);
     const lowSavingsSim = runSingleSimulation({
       ...baseInputs,
-      taxableBalance: taxableBalance * (1 - savingsFactor),
-      pretaxBalance: pretaxBalance * (1 - savingsFactor),
-      rothBalance: rothBalance * (1 - savingsFactor),
+      taxableBalance: baseInputs.taxableBalance * (1 - savingsFactor),
+      pretaxBalance: baseInputs.pretaxBalance * (1 - savingsFactor),
+      rothBalance: baseInputs.rothBalance * (1 - savingsFactor),
     }, seed);
     variations.push({
       label: "Starting Savings",
@@ -906,25 +871,25 @@ export function useCalculation(deps: CalcDeps) {
     const contribFactor = 0.15;
     const highContribSim = runSingleSimulation({
       ...baseInputs,
-      cTax1: cTax1 * (1 + contribFactor),
-      cPre1: cPre1 * (1 + contribFactor),
-      cPost1: cPost1 * (1 + contribFactor),
-      cMatch1: cMatch1 * (1 + contribFactor),
-      cTax2: cTax2 * (1 + contribFactor),
-      cPre2: cPre2 * (1 + contribFactor),
-      cPost2: cPost2 * (1 + contribFactor),
-      cMatch2: cMatch2 * (1 + contribFactor),
+      cTax1: baseInputs.cTax1 * (1 + contribFactor),
+      cPre1: baseInputs.cPre1 * (1 + contribFactor),
+      cPost1: baseInputs.cPost1 * (1 + contribFactor),
+      cMatch1: baseInputs.cMatch1 * (1 + contribFactor),
+      cTax2: baseInputs.cTax2 * (1 + contribFactor),
+      cPre2: baseInputs.cPre2 * (1 + contribFactor),
+      cPost2: baseInputs.cPost2 * (1 + contribFactor),
+      cMatch2: baseInputs.cMatch2 * (1 + contribFactor),
     }, seed);
     const lowContribSim = runSingleSimulation({
       ...baseInputs,
-      cTax1: cTax1 * (1 - contribFactor),
-      cPre1: cPre1 * (1 - contribFactor),
-      cPost1: cPost1 * (1 - contribFactor),
-      cMatch1: cMatch1 * (1 - contribFactor),
-      cTax2: cTax2 * (1 - contribFactor),
-      cPre2: cPre2 * (1 - contribFactor),
-      cPost2: cPost2 * (1 - contribFactor),
-      cMatch2: cMatch2 * (1 - contribFactor),
+      cTax1: baseInputs.cTax1 * (1 - contribFactor),
+      cPre1: baseInputs.cPre1 * (1 - contribFactor),
+      cPost1: baseInputs.cPost1 * (1 - contribFactor),
+      cMatch1: baseInputs.cMatch1 * (1 - contribFactor),
+      cTax2: baseInputs.cTax2 * (1 - contribFactor),
+      cPre2: baseInputs.cPre2 * (1 - contribFactor),
+      cPost2: baseInputs.cPost2 * (1 - contribFactor),
+      cMatch2: baseInputs.cMatch2 * (1 - contribFactor),
     }, seed);
     variations.push({
       label: "Annual Contributions",
@@ -934,10 +899,10 @@ export function useCalculation(deps: CalcDeps) {
     });
 
     // 6. Inflation Rate: ±0.5%
-    const highInflSim = runSingleSimulation({ ...baseInputs, inflationRate: inflationRate + 0.5 }, seed);
-    const lowInflSim = runSingleSimulation({ ...baseInputs, inflationRate: inflationRate - 0.5 }, seed);
-    const highInflNominal = highInflSim.eolReal * Math.pow(1 + (inflationRate + 0.5) / 100, yearsFrom2025);
-    const lowInflNominal = lowInflSim.eolReal * Math.pow(1 + (inflationRate - 0.5) / 100, yearsFrom2025);
+    const highInflSim = runSingleSimulation({ ...baseInputs, inflationRate: baseInputs.inflationRate + 0.5 }, seed);
+    const lowInflSim = runSingleSimulation({ ...baseInputs, inflationRate: baseInputs.inflationRate - 0.5 }, seed);
+    const highInflNominal = highInflSim.eolReal * Math.pow(1 + (baseInputs.inflationRate + 0.5) / 100, yearsFrom2025);
+    const lowInflNominal = lowInflSim.eolReal * Math.pow(1 + (baseInputs.inflationRate - 0.5) / 100, yearsFrom2025);
     variations.push({
       label: "Inflation Rate",
       high: lowInflNominal - baselineNominal,
@@ -959,7 +924,7 @@ export function useCalculation(deps: CalcDeps) {
     irmaaThresholdSingle, irmaaThresholdMarried, irmaaSurcharge,
     includeLTC, ltcAnnualCost, ltcProbability, ltcDuration,
     ltcOnsetAge, ltcAgeRangeStart, ltcAgeRangeEnd,
-    bondGlidePath, isMar, seed,
+    bondGlidePath, isMar, seed, planConfig,
   ]);
 
   return {
