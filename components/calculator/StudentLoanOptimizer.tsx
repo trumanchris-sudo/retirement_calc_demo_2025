@@ -83,8 +83,8 @@ interface RefinanceAnalysis {
 // CONSTANTS
 // ============================================================================
 
-const FEDERAL_POVERTY_LINE_2024 = 15060; // Single person
-const POVERTY_LINE_FAMILY_INCREMENT = 5380;
+const FEDERAL_POVERTY_LINE_2026 = 15960; // 48 contiguous states + DC
+const POVERTY_LINE_FAMILY_INCREMENT_2026 = 5680;
 
 interface IDRPlan {
   name: string;
@@ -94,12 +94,20 @@ interface IDRPlan {
   newBorrowerYears?: number;
   undergrad?: number;
   undergradThreshold?: number;
+  availabilityNote?: string;
 }
 
 const IDR_PLANS: Record<string, IDRPlan> = {
   IBR: { name: "Income-Based Repayment (IBR)", discretionaryPercent: 0.15, forgivenessYears: 25, newBorrowerPercent: 0.10, newBorrowerYears: 20 },
   PAYE: { name: "Pay As You Earn (PAYE)", discretionaryPercent: 0.10, forgivenessYears: 20 },
-  SAVE: { name: "SAVE Plan", discretionaryPercent: 0.10, forgivenessYears: 20, undergrad: 0.05, undergradThreshold: 12000 },
+  SAVE: {
+    name: "SAVE Plan (legacy comparison)",
+    discretionaryPercent: 0.10,
+    forgivenessYears: 20,
+    undergrad: 0.05,
+    undergradThreshold: 12000,
+    availabilityNote: "SAVE is no longer available for new enrollment; shown only for legacy comparison.",
+  },
   ICR: { name: "Income-Contingent Repayment (ICR)", discretionaryPercent: 0.20, forgivenessYears: 25 },
 };
 
@@ -176,9 +184,75 @@ const calculateDiscretionaryIncome = (
   grossIncome: number,
   familySize: number
 ): number => {
-  const povertyLine = FEDERAL_POVERTY_LINE_2024 + (familySize - 1) * POVERTY_LINE_FAMILY_INCREMENT;
+  const povertyLine = FEDERAL_POVERTY_LINE_2026 + (familySize - 1) * POVERTY_LINE_FAMILY_INCREMENT_2026;
   const threshold = povertyLine * 1.5; // 150% of poverty line
   return Math.max(0, grossIncome - threshold);
+};
+
+const getIdrPaymentPercent = (
+  key: string,
+  plan: IDRPlan,
+  federalBalance: number
+): number => {
+  if (key === "SAVE" && plan.undergradThreshold && federalBalance <= plan.undergradThreshold) {
+    return plan.undergrad || plan.discretionaryPercent;
+  }
+  return plan.discretionaryPercent;
+};
+
+const formatDuration = (months: number): string => {
+  if (months <= 0) return "0 months";
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"}`;
+  const years = months / 12;
+  return Number.isInteger(years)
+    ? `${years} year${years === 1 ? "" : "s"}`
+    : `${years.toFixed(1)} years`;
+};
+
+const calculateIdrRepaymentPlan = (
+  key: string,
+  plan: IDRPlan,
+  federalBalance: number,
+  weightedAvgRate: number,
+  annualIncome: number,
+  familySize: number
+): RepaymentPlan => {
+  const discretionaryIncome = calculateDiscretionaryIncome(annualIncome, familySize);
+  const monthlyPayment = (discretionaryIncome * getIdrPaymentPercent(key, plan, federalBalance)) / 12;
+  const maxMonths = plan.forgivenessYears * 12;
+  const monthlyRate = weightedAvgRate / 100 / 12;
+
+  let balance = federalBalance;
+  let totalPaid = 0;
+  let totalInterest = 0;
+  let months = 0;
+
+  while (balance > 0.01 && months < maxMonths) {
+    const interest = balance * monthlyRate;
+    const payment = Math.min(monthlyPayment, balance + interest);
+    totalInterest += Math.min(payment, interest);
+    balance = balance + interest - payment;
+    totalPaid += payment;
+    months++;
+  }
+
+  if (balance < 0.01) balance = 0;
+  const forgiveness = Math.max(0, balance);
+
+  const result: RepaymentPlan = {
+    name: plan.name,
+    monthlyPayment,
+    totalPaid,
+    totalInterest,
+    payoffMonths: forgiveness > 0 ? maxMonths : months,
+  };
+
+  if (forgiveness > 0) {
+    result.forgivenessAmount = forgiveness;
+    result.forgivenessYear = plan.forgivenessYears;
+  }
+
+  return result;
 };
 
 // ============================================================================
@@ -509,43 +583,15 @@ export default function StudentLoanOptimizer() {
 
     // Income-Driven Plans (only for federal loans)
     if (federalBalance > 0) {
-      const discretionaryIncome = calculateDiscretionaryIncome(annualIncome, familySize);
-
       Object.entries(IDR_PLANS).forEach(([key, plan]) => {
-        let monthlyPayment: number;
-        const forgivenessYears = plan.forgivenessYears;
-
-        if (key === "SAVE" && plan.undergradThreshold && federalBalance <= plan.undergradThreshold) {
-          // SAVE has 5% for undergrad loans
-          monthlyPayment = (discretionaryIncome * (plan.undergrad || 0.10)) / 12;
-        } else {
-          monthlyPayment = (discretionaryIncome * plan.discretionaryPercent) / 12;
-        }
-
-        // Calculate what happens over forgiveness period
-        let balance = federalBalance;
-        let totalPaid = 0;
-        const monthlyRate = weightedAvgRate / 100 / 12;
-
-        for (let month = 0; month < forgivenessYears * 12; month++) {
-          if (balance <= 0) break;
-          const interest = balance * monthlyRate;
-          const payment = Math.min(monthlyPayment, balance + interest);
-          balance = balance + interest - payment;
-          totalPaid += payment;
-        }
-
-        const forgiveness = Math.max(0, balance);
-
-        plans.push({
-          name: plan.name,
-          monthlyPayment,
-          totalPaid,
-          totalInterest: totalPaid - federalBalance + forgiveness,
-          payoffMonths: forgivenessYears * 12,
-          forgivenessAmount: forgiveness,
-          forgivenessYear: forgivenessYears,
-        });
+        plans.push(calculateIdrRepaymentPlan(
+          key,
+          plan,
+          federalBalance,
+          weightedAvgRate,
+          annualIncome,
+          familySize
+        ));
       });
     }
 
@@ -558,7 +604,7 @@ export default function StudentLoanOptimizer() {
 
     const paymentsRemaining = Math.max(0, 120 - paymentsMade);
 
-    // Use SAVE/IDR payment amount
+    // Use a generic IDR-style payment estimate for PSLF comparisons.
     const discretionaryIncome = calculateDiscretionaryIncome(annualIncome, familySize);
     const monthlyPayment = (discretionaryIncome * 0.10) / 12;
 
@@ -900,7 +946,7 @@ export default function StudentLoanOptimizer() {
                             <div>
                               <div className="text-muted-foreground">Payoff</div>
                               <div className="font-semibold">
-                                {Math.ceil(plan.payoffMonths / 12)} years
+                                {formatDuration(plan.payoffMonths)}
                               </div>
                             </div>
                           </div>
@@ -1121,7 +1167,7 @@ export default function StudentLoanOptimizer() {
                             <ul className="text-sm text-purple-800 dark:text-purple-200 space-y-1 list-disc list-inside">
                               <li>Forgiveness is completely TAX-FREE (unlike IDR forgiveness)</li>
                               <li>Only 120 payments required (10 years) vs 20-25 years for IDR</li>
-                              <li>Can use any IDR plan - SAVE gives lowest payments</li>
+                              <li>Must use a qualifying IDR plan; confirm current eligible plans with StudentAid.gov</li>
                               <li>Submit PSLF form annually to track progress</li>
                             </ul>
                           </div>
@@ -1166,11 +1212,30 @@ export default function StudentLoanOptimizer() {
                 </div>
               ) : (
                 <>
+                  <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        Federal repayment rules are changing in 2026. Legacy plans are shown for comparison,
+                        but availability and enrollment rules should be confirmed with StudentAid.gov before
+                        making loan decisions.
+                      </p>
+                    </div>
+                  </div>
+
                   {/* IDR Plan Details */}
                   <div className="space-y-4">
                     {Object.entries(IDR_PLANS).map(([key, plan]) => {
                       const discretionaryIncome = calculateDiscretionaryIncome(annualIncome, familySize);
-                      const monthlyPayment = (discretionaryIncome * plan.discretionaryPercent) / 12;
+                      const monthlyPayment = (discretionaryIncome * getIdrPaymentPercent(key, plan, federalBalance)) / 12;
+                      const projectedPlan = calculateIdrRepaymentPlan(
+                        key,
+                        plan,
+                        federalBalance,
+                        weightedAvgRate,
+                        annualIncome,
+                        familySize
+                      );
 
                       return (
                         <div
@@ -1190,14 +1255,23 @@ export default function StudentLoanOptimizer() {
                                 <div className="text-xl font-bold">{formatCurrency(monthlyPayment)}</div>
                               </div>
                               <div className="text-right">
-                                <div className="text-sm text-muted-foreground">Forgiveness</div>
-                                <div className="font-semibold">{plan.forgivenessYears} years</div>
+                                <div className="text-sm text-muted-foreground">Projected outcome</div>
+                                <div className="font-semibold">
+                                  {projectedPlan.forgivenessAmount
+                                    ? `Forgiveness after ${plan.forgivenessYears} years`
+                                    : `Paid off in ${formatDuration(projectedPlan.payoffMonths)}`}
+                                </div>
                               </div>
                             </div>
                           </div>
+                          {plan.availabilityNote && (
+                            <div className="mt-2 text-sm text-amber-700 dark:text-amber-300">
+                              {plan.availabilityNote}
+                            </div>
+                          )}
                           {key === "SAVE" && (
                             <div className="mt-2 text-sm text-indigo-600 dark:text-indigo-400">
-                              Lowest payment option - only 5% for undergrad loans under $12k
+                              Legacy formula used 5% for qualifying undergrad loans under $12k.
                             </div>
                           )}
                         </div>
@@ -1214,7 +1288,7 @@ export default function StudentLoanOptimizer() {
                           Tax Bomb Warning
                         </p>
                         <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
-                          When your loans are forgiven under IDR (20-25 years), the forgiven amount is
+                          If a balance is forgiven under an IDR plan, the forgiven amount may be
                           treated as <strong>taxable income</strong>. This can result in a significant
                           tax bill.
                         </p>
@@ -1245,7 +1319,7 @@ export default function StudentLoanOptimizer() {
                       <div className="flex justify-between">
                         <span>150% of Poverty Line (family of {familySize}):</span>
                         <span className="font-semibold">
-                          {formatCurrency((FEDERAL_POVERTY_LINE_2024 + (familySize - 1) * POVERTY_LINE_FAMILY_INCREMENT) * 1.5)}
+                          {formatCurrency((FEDERAL_POVERTY_LINE_2026 + (familySize - 1) * POVERTY_LINE_FAMILY_INCREMENT_2026) * 1.5)}
                         </span>
                       </div>
                       <div className="border-t pt-2 flex justify-between">
@@ -1810,7 +1884,8 @@ export default function StudentLoanOptimizer() {
                       </p>
                       <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
                         Under SECURE 2.0, employers can contribute up to <strong>{formatCurrency(SECURE_2_TAX_FREE_LIMIT)}/year</strong>{" "}
-                        toward your student loans tax-free. This benefit was extended through 2025.
+                        toward qualified student loans tax-free through an educational assistance program.
+                        The annual cap is indexed for inflation for tax years after 2026.
                       </p>
                       <p className="text-sm text-blue-800 dark:text-blue-200">
                         Ask your HR department if this benefit is available!

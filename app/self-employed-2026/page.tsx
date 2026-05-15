@@ -19,13 +19,13 @@ import {
 import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
 import { createDefaultPlanConfig } from "@/types/plan-config";
+import type { PlanConfig } from "@/types/plan-config";
 import {
   FilingStatus as SEFilingStatus,
   PayFrequency,
   getMax401kContribution,
   getMaxHSAContribution,
   SE_TAX_2026,
-  HSA_LIMITS_2026,
 } from "@/lib/constants/tax2026";
 import {
   calculateSelfEmployedBudget,
@@ -56,6 +56,50 @@ import {
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
+
+const getInitialGrossCompensation = (planConfig: PlanConfig) =>
+  Math.round(planConfig.primaryIncome ?? 0);
+
+const inferHealthInsuranceCoverage = (
+  planConfig: PlanConfig
+): 'self' | 'self_spouse' | 'family' | 'none' => {
+  if ((planConfig.numChildren ?? 0) > 0) return 'family';
+  if (planConfig.marital === 'married') return 'self_spouse';
+  return 'self';
+};
+
+const getInitialHealthInsurancePremium = (planConfig: PlanConfig) => {
+  const totalMonthlyHealthcare =
+    (planConfig.monthlyHealthcareP1 ?? 0) + (planConfig.monthlyHealthcareP2 ?? 0);
+  return totalMonthlyHealthcare > 0 ? totalMonthlyHealthcare * 12 : 677 * 12;
+};
+
+const getInitialHsaContribution = (planConfig: PlanConfig) => {
+  const coverage = inferHealthInsuranceCoverage(planConfig);
+  return getMaxHSAContribution(coverage === 'self' ? 'self' : 'family', planConfig.age1 ?? 35);
+};
+
+const getInitialMortgage = (planConfig: PlanConfig) =>
+  planConfig.monthlyMortgageRent && planConfig.monthlyMortgageRent > 0
+    ? planConfig.monthlyMortgageRent
+    : 2930;
+
+const getInitialHouseholdExpenses = (planConfig: PlanConfig) => {
+  if (planConfig.monthlyHouseholdExpenses && planConfig.monthlyHouseholdExpenses > 0) {
+    return planConfig.monthlyHouseholdExpenses;
+  }
+
+  const derived =
+    (planConfig.monthlyUtilities ?? 0) +
+    (planConfig.monthlyOtherExpenses ?? 0) +
+    (planConfig.monthlyInsurancePropertyTax ?? 0);
+  return derived > 0 ? derived : 1500;
+};
+
+const getInitialDiscretionaryBudget = (planConfig: PlanConfig) =>
+  planConfig.monthlyDiscretionary && planConfig.monthlyDiscretionary > 0
+    ? planConfig.monthlyDiscretionary
+    : 2500;
 
 export default function SelfEmployed2026Page() {
   useBudget();
@@ -95,9 +139,7 @@ export default function SelfEmployed2026Page() {
   // ============================================================================
 
   // grossCompensation: user can set independently from guaranteedPayments
-  const [grossCompensation, setGrossCompensation] = useState(() =>
-    Math.round((planConfig.primaryIncome ?? 0) * 1.3)
-  );
+  const [grossCompensation, setGrossCompensation] = useState(() => getInitialGrossCompensation(planConfig));
   // Track previous primaryIncome to detect external changes and re-sync grossCompensation
   const prevPrimaryIncomeRef = useRef(planConfig.primaryIncome ?? 0);
   // Flag to suppress sync-back when "Apply to Main Plan" writes to planConfig
@@ -119,10 +161,14 @@ export default function SelfEmployed2026Page() {
   const [sepIRA, setSepIRA] = useState(0);
 
   // Health Benefits
-  const [healthInsuranceCoverage, setHealthInsuranceCoverage] = useState<'self' | 'self_spouse' | 'family' | 'none'>('self');
-  const [healthInsurancePremium, setHealthInsurancePremium] = useState(677 * 12);
+  const [healthInsuranceCoverage, setHealthInsuranceCoverage] = useState<'self' | 'self_spouse' | 'family' | 'none'>(() =>
+    inferHealthInsuranceCoverage(planConfig)
+  );
+  const [healthInsurancePremium, setHealthInsurancePremium] = useState(() =>
+    getInitialHealthInsurancePremium(planConfig)
+  );
   const [dentalVisionPremium, setDentalVisionPremium] = useState(80 * 12);
-  const [hsaContribution, setHsaContribution] = useState(4400);
+  const [hsaContribution, setHsaContribution] = useState(() => getInitialHsaContribution(planConfig));
   const [dependentCareFSA, setDependentCareFSA] = useState(5000);
   const [healthFSA] = useState(0);
 
@@ -130,9 +176,9 @@ export default function SelfEmployed2026Page() {
   const [withholdingMethod, setWithholdingMethod] = useState<'partnership_withholds' | 'quarterly_estimates'>('partnership_withholds');
 
   // Fixed Expenses
-  const [mortgage, setMortgage] = useState(2930);
-  const [householdExpenses, setHouseholdExpenses] = useState(1500);
-  const [discretionaryBudget, setDiscretionaryBudget] = useState(2500);
+  const [mortgage, setMortgage] = useState(() => getInitialMortgage(planConfig));
+  const [householdExpenses, setHouseholdExpenses] = useState(() => getInitialHouseholdExpenses(planConfig));
+  const [discretionaryBudget, setDiscretionaryBudget] = useState(() => getInitialDiscretionaryBudget(planConfig));
 
   // Results
   const [results, setResults] = useState<{
@@ -150,7 +196,7 @@ export default function SelfEmployed2026Page() {
   // COMPUTED VALUES
   // ============================================================================
 
-  const distributiveShare = grossCompensation - guaranteedPayments;
+  const distributiveShare = Math.max(0, grossCompensation - guaranteedPayments);
   const max401k = getMax401kContribution(age);
   const maxHSA = getMaxHSAContribution(healthInsuranceCoverage === 'self' ? 'self' : 'family', age);
   const isMarried = filingStatus === 'mfj';
@@ -204,7 +250,7 @@ export default function SelfEmployed2026Page() {
     if (currentIncome !== prevIncome) {
       prevPrimaryIncomeRef.current = currentIncome;
       if (currentIncome > 0) {
-        setGrossCompensation(Math.round(currentIncome * 1.3));
+        setGrossCompensation(Math.round(currentIncome));
       }
     }
   }, [planConfig.primaryIncome]);
@@ -238,15 +284,7 @@ export default function SelfEmployed2026Page() {
 
     // Health insurance coverage: sync when marital status or numChildren changes
     if (prev.marital !== planConfig.marital || prev.numChildren !== planConfig.numChildren) {
-      if (planConfig.marital === 'married') {
-        if (planConfig.numChildren && planConfig.numChildren > 0) {
-          setHealthInsuranceCoverage('family');
-        } else {
-          setHealthInsuranceCoverage('self_spouse');
-        }
-      } else {
-        setHealthInsuranceCoverage('self');
-      }
+      setHealthInsuranceCoverage(inferHealthInsuranceCoverage(planConfig));
     }
 
     // Healthcare premiums: sync when monthly healthcare fields change
@@ -260,12 +298,7 @@ export default function SelfEmployed2026Page() {
 
     // HSA contribution: sync when age or marital status changes
     if (prev.age1 !== planConfig.age1 || prev.marital !== planConfig.marital) {
-      const currentAge = planConfig.age1 ?? 35;
-      const isFamilyCoverage = planConfig.marital === 'married';
-      const hsaBaseLimit = isFamilyCoverage ? HSA_LIMITS_2026.FAMILY : HSA_LIMITS_2026.SELF_ONLY;
-      const hsaCatchUp = currentAge >= 55 ? HSA_LIMITS_2026.CATCHUP_55_PLUS : 0;
-      const maxHSAContrib = hsaBaseLimit + hsaCatchUp;
-      setHsaContribution(maxHSAContrib);
+      setHsaContribution(getInitialHsaContribution(planConfig));
     }
 
     // Mortgage: sync when monthlyMortgageRent changes
@@ -314,7 +347,7 @@ export default function SelfEmployed2026Page() {
         planConfig.employmentType1 === 'both';
 
       if (isSelfEmployed && planConfig.primaryIncome && planConfig.primaryIncome > 0) {
-        setGrossCompensation(Math.round(planConfig.primaryIncome * 1.3));
+        setGrossCompensation(Math.round(planConfig.primaryIncome));
       }
     }
 
@@ -413,8 +446,10 @@ export default function SelfEmployed2026Page() {
       monthlyHealthcareP1: Math.round(healthInsurancePremium / 12),
       monthlyHealthcareP2: isMarried ? Math.round(dentalVisionPremium / 12) : 0,
       monthlyMortgageRent: mortgage,
+      monthlyHouseholdExpenses: householdExpenses,
+      monthlyDiscretionary: discretionaryBudget,
       monthlyUtilities: Math.round(householdExpenses * 0.3),
-      monthlyOtherExpenses: Math.round(householdExpenses * 0.7 + discretionaryBudget),
+      monthlyOtherExpenses: Math.round(householdExpenses * 0.7),
     }, 'user-entered');
 
     const summaryMsg = `Self-employed 2026 data applied to main retirement plan:
@@ -722,7 +757,7 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
                           <td colSpan={chunk.length + 1} className="py-1 px-2 font-semibold text-xs">POST-PAYMENT EXPENSES</td>
                         </tr>
                         <tr className="hover:bg-muted/50 text-orange-600">
-                          <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Mortgage/Rent</td>
+                          <td className="py-1 px-2 pl-4 sticky left-0 bg-background">Mortgage/Rent Set-Aside</td>
                           {chunk.map((period) => (
                             <td key={period.periodNumber} className={`text-right py-1 px-2 border-l ${period.isDistributionPeriod ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}>
                               -${(period.mortgage ?? 0).toLocaleString(undefined, {maximumFractionDigits:0})}
@@ -888,7 +923,7 @@ ${isMarried ? `- Spouse Income: $${spouseW2Income.toLocaleString()}
                 </span>
               }
               value={grossCompensation}
-              setter={(v) => { setGrossCompensation(v); updatePlanConfig({ primaryIncome: Math.round(v / 1.3) }, 'user-entered'); calculationState.handleInputChange(); }}
+              setter={(v) => { setGrossCompensation(v); calculationState.handleInputChange(); }}
             />
           </div>
           <div>

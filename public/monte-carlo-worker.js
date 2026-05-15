@@ -844,6 +844,7 @@
     const g_fixed = 1 + retRate / 100;
     const infl = inflationRate / 100;
     const infl_factor = 1 + infl;
+    const historicalStressStartYear = historicalYear ?? void 0;
     const yrsToSim = Math.max(0, LIFE_EXP - (older + yrsToRet));
     const accGen = buildReturnGenerator({
       mode: retMode,
@@ -852,7 +853,7 @@
       infPct: inflationRate,
       walkSeries,
       seed,
-      startYear: historicalYear,
+      startYear: void 0,
       bondGlidePath: params.bondGlidePath || null,
       currentAge: younger
     })();
@@ -863,7 +864,9 @@
       infPct: inflationRate,
       walkSeries,
       seed: seed + 1,
-      startYear: historicalYear ? historicalYear + yrsToRet : void 0,
+      // Stress-test years model sequence-of-returns risk at retirement.
+      // Accumulation stays on the normal seeded path; the selected historical sequence starts here.
+      startYear: historicalStressStartYear,
       bondGlidePath: params.bondGlidePath || null,
       currentAge: older + yrsToRet
     })();
