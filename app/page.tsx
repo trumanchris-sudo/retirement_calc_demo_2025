@@ -270,21 +270,12 @@ export default function App() {
   const markDirty = markResultsDirty;
 
   const {
-    setMarital, setAge1, setAge2, setRetirementAge,
-    setTaxableBalance, setPretaxBalance, setRothBalance,
-    setCTax1, setCPre1, setCPost1, setCMatch1,
-    setCTax2, setCPre2, setCPost2, setCMatch2,
-    setRetRate, setInflationRate, setStateRate, setIncContrib, setIncRate, setWdRate,
-    setIncludeSS, setSSIncome, setSSClaimAge, setSSIncome2, setSSClaimAge2,
-    setIncludeMedicare, setMedicarePremium, setMedicalInflation,
-    setIncludeLTC, setLtcAnnualCost, setLtcProbability, setLtcDuration,
-    setLtcOnsetAge, setLtcAgeRangeStart, setLtcAgeRangeEnd,
-    setEnableRothConversions, setTargetConversionBracket,
+    setTaxableBalance,
+    setCTax1, setCPre1, setCPost1,
+    setWdRate,
     setShowGen, setHypPerBen, setAdditionalChildrenExpected,
     setTotalFertilityRate, setGenerationLength, setFertilityWindowStart, setFertilityWindowEnd,
     setHypDeathAge, setHypMinDistAge,
-    setReturnMode, setRandomWalkSeries,
-    setAllocationStrategy, setBondStartPct, setBondEndPct, setBondStartAge, setBondEndAge, setGlidePathShape,
     setHistoricalYear, setInflationShockRate, setInflationShockDuration,
   } = usePlanConfigSetters(updatePlanConfig, markDirty, planConfig);
 
@@ -389,16 +380,7 @@ export default function App() {
 
   // Simulation Settings - derived state reads from context
   const returnMode = planConfig.returnMode ?? 'randomWalk';
-  const seed = planConfig.seed ?? DEFAULTS.seed;
   const randomWalkSeries = planConfig.randomWalkSeries ?? 'trulyRandom';
-
-  // Bond Glide Path Configuration - derived state reads from context
-  const allocationStrategy = planConfig.allocationStrategy ?? 'aggressive';
-  const bondStartPct = planConfig.bondStartPct ?? DEFAULTS.bondStartPct;
-  const bondEndPct = planConfig.bondEndPct ?? DEFAULTS.bondEndPct;
-  const bondStartAge = planConfig.bondStartAge ?? age1;
-  const bondEndAge = planConfig.bondEndAge ?? DEFAULTS.bondEndAge;
-  const glidePathShape = planConfig.glidePathShape ?? 'linear';
 
   // NOTE: bondStartAge sync with age1 is now handled atomically in setAge1()
   // This eliminates the useEffect cascade that was causing unnecessary re-renders
