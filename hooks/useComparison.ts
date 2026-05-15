@@ -9,12 +9,15 @@
  */
 
 import { useCallback } from 'react';
+import { usePlanConfig } from '@/lib/plan-config-context';
 import { runSingleSimulation } from '@/lib/calculations/retirementEngine';
+import { buildSimulationInputs } from '@/lib/calculations/buildSimulationInputs';
 import { BEAR_MARKET_SCENARIOS } from '@/lib/simulation/bearMarkets';
 import { INFLATION_SHOCK_SCENARIOS } from '@/lib/simulation/inflationShocks';
 import type { CalculationResult, ComparisonData, ChartDataPoint } from '@/types/calculator';
-import type { FilingStatus } from '@/lib/calculations/taxCalculations';
-import type { ReturnMode, WalkSeries } from '@/lib/calculations/shared/returnGenerator';
+import { createDefaultPlanConfig } from '@/types/plan-config';
+
+const DEFAULTS = createDefaultPlanConfig();
 
 // ---------------------------------------------------------------------------
 // Types
@@ -46,39 +49,6 @@ export interface UseComparisonParams {
   setInflationShockRate: (value: number) => void;
   setInflationShockDuration: (value: number) => void;
 
-  // Plan config values needed for simulation
-  marital: FilingStatus;
-  age1: number;
-  age2: number;
-  retirementAge: number;
-  taxableBalance: number;
-  pretaxBalance: number;
-  rothBalance: number;
-  cTax1: number;
-  cPre1: number;
-  cPost1: number;
-  cMatch1: number;
-  cTax2: number;
-  cPre2: number;
-  cPost2: number;
-  cMatch2: number;
-  retRate: number;
-  inflationRate: number;
-  stateRate: number;
-  incContrib: boolean;
-  incRate: number;
-  wdRate: number;
-  returnMode: ReturnMode;
-  randomWalkSeries: WalkSeries;
-  includeSS: boolean;
-  ssIncome: number;
-  ssClaimAge: number;
-  ssIncome2: number;
-  ssClaimAge2: number;
-
-  // Simulation seed & marital helper
-  seed: number;
-  isMar: boolean;
 }
 
 export interface UseComparisonReturn {
@@ -91,6 +61,8 @@ export interface UseComparisonReturn {
 // ---------------------------------------------------------------------------
 
 export function useComparison(params: UseComparisonParams): UseComparisonReturn {
+  const { config: planConfig } = usePlanConfig();
+
   const {
     comparisonMode,
     setComparisonMode,
@@ -103,30 +75,6 @@ export function useComparison(params: UseComparisonParams): UseComparisonReturn 
     setHistoricalYear,
     setInflationShockRate,
     setInflationShockDuration,
-    marital,
-    age1,
-    age2,
-    retirementAge,
-    taxableBalance,
-    pretaxBalance,
-    rothBalance,
-    cTax1, cPre1, cPost1, cMatch1,
-    cTax2, cPre2, cPost2, cMatch2,
-    retRate,
-    inflationRate,
-    stateRate,
-    incContrib,
-    incRate,
-    wdRate,
-    returnMode,
-    randomWalkSeries,
-    includeSS,
-    ssIncome,
-    ssClaimAge,
-    ssIncome2,
-    ssClaimAge2,
-    seed,
-    isMar,
   } = params;
 
   /**
@@ -152,16 +100,13 @@ export function useComparison(params: UseComparisonParams): UseComparisonReturn 
     setErr(null);
 
     try {
-      // Prepare baseline inputs
-      const baseInputs = {
-        marital, age1, age2, retirementAge, taxableBalance, pretaxBalance, rothBalance,
-        cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-        retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
-        returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
-        historicalYear: undefined,
-        inflationShockRate: null,
-        inflationShockDuration: 5,
-      };
+      const seed = planConfig.seed ?? DEFAULTS.seed;
+
+      const baseInputs = buildSimulationInputs(planConfig, {
+        historicalYearOverride: null,
+        inflationShockRateOverride: 0,
+        inflationShockDurationOverride: 5,
+      });
 
       // Calculate baseline
       const baselineResult = runSingleSimulation(baseInputs, seed);
@@ -169,7 +114,7 @@ export function useComparison(params: UseComparisonParams): UseComparisonReturn 
       // Calculate bear market scenario if specified
       let bearData: number[] | null = null;
       if (effectiveHistoricalYear) {
-        const bearInputs = { ...baseInputs, historicalYear: effectiveHistoricalYear, returnMode: 'randomWalk' as ReturnMode };
+        const bearInputs = { ...baseInputs, historicalYear: effectiveHistoricalYear, returnMode: 'randomWalk' as const };
         const bearResult = runSingleSimulation(bearInputs, seed);
         bearData = bearResult.balancesReal;
       }
@@ -227,12 +172,8 @@ export function useComparison(params: UseComparisonParams): UseComparisonReturn 
       setErr(error instanceof Error ? error.message : 'An unknown error occurred');
     }
   }, [
-    res, setComparisonMode, age1, age2, retirementAge, marital, taxableBalance, pretaxBalance, rothBalance,
-    cTax1, cPre1, cPost1, cMatch1, cTax2, cPre2, cPost2, cMatch2,
-    retRate, inflationRate, stateRate, incContrib, incRate, wdRate,
-    returnMode, randomWalkSeries, includeSS, ssIncome, ssClaimAge, ssIncome2, ssClaimAge2,
-    historicalYear, inflationShockRate, inflationShockDuration, seed, isMar,
-    setErr, setComparisonData,
+    res, setComparisonMode, historicalYear, inflationShockRate, inflationShockDuration,
+    setErr, setComparisonData, planConfig,
   ]);
 
   /**

@@ -7,7 +7,7 @@
     "build": "npm run build:worker && next build",
     "build:worker": "npx tsx scripts/build-worker.ts",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
