@@ -73,19 +73,21 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   };
   return (
     <header
-      className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      className="sticky top-0 z-50 w-full border-b bg-background/85 shadow-sm backdrop-blur-xl supports-[backdrop-filter]:bg-background/75"
       role="banner"
     >
       <nav
-        className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2 overflow-x-hidden"
+        className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 overflow-x-hidden px-4 sm:px-6"
         aria-label="Main navigation"
       >
         {/* Logo/Title - CUBE ALWAYS RENDERS */}
-        <div className="flex items-center gap-3 min-w-0 flex-shrink retirement-header-left">
+        <div className="flex min-w-0 shrink items-center gap-3 retirement-header-left">
           <CubeStaticMini />
-          <span className="font-semibold text-slate-900 dark:text-slate-50 hidden sm:inline-block truncate retirement-header-title">
-            Tax-Aware Retirement Calculator
-          </span>
+          <div className="hidden min-w-0 sm:block">
+            <p className="truncate text-sm font-semibold tracking-tight retirement-header-title">
+              Retirement Planner
+            </p>
+          </div>
           {/* Unsaved changes / saving indicator */}
           {isSaving && (
             <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1 no-print">
@@ -102,7 +104,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         </div>
 
         {/* Actions - Always show dark mode toggle prominently */}
-        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+        <div className="flex shrink-0 items-center gap-1 rounded-full border bg-card/80 p-1 shadow-sm sm:gap-1.5">
           {/* Income Planner Link - hidden on smallest screens to prevent overflow */}
           <Link href="/income-2026">
             <Button
@@ -118,7 +120,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              className="hidden md:inline-flex no-print"
+              className="hidden rounded-full md:inline-flex no-print"
             >
               <DollarSign className="w-4 h-4 mr-2" />
               2026 Income
@@ -140,14 +142,14 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              className="hidden md:inline-flex no-print"
+              className="hidden rounded-full md:inline-flex no-print"
             >
               <Briefcase className="w-4 h-4 mr-2" />
               Self-Employed
             </Button>
           </Link>
 
-          <div className="w-px h-6 bg-border mx-1" aria-hidden="true" />
+          <div className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
 
           {/* Dark Mode Toggle - Always First for Accessibility */}
           <Button
@@ -155,7 +157,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             size="icon"
             onClick={onToggleDarkMode}
             aria-label="Toggle dark mode"
-            className="no-print flex-shrink-0 order-first"
+            className="order-first shrink-0 rounded-full no-print"
           >
             {isDarkMode ? (
               <Sun className="w-5 h-5" />
@@ -170,7 +172,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             size="icon"
             onClick={toggleSound}
             aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
-            className="no-print flex-shrink-0"
+            className="shrink-0 rounded-full no-print"
           >
             {soundEnabled ? (
               <Volume2 className="w-4 h-4" />
@@ -181,7 +183,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
           {showActions && (
             <>
-              <div className="w-px h-6 bg-border mx-1" aria-hidden="true" />
+              <div className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
 
               {/* QA Review Button */}
               <Button
@@ -197,7 +199,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={onAIReview}
-                className="hidden md:inline-flex no-print"
+                className="hidden rounded-full md:inline-flex no-print"
               >
                 <Bot className="w-4 h-4 mr-2" />
                 QA Review
@@ -219,7 +221,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="hidden md:inline-flex no-print"
+                    className="hidden rounded-full md:inline-flex no-print"
                   >
                     <Sliders className="w-4 h-4 mr-2" />
                     Adjust
@@ -314,7 +316,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={onDownloadPDF}
-                className="hidden md:inline-flex no-print"
+                className="hidden rounded-full md:inline-flex no-print"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 PDF Report
@@ -333,7 +335,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={onShare}
-                className="hidden md:inline-flex no-print"
+                className="hidden rounded-full md:inline-flex no-print"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Export

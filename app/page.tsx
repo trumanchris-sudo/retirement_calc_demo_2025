@@ -446,7 +446,7 @@ export default function App() {
   const cubeAppended = true;
 
   // Tabbed interface state - foundation for future reorganization
-  const [activeMainTab, setActiveMainTab] = useState<MainTabId>('all');
+  const [activeMainTab, setActiveMainTab] = useState<MainTabId>('configure');
   // lastCalculated and inputsModified are now provided by useCalculatorResults
   const [isFromWizard, setIsFromWizard] = useState(false); // Track if calculation triggered from wizard completion
   const [calcPending, setCalcPending] = useState(false); // Deferred calc trigger — replaces setTimeout race condition
@@ -573,21 +573,6 @@ export default function App() {
   // calc(), calculateSensitivity, calculateLegacyResult, applyGenerationalPreset
   // are now provided by useCalculation hook (see hooks/useCalculation.ts)
 
-  // AUTO-CALCULATE AFTER WIZARD COMPLETION
-  // When onboarding sets pendingCalcFromWizard=true, this effect fires on the NEXT
-  // render cycle — after React has flushed the planConfig updates and the derived
-  // local constants (age1, retirementAge, etc.) reflect the new values.
-  // This replaces the unreliable setTimeout(100) that could race against React's
-  // render cycle on slow devices.
-  const [pendingCalcFromWizard, setPendingCalcFromWizard] = useState(false);
-
-  useEffect(() => {
-    if (pendingCalcFromWizard) {
-      setPendingCalcFromWizard(false);
-      calc();
-    }
-  }, [pendingCalcFromWizard, calc]);
-
   // savedScenarios localStorage persistence is now handled by useSavedScenarios hook
 
   // TRUE SIDE EFFECT: sessionStorage read on mount for tab navigation state
@@ -597,13 +582,22 @@ export default function App() {
     try {
       const savedTab = sessionStorage.getItem('calculatorTab');
       if (savedTab && isMainTabId(savedTab)) {
-        setActiveMainTab(savedTab);
+        setActiveMainTab(savedTab === 'all' ? 'configure' : savedTab);
         sessionStorage.removeItem('calculatorTab');
       }
     } catch (e) {
       console.error('[NAV PERSISTENCE] Failed to restore tab:', e);
     }
   }, []);
+
+  // Keep first-run and manual-entry users on an editable setup surface.
+  // Result-only sections depend on a completed calculation and otherwise create
+  // a dead end where tools are visible but the plan cannot be calculated.
+  useEffect(() => {
+    if (!res && activeMainTab !== 'configure' && activeMainTab !== 'planSettings') {
+      setActiveMainTab('configure');
+    }
+  }, [res, activeMainTab]);
 
   // TRUE SIDE EFFECT: sessionStorage write for tab/marital + budget context population
   // calculatorResults persistence is now handled by useCalculatorResults hook.
@@ -763,9 +757,8 @@ export default function App() {
           // Give user a moment to see results before transitioning
           await new Promise(resolve => setTimeout(resolve, 300));
 
-          // Mark that we're coming from onboarding to trigger:
-          // 1. WORK→DIE→RETIRE animation
-          // 2. Auto-navigate to Results tab after calculation
+          // Mark that we're coming from onboarding so the full calculation
+          // auto-navigates to Results after React flushes the config update.
           setIsFromWizard(true);
 
           // CRITICAL: Defer calc() via state flag so it runs AFTER React flushes
@@ -775,6 +768,7 @@ export default function App() {
         }}
         onSkip={() => {
           markOnboardingComplete();
+          setActiveMainTab('configure');
         }}
       />
     );
@@ -898,42 +892,55 @@ export default function App() {
         userName="Client"
       />
 
-      {/* Tab Navigation */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-            <div className="flex-1 min-w-0">
+      {/* Workspace Navigation */}
+      <div className="mx-auto max-w-7xl px-4 pt-5 sm:px-6">
+        <div className="rounded-2xl border bg-card/80 p-4 shadow-sm backdrop-blur">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Planner Workspace
+              </p>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                Build, test, and tune your retirement plan.
+              </h1>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Start with setup, review the full tax-aware results, then pressure-test the assumptions that matter most.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center lg:justify-end">
+              {res && (
+                <LastCalculatedBadge
+                  lastCalculated={lastCalculated}
+                  inputsModified={calculationInputsModified}
+                />
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (confirm('This will reset the wizard and reload the page. Continue?')) {
+                    resetOnboarding();
+                    window.location.reload();
+                  }
+                }}
+                className="w-full rounded-full sm:w-auto sm:shrink-0"
+              >
+                Start over
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-4">
               <TabNavigation
                 activeTab={activeMainTab}
                 onTabChange={setActiveMainTab}
                 hasResults={!!res}
               />
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (confirm('This will reset the wizard and reload the page. Continue?')) {
-                  resetOnboarding();
-                  window.location.reload();
-                }
-              }}
-              className="w-full sm:w-auto sm:shrink-0"
-            >
-              Restart Wizard
-            </Button>
           </div>
-          {res && (
-            <div className="flex justify-end">
-              <LastCalculatedBadge
-                lastCalculated={lastCalculated}
-                inputsModified={calculationInputsModified}
-              />
-            </div>
-          )}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8">
+      <div className="mx-auto max-w-7xl space-y-6 px-3 py-6 sm:px-4 md:px-6 md:py-8">
 
         {/* Global error banner - visible on ALL tabs */}
         {err && (

@@ -40,6 +40,148 @@ const DEFAULT_ASSUMPTIONS = {
   incRate: DEFAULTS.incRate,
 };
 
+const clamp = (value: number, min: number, max: number): number => (
+  Math.min(max, Math.max(min, value))
+);
+
+const roundToNearest = (value: number, nearest: number): number => (
+  Math.round(value / nearest) * nearest
+);
+
+const formatCurrency = (value: number): string => (
+  new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(value)
+);
+
+function calculateMonthlyRecurringExpenses(data: ExtractedData, includeChildcare = true): number {
+  return (
+    (data.monthlyMortgageRent ?? 0) +
+    (data.monthlyUtilities ?? 0) +
+    (data.monthlyInsurancePropertyTax ?? 0) +
+    (data.monthlyHealthcareP1 ?? 0) +
+    (data.monthlyHealthcareP2 ?? 0) +
+    (data.monthlyOtherExpenses ?? 0) +
+    (data.monthlyHouseholdExpenses ?? 0) +
+    (data.monthlyDiscretionary ?? 0) +
+    (includeChildcare ? (data.monthlyChildcare ?? 0) : 0)
+  );
+}
+
+function estimateEmergencyFund(data: ExtractedData, totalIncome: number): number {
+  const monthlyExpenses = calculateMonthlyRecurringExpenses(data);
+  if (monthlyExpenses > 0) {
+    return roundToNearest(monthlyExpenses * 3, 1000);
+  }
+
+  // Fallback when expense data is unavailable: use a capped income proxy,
+  // not three months of gross income for very high earners.
+  return roundToNearest(clamp(totalIncome * 0.10, 15000, 100000), 1000);
+}
+
+function estimateCurrentBalances(totalIncome: number, age: number): {
+  taxableBalance: number;
+  pretaxBalance: number;
+  rothBalance: number;
+} {
+  const ageFactor = clamp((age - 25) / 10, 0.25, 3);
+  const pretaxRate = totalIncome >= 700000 ? 0.45 : totalIncome >= 400000 ? 0.35 : 0.25;
+  const rothRate = totalIncome >= 700000 ? 0.14 : totalIncome >= 400000 ? 0.10 : 0.06;
+  const taxableRate = totalIncome >= 700000 ? 0.08 : totalIncome >= 400000 ? 0.06 : 0.04;
+
+  return {
+    pretaxBalance: roundToNearest(totalIncome * pretaxRate * ageFactor, 5000),
+    rothBalance: roundToNearest(totalIncome * rothRate * ageFactor, 5000),
+    taxableBalance: roundToNearest(totalIncome * taxableRate * ageFactor, 5000),
+  };
+}
+
+function incomeReplacementRatio(totalIncome: number): number {
+  if (totalIncome >= 700000) return 0.35;
+  if (totalIncome >= 400000) return 0.45;
+  if (totalIncome >= 250000) return 0.55;
+  if (totalIncome >= 150000) return 0.65;
+  return 0.75;
+}
+
+function estimateRetirementSpending(data: ExtractedData, totalIncome: number, isMarried: boolean): {
+  amount: number;
+  reasoning: string;
+} {
+  const monthlyRecurring = calculateMonthlyRecurringExpenses(data, false);
+  const replacementCap = roundToNearest(totalIncome * incomeReplacementRatio(totalIncome), 5000);
+
+  if (monthlyRecurring > 0) {
+    const expenseBased = roundToNearest(monthlyRecurring * 12 * 0.9, 5000);
+    const minimum = Math.min(isMarried ? 60000 : 45000, replacementCap);
+    return {
+      amount: Math.max(minimum, Math.min(expenseBased, replacementCap)),
+      reasoning: 'Estimated in today’s dollars from recurring expenses, excluding childcare and savings',
+    };
+  }
+
+  return {
+    amount: replacementCap,
+    reasoning: `Today’s-dollar estimate using a progressive high-income replacement ratio (${Math.round(incomeReplacementRatio(totalIncome) * 100)}% of gross income)`,
+  };
+}
+
+function estimateEffectiveTaxRate(
+  totalIncome: number,
+  stateCode?: string,
+  employmentType1?: ExtractedData['employmentType1'],
+  employmentType2?: ExtractedData['employmentType2']
+): number {
+  let federalAndPayroll: number;
+  if (totalIncome >= 700000) federalAndPayroll = 0.34;
+  else if (totalIncome >= 400000) federalAndPayroll = 0.30;
+  else if (totalIncome >= 250000) federalAndPayroll = 0.26;
+  else if (totalIncome >= 150000) federalAndPayroll = 0.22;
+  else federalAndPayroll = 0.17;
+
+  const hasSelfEmployment = [employmentType1, employmentType2].some(
+    type => type === 'self-employed' || type === 'both'
+  );
+  const selfEmploymentAdd = hasSelfEmployment ? 0.02 : 0;
+  const stateTopRate = stateCode ? (STATE_TAX_RATES[stateCode] ?? 0) / 100 : 0;
+  const stateAdd = Math.min(stateTopRate * 0.55, 0.08);
+
+  return clamp(federalAndPayroll + selfEmploymentAdd + stateAdd, 0.12, 0.46);
+}
+
+function estimateTaxableSavings(
+  data: ExtractedData,
+  totalIncome: number,
+  annualRetirementContributions: number,
+  stateCode?: string
+): number {
+  const monthlyExpenses = calculateMonthlyRecurringExpenses(data);
+  const effectiveTaxRate = estimateEffectiveTaxRate(
+    totalIncome,
+    stateCode,
+    data.employmentType1,
+    data.employmentType2
+  );
+
+  if (monthlyExpenses > 0) {
+    const afterTaxIncome = totalIncome * (1 - effectiveTaxRate);
+    const surplusAfterExpensesAndRetirement =
+      afterTaxIncome - (monthlyExpenses * 12) - annualRetirementContributions;
+
+    if (surplusAfterExpensesAndRetirement > 0) {
+      return roundToNearest(
+        clamp(surplusAfterExpensesAndRetirement * 0.55, 0, totalIncome * 0.25),
+        5000
+      );
+    }
+  }
+
+  const defaultSavingsRate = calculateRecommendedSavingsRate(totalIncome);
+  return roundToNearest(totalIncome * defaultSavingsRate * 0.15, 5000);
+}
+
 /**
  * Map AI extracted data to full calculator inputs
  */
@@ -183,6 +325,8 @@ export function mapAIDataToCalculator(
   const employmentType2 = extractedData.employmentType2;
   const primaryIncome = extractedData.primaryIncome ?? DEFAULTS.primaryIncome;
   const spouseIncome = extractedData.spouseIncome ?? DEFAULTS.spouseIncome;
+  const totalIncome = primaryIncome + spouseIncome;
+  const stateCode = extractedData.state?.toUpperCase();
 
   if (!extractedData.primaryIncome) {
     addAssumption(
@@ -195,17 +339,20 @@ export function mapAIDataToCalculator(
   }
 
   // === Current Balances ===
-  const emergencyFund = extractedData.emergencyFund ?? Math.round(primaryIncome * 0.25); // 3 months
-  const taxableBalance = extractedData.currentTaxable ?? DEFAULTS.taxableBalance;
-  const pretaxBalance = extractedData.currentTraditional ?? DEFAULTS.pretaxBalance;
-  const rothBalance = extractedData.currentRoth ?? DEFAULTS.rothBalance;
+  const estimatedBalances = estimateCurrentBalances(totalIncome, age1);
+  const emergencyFund = extractedData.emergencyFund ?? estimateEmergencyFund(extractedData, totalIncome);
+  const taxableBalance = extractedData.currentTaxable ?? estimatedBalances.taxableBalance;
+  const pretaxBalance = extractedData.currentTraditional ?? estimatedBalances.pretaxBalance;
+  const rothBalance = extractedData.currentRoth ?? estimatedBalances.rothBalance;
 
   if (!extractedData.emergencyFund) {
     addAssumption(
       'emergencyFund',
       'Emergency Fund',
       emergencyFund,
-      'Assumed 3 months of expenses for financial security',
+      calculateMonthlyRecurringExpenses(extractedData) > 0
+        ? 'Assumed roughly 3 months of recurring expenses, not 3 months of gross income'
+        : 'Estimated from income with a high-earner cap',
       'medium'
     );
   }
@@ -215,7 +362,7 @@ export function mapAIDataToCalculator(
       'taxableBalance',
       'Taxable Brokerage',
       taxableBalance,
-      'Estimated based on typical savings patterns',
+      'Estimated from income and age; replace with actual brokerage balance',
       'low'
     );
   }
@@ -225,7 +372,7 @@ export function mapAIDataToCalculator(
       'pretaxBalance',
       'Traditional 401k/IRA',
       pretaxBalance,
-      'Estimated based on age and income level',
+      'Estimated from income and age; replace with actual pre-tax retirement balance',
       'low'
     );
   }
@@ -235,7 +382,7 @@ export function mapAIDataToCalculator(
       'rothBalance',
       'Roth Accounts',
       rothBalance,
-      'Estimated based on typical retirement account mix',
+      'Estimated from income and age; replace with actual Roth balance',
       'low'
     );
   }
@@ -273,12 +420,16 @@ export function mapAIDataToCalculator(
   } else {
     // Calculate default based on income
     const defaultSavingsRate = calculateRecommendedSavingsRate(primaryIncome);
-    cPre1 = Math.min(IRS_LIMITS_2026['401k'], primaryIncome * defaultSavingsRate * 0.6);
+    const isP1SelfEmployed = employmentType1 === 'self-employed' || employmentType1 === 'both';
+    const p1Limit = isP1SelfEmployed ? IRS_LIMITS_2026['401kTotal'] : IRS_LIMITS_2026['401k'];
+    cPre1 = Math.min(p1Limit, primaryIncome * defaultSavingsRate * 0.6);
     addAssumption(
       'cPre1',
       'Traditional 401k Contributions',
       cPre1,
-      `Recommended ${Math.round((cPre1 / primaryIncome) * 100)}% of income to traditional accounts`,
+      isP1SelfEmployed
+        ? 'Uses the higher self-employed/K-1 retirement plan limit instead of employee-only 401(k) limit'
+        : `Recommended ${Math.round((cPre1 / primaryIncome) * 100)}% of income to traditional accounts`,
       'medium'
     );
   }
@@ -315,16 +466,8 @@ export function mapAIDataToCalculator(
     // Legacy field support
     cTax1 = extractedData.savingsRateTaxable1;
   } else {
-    // Calculate default based on income
-    const defaultSavingsRate = calculateRecommendedSavingsRate(primaryIncome);
-    cTax1 = primaryIncome * defaultSavingsRate * 0.1;
-    addAssumption(
-      'cTax1',
-      'Taxable Account Savings',
-      cTax1,
-      'Additional savings in taxable brokerage for flexibility',
-      'medium'
-    );
+    // Filled after spouse contributions are known so the default can be household-aware.
+    cTax1 = 0;
   }
 
   if (extractedData.contributionMatch !== undefined) {
@@ -432,9 +575,8 @@ export function mapAIDataToCalculator(
       // Legacy field support
       cTax2 = extractedData.savingsRateTaxable2;
     } else {
-      // Calculate default
-      const defaultSavingsRate2 = calculateRecommendedSavingsRate(spouseIncome);
-      cTax2 = spouseIncome * defaultSavingsRate2 * 0.1;
+      // Filled after household taxable savings estimate is calculated.
+      cTax2 = 0;
     }
 
     // Employer match for person 2: split combined match proportionally
@@ -451,6 +593,44 @@ export function mapAIDataToCalculator(
     } else {
       // No employer match assumed - user must provide this in the wizard
       cMatch2 = 0;
+    }
+  }
+
+  const needsTaxableSavingsEstimate =
+    extractedData.contributionTaxable === undefined &&
+    extractedData.savingsRateTaxable1 === undefined &&
+    extractedData.savingsRateTaxable2 === undefined;
+
+  if (needsTaxableSavingsEstimate) {
+    const combinedTaxableSavings = estimateTaxableSavings(
+      extractedData,
+      totalIncome,
+      cPre1 + cPre2 + cPost1 + cPost2,
+      stateCode
+    );
+    const p1Ratio = marital === 'married' && totalIncome > 0
+      ? primaryIncome / totalIncome
+      : 1;
+
+    cTax1 = combinedTaxableSavings * p1Ratio;
+    cTax2 = marital === 'married' ? combinedTaxableSavings * (1 - p1Ratio) : 0;
+
+    addAssumption(
+      'cTax1',
+      'Taxable Account Savings',
+      Math.round(cTax1),
+      'Estimated from after-tax surplus after recurring expenses and retirement contributions',
+      'medium'
+    );
+
+    if (marital === 'married' && spouseIncome > 0) {
+      addAssumption(
+        'cTax2',
+        'Spouse Taxable Savings',
+        Math.round(cTax2),
+        'Household taxable savings allocated by income share',
+        'medium'
+      );
     }
   }
 
@@ -501,10 +681,10 @@ export function mapAIDataToCalculator(
   }
 
   // Desired retirement spending (useful context, kept for display)
-  const totalIncome = primaryIncome + spouseIncome;
+  const estimatedRetirementSpending = estimateRetirementSpending(extractedData, totalIncome, marital === 'married');
   const desiredSpending =
     extractedData.desiredRetirementSpending ??
-    Math.round(totalIncome * 0.8); // 80% replacement ratio
+    estimatedRetirementSpending.amount;
 
   // Use the standard safe withdrawal rate from defaults.
   // The old formula (desiredSpending / currentPortfolio) produced nonsensical
@@ -512,11 +692,16 @@ export function mapAIDataToCalculator(
   const wdRate = DEFAULT_ASSUMPTIONS.wdRate;
 
   if (!extractedData.desiredRetirementSpending) {
+    const yearsToRetirement = Math.max(0, retirementAge - age1);
+    const nominalAtRetirement = Math.round(
+      desiredSpending * Math.pow(1 + DEFAULT_ASSUMPTIONS.inflationRate / 100, yearsToRetirement)
+    );
+
     addAssumption(
       'desiredRetirementSpending',
-      'Retirement Spending',
+      'Retirement Spending (Today’s Dollars)',
       desiredSpending,
-      '80% of pre-retirement income (typical replacement ratio)',
+      `${estimatedRetirementSpending.reasoning}. At ${DEFAULT_ASSUMPTIONS.inflationRate}% inflation, ${formatCurrency(desiredSpending)} today is about ${formatCurrency(nominalAtRetirement)} in year-one retirement dollars.`,
       'medium'
     );
   }
@@ -530,7 +715,6 @@ export function mapAIDataToCalculator(
   );
 
   // === State Tax Rate ===
-  const stateCode = extractedData.state?.toUpperCase();
   const stateRate = stateCode && STATE_TAX_RATES[stateCode] ? STATE_TAX_RATES[stateCode] : 0;
 
   if (extractedData.state) {

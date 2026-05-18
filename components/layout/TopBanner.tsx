@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TrendingUp, Shield, Calculator } from "lucide-react";
+import { Calculator, LockKeyhole, Shield, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface TopBannerProps {
@@ -13,66 +13,39 @@ export const TopBanner: React.FC<TopBannerProps> = ({ className = "" }) => {
     <div
       role="banner"
       aria-label="Site branding and features"
-      className={`relative overflow-hidden bg-gradient-to-r from-blue-600 via-violet-600 to-blue-600 bg-[length:200%_auto] animate-gradient ${className}`}
+      className={`border-b bg-background/95 text-foreground ${className}`}
     >
-      {/* Subtle pattern overlay - decorative, hidden from screen readers */}
-      <div className="absolute inset-0 opacity-10" aria-hidden="true">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
-          backgroundSize: '32px 32px'
-        }} />
-      </div>
-
-      {/* Content */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Title with icon */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div
-              className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"
-              aria-hidden="true"
-            >
-              <Calculator className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </div>
-            <div>
-              <span className="text-lg sm:text-xl md:text-2xl font-bold text-white flex items-center gap-2">
-                WORK DIE RETIRE
-              </span>
-            </div>
-          </div>
-
-          {/* Features badges - list for better semantics */}
-          <ul
-            className="flex items-center gap-2 flex-wrap justify-center list-none"
-            aria-label="Key features"
+      <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex min-w-0 items-center gap-2">
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-card"
+            aria-hidden="true"
           >
-            <li>
-              <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm">
-                <Shield className="w-3 h-3 mr-1" aria-hidden="true" />
-                <span className="hidden sm:inline">Tax-Optimized</span>
-                <span className="sm:hidden" aria-hidden="true">Optimized</span>
-                <span className="sr-only sm:hidden">Tax-Optimized</span>
-              </Badge>
-            </li>
-            <li>
-              <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm">
-                <TrendingUp className="w-3 h-3 mr-1" aria-hidden="true" />
-                <span className="hidden sm:inline">Monte Carlo</span>
-                <span className="sm:hidden" aria-hidden="true">MC Sims</span>
-                <span className="sr-only sm:hidden">Monte Carlo Simulations</span>
-              </Badge>
-            </li>
-          </ul>
+            <Calculator className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold tracking-tight">
+              WORK DIE RETIRE
+            </p>
+            <p className="hidden text-xs text-muted-foreground sm:block">
+              Tax-aware planning, Monte Carlo testing, no account required.
+            </p>
+          </div>
         </div>
 
-        {/* Tagline */}
-        <div className="relative text-center pt-2 border-t border-white/20">
-          <p className="text-xs sm:text-sm text-blue-100">
-            Free. No ads. No bullshit.
-          </p>
-          <p className="text-[10px] text-blue-100/60 mt-1">
-            We don&apos;t use cookies, link or store data. We only track visits, browser type, and country.
-          </p>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <Badge variant="outline" className="gap-1 border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+            <Shield className="h-3 w-3" aria-hidden="true" />
+            Tax-aware
+          </Badge>
+          <Badge variant="outline" className="gap-1">
+            <TrendingUp className="h-3 w-3" aria-hidden="true" />
+            Monte Carlo
+          </Badge>
+          <span className="inline-flex items-center gap-1">
+            <LockKeyhole className="h-3 w-3" aria-hidden="true" />
+            No cookies or stored plan data
+          </span>
         </div>
       </div>
     </div>

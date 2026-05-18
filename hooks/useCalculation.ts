@@ -356,8 +356,10 @@ export function useCalculation(deps: CalcDeps) {
     setIsLoadingAi(true);
     setIsRunning(true);
 
-    // Start cinematic Monte Carlo sequence from All-in-One, Configure tabs, or Wizard completion
-    if (activeMainTab === 'all' || activeMainTab === 'configure' || isFromWizard) {
+    // Start cinematic Monte Carlo sequence for explicit in-app calculations.
+    // Onboarding already showed the user a result, so the full model should land
+    // calmly on the tax-aware results rather than covering them with a splash.
+    if (!isFromWizard && (activeMainTab === 'all' || activeMainTab === 'configure')) {
       splashRef.current?.play();
     }
 
