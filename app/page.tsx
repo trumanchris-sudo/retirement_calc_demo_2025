@@ -50,29 +50,9 @@ import {
 // SequenceRiskChart, SpendingFlexibilityChart consumed by ResultsTab
 // RothConversionOptimizer lazy-loaded by OptimizationTab
 // Lazy load Planning Tools - only needed in tools tab
-const StudentLoanOptimizer = dynamic(
-  () => import("@/components/calculator/StudentLoanOptimizer"),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
-);
-const AnnuityAnalyzer = dynamic(
-  () => import("@/components/calculator/AnnuityAnalyzer"),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
-);
-const SemiRetirement = dynamic(
-  () => import("@/components/calculator/SemiRetirement"),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
-);
-const PlaidConnect = dynamic(
-  () => import("@/components/integrations/PlaidConnect"),
-  { ssr: false, loading: () => <div className="h-32 animate-pulse bg-muted rounded" /> }
-);
 // Section wrappers for orphaned features
 const OptimizeToolsSection = dynamic(
   () => import("@/components/calculator/tabs/OptimizeToolsSection"),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
-);
-const StressToolsSection = dynamic(
-  () => import("@/components/calculator/tabs/StressToolsSection"),
   { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
 );
 const LegacyToolsSection = dynamic(
@@ -101,19 +81,10 @@ const GamificationSection = dynamic(
 //   () => import("@/components/market/MarketTicker").then(mod => ({ default: mod.MarketTicker })),
 //   { ssr: false, loading: () => <div className="h-8 animate-pulse bg-muted rounded" /> }
 // );
-const VersionHistory = dynamic(
-  () => import("@/components/history/VersionHistory"),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
-);
 const ScenarioManager = dynamic(
   () => import("@/components/calculator/ScenarioManager").then(mod => ({ default: mod.ScenarioManager })),
   { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
 );
-const AnalyticsDashboard = dynamic(
-  () => import("@/components/calculator/AnalyticsDashboard").then(mod => ({ default: mod.AnalyticsDashboard })),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded" /> }
-);
-import { SSOTTab } from "@/components/calculator/SSOTTab";
 import type { AdjustmentDeltas } from "@/components/layout/PageHeader";
 import { useBudget } from "@/lib/budget-context";
 import { usePlanConfig } from "@/lib/plan-config-context";
@@ -271,7 +242,6 @@ export default function App() {
   const markDirty = markResultsDirty;
 
   const {
-    setTaxableBalance,
     setCTax1, setCPre1, setCPost1,
     setWdRate,
     setShowGen, setHypPerBen, setAdditionalChildrenExpected,
@@ -582,6 +552,11 @@ export default function App() {
   useEffect(() => {
     try {
       const savedTab = sessionStorage.getItem('calculatorTab');
+      if (savedTab === 'planSettings') {
+        setActiveMainTab('configure');
+        sessionStorage.removeItem('calculatorTab');
+        return;
+      }
       if (savedTab && isMainTabId(savedTab)) {
         setActiveMainTab(savedTab === 'all' ? 'configure' : savedTab);
         sessionStorage.removeItem('calculatorTab');
@@ -593,9 +568,10 @@ export default function App() {
 
   // Keep first-run and manual-entry users on an editable setup surface.
   // Result-only sections depend on a completed calculation and otherwise create
-  // a dead end where tools are visible but the plan cannot be calculated.
+  // a dead end where the plan cannot be calculated. Planning Tools is allowed
+  // because it now reads directly from current plan inputs instead of results.
   useEffect(() => {
-    if (!res && activeMainTab !== 'configure' && activeMainTab !== 'planSettings') {
+    if (!res && activeMainTab !== 'configure' && activeMainTab !== 'tools') {
       setActiveMainTab('configure');
     }
   }, [res, activeMainTab]);
@@ -708,25 +684,6 @@ export default function App() {
       setCalcPending(false);
     }
   }, [calcPending, calc]);
-
-  // Auto-recalculate when stress-test scenario inputs change
-  // (e.g. clicking a bear-market or inflation button on Scenarios tab).
-  // Uses a ref to skip the initial render so we don't fire on mount.
-  const prevScenarioRef = useRef({ historicalYear, inflationShockRate, inflationShockDuration });
-  useEffect(() => {
-    const prev = prevScenarioRef.current;
-    if (
-      res &&
-      (
-        prev.historicalYear !== historicalYear ||
-        prev.inflationShockRate !== inflationShockRate ||
-        prev.inflationShockDuration !== inflationShockDuration
-      )
-    ) {
-      prevScenarioRef.current = { historicalYear, inflationShockRate, inflationShockDuration };
-      calc();
-    }
-  }, [historicalYear, inflationShockRate, inflationShockDuration, res, calc]);
 
   // TRUE SIDE EFFECT: Auto-run calculations when entering AI Doc Mode
   // This triggers an async calculation side effect when the secret mode is activated.
@@ -1085,14 +1042,9 @@ export default function App() {
                 runComparison={runComparison}
                 runRandomComparison={runRandomComparison}
                 isDarkMode={isDarkMode}
-                isLoadingAi={isLoadingAi}
-                onCalculate={calc}
               />
               <div className="mt-8">
               <ScenarioManager />
-            </div>
-            <div className="mt-8">
-              <StressToolsSection />
             </div>
             </TabPanel>
 
@@ -1137,33 +1089,6 @@ export default function App() {
             calcProgress={calcProgress}
             tabGroupRef={tabGroupRef}
           />
-        </TabPanel>
-        )}
-
-        {/* Plan Settings Tab (SSOT) - Hide from All-in-One tab */}
-        {activeMainTab !== 'all' && (
-        <TabPanel id="planSettings" activeTab={activeMainTab}>
-        <AnimatedSection animation="fade-in" delay={100}>
-          <SSOTTab />
-        </AnimatedSection>
-        <div className="mt-8">
-          <VersionHistory
-            currentPlan={planConfig}
-            onRestore={(version) => {
-              if (version.data) {
-                updatePlanConfig(version.data as unknown as Record<string, unknown>, 'user-entered');
-              }
-            }}
-          />
-        </div>
-        <div className="mt-8">
-          <AnalyticsDashboard
-            currentSuccessRate={res?.probRuin !== undefined ? (1 - res.probRuin) * 100 : undefined}
-            currentEndOfLifeWealth={res?.eolReal}
-            retirementAge={retirementAge}
-            withdrawalRate={wdRate}
-          />
-        </div>
         </TabPanel>
         )}
 
@@ -1268,62 +1193,8 @@ export default function App() {
         {/* Planning Tools Tab */}
         <TabPanel id="tools" activeTab={activeMainTab}>
           <AnimatedSection animation="fade-in" delay={100}>
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">Planning Tools</h2>
-                <p className="text-muted-foreground">Specialized calculators for student loans, annuity analysis, and semi-retirement planning.</p>
-              </div>
-
-              {/* Student Loan Optimizer */}
-              <StudentLoanOptimizer />
-
-              {/* Annuity Analyzer */}
-              <AnnuityAnalyzer
-                initialAge={age1}
-                initialPortfolio={taxableBalance + pretaxBalance + rothBalance}
-                expectedSSBenefit={ssIncome}
-              />
-
-              {/* Semi-Retirement Planner */}
-              <SemiRetirement
-                age={age1}
-                spouseAge={isMar ? age2 : undefined}
-                retirementAge={retirementAge}
-                marital={marital}
-                taxableBalance={taxableBalance}
-                pretaxBalance={pretaxBalance}
-                rothBalance={rothBalance}
-                cTax1={cTax1}
-                cPre1={cPre1}
-                cPost1={cPost1}
-                cMatch1={cMatch1}
-                cTax2={isMar ? cTax2 : undefined}
-                cPre2={isMar ? cPre2 : undefined}
-                cPost2={isMar ? cPost2 : undefined}
-                cMatch2={isMar ? cMatch2 : undefined}
-                retRate={retRate}
-                inflationRate={inflationRate}
-                wdRate={wdRate}
-                stateRate={stateRate}
-                includeSS={includeSS}
-                ssIncome={ssIncome}
-                ssClaimAge={ssClaimAge}
-                ssIncome2={isMar ? ssIncome2 : undefined}
-                ssClaimAge2={isMar ? ssClaimAge2 : undefined}
-              />
-
-              {/* Plaid Bank Connection */}
-              <PlaidConnect
-                demoMode
-                onImport={(balances) => {
-                  setTaxableBalance(balances.totalInvestments + balances.totalCash);
-                }}
-              />
-            </div>
-          </AnimatedSection>
-          <div className="mt-8">
             <PlanningToolsExpanded />
-          </div>
+          </AnimatedSection>
         </TabPanel>
 
         {/* Math Tab */}

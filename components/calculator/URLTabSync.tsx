@@ -14,6 +14,10 @@ export function URLTabSync({ onTabChange }: { onTabChange: (tab: MainTabId) => v
 
   useEffect(() => {
     const tab = searchParams.get('tab');
+    if (tab === 'planSettings') {
+      onTabChange('configure');
+      return;
+    }
     if (tab && isMainTabId(tab)) {
       onTabChange(tab);
     }

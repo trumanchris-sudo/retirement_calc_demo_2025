@@ -1,23 +1,25 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { usePlanConfig } from "@/lib/plan-config-context";
 import { createDefaultPlanConfig } from "@/types/plan-config";
 import { createUserProfile, createOptimalProfile } from "@/components/visualizations/RadarChart";
 import { RADAR_COLORS } from "@/lib/chartColors";
-import type { DailyContribution } from "@/components/visualizations/HeatmapCalendar";
 import type { WaterfallDataPoint } from "@/components/visualizations/WaterfallChart";
 import type { TreemapNode } from "@/components/visualizations/Treemap";
 import type { CalculationResult } from "@/types/calculator";
 import { fmt } from "@/lib/utils";
 import { Home, PiggyBank, Landmark, Wallet } from "lucide-react";
+import {
+  calculatePercentileRanking,
+  calculateSavingsRateComparison,
+} from "@/lib/benchmarks";
 
 const Loading = () => <div className="h-64 animate-pulse bg-muted rounded" />;
 
 const SankeyDiagram = dynamic(() => import("@/components/visualizations/SankeyDiagram"), { ssr: false, loading: Loading });
-const HeatmapCalendar = dynamic(() => import("@/components/visualizations/HeatmapCalendar"), { ssr: false, loading: Loading });
 const RadarChart = dynamic(() => import("@/components/visualizations/RadarChart"), { ssr: false, loading: Loading });
 const Treemap = dynamic(() => import("@/components/visualizations/Treemap"), { ssr: false, loading: Loading });
 const WaterfallChart = dynamic(() => import("@/components/visualizations/WaterfallChart"), { ssr: false, loading: Loading });
@@ -31,7 +33,8 @@ interface ResultsVisualizationsSectionProps {
 }
 
 export default function ResultsVisualizationsSection({ calculationResult }: ResultsVisualizationsSectionProps) {
-  const { config: planConfig } = usePlanConfig();
+  const { config: planConfig, updateConfig } = usePlanConfig();
+  const [showNetWorthEditor, setShowNetWorthEditor] = useState(false);
   const D = createDefaultPlanConfig();
   const age = planConfig.age1 ?? D.age1;
   const retAge = planConfig.retirementAge ?? D.retirementAge;
@@ -53,6 +56,13 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
     (planConfig.cMatch2 ?? D.cMatch2);
   const grossIncome = (planConfig.primaryIncome ?? D.primaryIncome) +
     (planConfig.spouseIncome ?? D.spouseIncome ?? 0);
+
+  const updateCurrencyField = (field: keyof typeof planConfig, rawValue: string) => {
+    const nextValue = Number(rawValue.replace(/[^0-9.-]/g, ""));
+    updateConfig({ [field]: Number.isFinite(nextValue) ? Math.max(0, nextValue) : 0 }, "user-entered");
+  };
+
+  const currencyInputValue = (value: number | undefined) => String(Math.round(value ?? 0));
 
   // === Derive Sankey data from PlanConfig ===
   const sankeyData = useMemo(() => {
@@ -142,73 +152,7 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
     return { incomeSources, accounts, spendingCategories, flows };
   }, [planConfig, D]);
 
-  // === 1. Derive HeatmapCalendar contribution data from PlanConfig ===
-  const heatmapContributions = useMemo((): DailyContribution[] => {
-    if (annualContributions <= 0) return [];
-
-    const currentYear = new Date().getFullYear();
-    const contributions: DailyContribution[] = [];
-
-    // Distribute annual contributions across ~260 working days (weekdays)
-    const cPre1 = planConfig.cPre1 ?? D.cPre1 ?? 0;
-    const cPost1 = planConfig.cPost1 ?? D.cPost1 ?? 0;
-    const cTax1 = planConfig.cTax1 ?? D.cTax1 ?? 0;
-    const cMatch1 = planConfig.cMatch1 ?? D.cMatch1 ?? 0;
-
-    // Per-paycheck amounts (biweekly = 26 pay periods)
-    const payPeriods = 26;
-    const preTaxPerPeriod = (cPre1 + cMatch1) / payPeriods;
-    const rothPerPeriod = cPost1 / payPeriods;
-    const taxablePerPeriod = cTax1 / payPeriods;
-
-    // Generate biweekly contributions on Fridays throughout the year
-    const startDate = new Date(currentYear, 0, 1);
-    // Find first Friday
-    while (startDate.getDay() !== 5) {
-      startDate.setDate(startDate.getDate() + 1);
-    }
-
-    for (let period = 0; period < payPeriods; period++) {
-      const payDate = new Date(startDate);
-      payDate.setDate(payDate.getDate() + period * 14);
-      if (payDate.getFullYear() !== currentYear) break;
-
-      const dateStr = payDate.toISOString().split("T")[0];
-
-      if (preTaxPerPeriod > 0) {
-        contributions.push({
-          date: dateStr,
-          amount: Math.round(preTaxPerPeriod),
-          type: "401k",
-          note: "Pre-tax 401(k) + employer match",
-        });
-      }
-      if (rothPerPeriod > 0) {
-        contributions.push({
-          date: dateStr,
-          amount: Math.round(rothPerPeriod),
-          type: "ira",
-          note: "Roth contribution",
-        });
-      }
-      if (taxablePerPeriod > 0) {
-        // Taxable contributions happen on same payday
-        const taxDate = new Date(payDate);
-        taxDate.setDate(taxDate.getDate() + 1); // Next day to avoid duplicate keys
-        const taxDateStr = taxDate.toISOString().split("T")[0];
-        contributions.push({
-          date: taxDateStr,
-          amount: Math.round(taxablePerPeriod),
-          type: "savings",
-          note: "Taxable brokerage contribution",
-        });
-      }
-    }
-
-    return contributions;
-  }, [annualContributions, planConfig, D]);
-
-  // === 2. Derive RadarChart scenario data from PlanConfig ===
+  // === 1. Derive RadarChart scenario data from PlanConfig ===
   const radarScenarios = useMemo(() => {
     const totalIncome = (planConfig.primaryIncome ?? D.primaryIncome) +
       (planConfig.spouseIncome ?? D.spouseIncome ?? 0);
@@ -534,6 +478,31 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
     return liabilities;
   }, [mortgageBalance, planConfig.monthlyMortgageRent]);
 
+  const retirementBenchmark = useMemo(() => {
+    const retirementAccounts = pretax + roth;
+    return calculatePercentileRanking(age, retirementAccounts);
+  }, [age, pretax, roth]);
+
+  const savingsRateBenchmark = useMemo(
+    () => calculateSavingsRateComparison(annualContributions, grossIncome),
+    [annualContributions, grossIncome]
+  );
+
+  const ageMedianRetirementSavings = retirementBenchmark.userSavings - retirementBenchmark.vsMedian.difference;
+
+  const editableFields: Array<{
+    label: string;
+    field: keyof typeof planConfig;
+    value: number;
+  }> = [
+    { label: "Taxable Brokerage", field: "taxableBalance", value: taxable },
+    { label: "Pre-Tax Accounts", field: "pretaxBalance", value: pretax },
+    { label: "Roth Accounts", field: "rothBalance", value: roth },
+    { label: "Emergency Fund", field: "emergencyFund", value: planConfig.emergencyFund ?? D.emergencyFund },
+    { label: "Home Value", field: "homeValue", value: homeValue },
+    { label: "Mortgage Balance", field: "mortgageBalance", value: mortgageBalance },
+  ];
+
   // When all balances, contributions, and income are zero, show an empty state
   // instead of rendering charts with meaningless or NaN-producing data.
   if (totalBalance === 0 && annualContributions === 0 && grossIncome === 0) {
@@ -560,7 +529,6 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
                 spendingCategories={sankeyData.spendingCategories}
                 flows={sankeyData.flows}
               />
-              <HeatmapCalendar contributions={heatmapContributions} />
               <RadarChart scenarios={radarScenarios} />
               <Treemap data={treemapData} />
               <WaterfallChart data={waterfallData} />
@@ -575,16 +543,45 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
               <div className="rounded-lg border bg-card p-5">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <h3 className="text-base font-semibold">Connected Net Worth</h3>
+                    <h3 className="text-base font-semibold">Net Worth Snapshot</h3>
                     <p className="text-sm text-muted-foreground">
-                      Uses only fields you entered in the planner. Manual tracking, fake history, and account-link placeholders are disabled.
+                      Uses only values entered in this planner. Click edit to update the snapshot here; net worth updates immediately without rerunning the retirement calculation.
                     </p>
                   </div>
                   <div className="text-left sm:text-right">
                     <p className="text-xs text-muted-foreground">Current net worth</p>
                     <p className="text-2xl font-bold">{fmt(totalNetWorth)}</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowNetWorthEditor((value) => !value)}
+                      className="mt-2 text-xs font-medium text-primary hover:underline"
+                    >
+                      {showNetWorthEditor ? "Done editing" : "Edit snapshot"}
+                    </button>
                   </div>
                 </div>
+
+                {showNetWorthEditor && (
+                  <div className="mt-5 rounded-lg border bg-muted/30 p-4">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {editableFields.map((item) => (
+                        <label key={String(item.field)} className="space-y-1 text-sm">
+                          <span className="text-xs font-medium text-muted-foreground">{item.label}</span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={currencyInputValue(item.value)}
+                            onChange={(event) => updateCurrencyField(item.field, event.target.value)}
+                            className="w-full rounded-md border bg-background px-3 py-2 font-mono text-sm"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      These fields feed the planner state directly. Recalculate only if you want retirement projections, taxes, or Monte Carlo results to refresh from the new balances.
+                    </p>
+                  </div>
+                )}
 
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                   <div>
@@ -612,11 +609,36 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
                     ) : (
                       <p className="rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground">No debt entered.</p>
                     )}
-                    {homeValue === 0 && (
-                      <p className="mt-3 text-xs text-muted-foreground">
-                        Add home value and mortgage balance in Current Balances to include home equity.
+                  </div>
+                </div>
+
+                <div className="mt-5 rounded-lg border bg-muted/20 p-4">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold">Population Context</p>
+                      <p className="text-xs text-muted-foreground">
+                        Federal Reserve SCF retirement-account benchmark, not a total-net-worth ranking.
                       </p>
-                    )}
+                    </div>
+                    <div className="text-sm font-medium">
+                      {Math.round(retirementBenchmark.percentile)}th percentile
+                    </div>
+                  </div>
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-md bg-background px-3 py-2">
+                      <p className="text-xs text-muted-foreground">Retirement accounts</p>
+                      <p className="font-mono font-semibold">{fmt(pretax + roth)}</p>
+                    </div>
+                    <div className="rounded-md bg-background px-3 py-2">
+                      <p className="text-xs text-muted-foreground">Age {age} median</p>
+                      <p className="font-mono font-semibold">{fmt(ageMedianRetirementSavings)}</p>
+                    </div>
+                    <div className="rounded-md bg-background px-3 py-2">
+                      <p className="text-xs text-muted-foreground">Savings rate</p>
+                      <p className="font-mono font-semibold">
+                        {savingsRateBenchmark ? `${savingsRateBenchmark.userRate}% vs ${savingsRateBenchmark.nationalAverage}% avg` : "Add income"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

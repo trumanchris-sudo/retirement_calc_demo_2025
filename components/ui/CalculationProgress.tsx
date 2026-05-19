@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { TRANSITIONS } from "@/lib/designTokens";
+import { MONTE_CARLO_PATHS } from "@/lib/constants";
 
 interface CalculationProgressProps {
   /** Current phase of calculation */
@@ -33,7 +34,7 @@ const phaseInfo: Record<string, PhaseInfo> = {
   },
   monteCarlo: {
     message: "Running Monte Carlo simulation...",
-    description: "Simulating 1,000 market scenarios to estimate success probability",
+    description: `Simulating ${MONTE_CARLO_PATHS.toLocaleString()} market scenarios to estimate success probability`,
     icon: "chart",
   },
   legacy: {

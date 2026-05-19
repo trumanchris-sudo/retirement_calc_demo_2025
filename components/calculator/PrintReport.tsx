@@ -16,6 +16,7 @@ import {
   LIFE_EXP,
   ESTATE_TAX_EXEMPTION,
   ESTATE_TAX_RATE,
+  MONTE_CARLO_PATHS,
 } from "@/lib/constants";
 import { BEAR_MARKET_SCENARIOS } from "@/lib/simulation/bearMarkets";
 import { INFLATION_SHOCK_SCENARIOS } from "@/lib/simulation/inflationShocks";
@@ -99,7 +100,7 @@ export function PrintReport({
           </p>
           <p className="text-xs text-gray-700 mt-1">
             Generated on {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} &middot;
-            {randomWalkSeries === 'trulyRandom' ? ' Monte Carlo Simulation (1,000 runs)' : ' Single Path Projection'}
+            {randomWalkSeries === 'trulyRandom' ? ` Monte Carlo Simulation (${MONTE_CARLO_PATHS.toLocaleString()} runs)` : ' Single Path Projection'}
           </p>
         </header>
 
@@ -113,7 +114,7 @@ export function PrintReport({
                 <div className="text-3xl font-bold text-green-900 mb-1">
                   {res.probRuin !== undefined ? `${((1 - res.probRuin) * 100).toFixed(1)}%` : '100%'}
                 </div>
-                <div className="text-sm text-green-700">Based on 1,000 market simulations</div>
+                <div className="text-sm text-green-700">Based on {MONTE_CARLO_PATHS.toLocaleString()} market simulations</div>
               </div>
 
               <div className="border-2 border-red-300 bg-red-50 p-4">
@@ -601,7 +602,7 @@ export function PrintReport({
             <h3 className="text-sm font-semibold mb-2 text-black">Monte Carlo Limitations</h3>
             <p>
               {randomWalkSeries === 'trulyRandom'
-                ? 'While Monte Carlo simulation (1,000 runs) provides probabilistic outcomes, it is only as good as its underlying assumptions. Real-world outcomes may differ due to factors not captured in the model.'
+                ? `While Monte Carlo simulation (${MONTE_CARLO_PATHS.toLocaleString()} runs) provides probabilistic outcomes, it is only as good as its underlying assumptions. Real-world outcomes may differ due to factors not captured in the model.`
                 : 'This report uses a deterministic (single-path) projection, which does not account for sequence-of-returns risk or stochastic variability. Actual outcomes may vary significantly.'}
             </p>
           </div>

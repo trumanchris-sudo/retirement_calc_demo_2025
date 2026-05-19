@@ -372,7 +372,7 @@ const features = [
   {
     icon: Calculator,
     title: "Monte Carlo Simulations",
-    description: "Run 10,000+ scenarios to stress-test your retirement plan against market volatility and uncertainty.",
+    description: `Run ${MONTE_CARLO_PATHS.toLocaleString()} scenarios to stress-test your retirement plan against market volatility and uncertainty.`,
     gradient: "from-blue-500 to-cyan-500",
     delay: 0,
   },
@@ -604,7 +604,7 @@ const InteractiveDemo: React.FC = () => {
       ),
     },
     {
-      title: "Run 10,000+ Simulations",
+      title: `Run ${MONTE_CARLO_PATHS.toLocaleString()} Simulations`,
       description: "Our Monte Carlo engine tests your plan against countless market scenarios in milliseconds.",
       visual: (
         <div className="relative h-48 flex items-center justify-center">

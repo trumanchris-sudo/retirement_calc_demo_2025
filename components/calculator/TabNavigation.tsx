@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils";
 import { soundPresets } from "@/lib/sounds";
 import { ScreenReaderOnly } from "@/components/a11y/ScreenReaderOnly";
 
-export type MainTabId = 'all' | 'configure' | 'planSettings' | 'results' | 'stress' | 'legacy' | 'budget' | 'optimize' | 'tools' | 'math' | 'checkUs';
+export type MainTabId = 'all' | 'configure' | 'results' | 'stress' | 'legacy' | 'budget' | 'optimize' | 'tools' | 'math' | 'checkUs';
 
 /** All valid main tab IDs for runtime validation */
-const VALID_MAIN_TAB_IDS: readonly MainTabId[] = ['all', 'configure', 'planSettings', 'results', 'stress', 'legacy', 'budget', 'optimize', 'tools', 'math', 'checkUs'] as const;
+const VALID_MAIN_TAB_IDS: readonly MainTabId[] = ['all', 'configure', 'results', 'stress', 'legacy', 'budget', 'optimize', 'tools', 'math', 'checkUs'] as const;
 
 /** Type guard to check if a string is a valid MainTabId */
 export function isMainTabId(value: string): value is MainTabId {
@@ -36,11 +36,6 @@ const TabIcons: Record<MainTabId, React.FC<{ className?: string }>> = {
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  ),
-  planSettings: ({ className }) => (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
     </svg>
   ),
   results: ({ className }) => (
@@ -90,10 +85,9 @@ const tabs: Array<{ id: MainTabId; label: string; shortLabel?: string; descripti
   { id: 'results', label: 'Results', description: 'View your projections' },
   { id: 'stress', label: 'Stress Tests', shortLabel: 'Stress', description: 'Test market scenarios' },
   { id: 'optimize', label: 'Optimize', description: 'Find your freedom date' },
-  { id: 'tools', label: 'Planning Tools', shortLabel: 'Tools', description: 'Student loans, annuities, semi-retirement' },
+  { id: 'tools', label: 'Planning Tools', shortLabel: 'Tools', description: 'Connected planning checks' },
   { id: 'legacy', label: 'Legacy Planning', shortLabel: 'Legacy', description: 'Generational wealth' },
   { id: 'math', label: 'Math', description: 'Understanding the calculations' },
-  { id: 'planSettings', label: 'Plan Settings', shortLabel: 'Settings', description: 'All plan inputs and assumptions in one place' },
   { id: 'checkUs', label: 'Check Us', shortLabel: 'Check', description: 'Verify our calculations' },
   { id: 'all', label: 'All-in-One', shortLabel: 'All', description: 'Classic view with everything' },
   // Budget tab hidden per user request (contains Retirement Timeline & Implied Budget)
@@ -112,7 +106,7 @@ export function TabNavigation({
   // Get enabled tabs for keyboard navigation
   const enabledTabs = tabs.filter(tab => {
     if (!hasResults) {
-      return tab.id === 'configure' || tab.id === 'planSettings';
+      return tab.id === 'configure' || tab.id === 'tools';
     }
     return true;
   });

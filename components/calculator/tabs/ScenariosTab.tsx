@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { RiskSummaryCard } from "@/components/calculator/RiskSummaryCard";
-import { RecalculateButton } from "@/components/calculator/RecalculateButton";
 import { ScenarioComparisonChart } from "@/components/calculator/charts";
 import { BEAR_MARKET_SCENARIOS } from "@/lib/simulation/bearMarkets";
 import { INFLATION_SHOCK_SCENARIOS } from "@/lib/simulation/inflationShocks";
 import { MONTE_CARLO_PATHS } from "@/lib/constants";
 import type { CalculationResult, ComparisonData } from "@/types/calculator";
 import type { ReturnMode } from "@/types/planner";
+import type { ComparisonOverrides } from "@/hooks/useComparison";
 import { fmt } from "@/lib/utils";
 
 export interface ScenariosTabProps {
@@ -35,15 +35,11 @@ export interface ScenariosTabProps {
   comparisonMode: boolean;
   setComparisonMode: (value: boolean) => void;
   comparisonData: ComparisonData;
-  runComparison: () => void;
+  runComparison: (overrides?: ComparisonOverrides) => void;
   runRandomComparison: () => void;
 
   // Display
   isDarkMode: boolean;
-  isLoadingAi: boolean;
-
-  // Actions
-  onCalculate: () => void;
 }
 
 export function ScenariosTab({
@@ -54,9 +50,22 @@ export function ScenariosTab({
   inflationShockDuration, setInflationShockDuration,
   comparisonMode, setComparisonMode, comparisonData,
   runComparison, runRandomComparison,
-  isDarkMode, isLoadingAi, onCalculate
+  isDarkMode
 }: ScenariosTabProps) {
   if (!res) return null;
+
+  const updateBearScenario = (year: number | null) => {
+    setHistoricalYear(year);
+    setComparisonMode(true);
+    runComparison({ historicalYear: year });
+  };
+
+  const updateInflationScenario = (rate: number, duration = inflationShockDuration) => {
+    setInflationShockRate(rate);
+    setInflationShockDuration(duration);
+    setComparisonMode(true);
+    runComparison({ inflationShockRate: rate, inflationShockDuration: duration });
+  };
 
   return (
     <>
@@ -134,7 +143,7 @@ export function ScenariosTab({
                       {BEAR_MARKET_SCENARIOS.map((scenario) => (
                         <button
                           key={scenario.year}
-                          onClick={() => setHistoricalYear(scenario.year)}
+                          onClick={() => updateBearScenario(scenario.year)}
                           className={`p-3 rounded-lg border-2 transition-all text-left hover:shadow-lg hover:scale-[1.02] ${
                             historicalYear === scenario.year
                               ? 'border-blue-500 dark:border-blue-400 bg-blue-100 dark:bg-blue-950 ring-2 ring-blue-400'
@@ -171,23 +180,13 @@ export function ScenariosTab({
 
                     <div className="mt-4 flex gap-2">
                       {historicalYear && (
-                        <>
-                          <Button
-                            onClick={onCalculate}
-                            variant="default"
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            Recalculate
-                          </Button>
-                          <Button
-                            onClick={() => setHistoricalYear(null)}
-                            variant="outline"
-                            size="sm"
-                          >
-                            Clear Stress Test
-                          </Button>
-                        </>
+                        <Button
+                          onClick={() => updateBearScenario(null)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Clear Bear Market
+                        </Button>
                       )}
                     </div>
 
@@ -206,7 +205,7 @@ export function ScenariosTab({
                         </svg>
                         <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
                           <strong>Your Monte Carlo simulation already accounts for this!</strong> By running {MONTE_CARLO_PATHS.toLocaleString()} simulations with different return sequences,
-                          it includes outcomes similar to these historical stress tests.
+                          it includes outcomes similar to these historical stress tests. This panel overlays a selected shock onto the already-calculated baseline path, so it updates without rerunning the full Monte Carlo engine.
                         </div>
                       </div>
                     </div>
@@ -231,10 +230,7 @@ export function ScenariosTab({
                       {INFLATION_SHOCK_SCENARIOS.map((scenario) => (
                         <button
                           key={`${scenario.rate}-${scenario.duration}`}
-                          onClick={() => {
-                            setInflationShockRate(scenario.rate);
-                            setInflationShockDuration(scenario.duration);
-                          }}
+                          onClick={() => updateInflationScenario(scenario.rate, scenario.duration)}
                           className={`p-3 rounded-lg border-2 transition-all text-left hover:shadow-lg hover:scale-[1.02] ${
                             inflationShockRate === scenario.rate && inflationShockDuration === scenario.duration
                               ? 'border-orange-500 dark:border-orange-400 bg-orange-100 dark:bg-orange-950 ring-2 ring-orange-400'
@@ -280,8 +276,8 @@ export function ScenariosTab({
                             value={inflationShockRate}
                             onChange={(e) => {
                               const val = parseFloat(e.target.value);
-                              if (!isNaN(val)) setInflationShockRate(Math.max(0, Math.min(20, val)));
-                              else if (e.target.value === '') setInflationShockRate(0);
+                              if (!isNaN(val)) updateInflationScenario(Math.max(0, Math.min(20, val)));
+                              else if (e.target.value === '') updateInflationScenario(0);
                             }}
                             className="w-full px-3 py-2 text-sm border rounded-md bg-background"
                           />
@@ -294,8 +290,8 @@ export function ScenariosTab({
                             value={inflationShockDuration}
                             onChange={(e) => {
                               const val = parseInt(e.target.value);
-                              if (!isNaN(val)) setInflationShockDuration(Math.max(1, Math.min(10, val)));
-                              else if (e.target.value === '') setInflationShockDuration(1);
+                              if (!isNaN(val)) updateInflationScenario(inflationShockRate, Math.max(1, Math.min(10, val)));
+                              else if (e.target.value === '') updateInflationScenario(inflationShockRate, 1);
                             }}
                             className="w-full px-3 py-2 text-sm border rounded-md bg-background"
                           />
@@ -305,23 +301,13 @@ export function ScenariosTab({
 
                     <div className="flex gap-2">
                       {inflationShockRate > 0 && (
-                        <>
-                          <Button
-                            onClick={onCalculate}
-                            variant="default"
-                            size="sm"
-                            className="bg-orange-600 hover:bg-orange-700"
-                          >
-                            Recalculate
-                          </Button>
-                          <Button
-                            onClick={() => setInflationShockRate(0)}
-                            variant="outline"
-                            size="sm"
-                          >
-                            Clear Stress Test
-                          </Button>
-                        </>
+                        <Button
+                          onClick={() => updateInflationScenario(0)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Clear Inflation Shock
+                        </Button>
                       )}
                     </div>
 
@@ -357,7 +343,7 @@ export function ScenariosTab({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
-                          <strong>Comparison Mode Active:</strong> Select a bear market and/or inflation shock above, then click &quot;Recalculate Comparison&quot; to update the chart.
+                          <strong>Comparison Mode Active:</strong> Select a bear market and/or inflation shock above. The chart updates immediately using the baseline path you already calculated.
                         </div>
                       </div>
                     </div>
@@ -423,14 +409,14 @@ export function ScenariosTab({
                     <div className="flex justify-center gap-3">
                       <Button
                         onClick={() => {
-                          setComparisonMode(true);
-                          runComparison();
+                          setHistoricalYear(null);
+                          setInflationShockRate(0);
+                          setComparisonMode(false);
                         }}
-                        variant="default"
+                        variant="outline"
                         size="sm"
-                        className="bg-blue-600 hover:bg-blue-700"
                       >
-                        Recalculate Comparison
+                        Clear All Shocks
                       </Button>
                       <Button
                         onClick={runRandomComparison}
@@ -476,10 +462,6 @@ export function ScenariosTab({
         </AnimatedSection>
       )}
 
-      {/* Recalculate Button */}
-      <div className="flex justify-center mt-6">
-        <RecalculateButton onClick={onCalculate} isCalculating={isLoadingAi} />
-      </div>
     </>
   );
 }

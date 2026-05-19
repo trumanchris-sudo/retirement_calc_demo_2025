@@ -10,14 +10,61 @@
 
 import { useCallback } from 'react';
 import { usePlanConfig } from '@/lib/plan-config-context';
-import { runSingleSimulation } from '@/lib/calculations/retirementEngine';
-import { buildSimulationInputs } from '@/lib/calculations/buildSimulationInputs';
-import { BEAR_MARKET_SCENARIOS } from '@/lib/simulation/bearMarkets';
+import { BEAR_MARKET_SCENARIOS, getBearReturns } from '@/lib/simulation/bearMarkets';
 import { INFLATION_SHOCK_SCENARIOS } from '@/lib/simulation/inflationShocks';
 import type { CalculationResult, ComparisonData, ChartDataPoint } from '@/types/calculator';
 import { createDefaultPlanConfig } from '@/types/plan-config';
 
 const DEFAULTS = createDefaultPlanConfig();
+
+function applyBearMarketOverlay(
+  baseline: ChartDataPoint[],
+  yrsToRet: number,
+  historicalYear: number | null,
+  nominalReturnRate: number,
+  inflationRate: number
+): Array<number | undefined> | null {
+  if (!historicalYear) return null;
+
+  const returns = getBearReturns(historicalYear);
+  const baselineRealReturn = ((1 + nominalReturnRate / 100) / (1 + inflationRate / 100)) - 1;
+  let stressFactor = 1;
+
+  return baseline.map((row, index) => {
+    if (index < yrsToRet) return undefined;
+
+    const shockIndex = index - yrsToRet;
+    if (shockIndex < returns.length) {
+      const stressedRealReturn = ((1 + returns[shockIndex]) / (1 + inflationRate / 100)) - 1;
+      stressFactor *= (1 + stressedRealReturn) / Math.max(0.01, 1 + baselineRealReturn);
+    }
+
+    return Math.max(0, row.real * stressFactor);
+  });
+}
+
+function applyInflationOverlay(
+  baseline: ChartDataPoint[],
+  yrsToRet: number,
+  shockRate: number,
+  shockDuration: number,
+  baseInflationRate: number
+): Array<number | undefined> | null {
+  if (shockRate <= 0 || shockDuration <= 0) return null;
+
+  let purchasingPowerFactor = 1;
+
+  return baseline.map((row, index) => {
+    if (index < yrsToRet) return undefined;
+
+    const shockIndex = index - yrsToRet;
+    if (shockIndex < shockDuration) {
+      purchasingPowerFactor *= (1 + baseInflationRate / 100) / (1 + shockRate / 100);
+    }
+
+    return Math.max(0, row.real * purchasingPowerFactor);
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -100,42 +147,31 @@ export function useComparison(params: UseComparisonParams): UseComparisonReturn 
     setErr(null);
 
     try {
-      const seed = planConfig.seed ?? DEFAULTS.seed;
+      const yrsToRet = Math.max(0, res.yrsToRet);
+      const nominalReturnRate = planConfig.retRate ?? DEFAULTS.retRate;
+      const baseInflationRate = planConfig.inflationRate ?? DEFAULTS.inflationRate;
 
-      const baseInputs = buildSimulationInputs(planConfig, {
-        historicalYearOverride: null,
-        inflationShockRateOverride: 0,
-        inflationShockDurationOverride: 5,
-      });
+      const bearData = applyBearMarketOverlay(
+        res.data,
+        yrsToRet,
+        effectiveHistoricalYear,
+        nominalReturnRate,
+        baseInflationRate
+      );
 
-      // Calculate baseline
-      const baselineResult = runSingleSimulation(baseInputs, seed);
-
-      // Calculate bear market scenario if specified
-      let bearData: number[] | null = null;
-      if (effectiveHistoricalYear) {
-        const bearInputs = { ...baseInputs, historicalYear: effectiveHistoricalYear, returnMode: 'randomWalk' as const };
-        const bearResult = runSingleSimulation(bearInputs, seed);
-        bearData = bearResult.balancesReal;
-      }
-
-      // Calculate inflation shock scenario if specified
-      let inflationData: number[] | null = null;
-      if (effectiveInflationRate > 0) {
-        const inflationInputs = {
-          ...baseInputs,
-          inflationShockRate: effectiveInflationRate,
-          inflationShockDuration: effectiveInflationDuration,
-        };
-        const inflationResult = runSingleSimulation(inflationInputs, seed);
-        inflationData = inflationResult.balancesReal;
-      }
+      const inflationData = applyInflationOverlay(
+        res.data,
+        yrsToRet,
+        effectiveInflationRate,
+        effectiveInflationDuration,
+        baseInflationRate
+      );
 
       // Merge comparison data onto existing res.data structure.
       // This preserves bal, real, p10, p90 while adding baseline, bearMarket, inflation.
       const mergedData: ChartDataPoint[] = res.data.map((row, i) => ({
         ...row,
-        baseline: baselineResult.balancesReal[i],
+        baseline: row.real,
         bearMarket: bearData ? bearData[i] : undefined,
         inflation: inflationData ? inflationData[i] : undefined,
       }));

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { cn } from "@/lib/utils";
+import { MONTE_CARLO_PATHS } from "@/lib/constants";
 
 interface CalculateButtonProps {
   onClick: () => void;
@@ -61,7 +62,7 @@ export const CalculateButton: React.FC<CalculateButtonProps> = ({
             <LoadingSpinner size="sm" color="text-white" className="mr-2" />
             <span>Calculating...</span>
             <span className="sr-only">
-              Running Monte Carlo simulation with 1,000 market scenarios
+              Running Monte Carlo simulation with {MONTE_CARLO_PATHS.toLocaleString()} market scenarios
             </span>
           </>
         ) : (
