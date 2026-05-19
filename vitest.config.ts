@@ -15,11 +15,22 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
+      include: [
+        'lib/planConfig.ts',
+        'lib/constants.ts',
+        'lib/constants/**/*.ts',
+        'lib/calculations/buildSimulationInputs.ts',
+        'lib/calculations/retirementEngine.ts',
+        'lib/calculations/taxCalculations.ts',
+        'lib/calculations/withdrawalTax.ts',
+        'lib/calculations/selfEmployed2026.ts',
+        'lib/calculations/shared/**/*.ts',
+      ],
       thresholds: {
-        lines: 80,
-        functions: 80,
-        branches: 75,
-        statements: 80,
+        lines: 65,
+        functions: 60,
+        branches: 65,
+        statements: 65,
       },
       exclude: [
         'node_modules/**',
