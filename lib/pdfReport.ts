@@ -12,7 +12,7 @@ import type { CalculationResult } from '@/types/calculator';
 import type { FilingStatus } from './calculations/taxCalculations';
 import type { ReturnMode, WalkSeries } from '@/types/planner';
 import { fmtFull, fmtPctRaw, fmt } from '@/lib/utils';
-import { ESTATE_TAX_EXEMPTION } from '@/lib/constants';
+import { ESTATE_TAX_EXEMPTION, MONTE_CARLO_PATHS } from '@/lib/constants';
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -1159,7 +1159,7 @@ function addRiskAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string) {
 
   if (isMonteCarloMode) {
     y = addParagraph(doc,
-      'Your plan was analyzed using 1,000 Monte Carlo simulations, each representing a different possible ' +
+      `Your plan was analyzed using ${MONTE_CARLO_PATHS.toLocaleString()} Monte Carlo simulations, each representing a different possible ` +
       'sequence of market returns based on historical S&P 500 data (1928-2024). This methodology captures ' +
       'the uncertainty inherent in financial planning.', y, 9);
     y += 3;
@@ -1188,7 +1188,7 @@ function addRiskAnalysis(doc: jsPDF, data: PDFReportData, reportDate: string) {
   doc.setFontSize(8);
   doc.setTextColor(COLORS.textMuted);
   doc.setFont('helvetica', 'normal');
-  doc.text('of 1,000 simulations sustained withdrawals through age 95', resultX, resultY);
+  doc.text(`of ${MONTE_CARLO_PATHS.toLocaleString()} simulations sustained withdrawals through age 95`, resultX, resultY);
 
   resultY += 10;
   doc.setFontSize(9);
@@ -1568,7 +1568,7 @@ function addDisclosures(doc: jsPDF, reportDate: string) {
       title: 'Monte Carlo Methodology',
       content: 'Simulations use bootstrap sampling from 97 years of historical S&P 500 total returns ' +
                '(1928-2024). Returns are capped at +/-15% to prevent unrealistic projections. ' +
-               '1,000 paths are generated for each analysis.'
+               `${MONTE_CARLO_PATHS.toLocaleString()} paths are generated for each analysis.`
     },
     {
       title: 'Healthcare Assumptions',

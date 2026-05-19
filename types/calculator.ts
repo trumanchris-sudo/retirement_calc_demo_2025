@@ -110,6 +110,8 @@ export interface CalculatorInputs {
   taxableBalance: number;           // Starting taxable brokerage balance
   pretaxBalance: number;           // Starting pre-tax (401k/IRA) balance
   rothBalance: number;          // Starting Roth balance
+  homeValue?: number;           // Primary residence/home equity asset
+  mortgageBalance?: number;     // Remaining mortgage debt against home value
 
   // Person 1 Contributions
   cTax1: number;    // Annual taxable contributions
@@ -304,6 +306,8 @@ export interface CalculationResult {
   eolReal: number;      // End-of-life wealth (real, inflation-adjusted)
   estateTax: number;    // Federal estate tax (real, inflation-adjusted)
   estateTaxNominal?: number; // Federal estate tax (nominal) for reference
+  estateTaxExemptionNominal?: number; // Projected federal exemption in nominal dollars
+  estateTaxExemptionReal?: number;    // Projected federal exemption in today's dollars
   netEstate: number;    // Net estate after tax
   eolAccounts: AccountBalances; // Account breakdown at EOL
   totalRMDs: number;    // Total RMDs over lifetime

@@ -84,6 +84,10 @@ interface BalancesSectionProps extends SectionProps {
   setPretaxBalance: NumberSetter;
   rothBalance: number;
   setRothBalance: NumberSetter;
+  homeValue: number;
+  setHomeValue: NumberSetter;
+  mortgageBalance: number;
+  setMortgageBalance: NumberSetter;
 }
 
 export function BalancesSection({
@@ -93,6 +97,10 @@ export function BalancesSection({
   setPretaxBalance,
   rothBalance,
   setRothBalance,
+  homeValue,
+  setHomeValue,
+  mortgageBalance,
+  setMortgageBalance,
   onInputChange,
 }: BalancesSectionProps) {
   return (
@@ -101,6 +109,9 @@ export function BalancesSection({
         <Input label="Taxable Brokerage" value={taxableBalance} setter={setTaxableBalance} step={1000} onInputChange={onInputChange} defaultValue={50000} validate={(val) => validateBalance(val, 'Taxable balance')} />
         <Input label="Pre-Tax (401k/IRA)" value={pretaxBalance} setter={setPretaxBalance} step={1000} onInputChange={onInputChange} defaultValue={150000} validate={(val) => validateBalance(val, 'Pre-tax balance')} />
         <Input label="Post-Tax (Roth)" value={rothBalance} setter={setRothBalance} step={1000} onInputChange={onInputChange} defaultValue={25000} validate={(val) => validateBalance(val, 'Roth balance')} />
+        <Separator />
+        <Input label="Home Value" value={homeValue} setter={setHomeValue} step={10000} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Home value')} helpText="Optional, but needed for accurate net worth." />
+        <Input label="Mortgage Balance" value={mortgageBalance} setter={setMortgageBalance} step={10000} onInputChange={onInputChange} defaultValue={0} validate={(val) => validateBalance(val, 'Mortgage balance')} helpText="Remaining principal only; monthly payment belongs in expenses." />
       </div>
     </div>
   );

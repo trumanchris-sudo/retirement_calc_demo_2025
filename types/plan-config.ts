@@ -131,6 +131,8 @@ export function createDefaultPlanConfig(): PlanConfig {
     taxableBalance: 50000,
     pretaxBalance: 150000,
     rothBalance: 25000,
+    homeValue: 0,
+    mortgageBalance: 0,
 
     // Contributions
     cTax1: 10000,

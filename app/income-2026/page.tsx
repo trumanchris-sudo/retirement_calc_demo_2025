@@ -101,7 +101,13 @@ export default function Income2026Page() {
 
   // Route guard: check if PlanConfig has been meaningfully configured.
   // If fieldMetadata is empty, the user has not interacted with the calculator yet.
-  const hasUserData = Object.keys(planConfig.fieldMetadata).length > 0;
+  const hasUserData =
+    Object.keys(planConfig.fieldMetadata ?? {}).length > 0 ||
+    (planConfig.primaryIncome ?? 0) > 0 ||
+    (planConfig.spouseIncome ?? 0) > 0 ||
+    (planConfig.taxableBalance ?? 0) > 0 ||
+    (planConfig.pretaxBalance ?? 0) > 0 ||
+    (planConfig.rothBalance ?? 0) > 0;
 
   // Use shared hooks
   const scrollState = useScrollState();

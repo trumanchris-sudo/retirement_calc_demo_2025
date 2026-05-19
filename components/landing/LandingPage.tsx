@@ -38,6 +38,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { MONTE_CARLO_PATHS } from "@/lib/constants";
 
 // ============================================================================
 // ANIMATED WEALTH GROWTH CHART (Hero Section)
@@ -1053,7 +1054,7 @@ const PricingSection: React.FC = () => {
 const faqs = [
   {
     question: "How accurate are the retirement projections?",
-    answer: "Our projections are based on Monte Carlo simulations running 10,000+ scenarios using historical market data, inflation rates, and tax laws. While no tool can predict the future perfectly, our 98.7% accuracy rate (measured by comparing projections to actual outcomes) makes this one of the most reliable calculators available.",
+    answer: `Our projections are based on Monte Carlo simulations running ${MONTE_CARLO_PATHS.toLocaleString()} scenarios using historical market data, inflation rates, and tax laws. While no tool can predict the future perfectly, this gives you a much better read on sequence risk than a single straight-line projection.`,
   },
   {
     question: "Is my financial data secure?",

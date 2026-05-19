@@ -86,6 +86,7 @@ export const WealthAccumulationChart = React.memo<WealthChartProps>(({ data, sho
             strokeDasharray="3 3"
             dot={false}
             name="10th Percentile (Nominal)"
+            isAnimationActive={false}
           />
         )}
         {showP90 && (
@@ -97,6 +98,7 @@ export const WealthAccumulationChart = React.memo<WealthChartProps>(({ data, sho
             strokeDasharray="3 3"
             dot={false}
             name="90th Percentile (Nominal)"
+            isAnimationActive={false}
           />
         )}
       </ComposedChart>

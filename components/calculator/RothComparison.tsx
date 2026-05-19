@@ -342,7 +342,7 @@ export const RothComparison = React.memo(function RothComparison({
     return {
       currentScenario: current,
       rothScenario: roth,
-      timelineData: timeline,
+      timelineData: timeline.filter((point) => point.age >= inputs.retirementAge),
     };
   }, [inputs]);
 
@@ -500,7 +500,9 @@ export const RothComparison = React.memo(function RothComparison({
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-semibold">Wealth Growth Timeline: Two Paths Diverge</h4>
-              <p className="text-xs text-muted-foreground mt-0.5">After-tax equivalent value (pre-tax balances reduced by embedded tax liability)</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Starts at retirement age so the after-tax inheritance gap is visible. Pre-tax balances are reduced by embedded tax liability.
+              </p>
             </div>
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-1.5">

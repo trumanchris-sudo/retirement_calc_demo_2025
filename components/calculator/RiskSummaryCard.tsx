@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, TrendingUp, TrendingDown, CheckCircle2, AlertCircle } from "lucide-react";
 import { TYPOGRAPHY } from "@/lib/designTokens";
+import { MONTE_CARLO_PATHS } from "@/lib/constants";
 
 export interface RiskSummaryCardProps {
   baseSuccessRate?: number;
@@ -43,6 +44,8 @@ export const RiskSummaryCard = React.memo(function RiskSummaryCard({
   const baseRisk = getRiskLevel(baseRate);
   const RiskIcon = currentRisk.icon;
   const BaseRiskIcon = baseRisk.icon;
+  const scenarioCount = MONTE_CARLO_PATHS.toLocaleString();
+  const successExample = Math.round(MONTE_CARLO_PATHS * 0.9).toLocaleString();
 
   return (
     <Card className="border-2 border-blue-200 dark:border-blue-800">
@@ -60,9 +63,9 @@ export const RiskSummaryCard = React.memo(function RiskSummaryCard({
         <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <h4 className={`${TYPOGRAPHY.tableCellCompact} font-semibold mb-1 text-blue-900 dark:text-blue-100`}>What Success Rate Means</h4>
           <p className={`${TYPOGRAPHY.tableCellCompact} text-blue-800 dark:text-blue-200 leading-relaxed`}>
-            We ran 1,000 different market scenarios. <strong>Success Rate</strong> shows the percentage where
+            We ran {scenarioCount} different market scenarios. <strong>Success Rate</strong> shows the percentage where
             your portfolio lasted through retirement without running out. For example, 90% means your plan
-            succeeded in 900 out of 1,000 scenarios. Higher is better!
+            succeeded in {successExample} out of {scenarioCount} scenarios. Higher is better!
           </p>
         </div>
 
@@ -85,7 +88,7 @@ export const RiskSummaryCard = React.memo(function RiskSummaryCard({
                   {successRate.toFixed(1)}%
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  (based on 1,000 Monte Carlo simulations using historical market volatility)
+                  (based on {scenarioCount} Monte Carlo simulations using historical market volatility)
                 </div>
               </div>
               <div className="text-right">

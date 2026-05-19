@@ -1,7 +1,13 @@
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
 let userConfig = undefined
 try {
   userConfig = await import('./v0-user-next.config')
-} catch (e) {
+} catch {
   // ignore error
 }
 
@@ -17,6 +23,9 @@ const nextConfig = {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
+  },
+  turbopack: {
+    root: __dirname,
   },
   // Note: Custom webpack splitChunks removed - it was breaking Next.js chunk loading in dev mode.
   // Next.js handles code splitting automatically and efficiently.

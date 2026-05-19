@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { XCircle, Calendar, DollarSign, Loader2 } from "lucide-react";
+import { MONTE_CARLO_PATHS } from "@/lib/constants";
 
 interface OptimizationResult {
   surplusAnnual: number;
@@ -23,6 +24,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<OptimizationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const scenarioCount = MONTE_CARLO_PATHS.toLocaleString();
 
   useEffect(() => {
     let worker: Worker;
@@ -67,7 +69,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
         <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
         <h3 className="text-xl font-semibold">Analyzing Financial Freedom...</h3>
         <p className="text-muted-foreground text-center max-w-md">
-          Crunching 10,000+ scenarios to find your freedom date, splurge capacity, and savings surplus.
+          Crunching {scenarioCount} scenarios to find your freedom date, splurge capacity, and savings surplus.
         </p>
       </div>
     );
@@ -141,7 +143,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
             <h4 className="font-semibold text-sm mb-2 text-purple-900 dark:text-purple-100">How This Was Determined</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
               This represents the maximum one-time expense you could afford in the first 5 years of retirement
-              while still maintaining a <strong>95% success rate</strong> across 1,000 Monte Carlo simulations.
+              while still maintaining a <strong>95% success rate</strong> across {scenarioCount} Monte Carlo simulations.
               We tested scenarios with increasing splurge amounts and found the highest value that doesn&apos;t
               compromise your long-term financial security.
             </p>
@@ -232,7 +234,7 @@ export default function OptimizationTab({ inputs, currentAge, plannedRetirementA
 
       {/* Summary note */}
       <div className="text-center text-xs text-muted-foreground p-4 bg-muted/50 rounded-lg">
-        All optimizations maintain a 95% success rate based on 1,000 Monte Carlo simulations per scenario.
+        All optimizations maintain a 95% success rate based on {scenarioCount} Monte Carlo simulations per scenario.
         Results may vary with market conditions and assumptions.
       </div>
     </div>

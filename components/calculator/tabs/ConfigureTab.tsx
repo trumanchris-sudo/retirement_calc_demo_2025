@@ -53,6 +53,8 @@ export function ConfigureTab({
   const taxableBalance = planConfig.taxableBalance ?? DEFAULTS.taxableBalance;
   const pretaxBalance = planConfig.pretaxBalance ?? DEFAULTS.pretaxBalance;
   const rothBalance = planConfig.rothBalance ?? DEFAULTS.rothBalance;
+  const homeValue = planConfig.homeValue ?? DEFAULTS.homeValue ?? 0;
+  const mortgageBalance = planConfig.mortgageBalance ?? DEFAULTS.mortgageBalance ?? 0;
 
   const cTax1 = planConfig.cTax1 ?? DEFAULTS.cTax1;
   const cPre1 = planConfig.cPre1 ?? DEFAULTS.cPre1;
@@ -108,6 +110,8 @@ export function ConfigureTab({
     setTaxableBalance,
     setPretaxBalance,
     setRothBalance,
+    setHomeValue,
+    setMortgageBalance,
     setCTax1,
     setCPre1,
     setCPost1,
@@ -201,6 +205,10 @@ export function ConfigureTab({
                     setPretaxBalance={setPretaxBalance}
                     rothBalance={rothBalance}
                     setRothBalance={setRothBalance}
+                    homeValue={homeValue}
+                    setHomeValue={setHomeValue}
+                    mortgageBalance={mortgageBalance}
+                    setMortgageBalance={setMortgageBalance}
                     onInputChange={onInputChange}
                   />
                 ),

@@ -44,6 +44,8 @@ export interface PlanConfigSetters {
   setTaxableBalance: (value: number) => void;
   setPretaxBalance: (value: number) => void;
   setRothBalance: (value: number) => void;
+  setHomeValue: (value: number) => void;
+  setMortgageBalance: (value: number) => void;
 
   // Contributions
   setCTax1: (value: number) => void;
@@ -220,6 +222,16 @@ export function usePlanConfigSetters(
 
   const setRothBalance = useCallback(
     (value: number) => { updatePlanConfig({ rothBalance: value }, 'user-entered'); markDirty(); },
+    [updatePlanConfig, markDirty],
+  );
+
+  const setHomeValue = useCallback(
+    (value: number) => { updatePlanConfig({ homeValue: value }, 'user-entered'); markDirty(); },
+    [updatePlanConfig, markDirty],
+  );
+
+  const setMortgageBalance = useCallback(
+    (value: number) => { updatePlanConfig({ mortgageBalance: value }, 'user-entered'); markDirty(); },
     [updatePlanConfig, markDirty],
   );
 
@@ -530,6 +542,7 @@ export function usePlanConfigSetters(
     setEmploymentType1, setEmploymentType2, setPrimaryIncome, setSpouseIncome,
     // Balances
     setEmergencyFund, setTaxableBalance, setPretaxBalance, setRothBalance,
+    setHomeValue, setMortgageBalance,
     // Contributions
     setCTax1, setCPre1, setCPost1, setCMatch1,
     setCTax2, setCPre2, setCPost2, setCMatch2,

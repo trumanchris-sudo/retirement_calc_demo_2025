@@ -10,7 +10,7 @@ export const getCurrYear = () => new Date().getFullYear();
 export const RMD_START_AGE = 73; // 2023 SECURE Act 2.0
 
 /** Monte Carlo simulation paths for statistical confidence */
-export const MONTE_CARLO_PATHS = 1000; // Reduced to prevent crashes with generational wealth calculations
+export const MONTE_CARLO_PATHS = 5000;
 
 /** RMD Divisor Table (IRS Uniform Lifetime Table) - Complete */
 export const RMD_DIVISORS: Record<number, number> = {
@@ -28,11 +28,12 @@ export const SS_BEND_POINTS = {
   second: 7749, // 32% of AIME between first and second, 15% above
 };
 
-/** Estate Tax (2026 IRS projected exemption, indexed for inflation) */
+/** Estate Tax (2026 IRS basic exclusion amount, indexed for inflation after 2026) */
 export const ESTATE_TAX_EXEMPTION: Record<'single' | 'married', number> = {
-  single: 13_610_000,   // $13.61M for individual (2026 projected, inflation-adjusted)
-  married: 27_220_000,  // $27.22M for married couple (portability)
+  single: 15_000_000,   // 2026 IRS basic exclusion amount per person
+  married: 30_000_000,  // Assumes portability for married couples
 } as const;
+export const ESTATE_EXEMPTION_INFLATION_RATE = 0.026;
 export const ESTATE_TAX_RATE = 0.40; // 40% on amount over exemption
 
 /** 2026 ordinary brackets + standard deductions

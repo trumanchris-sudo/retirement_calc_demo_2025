@@ -39,7 +39,7 @@ import {
 } from "./shared";
 
 // Import from lib/constants for things not in shared (like estate tax, getCurrYear)
-import { ESTATE_TAX_EXEMPTION, ESTATE_TAX_RATE, getCurrYear } from "@/lib/constants";
+import { ESTATE_EXEMPTION_INFLATION_RATE, ESTATE_TAX_EXEMPTION, ESTATE_TAX_RATE, getCurrYear } from "@/lib/constants";
 // Note: IRMAA_BRACKETS_2026 is imported in shared/constants and used via getIRMAASurcharge
 
 // Re-export types and functions for consumers of this module
@@ -246,33 +246,32 @@ export function calcCombinedSocialSecurity(
 
 /**
  * Calculate Estate Tax with 2026 exemption, indexed for inflation
- * Base exemption: $13.61M single / $27.22M married (portability), inflated at 2.6% from 2027
+ * Base exemption: $15M single / $30M married (portability), inflated from 2027
  * @param totalEstate - Total estate value (all accounts)
  * @param status - Filing status (single or married)
  * @param year - Year of death (defaults to current year)
  * @param assumeExtended - Legacy parameter (kept for API compatibility)
  */
+export function calcEstateTaxExemption(
+  status: FilingStatus = "single",
+  year: number = getCurrYear()
+): number {
+  const baseExemption = ESTATE_TAX_EXEMPTION[status];
+
+  if (year >= 2027) {
+    const yearsAfter2026 = year - 2026;
+    return baseExemption * Math.pow(1 + ESTATE_EXEMPTION_INFLATION_RATE, yearsAfter2026);
+  }
+
+  return baseExemption;
+}
+
 export function calcEstateTax(
   totalEstate: number,
   status: FilingStatus = "single",
   year: number = getCurrYear()
 ): number {
-  let exemption: number;
-
-  // 2026 base exemption: $13.61M single / $27.22M married
-  // Apply inflation adjustment starting from 2027
-  const baseExemption = ESTATE_TAX_EXEMPTION[status];
-
-  if (year >= 2027) {
-    // Inflation indexing starts in 2027
-    const yearsAfter2026 = year - 2026;
-    const inflationFactor = Math.pow(1.026, yearsAfter2026); // ~2.6% annual inflation
-    exemption = baseExemption * inflationFactor;
-  } else {
-    // 2026 and earlier use base exemption
-    exemption = baseExemption;
-  }
-
+  const exemption = calcEstateTaxExemption(status, year);
   if (totalEstate <= exemption) return 0;
   const taxableEstate = totalEstate - exemption;
   return taxableEstate * ESTATE_TAX_RATE;

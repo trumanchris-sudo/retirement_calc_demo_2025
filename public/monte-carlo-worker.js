@@ -1364,7 +1364,7 @@
       }
       if (t >= nextGenerationCheckpoint && generationData.length < 10) {
         const estateValueNominal = fundReal * Math.pow(1 + inflPct / 100, yearsFrom2025 + t);
-        const baseExemption = marital === "married" ? 2722e4 : 1361e4;
+        const baseExemption = marital === "married" ? 3e7 : 15e6;
         const currentYear = 2026 + yearsFrom2025 + t;
         const yearsAfter2026 = currentYear - 2026;
         const inflatedExemption = yearsAfter2026 > 0 ? baseExemption * Math.pow(1.026, yearsAfter2026) : baseExemption;

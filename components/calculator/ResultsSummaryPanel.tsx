@@ -1,6 +1,6 @@
 'use client'
 
-import React, { Suspense, useMemo } from "react";
+import React, { Suspense, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw } from "lucide-react";
@@ -140,6 +140,8 @@ export function ResultsSummaryPanel({
   deleteScenario,
   loadScenario,
 }: ResultsSummaryPanelProps) {
+  const [estateValueMode, setEstateValueMode] = useState<'real' | 'nominal'>('real');
+
   // Pre-compute scenario comparison data to avoid recalculation on each render
   const comparisonData = useMemo(() => {
     if (!res || savedScenarios.length === 0) return null;
@@ -158,20 +160,49 @@ export function ResultsSummaryPanel({
     return { selectedScenarioData, maxEOL, maxIncome, maxBalance };
   }, [savedScenarios, res, selectedScenarios]);
 
+  const estateDisplay = useMemo(() => {
+    if (!res) return null;
+
+    const realGross = res.eolReal || res.eol || 0;
+    const nominalGross = res.eol || realGross;
+    const realEstateTax = res.estateTax || 0;
+    const nominalEstateTax = res.estateTaxNominal ?? realEstateTax;
+    const realNetEstate = res.netEstate || Math.max(0, realGross - realEstateTax);
+    const nominalNetEstate = Math.max(0, nominalGross - nominalEstateTax);
+    const scale = estateValueMode === 'nominal' && realGross > 0 ? nominalGross / realGross : 1;
+
+    return {
+      mode: estateValueMode,
+      label: estateValueMode === 'nominal' ? 'future dollars' : "today's dollars",
+      gross: estateValueMode === 'nominal' ? nominalGross : realGross,
+      estateTax: estateValueMode === 'nominal' ? nominalEstateTax : realEstateTax,
+      netEstate: estateValueMode === 'nominal' ? nominalNetEstate : realNetEstate,
+      exemption: estateValueMode === 'nominal'
+        ? res.estateTaxExemptionNominal
+        : res.estateTaxExemptionReal,
+      accountScale: scale,
+    };
+  }, [estateValueMode, res]);
+
   const sankeyData = useMemo(() => {
     if (!res?.eolAccounts || !res.eol || res.eol <= 0) return null;
+    const display = estateDisplay;
+    if (!display || display.gross <= 0) return null;
+
+    const taxable = res.eolAccounts.taxable * display.accountScale;
+    const pretax = res.eolAccounts.pretax * display.accountScale;
+    const roth = res.eolAccounts.roth * display.accountScale;
 
     const nodes = [
-      { name: `Taxable — ${fmt(res.eolAccounts.taxable)}` },
-      { name: `Pre-Tax — ${fmt(res.eolAccounts.pretax)}` },
-      { name: `Roth — ${fmt(res.eolAccounts.roth)}` },
-      { name: `Estate Tax — ${fmt(res.estateTax || 0)}` },
-      { name: `Net to Heirs — ${fmt(res.netEstate || res.eol)}` },
+      { name: `Taxable — ${fmt(taxable)}` },
+      { name: `Pre-Tax — ${fmt(pretax)}` },
+      { name: `Roth — ${fmt(roth)}` },
+      { name: `Estate Tax — ${fmt(display.estateTax)}` },
+      { name: `Net to Heirs — ${fmt(display.netEstate)}` },
     ];
 
-    const totalReal = res.eolReal || res.eol;
-    const taxRatio = (res.estateTax || 0) / totalReal;
-    const heirRatio = (res.netEstate || totalReal) / totalReal;
+    const taxRatio = display.estateTax / display.gross;
+    const heirRatio = display.netEstate / display.gross;
 
     const links: Array<{
       source: number;
@@ -183,61 +214,61 @@ export function ResultsSummaryPanel({
     }> = [];
 
     // Taxable flows
-    if (res.estateTax > 0 && res.eolAccounts.taxable > 0) {
+    if (display.estateTax > 0 && taxable > 0) {
       links.push({
         source: 0, target: 3,
-        value: res.eolAccounts.taxable * taxRatio,
+        value: taxable * taxRatio,
         color: SANKEY_COLORS.accounts.taxable,
         sourceName: 'Taxable', targetName: 'Estate Tax',
       });
     }
-    if (res.eolAccounts.taxable > 0) {
+    if (taxable > 0) {
       links.push({
         source: 0, target: 4,
-        value: res.eolAccounts.taxable * heirRatio,
+        value: taxable * heirRatio,
         color: SANKEY_COLORS.accounts.taxable,
         sourceName: 'Taxable', targetName: 'Net to Heirs',
       });
     }
 
     // Pre-tax flows
-    if (res.estateTax > 0 && res.eolAccounts.pretax > 0) {
+    if (display.estateTax > 0 && pretax > 0) {
       links.push({
         source: 1, target: 3,
-        value: res.eolAccounts.pretax * taxRatio,
+        value: pretax * taxRatio,
         color: SANKEY_COLORS.accounts["401k"],
         sourceName: 'Pre-Tax', targetName: 'Estate Tax',
       });
     }
-    if (res.eolAccounts.pretax > 0) {
+    if (pretax > 0) {
       links.push({
         source: 1, target: 4,
-        value: res.eolAccounts.pretax * heirRatio,
+        value: pretax * heirRatio,
         color: SANKEY_COLORS.accounts["401k"],
         sourceName: 'Pre-Tax', targetName: 'Net to Heirs',
       });
     }
 
     // Roth flows
-    if (res.estateTax > 0 && res.eolAccounts.roth > 0) {
+    if (display.estateTax > 0 && roth > 0) {
       links.push({
         source: 2, target: 3,
-        value: res.eolAccounts.roth * taxRatio,
+        value: roth * taxRatio,
         color: SANKEY_COLORS.accounts.roth,
         sourceName: 'Roth', targetName: 'Estate Tax',
       });
     }
-    if (res.eolAccounts.roth > 0) {
+    if (roth > 0) {
       links.push({
         source: 2, target: 4,
-        value: res.eolAccounts.roth * heirRatio,
+        value: roth * heirRatio,
         color: SANKEY_COLORS.accounts.roth,
         sourceName: 'Roth', targetName: 'Net to Heirs',
       });
     }
 
     return { nodes, links };
-  }, [res]);
+  }, [estateDisplay, res]);
 
   if (!res) {
     return (
@@ -514,8 +545,26 @@ export function ResultsSummaryPanel({
                           What Does This Mean?
                         </Button>
                       </CardTitle>
-                      <CardDescription className="flex items-center justify-between">
-                        <span>From end-of-life balance to net inheritance (all values in today&apos;s dollars)</span>
+                      <CardDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <span>
+                          From end-of-life balance to net inheritance
+                          {estateDisplay ? ` (${estateDisplay.label})` : ''}
+                        </span>
+                        <ToggleGroup
+                          type="single"
+                          value={estateValueMode}
+                          onValueChange={(value) => {
+                            if (value === 'real' || value === 'nominal') setEstateValueMode(value);
+                          }}
+                          className="w-full rounded-lg bg-muted p-1 sm:w-auto"
+                        >
+                          <ToggleGroupItem value="real" className="flex-1 rounded-md px-3 text-xs sm:flex-none">
+                            Today&apos;s $
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="nominal" className="flex-1 rounded-md px-3 text-xs sm:flex-none">
+                            Future $
+                          </ToggleGroupItem>
+                        </ToggleGroup>
                         {res.probRuin !== undefined && (
                           <span className="text-xs text-muted-foreground">
                             Risk of Outliving Savings: <span className="font-semibold">{(res.probRuin * 100).toFixed(0)}%</span>
@@ -530,7 +579,12 @@ export function ResultsSummaryPanel({
                     <div className="wealth-flow-responsive" role="img" aria-label="Sankey diagram showing lifetime wealth flow from taxable, pre-tax, and Roth accounts to estate tax and net inheritance">
                     {/* Screen-reader-only text summary of the wealth flows */}
                     <span className="sr-only">
-                      Wealth flow summary: Taxable account balance {fmt(res.eolAccounts.taxable)}, Pre-tax account balance {fmt(res.eolAccounts.pretax)}, Roth account balance {fmt(res.eolAccounts.roth)}. Estate tax: {fmt(res.estateTax || 0)}. Net to heirs: {fmt(res.netEstate || res.eol)}.
+                      Wealth flow summary in {estateDisplay?.label ?? "today's dollars"}:
+                      Taxable account balance {fmt((res.eolAccounts.taxable) * (estateDisplay?.accountScale ?? 1))},
+                      Pre-tax account balance {fmt((res.eolAccounts.pretax) * (estateDisplay?.accountScale ?? 1))},
+                      Roth account balance {fmt((res.eolAccounts.roth) * (estateDisplay?.accountScale ?? 1))}.
+                      Estate tax: {fmt(estateDisplay?.estateTax ?? 0)}.
+                      Net to heirs: {fmt(estateDisplay?.netEstate ?? 0)}.
                     </span>
                     <ResponsiveContainer width="100%" height={350}>
                       <Sankey
@@ -559,7 +613,7 @@ export function ResultsSummaryPanel({
                                 className="hover:stroke-opacity-90"
                               />
                               <title>
-                                {`${payload?.sourceName} → ${payload?.targetName}\n${fmt(payload?.value || 0)} (${((payload?.value || 0) / res.eol * 100).toFixed(1)}% of total)`}
+                                {`${payload?.sourceName} → ${payload?.targetName}\n${fmt(payload?.value || 0)} (${((payload?.value || 0) / (estateDisplay?.gross || res.eol || 1) * 100).toFixed(1)}% of total)`}
                               </title>
                             </g>
                           );
@@ -649,6 +703,13 @@ export function ResultsSummaryPanel({
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         <span className="font-semibold">Disclaimer:</span> This Lifetime Wealth Flow illustration attributes estate tax proportionally across all account types (taxable, pre-tax, and Roth) based on their share of the total estate. In practice, executors often choose to satisfy estate tax using taxable assets first to preserve tax-advantaged accounts like Roth IRAs. However, federal estate tax is imposed on the value of the entire estate—not on specific accounts—and the economic burden ultimately depends on your estate structure, beneficiary designations, and the tax treatment of your trust or inheritance plan (including whether a dynasty trust is used and how it is taxed). This chart is a simplified economic attribution model and should not be interpreted as guidance on which assets will or should be used to pay estate tax.
                       </p>
+                      {estateDisplay?.exemption !== undefined && (
+                        <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+                          Federal estate tax uses the 2026 basic exclusion amount projected to the modeled year of death.
+                          In {estateDisplay.label}, the projected exemption is {fmt(estateDisplay.exemption)}.
+                          If portfolio growth exceeds inflation indexing of that exemption, the taxable estate can reappear even when today&apos;s estate looks below the threshold.
+                        </p>
+                      )}
                     </div>
 
                     {/* Total RMDs if applicable */}

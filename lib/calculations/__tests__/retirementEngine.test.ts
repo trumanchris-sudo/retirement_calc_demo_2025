@@ -3,7 +3,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { runSingleSimulation, type SimulationInputs } from '../retirementEngine';
+import {
+  calcEstateTax,
+  calcEstateTaxExemption,
+  runSingleSimulation,
+  type SimulationInputs,
+} from '../retirementEngine';
 
 describe('Retirement Engine', () => {
   // Helper to create default test inputs
@@ -483,6 +488,26 @@ describe('Retirement Engine', () => {
       // RMDs will kick in, should complete successfully
       expect(result.balancesReal).toBeInstanceOf(Array);
       expect(result.eolReal).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('estate tax current law projection', () => {
+    it('uses the 2026 OBBBA basic exclusion amount as the projection base', () => {
+      expect(calcEstateTaxExemption('single', 2026)).toBe(15_000_000);
+      expect(calcEstateTaxExemption('married', 2026)).toBe(30_000_000);
+    });
+
+    it('indexes the exemption after 2026 but still taxes estates growing faster than inflation', () => {
+      const year = 2056;
+      const exemption = calcEstateTaxExemption('married', year);
+      const fasterGrowingEstate = 30_000_000 * Math.pow(1.05, year - 2026);
+
+      expect(exemption).toBeGreaterThan(30_000_000);
+      expect(fasterGrowingEstate).toBeGreaterThan(exemption);
+      expect(calcEstateTax(fasterGrowingEstate, 'married', year)).toBeCloseTo(
+        (fasterGrowingEstate - exemption) * 0.4,
+        2
+      );
     });
   });
 });

@@ -20,12 +20,14 @@ import {
   calcSocialSecurity,
   calcRMD,
   calcEstateTax,
+  calcEstateTaxExemption,
   type SimulationInputs,
 } from '@/lib/calculations/retirementEngine';
 import { buildSimulationInputs, hashSimulationInputs } from '@/lib/calculations/buildSimulationInputs';
 import {
   getCurrYear,
   LIFE_EXP,
+  MONTE_CARLO_PATHS,
   RMD_START_AGE,
 } from '@/lib/constants';
 import type { CalculationResult, ComparisonData, GenerationalPayout, BondGlidePath } from '@/types/calculator';
@@ -428,7 +430,7 @@ export function useCalculation(deps: CalcDeps) {
       const initialRothRatio = initialTotal > 0 ? rothBalance / initialTotal : 0.2;
 
       // Determine simulation count based on mode
-      const simCount = randomWalkSeries === 'trulyRandom' ? 1000 : 1;
+      const simCount = randomWalkSeries === 'trulyRandom' ? MONTE_CARLO_PATHS : 1;
 
       let batchResult: BatchSummary;
       try {
@@ -507,8 +509,12 @@ export function useCalculation(deps: CalcDeps) {
 
       // Calculate estate tax
       const yearOfDeath = getCurrYear() + (LIFE_EXP - older);
+      const estateTaxExemptionNominal = calcEstateTaxExemption(marital, yearOfDeath);
       const estateTax = calcEstateTax(eolWealth, marital, yearOfDeath);
       const realEstateTax = eolWealth > 0 ? estateTax * (eolReal / eolWealth) : 0;
+      const estateTaxExemptionReal = eolWealth > 0
+        ? estateTaxExemptionNominal * (eolReal / eolWealth)
+        : estateTaxExemptionNominal / Math.pow(1 + infl, yearsFrom2025);
       const netEstate = eolReal - realEstateTax;
 
       // Generational payout calculation (if enabled)
@@ -699,6 +705,8 @@ export function useCalculation(deps: CalcDeps) {
         eolReal,
         estateTax: realEstateTax,
         estateTaxNominal: estateTax,
+        estateTaxExemptionNominal,
+        estateTaxExemptionReal,
         netEstate,
         eolAccounts: {
           taxable: eolReal * initialTaxableRatio,

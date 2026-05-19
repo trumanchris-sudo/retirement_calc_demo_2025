@@ -12,7 +12,7 @@ import type { WaterfallDataPoint } from "@/components/visualizations/WaterfallCh
 import type { TreemapNode } from "@/components/visualizations/Treemap";
 import type { CalculationResult } from "@/types/calculator";
 import { fmt } from "@/lib/utils";
-import { PiggyBank, Landmark, Wallet } from "lucide-react";
+import { Home, PiggyBank, Landmark, Wallet } from "lucide-react";
 
 const Loading = () => <div className="h-64 animate-pulse bg-muted rounded" />;
 
@@ -21,11 +21,6 @@ const HeatmapCalendar = dynamic(() => import("@/components/visualizations/Heatma
 const RadarChart = dynamic(() => import("@/components/visualizations/RadarChart"), { ssr: false, loading: Loading });
 const Treemap = dynamic(() => import("@/components/visualizations/Treemap"), { ssr: false, loading: Loading });
 const WaterfallChart = dynamic(() => import("@/components/visualizations/WaterfallChart"), { ssr: false, loading: Loading });
-const NetWorthDashboard = dynamic(() => import("@/components/dashboard/NetWorthDashboard"), { ssr: false, loading: Loading });
-const NetWorthProjector = dynamic(() => import("@/components/calculator/NetWorthProjector"), { ssr: false, loading: Loading });
-const NetWorthTracker = dynamic(() => import("@/components/calculator/NetWorthTracker"), { ssr: false, loading: Loading });
-const IncomeLadder = dynamic(() => import("@/components/income/IncomeLadder"), { ssr: false, loading: Loading });
-const DividendTracker = dynamic(() => import("@/components/income/DividendTracker"), { ssr: false, loading: Loading });
 const MilestoneTracker = dynamic(() => import("@/components/calculator/MilestoneTracker"), { ssr: false, loading: Loading });
 const WealthTimeline = dynamic(() => import("@/components/calculator/WealthTimeline"), { ssr: false, loading: Loading });
 const IncomeReplacementViz = dynamic(() => import("@/components/calculator/IncomeReplacementViz"), { ssr: false, loading: Loading });
@@ -43,7 +38,10 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
   const taxable = planConfig.taxableBalance ?? D.taxableBalance;
   const pretax = planConfig.pretaxBalance ?? D.pretaxBalance;
   const roth = planConfig.rothBalance ?? D.rothBalance;
+  const homeValue = planConfig.homeValue ?? D.homeValue ?? 0;
+  const mortgageBalance = planConfig.mortgageBalance ?? D.mortgageBalance ?? 0;
   const totalBalance = taxable + pretax + roth;
+  const totalNetWorth = totalBalance + (planConfig.emergencyFund ?? D.emergencyFund) + homeValue - mortgageBalance;
   const annualContributions =
     (planConfig.cTax1 ?? D.cTax1) +
     (planConfig.cPre1 ?? D.cPre1) +
@@ -53,7 +51,6 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
     (planConfig.cPre2 ?? D.cPre2) +
     (planConfig.cPost2 ?? D.cPost2) +
     (planConfig.cMatch2 ?? D.cMatch2);
-  const targetRetirementIncome = (planConfig.primaryIncome ?? D.primaryIncome) * 0.8;
   const grossIncome = (planConfig.primaryIncome ?? D.primaryIncome) +
     (planConfig.spouseIncome ?? D.spouseIncome ?? 0);
 
@@ -507,9 +504,17 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
         icon: React.createElement(PiggyBank, { className: "w-3 h-3" }),
       });
     }
+    if (homeValue > 0) {
+      assets.push({
+        name: "Home",
+        value: homeValue,
+        category: "real_estate",
+        icon: React.createElement(Home, { className: "w-3 h-3" }),
+      });
+    }
 
     return assets;
-  }, [pretax, roth, taxable, planConfig, D]);
+  }, [pretax, roth, taxable, homeValue, planConfig, D]);
 
   const netWorthLiabilities = useMemo(() => {
     const liabilities: Array<{
@@ -518,50 +523,16 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
       monthlyPayment?: number;
     }> = [];
 
-    const mortgage = planConfig.monthlyMortgageRent ?? 0;
-    if (mortgage > 0) {
-      // Estimate remaining mortgage balance from monthly payment (~25 year term, ~4% rate)
+    if (mortgageBalance > 0) {
       liabilities.push({
-        name: "Mortgage/Rent (est.)",
-        balance: Math.round(mortgage * 200),
-        monthlyPayment: mortgage,
+        name: "Mortgage",
+        balance: mortgageBalance,
+        monthlyPayment: planConfig.monthlyMortgageRent,
       });
     }
 
     return liabilities;
-  }, [planConfig]);
-
-  const netWorthHistory = useMemo(() => {
-    const retRate = (planConfig.retRate ?? D.retRate) / 100;
-    const monthlyRate = retRate / 12;
-    const monthlyContrib = annualContributions / 12;
-    const totalAssetsNow = totalBalance + (planConfig.emergencyFund ?? D.emergencyFund);
-
-    // Project 12 months of history (backwards from now)
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth();
-    const currentYear = currentDate.getFullYear();
-
-    const liabilityBalance = netWorthLiabilities.reduce((s, l) => s + l.balance, 0);
-
-    return Array.from({ length: 12 }, (_, i) => {
-      // Months ago from current
-      const monthsAgo = 11 - i;
-      const factor = Math.pow(1 + monthlyRate, -monthsAgo);
-      const contribAdjust = monthlyContrib * monthsAgo;
-      const assets = Math.round(Math.max(0, totalAssetsNow * factor - contribAdjust + monthlyContrib * i));
-      const monthIdx = (currentMonth - monthsAgo + 12) % 12;
-      const yearOffset = currentMonth - monthsAgo < 0 ? -1 : 0;
-      return {
-        date: `${months[monthIdx]} ${currentYear + yearOffset}`,
-        totalAssets: assets,
-        totalLiabilities: Math.round(liabilityBalance * (1 + 0.001 * monthsAgo)),
-        netWorth: assets - Math.round(liabilityBalance * (1 + 0.001 * monthsAgo)),
-      };
-    });
-  }, [totalBalance, annualContributions, planConfig, D, netWorthLiabilities]);
+  }, [mortgageBalance, planConfig.monthlyMortgageRent]);
 
   // When all balances, contributions, and income are zero, show an empty state
   // instead of rendering charts with meaningless or NaN-producing data.
@@ -601,22 +572,54 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
           <AccordionTrigger className="text-lg font-semibold">Net Worth & Wealth</AccordionTrigger>
           <AccordionContent>
             <div className="space-y-6 pt-4">
-              <NetWorthDashboard
-                assets={netWorthAssets}
-                liabilities={netWorthLiabilities}
-                history={netWorthHistory}
-                currentAge={age}
-              />
-              <NetWorthProjector
-                totalAssets={totalBalance}
-                totalLiabilities={0}
-                taxableBalance={taxable}
-                pretaxBalance={pretax}
-                rothBalance={roth}
-                annualContributions={annualContributions}
-                currentAge={age}
-              />
-              <NetWorthTracker />
+              <div className="rounded-lg border bg-card p-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3 className="text-base font-semibold">Connected Net Worth</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Uses only fields you entered in the planner. Manual tracking, fake history, and account-link placeholders are disabled.
+                    </p>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <p className="text-xs text-muted-foreground">Current net worth</p>
+                    <p className="text-2xl font-bold">{fmt(totalNetWorth)}</p>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Assets</p>
+                    <div className="space-y-2">
+                      {netWorthAssets.map((asset) => (
+                        <div key={asset.name} className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
+                          <span className="flex items-center gap-2">{asset.icon}{asset.name}</span>
+                          <span className="font-mono font-medium">{fmt(asset.value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Liabilities</p>
+                    {netWorthLiabilities.length > 0 ? (
+                      <div className="space-y-2">
+                        {netWorthLiabilities.map((liability) => (
+                          <div key={liability.name} className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
+                            <span>{liability.name}</span>
+                            <span className="font-mono font-medium">-{fmt(liability.balance)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground">No debt entered.</p>
+                    )}
+                    {homeValue === 0 && (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Add home value and mortgage balance in Current Balances to include home equity.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
               {calculationResult ? (
                 <WealthTimeline
                   result={calculationResult}
@@ -637,26 +640,32 @@ export default function ResultsVisualizationsSection({ calculationResult }: Resu
           <AccordionTrigger className="text-lg font-semibold">Income Analysis</AccordionTrigger>
           <AccordionContent>
             <div className="space-y-6 pt-4">
-              <IncomeLadder
-                currentAge={age}
-                retirementAge={retAge}
-                targetRetirementIncome={targetRetirementIncome}
-              />
-              <DividendTracker />
-              <IncomeReplacementViz
-                portfolioAtRetirement={totalBalance}
-                withdrawalRate={planConfig.wdRate ?? D.wdRate}
-                inflationRate={planConfig.inflationRate ?? D.inflationRate}
-                currentAge={age}
-                retirementAge={retAge}
-                maritalStatus={planConfig.marital ?? D.marital}
-                currentAnnualIncome={planConfig.primaryIncome ?? D.primaryIncome}
-                includeSocialSecurity={planConfig.includeSS ?? D.includeSS}
-                ssAverageEarnings={planConfig.ssIncome ?? D.ssIncome}
-                ssClaimAge={planConfig.ssClaimAge ?? D.ssClaimAge}
-                pretaxBalance={pretax}
-                stateRate={planConfig.stateRate ?? D.stateRate}
-              />
+              <div className="rounded-lg border bg-card p-5">
+                <h3 className="text-base font-semibold">Connected Income Analysis</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Dividend tracking and detailed income ladders need actual holdings or account data, so they are disabled for now. No Square/Plaid-style connection is required for the retirement income replacement view below.
+                </p>
+              </div>
+              {calculationResult ? (
+                <IncomeReplacementViz
+                  portfolioAtRetirement={calculationResult.finReal}
+                  withdrawalRate={planConfig.wdRate ?? D.wdRate}
+                  inflationRate={planConfig.inflationRate ?? D.inflationRate}
+                  currentAge={age}
+                  retirementAge={retAge}
+                  maritalStatus={planConfig.marital ?? D.marital}
+                  currentAnnualIncome={planConfig.primaryIncome ?? D.primaryIncome}
+                  includeSocialSecurity={planConfig.includeSS ?? D.includeSS}
+                  ssAverageEarnings={planConfig.ssIncome ?? D.ssIncome}
+                  ssClaimAge={planConfig.ssClaimAge ?? D.ssClaimAge}
+                  pretaxBalance={pretax}
+                  stateRate={planConfig.stateRate ?? D.stateRate}
+                />
+              ) : (
+                <div className="rounded-lg border bg-card p-6 text-center text-muted-foreground">
+                  <p className="text-sm">Run a calculation to see income replacement analysis.</p>
+                </div>
+              )}
             </div>
           </AccordionContent>
         </AccordionItem>

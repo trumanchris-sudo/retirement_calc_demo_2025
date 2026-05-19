@@ -10,6 +10,7 @@ import { RecalculateButton } from "@/components/calculator/RecalculateButton";
 import { ScenarioComparisonChart } from "@/components/calculator/charts";
 import { BEAR_MARKET_SCENARIOS } from "@/lib/simulation/bearMarkets";
 import { INFLATION_SHOCK_SCENARIOS } from "@/lib/simulation/inflationShocks";
+import { MONTE_CARLO_PATHS } from "@/lib/constants";
 import type { CalculationResult, ComparisonData } from "@/types/calculator";
 import type { ReturnMode } from "@/types/planner";
 import { fmt } from "@/lib/utils";
@@ -204,7 +205,7 @@ export function ScenariosTab({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
-                          <strong>Your Monte Carlo simulation already accounts for this!</strong> By running 1,000 simulations with different return sequences,
+                          <strong>Your Monte Carlo simulation already accounts for this!</strong> By running {MONTE_CARLO_PATHS.toLocaleString()} simulations with different return sequences,
                           it includes outcomes similar to these historical stress tests.
                         </div>
                       </div>

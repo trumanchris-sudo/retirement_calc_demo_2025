@@ -123,6 +123,7 @@ import { OnboardingSelector } from "@/components/onboarding/OnboardingSelector";
 import { AIReviewPanel } from "@/components/AIReviewPanel";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useTheme } from "@/lib/theme-context";
+import { MONTE_CARLO_PATHS } from "@/lib/constants";
 
 // Import types
 import type { SavedScenario } from "@/types/calculator";
@@ -1013,7 +1014,7 @@ export default function App() {
               rothContrib={fmt(cPost1)}
               inflation={inflationRate}
               withdrawalRate={wdRate}
-              monteCarloRuns={1000}
+              monteCarloRuns={MONTE_CARLO_PATHS}
               returnModel={returnMode === 'fixed' ? `Fixed at ${retRate}%` : 'Historical 1928–2024 bootstrap'}
             />
             </div>

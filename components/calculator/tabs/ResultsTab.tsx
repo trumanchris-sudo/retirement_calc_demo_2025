@@ -74,6 +74,7 @@ export function ResultsTab({
   calculatorInputs
 }: ResultsTabProps) {
   const chartFallback = <ChartLoadingFallback height="h-[400px]" />;
+  const hasPercentileBands = res?.data?.some((point) => point.p10 !== undefined || point.p90 !== undefined) ?? false;
 
   return (
     <>
@@ -92,13 +93,13 @@ export function ResultsTab({
                 </TabsList>
 
                 <TabsContent value="accumulation" className="space-y-4" aria-live="polite">
-                  {walkSeries === 'trulyRandom' && (
+                  {(walkSeries === 'trulyRandom' || hasPercentileBands) && (
                     <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 items-start sm:items-center print-hide">
                       <div className="flex items-center space-x-2 min-h-[44px]">
                         <Checkbox
                           id="show-p10"
                           checked={showP10}
-                          onCheckedChange={(checked) => setShowP10(checked as boolean)}
+                          onCheckedChange={(checked) => setShowP10(checked === true)}
                           className="h-5 w-5"
                         />
                         <label
@@ -112,7 +113,7 @@ export function ResultsTab({
                         <Checkbox
                           id="show-p90"
                           checked={showP90}
-                          onCheckedChange={(checked) => setShowP90(checked as boolean)}
+                          onCheckedChange={(checked) => setShowP90(checked === true)}
                           className="h-5 w-5"
                         />
                         <label

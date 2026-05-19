@@ -82,6 +82,8 @@ const NUMERIC_RULES = {
   taxableBalance: { min: 0, max: VALIDATION_RULES.balance.max },
   pretaxBalance: { min: 0, max: VALIDATION_RULES.balance.max },
   rothBalance: { min: 0, max: VALIDATION_RULES.balance.max },
+  homeValue: { min: 0, max: VALIDATION_RULES.balance.max, optional: true },
+  mortgageBalance: { min: 0, max: VALIDATION_RULES.balance.max, optional: true },
   cTax1: { min: 0, max: VALIDATION_RULES.balance.max },
   cPre1: { min: 0, max: 100_000 },
   cPost1: { min: 0, max: 100_000 },

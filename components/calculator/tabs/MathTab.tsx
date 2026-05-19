@@ -8,6 +8,7 @@ import {
   RMD_START_AGE,
   NIIT_THRESHOLD,
   ESTATE_TAX_EXEMPTION,
+  MONTE_CARLO_PATHS,
   SS_BEND_POINTS,
 } from "@/lib/constants";
 
@@ -70,7 +71,7 @@ export function MathTab({
                 <ul className="list-disc pl-6 space-y-1 text-gray-700">
                   <li><strong>Fixed Return:</strong> All accounts grow by a constant rate (e.g., 9.8%) each year: Balance<sub>year+1</sub> = Balance<sub>year</sub> x (1 + r)</li>
                   <li><strong>Random Walk:</strong> Returns are randomly sampled from 97 years of historical S&P 500 data (1928-2024), using a seeded pseudo-random number generator for reproducibility. Each year gets a different historical return, bootstrapped with replacement.</li>
-                  <li><strong>Truly Random (Monte Carlo):</strong> Runs 1,000 independent simulations, each with different sequences of returns randomly sampled from 97 years of S&P 500 historical data (1928-2024, including Great Depression, stagflation, dot-com crash, 2008 crisis). Reports conservative average outcomes (P25-P50 percentile) and calculates probability of portfolio depletion based on actual simulation results - captures real sequence risk without idealized assumptions.</li>
+                  <li><strong>Truly Random (Monte Carlo):</strong> Runs {MONTE_CARLO_PATHS.toLocaleString()} independent simulations, each with different sequences of returns randomly sampled from 97 years of S&P 500 historical data (1928-2024, including Great Depression, stagflation, dot-com crash, 2008 crisis). Reports conservative average outcomes (P25-P50 percentile) and calculates probability of portfolio depletion based on actual simulation results - captures real sequence risk without idealized assumptions.</li>
                 </ul>
               </div>
 
@@ -401,7 +402,7 @@ export function MathTab({
                 not repealed by future legislation.
               </li>
               <li>
-                <strong>Sequence-of-Returns Risk:</strong> In Truly Random (Monte Carlo) mode with 1,000 simulations,
+                <strong>Sequence-of-Returns Risk:</strong> In Truly Random (Monte Carlo) mode with {MONTE_CARLO_PATHS.toLocaleString()} simulations,
                 sequence risk is fully captured - bad early returns can deplete portfolios even if average returns are
                 good. Fixed and Random Walk modes don&apos;t model this risk as thoroughly. The percentile bands (10th, 50th, 90th for charts; 25th, 50th, 75th for success rates)
                 show the range of outcomes from sequence variation.
